@@ -48,8 +48,39 @@ his phone rests on every done rung being real. With no `done` array at all
 the ladder still says so in words instead of a tick nobody measured. See
 ladder_rungs() and ladder_html() below.
 
+RULING OF 2026-09-09, VERBATIM, AND IT IS A JUDGEMENT ON THIS PAGE. "Ruling on
+the map. It is wrong by construction. The heatmap I approved on 31 August,
+every system a tile in five areas coloured exists, partial or absent, is the
+map. production/systems-inventory.json is its data, and the page refuses to
+show it because the states are typed. ON THIS PAGE, TYPED IS THE STANDARD: a
+director's overview is a human's judgement of state, ruled by me and updated by
+rulings; measured evidence sits one tap below and never on the first screen.
+Rebuild it: the ladder stays at the top, then the heatmap, five areas as drawn
+(the moat, the world, what the player touches, content, the studio), every
+system a tile, three colours, one screen on a phone, then the next three. The
+seven prose areas and the gate-derived phrases move below the fold as the audit
+view."
+
+WHAT THAT OVERTURNED, SO NO FUTURE SESSION RE-DERIVES THE OLD RULE FROM THE OLD
+CODE. This page's whole design was that a word on the first screen must be
+DERIVED from a measurement, and four guards enforced it: noComfortingBar,
+availabilityWords, noAbsenceClaim and playerControlMatchesScan. They were right
+for the page this was and they are the reason it could not show the board he
+approved. NONE IS DELETED: every one of them now guards the AUDIT VIEW, which
+is still derived and must stay honest. What changed is the SURFACE each one
+speaks about, and that fact is a table (HALF_OF, beside run_checks) printed on
+every run as <checkName>Half=, because a guard whose scope silently narrowed is
+worse than one that was deleted. What replaces the refusal to draw is
+check_heatmap_is_typed_not_measured: the board SAYS on its face that its
+colours are a human's judgement.
+
+THE PAGE, TOP TO BOTTOM, AS RULED: the visual ladder, the board, the next
+three, then the audit view under its own heading, carrying everything that used
+to be the first screen plus the seven derived areas and the chain.
+
 THE FIRST PHONE SCREEN BELOW THE LADDER ANSWERS EXACTLY THREE THINGS, and
-nothing else may compete for it:
+nothing else may compete for it. THESE THREE ARE NOW THE AUDIT VIEW'S, not the
+first screen's, and check_first_screen still asserts their ORDER:
 
     1  WHAT EXISTS NOW. One sentence, and THE STREET FRAME ITSELF, shown
        inline rather than linked. The picture is the answer; the sentence is
@@ -143,6 +174,7 @@ LADDER_FILE = "production/ladder.md"
 QUEUE_DIR = "production/queue"
 QUEUE_DONE_DIR = "production/queue/done"
 INVENTORY = "production/systems-inventory.json"
+INVENTORY_VALIDATOR = "tools/systems-inventory-check.py"
 PROBE_WORKFLOW = ".github/workflows/ledger-probe-unreal.yml"
 PROBE_SENTINEL = "production/d1-probe/DISPATCH"
 PROBE_SOURCE_DIRS = ("ue-probe/Source", "ue-probe/tests", "ue-probe/Config")
@@ -2032,6 +2064,451 @@ def tiles_html(areas):
     return '<div class="tiles">%s</div>' % "".join(tiles)
 
 
+# ---------------------------------------------------------------------------
+# THE HEATMAP, RULED BY JAFAR ON 2026-09-09 AND QUOTED IN FULL IN THE DOCSTRING
+# AT THE TOP OF THIS FILE. Five areas in his order and his words, every system
+# in the inventory a tile, three states, one screen on a phone.
+#
+# THIS IS THE TYPED HALF OF THE PAGE AND IT SAYS SO ON ITS OWN FACE. Until
+# today every word above the fold here was DERIVED from a committed key and
+# four guards enforced exactly that, which is why this page could not show the
+# board he approved on 31 August. He has ruled the opposite for this surface:
+# a director's overview is a human's judgement of state. So the refusal to draw
+# is replaced by a sentence that says whose judgement it is, and the derived
+# material moves below the fold as the audit view.
+# check_heatmap_is_typed_not_measured reads the block's bytes for those words
+# rather than trusting this comment, the same way the visual ladder's does.
+#
+# NO SECOND SOURCE AND NO FALLBACK. The systems, their areas and their states
+# come from production/systems-inventory.json and from nothing else. An absent
+# or unparseable file refuses the block in words and prints what it walked,
+# because a board with invented tiles is worse than a board that says it could
+# not be drawn. The file is another builder's: this page reads it and never
+# writes it, and tools/systems-inventory-check.py is the thing that validates
+# its shape.
+# ---------------------------------------------------------------------------
+HEAT_START = "<!-- HEATMAP START -->"
+HEAT_END = "<!-- HEATMAP END -->"
+# HIS FIVE AREAS, IN HIS ORDER AND HIS WORDS on the left, with the inventory's
+# own `area` value on the right. The order is the ruling's order, never sorted.
+HEAT_AREAS = (
+    ("moat", "the moat"),
+    ("world", "the world"),
+    ("player-facing", "what the player touches"),
+    ("content", "content"),
+    ("studio", "the studio"),
+)
+# A SIXTH ROW THAT EXISTS ONLY WHEN IT HAS TO. A system whose area is not one
+# of the five is not dropped and not quietly folded into one of them: it gets
+# a row that says the inventory names an area this page does not draw. Dropping
+# it would make "every system a tile" false with no number anywhere saying so.
+HEAT_OTHER_KEY = "not-one-of-the-five"
+HEAT_OTHER_NAME = "an area this page does not draw"
+# THE THREE STATES, AND THE THREE SIGNALS EACH ONE CARRIES. Colour is never the
+# only signal: the mark is a SHAPE (filled, half, hollow), the tile border is a
+# STYLE (solid, dashed, dotted), and the legend says all three states in words.
+# A colourblind reader and a greyscale screenshot both still read the board.
+#
+# THE MARK IS PART OF THE TILE'S OWN TEXT and not a nested span, which is a
+# MEASUREMENT decision before it is a layout one: the fold model above is
+# block-flow and walks a nested span as its own line, so a mark in its own
+# element made every tile model as two lines and the board read 2213 px when
+# the browser draws one line per tile. A tile is one text node, the border
+# carries the colour, and the glyph carries the shape.
+HEAT_STATES = ("exists", "partial", "absent")
+HEAT_MARK = {"exists": "●", "partial": "◐", "absent": "○"}
+HEAT_CLASS = {"exists": "h-exists", "partial": "h-partial",
+              "absent": "h-absent"}
+HEAT_UNKNOWN_CLASS = "h-unknown"
+HEAT_UNKNOWN_MARK = "?"
+# THE MARK A TILE OF EACH COLOUR MUST CARRY, inverted once here so the guard
+# can read a tile's shape back off the bytes and compare it with its colour.
+# One table, two readers: the builder and check_heatmap.
+HEAT_MARK_OF_CLASS = dict([(HEAT_CLASS[s], HEAT_MARK[s]) for s in HEAT_STATES]
+                          + [(HEAT_UNKNOWN_CLASS, HEAT_UNKNOWN_MARK)])
+# HOW LONG A TILE LABEL MAY BE, READ OFF THE PRINTED SERIES AND NOT BEFORE IT.
+# The 27 system names in the live inventory on 2026-09-09 are 3 to 48
+# characters, median 13, and exactly one is over 34 ("graphics settings
+# including the local-LLM toggle", 48). A tile is two lines of about 25
+# characters at this font and width, so 50 holds every name that exists whole
+# and bites only on a name longer than any written so far. Every run prints the
+# length series and the number capped, so the next reader moves this number
+# from evidence rather than from taste.
+HEAT_NAME_CAP = 50
+# HOW MANY OF A SYSTEM'S EVIDENCE PATHS THE SHEET LISTS before the cap
+# announces itself.
+HEAT_EVIDENCE_SHOWN = 4
+# WHAT THE BOARD SAYS WHEN IT IS TALLER THAN ONE PHONE SCREEN. Read back off
+# the rendered bytes by check_heatmap_fits_one_screen, which is why it is a
+# constant and not a sentence typed twice.
+HEAT_TOO_TALL_SAYS = ("This board is taller than one phone screen at this many "
+                      "systems, so it scrolls rather than shrinking its tiles "
+                      "to fit or hiding any of them")
+
+
+def read_inventory(root):
+    """(systems, reading) for production/systems-inventory.json. ONE PARSER.
+
+    typed_inventory() and heatmap() both come through here. The file belongs to
+    another builder and its shape can move under this page, so a second reader
+    in this file would be a second answer to "how many systems are there".
+    """
+    p = Path(root) / INVENTORY
+    reading = {"source": INVENTORY, "present": p.is_file(), "walked": 0,
+               "note": "none", "sha": None, "day": None, "measuredAt": None,
+               "typedAgainst": None, "stampField": "neither",
+               "theirAreas": 0, "areaLabelsAgree": 0}
+    if not p.is_file():
+        reading["note"] = "no-%s-in-this-checkout" % INVENTORY
+        return [], reading
+    try:
+        data = json.loads(p.read_text(encoding="utf-8", errors="replace"))
+    except ValueError:
+        reading["note"] = "did-not-parse"
+        return [], reading
+    if isinstance(data, list):
+        ent = data
+    else:
+        ent = data.get("systems") or data.get("entries") or []
+        # TWO NAMES FOR ONE FACT, BECAUSE THE FILE RENAMED IT WHILE THIS WAS
+        # BEING WRITTEN. It carried measuredAt at 27 systems and typedOn plus
+        # typedAgainst at 69, both meaning "when a human last typed this, and
+        # against what". Both are read and the done line says which one
+        # answered, so a rename shows up as a changed key rather than as the
+        # words nothing measured over a fact the file plainly carries.
+        reading["measuredAt"] = (data.get("measuredAt") or data.get("typedOn")
+                                 or None)
+        reading["typedAgainst"] = data.get("typedAgainst") or None
+        reading["stampField"] = ("measuredAt" if data.get("measuredAt")
+                                 else "typedOn" if data.get("typedOn")
+                                 else "neither")
+        # THE FILE'S OWN AREA TABLE, COMPARED AND NEVER SUBSTITUTED. HEAT_AREAS
+        # is Jafar's ruling in his words and it is what the board draws. The
+        # file now carries labels of its own, so the two are compared and the
+        # agreement is printed: if they ever diverge, the page says so with a
+        # number instead of quietly drawing somebody else's board.
+        theirs = [a for a in (data.get("areas") or []) if isinstance(a, dict)]
+        reading["theirAreas"] = len(theirs)
+        reading["areaLabelsAgree"] = sum(
+            1 for i, (key, name) in enumerate(HEAT_AREAS)
+            if i < len(theirs) and theirs[i].get("key") == key
+            and theirs[i].get("label") == name)
+    ent = [e for e in ent if isinstance(e, dict)]
+    reading["walked"] = len(ent)
+    stamp = GLANCE.git(root, "log", "-1", "--format=%h %ct", "--", INVENTORY)
+    if stamp:
+        parts = stamp.split()
+        reading["sha"] = parts[0]
+        if len(parts) > 1:
+            reading["day"] = datetime.datetime.fromtimestamp(
+                int(parts[1]), datetime.timezone.utc).strftime("%Y-%m-%d")
+    return ent, reading
+
+
+def heatmap(root):
+    """(rows, reading): his five areas, each carrying every system in it.
+
+    EVERY NUMBER HERE IS A WHOLE-FILE COUNT of what this run read out of one
+    file, and every one of them is printed with what it was counted over:
+    tiles drawn over systems walked, states typed over tiles drawn, names
+    capped over tiles drawn. Nothing in here is measured against the codebase:
+    the states are typed and the page says so.
+    """
+    systems, r = read_inventory(root)
+    reading = dict(r, tiles=0, counts={}, areaCounts={}, unplaced=0,
+                   badStates=[], capped=0, nameLengths=[], evidencePaths=0,
+                   notesScoped=0, sentencesScoped=0, notesWithText=0,
+                   refused=False, refusedWhy="none", refusedSay="none",
+                   areasAsked=len(HEAT_AREAS), areasDrawn=0, emptyAreas=0,
+                   statesAsked=len(HEAT_STATES))
+    if not r["present"] or r["note"] == "did-not-parse":
+        reading["refused"] = True
+        reading["refusedWhy"] = r["note"]
+        reading["refusedSay"] = (
+            "the studio's systems inventory is not in this checkout"
+            if not r["present"] else
+            "the studio's systems inventory did not parse as JSON this run")
+        return [], reading
+    if not systems:
+        reading["refused"] = True
+        reading["refusedWhy"] = "no-system-entry-in-%s" % INVENTORY
+        reading["refusedSay"] = ("the inventory holds no system entry this "
+                                 "run could read")
+        return [], reading
+
+    buckets = {key: [] for key, _name in HEAT_AREAS}
+    order = [(key, name) for key, name in HEAT_AREAS]
+    other = []
+    for e in systems:
+        name = str(e.get("name") or "").strip() or "(unnamed)"
+        state = str(e.get("status") or "").strip().lower()
+        label, bit, full = cap_text(name, HEAT_NAME_CAP)
+        reading["nameLengths"].append(full)
+        if bit:
+            reading["capped"] += 1
+        known = state in HEAT_STATES
+        if not known:
+            reading["badStates"].append("%s/%s" % (re.sub(r"\s+", ".",
+                                                          name[:20]),
+                                                   state or "empty"))
+        ev = [str(x) for x in (e.get("evidence") or []) if str(x).strip()]
+        reading["evidencePaths"] += len(ev)
+        note, scoped = scope_typed_claim(e.get("note") or "")
+        reading["notesWithText"] += 1 if note.strip() else 0
+        reading["notesScoped"] += 1 if scoped else 0
+        reading["sentencesScoped"] += scoped
+        tile = {"name": name, "label": label, "capped": bit, "state": state,
+                "stateWord": state if known else "status-not-one-of-the-three",
+                "known": known,
+                "cls": HEAT_CLASS[state] if known else HEAT_UNKNOWN_CLASS,
+                "mark": HEAT_MARK[state] if known else HEAT_UNKNOWN_MARK,
+                "phase": str(e.get("phase") or NOTHING),
+                "blocker": str(e.get("blocker") or NOTHING),
+                "note": note, "evidence": ev,
+                "area": str(e.get("area") or "")}
+        reading["counts"][tile["stateWord"]] = \
+            reading["counts"].get(tile["stateWord"], 0) + 1
+        if tile["area"] in buckets:
+            buckets[tile["area"]].append(tile)
+        else:
+            reading["unplaced"] += 1
+            other.append(tile)
+        reading["tiles"] += 1
+    rows = []
+    for key, name in order:
+        rows.append({"key": key, "name": name, "tiles": buckets[key]})
+    if other:
+        rows.append({"key": HEAT_OTHER_KEY, "name": HEAT_OTHER_NAME,
+                     "tiles": other})
+    for row in rows:
+        reading["areaCounts"][row["key"]] = len(row["tiles"])
+    reading["areasDrawn"] = len(rows)
+    reading["emptyAreas"] = sum(1 for row in rows if not row["tiles"])
+    return rows, reading
+
+
+def scope_typed_claim(text):
+    """(text, sentencesScoped): a typed note, with the words "in this checkout"
+    added to any sentence that claims something does not exist.
+
+    THE GUARD THAT FOUND THIS WAS RIGHT AND IS NOT LOOSENED. noAbsenceClaim
+    reads every sentence in the rendered bytes and bit on three of the
+    inventory's own notes the first time this board drew them ("the in-game
+    credits screen does not exist", and two more). A scan of a checkout cannot
+    say a thing does not exist in the world, and a TYPED note printed on this
+    page is read exactly the same way by whoever reads it.
+    THE QUALIFICATION IS FAITHFUL AND NOT AN INVENTION: the inventory scopes
+    ITSELF to this checkout in its own measuredAt and howToRead fields, so the
+    scope is what the note already meant. The page still says it did this and
+    counts how often, because a page that quietly edits a human's sentence is
+    the other half of the same fault.
+    ONE DEFINITION OF AN ABSENCE CLAIM, and one of a sentence: both come from
+    ABSENCE_CLAIMS and SENTENCE_SPLIT_RX, which is what the guard reads, so the
+    writer and the guard cannot drift apart.
+    """
+    out, scoped = [], 0
+    for s in SENTENCE_SPLIT_RX.split(" ".join(str(text).split())):
+        low = s.lower()
+        if any(p in low for p in ABSENCE_CLAIMS) \
+                and not any(q in low for q in CHECKOUT_QUALIFIERS):
+            scoped += 1
+            if s[-1:] in ".!?":
+                s = s[:-1].rstrip() + " in this checkout" + s[-1]
+            else:
+                s = s + " in this checkout"
+        out.append(s)
+    return " ".join(out), scoped
+
+
+def heat_counts_words(reading):
+    """The board's own tally, in words, for the face: "13 exist, 11 partial, 3
+    absent" over the systems walked. A state nobody typed this run still prints
+    its zero, because a board with no absent tile and a board whose absent
+    tiles were dropped must not read the same."""
+    parts = []
+    for state in HEAT_STATES:
+        n = reading["counts"].get(state, 0)
+        parts.append("%d %s" % (n, state))
+    bad = sum(n for word, n in reading["counts"].items()
+              if word not in HEAT_STATES)
+    if bad:
+        parts.append("%d with a state this page cannot colour" % bad)
+    return ", ".join(parts)
+
+
+def heatmap_html(rows, r):
+    """THE BOARD. Three signals per tile and the typed claim above the tiles.
+
+    The claim sits ABOVE the colours rather than under them: a reader who
+    stops after the first two lines has still been told whose judgement the
+    colours are. The file name, the commit, the per-system note and the
+    evidence each system names are one tap down, because a raw path on the
+    first screen is one of the four faults this page was rebuilt for.
+    """
+    if r["refused"]:
+        return ('%s<section class="heat hStale" id="heatmap">'
+                '<p class="hHead">THE BOARD CANNOT BE SHOWN</p>'
+                '<p class="hNote">%s</p><p class="hNote">%s</p>'
+                '</section>%s'
+                % (HEAT_START,
+                   esc("The states on this board are typed in one file and "
+                       "this run could not read it: %s. %s, so no tile is "
+                       "drawn and none is guessed from anywhere else."
+                       % (r["refusedSay"], NOTHING)),
+                   esc("Fix the inventory and this board fills itself in."),
+                   HEAT_END))
+    legend = " ".join('<span class="hKey %s">%s %s</span>'
+                      % (HEAT_CLASS[s], HEAT_MARK[s], esc(s))
+                      for s in HEAT_STATES)
+    body = []
+    for row in rows:
+        n = len(row["tiles"])
+        if n:
+            count = '<span class="hCount">%d</span>' % n
+        else:
+            # A ZERO WITH WHAT IT WAS COUNTED OVER, in words rather than as a
+            # fraction: a fraction on the first screen is the diagnostic shape
+            # Jafar rejected, and "none of 27" carries the same denominator.
+            count = ('<span class="hCount">none of %d</span>'
+                     % r["walked"])
+        tiles = "".join(
+            '<span class="hTile %s" title="%s">%s %s</span>'
+            % (t["cls"], esc("%s: %s" % (t["name"], t["stateWord"])),
+               t["mark"], esc(t["label"]))
+            for t in row["tiles"])
+        body.append('<p class="hArea"><a class="hLink" href="#h-%s">%s</a>%s'
+                    '</p><div class="hTiles">%s</div>'
+                    % (esc(row["key"]), esc(row["name"]), count, tiles))
+    note = []
+    # ONE SCREEN ON A PHONE IS THE RULING'S HARD CONSTRAINT AND AT THIS TILE
+    # COUNT IT IS NOT MET. The board does not shrink its text until it
+    # technically fits and it does not drop a tile: it says so, in words, on its
+    # own face, and the pixels and the tile count it stops fitting at are on the
+    # run's done line and in the provenance sheet. NO NUMBER IN THIS SENTENCE,
+    # for two reasons: a px count on the first screen is the diagnostic text
+    # Jafar rejected, and a number rendered here would be measured BEFORE this
+    # sentence was added to the thing being measured.
+    if r.get("tallerThanOneScreen"):
+        note.append(HEAT_TOO_TALL_SAYS)
+    if r["capped"]:
+        note.append("%d name(s) shortened to fit a tile" % r["capped"])
+    if r["unplaced"]:
+        note.append("%d system(s) name an area this board does not draw"
+                    % r["unplaced"])
+    if r["badStates"]:
+        note.append("%d system(s) carry a state that is not one of the three"
+                    % len(r["badStates"]))
+    tail = (" " + ". ".join(note) + ".") if note else ""
+    return ('%s<section class="heat" id="heatmap">'
+            '<p class="hHead">THE BOARD</p>'
+            '<p class="hNow">%s</p>'
+            '<p class="hLegend">%s</p>'
+            '<p class="hNote">%s%s <a class="tap" href="#h-source">where '
+            'these come from</a></p>'
+            '%s</section>%s'
+            % (HEAT_START,
+               esc("%d systems, %s." % (r["tiles"], heat_counts_words(r))),
+               legend,
+               esc("Every colour here is a typed judgement of state, ruled by "
+                   "Jafar and updated by his rulings, not measured by this "
+                   "page. What this page did measure is below, in the audit "
+                   "view."),
+               esc(tail),
+               "".join(body), HEAT_END))
+
+
+def heatmap_sheets(rows, r):
+    """One sheet per area row, carrying every system in it WHOLE: the full
+    name, the typed state in words, the phase, the blocker, the note and the
+    evidence paths the inventory names. Plus one sheet for the provenance.
+    This is the tap below the board, and it is where the raw paths live."""
+    if r["refused"]:
+        return ('<section class="sheet" id="h-source"><div class="inner">'
+                '<a class="close" href="#map">back to the map</a>'
+                '<h3>where the board comes from</h3>'
+                '<dl><dt>the file</dt><dd>%s</dd>'
+                '<dt>what this run read</dt><dd>%s</dd></dl>'
+                '<a class="close" href="#map">back to the map</a>'
+                '</div></section>'
+                % (esc(INVENTORY),
+                   esc("%s: %s. The validator for that file is %s."
+                       % (NOTHING, r["refusedWhy"], INVENTORY_VALIDATOR))))
+    out = []
+    for row in rows:
+        items = []
+        for t in row["tiles"]:
+            ev = t["evidence"][:HEAT_EVIDENCE_SHOWN]
+            more = len(t["evidence"]) - len(ev)
+            ev_text = ("; ".join(ev) + (" (+%d more not shown of %d)"
+                                        % (more, len(t["evidence"]))
+                                        if more > 0 else "")) if ev \
+                else "%s: the inventory names no evidence for this one" % NOTHING
+            items.append('<dt>%s</dt><dd>%s</dd>'
+                         % (esc("%s %s  %s" % (t["mark"], t["name"],
+                                               t["stateWord"].upper())),
+                            esc("%s Phase %s, blocker %s. Evidence typed in "
+                                "the inventory: %s"
+                                % (t["note"] or "", t["phase"], t["blocker"],
+                                   ev_text))))
+        if not items:
+            items.append('<dt>%s</dt><dd>%s</dd>'
+                         % (esc(NOTHING),
+                            esc("no system in the inventory names this area, "
+                                "of %d walked" % r["walked"])))
+        out.append('<section class="sheet" id="h-%s"><div class="inner">'
+                   '<a class="close" href="#map">back to the map</a>'
+                   '<h3>%s</h3><p class="word">%d system(s) of %d walked</p>'
+                   '<p>%s</p><dl>%s</dl>'
+                   '<a class="close" href="#map">back to the map</a>'
+                   '</div></section>'
+                   % (esc(row["key"]), esc(row["name"]), len(row["tiles"]),
+                      r["walked"],
+                      esc("Every state on this sheet is typed by a human in "
+                          "%s and checked for shape by %s. This page counts "
+                          "them and colours them; it does not measure them. "
+                          "Where a typed note says something does not exist, "
+                          "this page adds the words in this checkout, because "
+                          "nothing here can see your PC: %d note(s) of the %d "
+                          "with text were scoped that way this run."
+                          % (INVENTORY, INVENTORY_VALIDATOR, r["notesScoped"],
+                             r["notesWithText"])),
+                      "".join(items)))
+    said = ("%d tile(s) drawn over %d system(s) walked in %s, last changed in "
+            "commit %s on %s, typed as of %s. %d area(s) drawn of the %d "
+            "ruled, %d of them empty. States typed %s; %d name(s) capped at "
+            "%d characters; %d evidence path(s) named by those systems, none "
+            "of which this page opened."
+            % (r["tiles"], r["walked"], INVENTORY, r["sha"] or NOTHING,
+               r["day"] or NOTHING, r["measuredAt"] or NOTHING,
+               r["areasDrawn"], r["areasAsked"], r["emptyAreas"],
+               heat_counts_words(r), r["capped"], HEAT_NAME_CAP,
+               r["evidencePaths"]))
+    out.append('<section class="sheet" id="h-source"><div class="inner">'
+               '<a class="close" href="#map">back to the map</a>'
+               '<h3>where the board comes from</h3>'
+               '<dl><dt>the file</dt><dd>%s</dd>'
+               '<dt>what this run read</dt><dd>%s</dd>'
+               '<dt>what it is not</dt><dd>%s</dd></dl>'
+               '<a class="close" href="#map">back to the map</a>'
+               '</div></section>'
+               % (esc(INVENTORY), esc(said),
+                  esc("It is not a measurement. Jafar ruled on 2026-09-09 "
+                      "that a director's overview is a human's judgement of "
+                      "state; the words and colours above are that judgement. "
+                      "The derived, gate-backed readings are in the audit "
+                      "view below the board, where every number still names "
+                      "the file it came from.")))
+    return "".join(out)
+
+
+def heat_slice(page):
+    """The bytes between the board's own markers, or "" if either is missing.
+    Every check that must confirm a word INSIDE the board, or must not see a
+    path or a fraction there, reads this slice and never the whole page."""
+    i, j = page.find(HEAT_START), page.find(HEAT_END)
+    return page[i:j] if 0 <= i < j else ""
+
+
 def ladder_slice(page):
     """The bytes between the ladder's own markers, or "" if either is
     missing. Every check that must not see a raw path or a gate count OUTSIDE
@@ -2381,6 +2858,29 @@ a { color: #8fb8ff; }
 .vlink { color: #8fb8ff; text-decoration: none; font-size: 12.5px;
   white-space: nowrap; }
 .vStale .vHead { color: #ff8f8f; }
+.heat { margin: 0 0 18px; }
+.hHead { font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase;
+  font-weight: 800; color: #868d95; margin: 0 0 4px; }
+.hNow { font-size: 17px; font-weight: 600; color: #e7e9ec; margin: 0 0 7px;
+  line-height: 1.3; }
+.hLegend { font-size: 12px; margin: 0 0 6px; color: #aab1b9; }
+.hKey { display: inline-block; margin-right: 13px; letter-spacing: 0.04em; }
+.hNote { font-size: 12.5px; line-height: 1.5; color: #868d95; margin: 0 0 12px; }
+.hArea { font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase;
+  font-weight: 700; color: #99a0a8; margin: 0 0 5px; }
+.hLink { color: #99a0a8; text-decoration: none; }
+.hCount { color: #7d848c; font-weight: 600; margin-left: 7px;
+  letter-spacing: 0.04em; }
+.hTiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px;
+  margin: 0 0 11px; }
+.hTile { display: block; border: 1px solid #2b3038; border-left: 4px solid
+  #4b535d; border-radius: 5px; background: #191c21; padding: 5px 7px;
+  font-size: 12px; line-height: 1.3; color: #dbe0e6; }
+.h-exists { border-left-color: #57c39a; border-left-style: solid; }
+.h-partial { border-left-color: #e0a640; border-left-style: dashed; }
+.h-absent { border-left-color: #8e97a1; border-left-style: dotted; }
+.h-unknown { border-left-color: #ff8f8f; border-left-style: double; }
+.hStale .hHead { color: #ff8f8f; }
 .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 7px;
   margin: 0 0 16px; }
 .tile { display: block; border: 1px solid #2b3038; border-left: 5px solid
@@ -2492,6 +2992,15 @@ h2 { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
   .vNote { color: #5d646c; }
   .tile { background: #ffffff; border-color: #d9dee4; }
   .tile .tName { color: #12161a; } .tile .tWord { color: #4d545c; }
+  .hHead { color: #5d646c; } .hNow { color: #12161a; }
+  .hLegend { color: #3c434a; } .hNote { color: #5d646c; }
+  .hArea { color: #4d545c; } .hLink { color: #4d545c; }
+  .hCount { color: #5d646c; }
+  .hTile { background: #ffffff; border-color: #d9dee4; color: #23282e; }
+  .h-exists { border-left-color: #18815e; }
+  .h-partial { border-left-color: #9a6a00; }
+  .h-absent { border-left-color: #5d646c; }
+  .h-unknown { border-left-color: #a32222; }
   .ladderHead { color: #0f1216; } .ladderNow { color: #23282e; }
   .rung { background: #ffffff; border-color: #d9dee4; color: #2b3138; }
   .r-current { background: #eafaf0; } .r-stale { background: #fdeeee; }
@@ -2958,23 +3467,28 @@ def next_html(items, r3):
     body = []
     for i in range(NEXT_ASKED):
         if i >= len(items):
+            # NO RAW PATH IN A CARD'S OWN WORDS, 2026-09-09. These cards used to
+            # name production/next-three.json on their face, which was invisible
+            # while something tall sat above them and became the FIRST SCREEN
+            # the day both the ladder and the board refused and the cards
+            # climbed: check_first_screen_clean read a raw path above the fold
+            # on the planted tree. The path is still on the page, in the foot
+            # and in the task sheets, where a tap reaches it.
             body.append(
                 '<div class="card c-task task"><p class="num">%d</p>'
-                '<p class="big">%s</p><p class="sub">%s names %d item(s), not '
-                '%d. A slot filled from anywhere else would be this page '
-                'inventing a plan.</p></div>'
-                % (i + 1, esc(NOTHING), esc(PRIORITIES), len(items),
-                   NEXT_ASKED))
+                '<p class="big">%s</p><p class="sub">The studio\'s priorities '
+                'file names %d item(s), not %d. A slot filled from anywhere '
+                'else would be this page inventing a plan.</p></div>'
+                % (i + 1, esc(NOTHING), len(items), NEXT_ASKED))
             continue
         it = items[i]
         if it["refused"]:
             body.append(
                 '<div class="card c-stale task"><p class="num">%d</p>'
                 '<p class="big">This entry is stale and is not shown as a '
-                'task.</p><p class="sub">%s names it, and its task file is %s '
-                '(%s). Edit %s.</p></div>'
-                % (i + 1, esc(PRIORITIES), esc(it["state"]),
-                   esc(it["stateWhy"]), esc(PRIORITIES)))
+                'task.</p><p class="sub">The studio\'s priorities file names '
+                'it, and its task file is %s (%s). Edit that file.</p></div>'
+                % (i + 1, esc(it["state"]), esc(it["stateWhy"])))
             continue
         body.append(
             '<div class="card c-task task"><p class="num">%d</p>'
@@ -3001,25 +3515,24 @@ def foot_html(r3):
 
 
 def typed_inventory(root):
-    """THE TYPED STATUS BOARD, COUNTED AND DISARMED. It carries a status word a
-    person types; it sets NO word on this page and never has. Counted behind
-    the tap, labelled as typed, so the difference between what somebody wrote
-    down and what a run measured is visible rather than quietly gone."""
-    p = Path(root) / INVENTORY
-    if not p.is_file():
-        return {"present": False, "entries": 0, "words": {}}
-    try:
-        data = json.loads(p.read_text(encoding="utf-8", errors="replace"))
-    except ValueError:
-        return {"present": True, "entries": 0, "words": {},
-                "note": "did-not-parse"}
-    ent = data if isinstance(data, list) else (data.get("entries")
-                                               or data.get("systems") or [])
+    """THE TYPED STATUS BOARD, COUNTED. It carries a status word a person types.
+
+    WHAT CHANGED ON 2026-09-09. Until today this function's own docstring said
+    the board "sets NO word on this page", which was the old rule: every word
+    above the fold had to be derived. Jafar has ruled that the board IS the
+    first screen, typed, and heatmap() above draws it. This function stays
+    because the done line still carries the whole-file tally, and it now reads
+    through read_inventory() so there is ONE parser for that file here.
+    """
+    ent, r = read_inventory(root)
     words = {}
     for e in ent:
         w = str(e.get("status", "(none)"))
         words[w] = words.get(w, 0) + 1
-    return {"present": True, "entries": len(ent), "words": words}
+    out = {"present": r["present"], "entries": len(ent), "words": words}
+    if r["note"] != "none":
+        out["note"] = r["note"]
+    return out
 
 
 def build(root, now, out_path=None, served=None):
@@ -3032,6 +3545,7 @@ def build(root, now, out_path=None, served=None):
     items, r3 = next_three(root)
     ladder, r4 = ladder_rungs(root, items, r3)
     vrungs, r5 = visual_ladder(root)
+    heat_rows, r6 = heatmap(root)
     commit = (GLANCE.git(root, "rev-parse", "--short", "HEAD") or NOTHING)
 
     # THE PICTURE IS ENCODED AGAINST WHAT THE REST OF THE PAGE LEAVES, so the
@@ -3086,7 +3600,38 @@ def build(root, now, out_path=None, served=None):
              "served": srv, "picture": picture, "geo": geo,
              "shellBytes": shell,
              "ladder": dict(r4, rungs=ladder),
-             "vladder": dict(r5, rungs=vrungs)}
+             "vladder": dict(r5, rungs=vrungs),
+             "heat": dict(r6, rows=heat_rows)}
+    # THE BOARD'S OWN HEIGHT AND ITS FORECAST, both in px and both from the
+    # same model. heightPx is THIS board, measured on its own; the series is
+    # what the same board would be at other tile counts, evenly spread. The
+    # median name length is the statistic the forecast is parameterised by and
+    # it is named on the done line beside it.
+    lens = sorted(r6.get("nameLengths") or [])
+    median_len = lens[len(lens) // 2] if lens else 13
+    # TWO PASSES, AND THE REASON IS THAT THE SENTENCE IS PART OF WHAT IS BEING
+    # MEASURED. The board is drawn, measured, and if it is taller than one phone
+    # screen it is drawn AGAIN carrying the sentence that says so, and measured
+    # again: the height on the done line is the height of the bytes that ship,
+    # not of a draft without its own confession in it.
+    heat_html = heatmap_html(heat_rows, r6)
+    heat_px = block_height_px(heat_html)
+    if heat_px > FOLD_PX and not r6["refused"]:
+        r6["tallerThanOneScreen"] = True
+        model["heat"]["tallerThanOneScreen"] = True
+        heat_html = heatmap_html(heat_rows, r6)
+        heat_px = block_height_px(heat_html)
+    model["heat"]["heightPx"] = heat_px
+    model["heat"]["screens"] = round(heat_px / float(FOLD_PX), 2)
+    model["heat"]["medianNameLen"] = median_len
+    series, fits = heatmap_capacity(median_len)
+    model["heat"]["series"] = series
+    model["heat"]["fitsUpToTiles"] = fits
+    model["heat"]["heightPxAtLiveCountEvenSpread"] = next(
+        (px for n, px in series if n == r6["tiles"]),
+        block_height_px(heatmap_html(
+            synthetic_heat_rows(r6["tiles"], median_len),
+            dict(r6, tiles=r6["tiles"])))) if not r6["refused"] else 0
     detail = [
         "picture=%s pictureShown=%s pictureB64Bytes=%d/%d-budget "
         "pictureSourceBytes=%d pictureQuality=%s resizer=%s pictureFrom=%s"
@@ -3240,10 +3785,62 @@ def build(root, now, out_path=None, served=None):
         "queue-check.py/count_queue chosenBy=%s"
         % (q_counts + (PRIORITIES,)))
     detail.append(
-        "typedInventory=%s entriesTyped=%d words=%s setsNoWordOnThisPage=true"
+        "typedInventory=%s entriesTyped=%d words=%s "
+        "setsTheBoardAboveTheFold=true setsNoWordInTheAuditView=true"
         % (INVENTORY, inv["entries"],
            "/".join("%s.%d" % (w, n) for w, n in sorted(inv["words"].items()))
            or NOTHING.replace(" ", "-")))
+    # THE BOARD, WHOLE-RUN NUMBERS. Typed is the point and not a fault, so
+    # heatStatesProven is a printed zero with its denominator: no run in this
+    # repository decides one of these words. heatTiles is tiles DRAWN over
+    # systems WALKED, heatUnplaced is systems whose area is not one of the five
+    # (drawn in a sixth row rather than dropped), and heatStatesNotOneOfThree
+    # is the ones this page cannot colour. Per-area counts are on the area line
+    # below, never here: one moment per line.
+    h = model["heat"]
+    detail.append(
+        "heatSource=%s heatPresent=%s heatTiles=%d/%d-system(s)-walked "
+        "heatStates=%s heatStatesTyped=%d/%d "
+        "heatStatesProven=0/%d-because-a-state-here-is-ruled-not-measured "
+        "heatAreas=%d/%d-ruled heatEmptyAreas=%d/%d heatUnplaced=%d/%d "
+        "heatStatesNotOneOfThree=%d/%d heatNamesCapped=%d/%d-at-%d-chars "
+        "heatAreaLabelsAgreeWithTheRuling=%d/%d-in-the-file heatStampField=%s "
+        "heatEvidencePathsTyped=%d-not-opened-by-this-page "
+        "heatNotesScoped=%d/%d-note(s)-with-text heatSentencesScoped=%d "
+        "scopeAdded=in-this-checkout heatRefused=%s "
+        "heatRefusedWhy=%s heatCommit=%s heatTypedAt=%s validator=%s"
+        % (INVENTORY, "yes" if h["present"] else "no", h["tiles"], h["walked"],
+           "/".join("%s.%d" % kv for kv in sorted(h["counts"].items()))
+           or NOTHING.replace(" ", "-"), h["tiles"], h["tiles"], h["tiles"],
+           h["areasDrawn"], h["areasAsked"], h["emptyAreas"], h["areasDrawn"],
+           h["unplaced"], h["tiles"], len(h["badStates"]), h["tiles"],
+           h["capped"], h["tiles"], HEAT_NAME_CAP,
+           h["areaLabelsAgree"], h["theirAreas"], h["stampField"],
+           h["evidencePaths"],
+           h["notesScoped"], h["notesWithText"], h["sentencesScoped"],
+           "yes" if h["refused"] else "no", h["refusedWhy"],
+           h["sha"] or NOTHING.replace(" ", "-"),
+           re.sub(r"\s+", "-", str(h["measuredAt"] or NOTHING)),
+           INVENTORY_VALIDATOR))
+    # THE ONE-SCREEN QUESTION, AS A PAIRED READING AND THEN AS A SERIES. The
+    # live height is this board measured alone; the even-spread number is the
+    # same tile count in the forecast's shape, so the two together say how much
+    # the real distribution costs. fitsUpToTiles is read off the series, which
+    # is printed in full on the next line.
+    detail.append(
+        "heatBlockHeightPx=%d/%d-fold heatHeightPxLive..EvenSpread=%d..%d "
+        "heatMedianNameChars=%d heatFitsOneScreenUpToTiles=%d "
+        "heatTilesNow=%d heatHeadroomTiles=%d foldModel=%s"
+        % (h["heightPx"], FOLD_PX, h["heightPx"],
+           h["heightPxAtLiveCountEvenSpread"], h["medianNameLen"],
+           h["fitsUpToTiles"], h["tiles"], h["fitsUpToTiles"] - h["tiles"],
+           FOLD_MODEL))
+    detail.append(
+        "heatHeightPxByTileCount=%s measuredBy=the-same-fold-model/"
+        "even-spread-over-%d-area(s)/name-%d-chars"
+        % ("/".join("%dtiles..%dpx" % (n, px) for n, px in h["series"])
+           or NOTHING.replace(" ", "-"), len(HEAT_AREAS),
+           h["medianNameLen"]))
     model["inventory"] = inv
     model["detail"] = detail
 
@@ -3253,21 +3850,31 @@ def build(root, now, out_path=None, served=None):
                         if not it["refused"]]
                      + [goal_sheet(r4)]
                      + [visual_ladder_sheets(vrungs, r5)]
+                     + [heatmap_sheets(heat_rows, r6)]
                      + [tools_sheet(rows, r1), about_sheet(model, now, detail)])
     body = "\n".join([
-        # THE FIRST SCREEN, RULED BY JAFAR 2026-09-09: his ladder with the
-        # current rung marked, the areas as tiles coloured by status, and the
-        # next three. Nothing else, and no diagnostic text: every path, key,
-        # sha and count that used to sit here is still on the page, lower or
-        # one tap down, and check_first_screen_clean reads the rendered bytes
-        # to prove it.
+        # THE FIRST SCREEN, RULED BY JAFAR 2026-09-09 AND REBUILT THE SAME DAY:
+        # his ladder, THEN THE BOARD (five areas, every system a tile, three
+        # typed states), then the next three. Nothing else above the fold, and
+        # no diagnostic text: every path, key, sha and count is below or one
+        # tap down, and check_first_screen_clean reads the rendered bytes.
         visual_ladder_html(vrungs, r5),
-        tiles_html(areas),
+        heat_html,
         '<h2>the next three, in order</h2>',
-        next_html(items, r3),
-        # AND BELOW THE FOLD, EVERYTHING THAT WAS THE FIRST SCREEN BEFORE, in
-        # the order it was already checked in: what exists now with the frame,
-        # what you can run, the milestone, the chain, the studio's own ladder.
+        '<section id="next-three">%s</section>' % next_html(items, r3),
+        # AND BELOW THE FOLD, THE AUDIT VIEW: everything that was the first
+        # screen before, in the order it was already checked in, plus the seven
+        # derived areas as tiles and the chain. Every word in here is derived
+        # from a committed file and the four guards that used to police the
+        # first screen police THIS half now, unchanged and unweakened.
+        '<a class="tap" href="#audit">the audit view, which is measured</a>',
+        '<section id="audit">',
+        '<h2>the audit view: what this page measured, not what anybody typed'
+        '</h2>',
+        '<p class="legend">The board above is typed judgement. Everything '
+        'below is derived from files committed in this checkout, and every '
+        'number names the file it came from. The two can disagree, and when '
+        'they do it is the board that a ruling moves.</p>',
         '<div class="top"><b>LEDGER</b><span>%s at %s UTC</span></div>'
         % (esc(commit), esc(now.strftime("%Y-%m-%d %H:%M"))),
         now_html(picture, probe, q1["probeHours"], areas),
@@ -3278,6 +3885,7 @@ def build(root, now, out_path=None, served=None):
         '<p class="legend">Read it downward: you act, the town sees it, it '
         'talks, and you hear the result. Each box says its state in words as '
         'well as colour. Tap one for its evidence.</p>',
+        tiles_html(areas),
         flow,
         '<h2>the studio ladder, which is a different measurement</h2>',
         '<p class="legend">The steps above are pictures Jafar clears by eye. '
@@ -3286,6 +3894,7 @@ def build(root, now, out_path=None, served=None):
         'file.</p>',
         LADDER_START, ladder_html(ladder, r4), LADDER_END,
         foot_html(r3),
+        '</section>',
         sheets,
         "<!-- Generated by %s at %s UTC -->"
         % (TOOL, now.strftime("%Y-%m-%d %H:%M")),
@@ -3299,6 +3908,14 @@ def build(root, now, out_path=None, served=None):
     model["fold"] = fold_reading(
         page, css(), img_aspect=(picture["height"] / picture["width"])
         if picture.get("width") else None)
+    # WHERE THE THREE RULED BLOCKS ACTUALLY SIT, in place, on the bytes that
+    # ship. The fold reading says what is above 844 px; this says which block
+    # each of those pixels belongs to, which is the question "does the board
+    # share the first screen with the ladder" and the one a word count cannot
+    # answer.
+    model["fold"]["landmarks"] = {
+        land: block_span(model["fold"]["rows"], land)
+        for land in ("ladder-visual", "heatmap", "next-three", "audit")}
     return page, model
 
 
@@ -3328,14 +3945,28 @@ def build(root, now, out_path=None, served=None):
 # and the bounds below were set from what it printed on real runs.
 # ---------------------------------------------------------------------------
 FOLD_PX = 844
-# THE WORD BOUND, ANCHORED TO THE ONLY PAGE A HUMAN HAS ACTUALLY REJECTED.
-# 180 is what this model reads above 844 px on the page Jafar rejected on the
-# morning of 2026-09-09, so 179 is the largest first screen that is not at
-# least as dense as that one. It is not a taste threshold and it is not tight:
-# the rebuilt page reads 129, which is 28 percent of headroom. The number that
-# actually enforces the ruling is the diagnostic count, which is zero and needs
-# no headroom. See check_first_screen_clean for the whole series.
-FOLD_WORD_BOUND = 179
+# THE WORD BOUND, ANCHORED TO THE ONLY PAGE A HUMAN HAS ACTUALLY REJECTED, AND
+# SINCE 2026-09-09 IT COUNTS THE PROSE HALF ONLY. 180 is what this model read
+# above 844 px on the page Jafar rejected on the morning of 2026-09-09, and
+# every one of those 180 was prose: that page had no tile above the fold. So
+# 179 is still the largest first screen that is not at least as dense as the
+# rejected one, and the number it is compared against is now the PROSE count.
+#
+# WHY THE COUNT HAD TO SPLIT. His ruling of the same afternoon puts a grid of
+# system tiles above the fold, and a tile label is scanned, not read: counting
+# 27 labels as prose would have made a board he ruled read as the wall of text
+# he rejected, and the only way to pass would have been deleting his sentences.
+# The two halves move independently, which is the test for whether they are two
+# numbers and not one twice: adding a system moves labelWords and cannot move
+# proseWords; adding a sentence does the opposite. Both print every run, the
+# label half with no bound, because the bound on the grid is its HEIGHT
+# (check_heatmap_fits_one_screen) and not its word count.
+FOLD_PROSE_WORD_BOUND = 179
+# THE CLASSES WHOSE WORDS ARE LABELS. Everything else above the fold is prose.
+# Named here, once, so the split is a list a reader can check against the
+# stylesheet rather than a guess inside the walker.
+LABEL_CLASSES = ("tile", "tName", "tWord", "hTile", "hKey", "hCount",
+                 "hArea")
 FOLD_MODEL = "block-flow/css-derived/avg-advance-0.5em/margins-do-not-collapse"
 CSS_RULE_RX = re.compile(r"([^{}]+)\{([^{}]*)\}")
 PX_RX = re.compile(r"(-?[\d.]+)px")
@@ -3486,9 +4117,15 @@ def fold_reading(page, css_text, fold_px=FOLD_PX, width=PHONE_WIDTH_PX,
         elif "1fr 1fr" in d.get("grid-template-columns", ""):
             cols = 2
         gap = _px(d.get("gap", ""), 0.0)
+        # THE TWO THINGS INHERITED DOWN THE TREE RATHER THAN LOOKED UP: whether
+        # this node's words are grid labels, and which named block it is inside.
+        # Both are facts about ancestry, so they are carried, not recomputed.
+        label = bool(parent.get("label")) or any(c in LABEL_CLASSES
+                                                 for c in node["cls"])
+        land = node["attrs"].get("id") or parent.get("land") or "none"
         return {"font": font, "lead": lead, "mt": mt, "mb": mb, "pt": pt,
                 "pb": pb, "ps": ps, "cols": cols, "gap": gap,
-                "display": d.get("display", "")}
+                "display": d.get("display", ""), "label": label, "land": land}
 
     def text_height(text, font, lead, w):
         text = re.sub(r"\s+", " ", text).strip()
@@ -3505,7 +4142,7 @@ def fold_reading(page, css_text, fold_px=FOLD_PX, width=PHONE_WIDTH_PX,
         if node["tag"] == "img":
             h = inner * (img_aspect or 0.5625)
             rows.append({"what": "img", "top": top, "h": h, "words": 0,
-                         "text": ""})
+                         "text": "", "label": m["label"], "land": m["land"]})
             return m["mt"] + m["pt"] + h + m["pb"] + m["mb"]
         if node["tag"] == "svg":
             vb = (node["attrs"].get("viewbox")
@@ -3516,13 +4153,14 @@ def fold_reading(page, css_text, fold_px=FOLD_PX, width=PHONE_WIDTH_PX,
                 ratio = 1.0
             h = min(inner, FLOW_W) * ratio
             rows.append({"what": "svg", "top": top, "h": h, "words": 0,
-                         "text": ""})
+                         "text": "", "label": m["label"], "land": m["land"]})
             return m["mt"] + m["pt"] + h + m["pb"] + m["mb"]
         own, words = text_height(node["text"], m["font"], m["lead"], inner)
         if own:
             rows.append({"what": node["tag"] + ("." + node["cls"][0]
                                                 if node["cls"] else ""),
                          "top": y, "h": own, "words": words,
+                         "label": m["label"], "land": m["land"],
                          "text": re.sub(r"\s+", " ", node["text"]).strip()})
         y += own
         kids = node["kids"]
@@ -3547,16 +4185,117 @@ def fold_reading(page, css_text, fold_px=FOLD_PX, width=PHONE_WIDTH_PX,
         y += walk(kid, width - 2 * body_pad, walk_parent, y)
     above = [r for r in rows if r["top"] < fold_px]
     text_above = " ".join(r["text"] for r in above)
+    # THE PROSE HALF IS WHAT THE BOUND READS, and it is the half that was
+    # counted on the page Jafar rejected. The label half is the grid he ruled
+    # onto the first screen. Both are counts above ONE fold, 844 px, and
+    # neither is a peak or a median of anything.
     words = sum(r["words"] for r in above)
+    label_words = sum(r["words"] for r in above if r.get("label"))
     numbers = re.findall(r"\b\d[\d.,/]*\b", text_above)
+    prose_above = " ".join(r["text"] for r in above if not r.get("label"))
     return {"foldPx": fold_px, "model": FOLD_MODEL, "pageHeightPx": int(y),
             "blocksAboveFold": len(above), "blocksTotal": len(rows),
-            "words": words, "numbers": len(numbers),
+            "words": words, "labelWords": label_words,
+            "proseWords": words - label_words, "numbers": len(numbers),
             "distinctNumbers": len(set(numbers)),
-            "textAbove": text_above, "rows": rows, "above": above,
+            "textAbove": text_above, "proseAbove": prose_above,
+            "rows": rows, "above": above,
             "unknownClasses": sorted(unknown), "cssRulesIndexed": len(rules),
             "cssRulesSeen": rules_seen,
             "firstBelow": next((r for r in rows if r["top"] >= fold_px), None)}
+
+
+def block_span(rows, land):
+    """(top, bottom, heightPx, blocks, words) for the rows inside ONE named
+    block, in place, from the same walk the fold reading came from.
+
+    NAMED BLOCKS, NOT CLASSES: the id is carried down the tree, so this cannot
+    confuse two blocks that happen to share a class (.tag and .tap are in both
+    ladders). Every number is the block's extent AS LAID OUT ON THE WHOLE PAGE,
+    which is the only version of "does it fit" that answers anything: a block
+    measured alone is a different photograph from the same block under a
+    ladder.
+    """
+    mine = [r for r in rows if r.get("land") == land]
+    if not mine:
+        return {"land": land, "found": False, "top": None, "bottom": None,
+                "heightPx": 0, "blocks": 0, "words": 0}
+    top = min(r["top"] for r in mine)
+    bottom = max(r["top"] + r["h"] for r in mine)
+    return {"land": land, "found": True, "top": int(top), "bottom": int(bottom),
+            "heightPx": int(bottom - top), "blocks": len(mine),
+            "words": sum(r["words"] for r in mine)}
+
+
+def block_height_px(block_html):
+    """The modelled height of ONE block on its own, in px, margins included.
+
+    ONE IMPLEMENTATION for "how tall is this board": the live board and every
+    rung of the capacity series below both come through here, so a forecast and
+    a reading can be compared without asking whether they were measured the
+    same way. It is the same model as fold_reading, because it IS fold_reading.
+    """
+    frag = PAGE % (css(), block_html)
+    return int(fold_reading(frag, css())["pageHeightPx"]) - BODY_PAD_PX
+
+
+def synthetic_heat_rows(tiles, name_len, areas=len(HEAT_AREAS)):
+    """`tiles` tiles of `name_len` characters, spread evenly over `areas` rows.
+
+    THE EVEN SPREAD IS THE OPTIMISTIC SHAPE and it is named so wherever it is
+    printed: a grid of two columns wastes up to half a row per area, so the
+    live board with the same tile count can be a few rows taller than its
+    forecast. The live number is printed beside the forecast for exactly that
+    reason, so nobody has to take one for the other.
+    """
+    rows = []
+    for i in range(areas):
+        n = tiles // areas + (1 if i < tiles % areas else 0)
+        rows.append({"key": "synthetic-%d" % (i + 1),
+                     "name": "a synthetic area", "tiles": [
+                         {"cls": HEAT_CLASS["exists"],
+                          "mark": HEAT_MARK["exists"], "name": "x" * name_len,
+                          "label": "x" * name_len, "stateWord": "exists",
+                          "evidence": []} for _ in range(n)]})
+    return rows
+
+
+def heatmap_capacity(name_len, fold_px=FOLD_PX, upto=200):
+    """(series, fitsUpTo): the board's modelled height at N tiles, and the
+    largest N that still fits ONE phone screen.
+
+    A PRINTER FIRST. The bound in check_heatmap_fits_one_screen is the ruled
+    fold, 844 px, and this is the series that says what that fold costs in
+    tiles, so the day the inventory grows past it the page can say the number
+    instead of shrinking the text until it technically fits. The search is a
+    bisection over a height that only grows with tiles, and the series prints
+    the anchors either side of the answer.
+    """
+    series = []
+
+    def height(n):
+        r = {"walked": n, "tiles": n, "counts": {"exists": n}, "capped": 0,
+             "unplaced": 0, "badStates": [], "refused": False,
+             "areasDrawn": len(HEAT_AREAS), "areasAsked": len(HEAT_AREAS),
+             "emptyAreas": 0, "sha": None, "day": None, "measuredAt": None,
+             "walkedNote": "synthetic"}
+        px = block_height_px(heatmap_html(
+            synthetic_heat_rows(n, name_len), r))
+        series.append((n, px))
+        return px
+
+    lo, hi = 1, upto
+    if height(upto) <= fold_px:
+        return sorted(set(series)), upto
+    if height(lo) > fold_px:
+        return sorted(set(series)), 0
+    while hi - lo > 1:
+        mid = (lo + hi) // 2
+        if height(mid) <= fold_px:
+            lo = mid
+        else:
+            hi = mid
+    return sorted(set(series)), lo
 
 
 # THE DIAGNOSTIC SHAPES, NAMED ONE BY ONE so a reading says WHICH bit. Jafar
@@ -3849,21 +4588,187 @@ def check_visual_ladder_is_ruled_not_measured(page, model):
 
 
 def check_area_tiles(page, model):
-    """EVERY AREA IS A TILE ON THE FIRST SCREEN, coloured by its own derived
-    word, and every tile taps to the sheet that names the files behind it. The
-    derivation is not touched here: the tile prints the word area_states()
-    computed, and the count is read off the rendered bytes."""
+    """EVERY ONE OF THE SEVEN DERIVED AREAS IS A TILE IN THE AUDIT VIEW,
+    coloured by its own derived word, and every tile taps to the sheet that
+    names the files behind it.
+
+    WHERE THESE TILES ARE, SINCE 2026-09-09. They were the first screen for one
+    morning. Jafar's ruling that afternoon gives the first screen to the typed
+    board, and these seven move into the audit view with the chain they belong
+    to. NOTHING ABOUT THE DERIVATION CHANGED and this check is unweakened: the
+    tile still prints the word area_states() computed and the count is still
+    read off the rendered bytes. What changed is the half it speaks about, which
+    is printed as areaTilesHalf= on every run.
+    """
     tiles = re.findall(r'<a class="tile ([a-z-]+)" href="#a-([^"]+)"', page)
     keys = [k for _, k in tiles]
     want = [a["key"] for a in model["areas"]]
     classes = [c.split()[-1] for c, _ in tiles]
     wanted_classes = [WORD_CLASS[a["word"]] for a in model["areas"]]
     return ("areaTiles", keys == want and classes == wanted_classes,
-            "tiles=%d/%d-areas coloursMatchTheDerivedWord=%s "
+            "derivedAreaTiles=%d/%d-areas coloursMatchTheDerivedWord=%s "
             "everyTileTapsToItsSheet=%d/%d"
             % (len(tiles), len(want),
                "yes" if classes == wanted_classes else "no",
                sum(1 for k in keys if ('id="a-%s"' % k) in page), len(keys)))
+
+
+def check_heatmap(page, model):
+    """EVERY SYSTEM IN THE INVENTORY IS A TILE ON THE BOARD, in his five areas,
+    in his order, with the state it is typed as.
+
+    Read off the rendered bytes and counted against what this run read out of
+    the file, which is the half a model alone cannot prove: a board that drops
+    a system, or colours one by something other than its typed state, is the
+    failure this exists for. Three signals are required per state and not one:
+    the class, the mark glyph, and the state word in the legend, because colour
+    alone is unreadable to a colourblind reader and invisible in a greyscale
+    screenshot.
+    """
+    h = model["heat"]
+    slice_ = heat_slice(page)
+    if h["refused"]:
+        ok = "CANNOT BE SHOWN" in slice_ and NOTHING in slice_
+        return ("heatmap", ok,
+                "heatRefusedWhy=%s refusalShownOnPage=%s "
+                "nothingMeasuredWordingOnBoard=%s systemsWalked=%d"
+                % (h["refusedWhy"], "yes" if "CANNOT BE SHOWN" in slice_
+                   else "MISSING", "yes" if NOTHING in slice_ else "MISSING",
+                   h["walked"]))
+    pairs = re.findall(r'<span class="hTile (h-[a-z]+)"[^>]*>(.)', slice_)
+    drawn = [cls for cls, _ch in pairs]
+    want = [t["cls"] for row in h["rows"] for t in row["tiles"]]
+    # THE COLOURBLIND HALF, CHECKED RATHER THAN ASSERTED: every tile's first
+    # character is the SHAPE its colour claims, so a reader who cannot see the
+    # colour reads the same board. A tile whose mark and class disagree is
+    # counted, not just found.
+    marks = sum(1 for cls, ch in pairs if ch == HEAT_MARK_OF_CLASS.get(cls))
+    words = sum(1 for s in HEAT_STATES
+                if ("%s %s</span>" % (HEAT_MARK[s], s)) in slice_)
+    areas_on_page = re.findall(r'<a class="hLink" href="#h-([^"]+)"', slice_)
+    want_areas = [row["key"] for row in h["rows"]]
+    # A ZERO NEEDS ITS DENOMINATOR: an empty area prints what it was counted
+    # over, in words, and this reads the bytes for that rather than trusting
+    # the builder above.
+    zero_said = sum(1 for row in h["rows"] if not row["tiles"]
+                    and ("none of %d" % h["walked"]) in slice_)
+    ok = (drawn == want and areas_on_page == want_areas
+          and words == len(HEAT_STATES) and marks == len(drawn)
+          and len(drawn) == h["tiles"] == sum(h["areaCounts"].values())
+          and zero_said == h["emptyAreas"])
+    return ("heatmap", ok,
+            "heatTilesOnPage=%d/%d-system(s)-walked coloursMatchTheTypedState="
+            "%s areasOnPage=%d/%d-in-his-order markShapeMatchesColour=%d/%d-"
+            "tiles stateWordsInLegend=%d/%d emptyAreasSayingTheirZero=%d/%d "
+            "tapsToAnAreaSheet=%d/%d"
+            % (len(drawn), h["walked"], "yes" if drawn == want else "no",
+               len(areas_on_page), len(want_areas), marks, len(drawn),
+               words, len(HEAT_STATES), zero_said, h["emptyAreas"],
+               sum(1 for k in areas_on_page if ('id="h-%s"' % k) in page),
+               len(areas_on_page)))
+
+
+def check_heatmap_is_typed_not_measured(page, model):
+    """THE GUARD THIS NEW ARRANGEMENT NEEDS, and it is the one that replaces a
+    refusal to draw.
+
+    Jafar's ruling of 2026-09-09 puts a typed board on the first screen, where
+    every word until today had to be derived from a committed key. A tile that
+    LOOKS measured and is not is the fault the old rule existed to prevent, so
+    the board must say on its own face whose judgement the colours are. Four
+    things are read off the board's own bytes, the same shape as the visual
+    ladder's guard: it says typed and ruled, it says it is NOT measured by this
+    page, it carries no tick glyph, and it carries no diagnostic shape (a raw
+    path, a key=value or a fraction) that would read as a reading.
+    """
+    slice_ = heat_slice(page)
+    if not slice_:
+        return ("heatmapIsTyped", False,
+                "boardMarkersFound=no bytesExamined=0 "
+                "nothingOnTheFaceCouldBeRead=%s" % NOTHING.replace(" ", "-"))
+    # A REFUSED BOARD CLAIMS NOTHING, so there is nothing here to mislabel. The
+    # refusal's own wording is checked by check_heatmap, which requires the
+    # words nothing measured in it; this guard is about colours that exist.
+    if model["heat"]["refused"]:
+        return ("heatmapIsTyped", True,
+                "boardRefused=yes tilesDrawn=0/%d-walked nothingClaimsToBe"
+                "Measured=yes bytesExamined=%d"
+                % (model["heat"]["walked"], len(slice_)))
+    said_typed = "typed judgement" in slice_
+    said_ruled = "ruled by" in slice_
+    said_not_measured = "not measured by this page" in slice_
+    ticks = slice_.count("✓")
+    text = re.sub(r"<[^>]+>", " ", slice_)
+    hits, tokens = diagnostics_above_fold(text)
+    ok = (said_typed and said_ruled and said_not_measured and ticks == 0
+          and not hits)
+    return ("heatmapIsTyped", ok,
+            "typedWordOnBoard=%s ruledWordOnBoard=%s notMeasuredWordOnBoard=%s "
+            "tickGlyphs=%d/0-allowed diagnosticShapesOnBoard=%d/%d-tokens-"
+            "examined%s"
+            % ("yes" if said_typed else "MISSING",
+               "yes" if said_ruled else "MISSING",
+               "yes" if said_not_measured else "MISSING", ticks, len(hits),
+               tokens,
+               "" if not hits else " (" + ",".join(hits[:3])
+               + (" +%d-more-not-shown" % (len(hits) - 3) if len(hits) > 3
+                  else "") + ")"))
+
+
+def check_heatmap_fits_one_screen(page, model):
+    """ONE SCREEN ON A PHONE, WHICH IS THE HARD PART OF THE RULING, AND THE
+    CASE WHERE IT CANNOT BE MET.
+
+    WHAT THIS BITES ON, AND WHY IT IS NOT "the board is under 844 px". The
+    ruling asks for two things that stop being compatible somewhere between 30
+    and 67 systems: EVERY SYSTEM A TILE, and ONE SCREEN ON A PHONE. The
+    inventory was 27 systems when this was written and 67 by the time it first
+    ran, and 67 legible tiles in two columns are about two phone screens tall.
+    The brief that ordered the rebuild named the outcome: say so with the
+    numbers rather than shrinking the text until it technically fits, because a
+    tile nobody can read is not a tile. So the board is drawn WHOLE, and what a
+    file can enforce is that it never lies about its own size:
+
+      it fits one screen, OR it says on its face that it does not.
+
+    That is the cap-announces-itself rule with a screen as the cap. It is not a
+    ratchet: delete the sentence while the board is over the fold and this goes
+    red, and a board that drops tiles to fit goes red in check_heatmap instead.
+    The numbers are printed either way, here and on the done line: the modelled
+    height, the tile count it stops fitting at (bisected over the same model),
+    and where the ladder, the board and the next three actually sit, because on
+    a 390x844 phone the ladder alone fills the first screen and the board is
+    the second.
+    """
+    h = model["heat"]
+    land = model["fold"]["landmarks"]
+    if h["refused"]:
+        return ("heatmapFitsOneScreen", True,
+                "boardRefused=yes nothingToMeasure=%s systemsWalked=%d "
+                "foldPx=%d" % (NOTHING.replace(" ", "-"), h["walked"], FOLD_PX))
+    fits = h["heightPx"] <= FOLD_PX
+    said = HEAT_TOO_TALL_SAYS in heat_slice(page)
+    board = land.get("heatmap") or {}
+    lad = land.get("ladder-visual") or {}
+    nxt = land.get("next-three") or {}
+
+    def px(span, side):
+        return span.get(side) if span.get("found") else NOTHING.replace(" ", "-")
+
+    return ("heatmapFitsOneScreen", fits or said,
+            "heatmapHeightPx=%d/%d-fold heatmapScreens=%.2f fitsOneScreen=%s "
+            "saidItDoesNotOnTheFace=%s heatTiles=%d/%d-fit-one-screen "
+            "heatHeadroomTiles=%d tilesDropped=0/%d ladderBottomPx=%s "
+            "heatmapTopPx=%s heatmapBottomPx=%s nextThreeTopPx=%s "
+            "screensToTheNextThree=%.2f foldModel=%s"
+            % (h["heightPx"], FOLD_PX, h["screens"],
+               "yes" if fits else "no",
+               ("yes" if said else "MISSING") if not fits else "not-needed",
+               h["tiles"], h["fitsUpToTiles"],
+               h["fitsUpToTiles"] - h["tiles"], h["tiles"],
+               px(lad, "bottom"), px(board, "top"), px(board, "bottom"),
+               px(nxt, "top"), (nxt.get("top") or 0) / float(FOLD_PX),
+               FOLD_MODEL))
 
 
 def check_first_screen_clean(page, model):
@@ -3893,17 +4798,49 @@ def check_first_screen_clean(page, model):
     under it. Both are counts above ONE fold, 844 px, and every block's
     modelled top is printed beside them, so a shorter fold can be read off the
     same series without a second constant.
+
+    AND THE SERIES CONTINUED, the afternoon of 2026-09-09, when the board took
+    the first screen. THREE REAL PAGES, ALL THREE REGENERATED AND MEASURED BY
+    THIS MODEL IN ONE RUN, which is the only way the three numbers are
+    comparable (each page carries its own stylesheet, and fold_reading takes
+    the stylesheet as an argument for exactly this reason):
+
+      the page Jafar rejected (tools/map.py at 650f0755, regenerated against
+        today's checkout): words=176, of which prose=176 and LABEL=0,
+        distinctNumbers=8, diagnostics=2 of 172 tokens. It read 180 on the
+        morning it was rejected, on that morning's data; 176 is the same page's
+        shape against today's. What matters for the bound is that every one of
+        those words was PROSE: that page had no tile above the fold, so a prose
+        bound of 179 still means "not as dense as the page a human rejected".
+      this morning's page (the ladder, then the seven derived tiles):
+        words=129, prose=115, label=14, distinctNumbers=2, diagnostics=0 of
+        125. The first block below the fold was a tile name at 877 px.
+      the board landing: words=125, prose=125, label=0, distinctNumbers=6,
+        diagnostics=0 of 121. The ladder still ends at 749 px, the board's head
+        and tally follow it, and the first block below the fold is the board's
+        own legend at 846 px. SO THE TILES ARE NOT ABOVE 844 px AT ALL: the
+        board is the second screenful, which is why its size is checked by
+        check_heatmap_fits_one_screen and not by this count.
+
+    WHAT THE SPLIT IS FOR, SAID HONESTLY: it did not decide today's pass. 125
+    is under 179 whether or not labels are counted, because labelWords above
+    the fold is 0. The split exists so that the day the ladder shortens and the
+    grid rises into the first screen, a board Jafar ruled cannot read as the
+    wall of text he rejected, and the only way to pass would have been deleting
+    his sentences.
     """
     f = model["fold"]
     hits, tokens = diagnostics_above_fold(f["textAbove"])
-    ok = not hits and f["words"] <= FOLD_WORD_BOUND
+    ok = not hits and f["proseWords"] <= FOLD_PROSE_WORD_BOUND
     return ("firstScreenClean", ok,
             "diagnosticTokensAboveFold%d=%d/%d-tokens-examined "
-            "wordsAboveFold%d=%d/%d-bound distinctNumbersAboveFold%d=%d "
+            "proseWordsAboveFold%d=%d/%d-bound labelWordsAboveFold%d=%d "
+            "wordsAboveFold%d=%d distinctNumbersAboveFold%d=%d "
             "blocksAboveFold=%d/%d modelledPageHeightPx=%d foldModel=%s "
             "unknownClasses=%d%s"
-            % (FOLD_PX, len(hits), tokens, FOLD_PX, f["words"],
-               FOLD_WORD_BOUND, FOLD_PX, f["distinctNumbers"],
+            % (FOLD_PX, len(hits), tokens, FOLD_PX, f["proseWords"],
+               FOLD_PROSE_WORD_BOUND, FOLD_PX, f["labelWords"], FOLD_PX,
+               f["words"], FOLD_PX, f["distinctNumbers"],
                f["blocksAboveFold"], f["blocksTotal"], f["pageHeightPx"],
                f["model"], len(f["unknownClasses"]),
                "" if not hits else " (" + ",".join(hits[:4])
@@ -4053,8 +4990,15 @@ def check_links(page, model):
     # widens the IN-PAGE anchor shapes and not the destinations: anything with
     # a host, a scheme or a .md still fails, which is the thing Jafar ruled
     # out and the thing this check exists for.
+    # #h- AND #audit ARE NEW, 2026-09-09 with the board: each of his five areas
+    # taps to its own sheet the way the derived areas (#a-), the tasks (#t-)
+    # and the visual ladder's rungs (#v-) already do, and one link jumps to the
+    # audit view. This widens the IN-PAGE anchor shapes and not the
+    # destinations: anything with a host, a scheme or a .md still fails, which
+    # is the thing Jafar ruled out and the thing this check exists for.
     bad = [h for h in hrefs
-           if h not in allowed and not re.match(r"^#(a-|t-|v-)", h)]
+           if h not in allowed and h != "#audit"
+           and not re.match(r"^#(a-|t-|v-|h-)", h)]
     md = [h for h in hrefs if h.endswith(".md")]
     return ("links", not bad and not md,
             "hrefsExamined=%d outsideTheAllowList=%d markdownLinks=%d%s"
@@ -4268,6 +5212,10 @@ CHECKS = (check_ladder_at_top, check_ladder_step_count,
           # JAFAR'S LADDER, THE TILES AND THE FIRST SCREEN, 2026-09-09. The
           # five above still guard the STUDIO ladder, unchanged and unweakened.
           check_visual_ladder_count, check_visual_ladder_is_ruled_not_measured,
+          # THE BOARD, ruled the afternoon of 2026-09-09. The typed half of the
+          # page, and the third of these is the one that says it is typed.
+          check_heatmap, check_heatmap_is_typed_not_measured,
+          check_heatmap_fits_one_screen,
           check_area_tiles, check_first_screen_clean,
           check_first_screen, check_picture, check_probe_is_not_a_game,
           check_player_control_matches_scan,
@@ -4280,8 +5228,97 @@ CHECKS = (check_ladder_at_top, check_ladder_step_count,
           check_formatting, check_secrets)
 
 
+# ---------------------------------------------------------------------------
+# WHICH SURFACE EACH GUARD POLICES, ruled by Jafar on 2026-09-09 and written
+# down here because a guard whose scope silently narrowed is worse than one
+# that was deleted.
+#
+# THE RULING. "ON THIS PAGE, TYPED IS THE STANDARD: a director's overview is a
+# human's judgement of state, ruled by me and updated by rulings; measured
+# evidence sits one tap below and never on the first screen." Four guards were
+# built for the opposite rule and are the reason this page could not show the
+# board he approved on 31 August: noComfortingBar, availabilityWords,
+# noAbsenceClaim and playerControlMatchesScan. NONE IS DELETED. Every one of
+# them still guards the audit view, which is still derived and must stay
+# honest. What changed is the SURFACE each one speaks about, and this table is
+# that fact, printed on every run as <checkName>Half=.
+#
+# THESE WORDS NAME A SURFACE AND NOT A PIXEL LINE. The overview is the ladder,
+# the board and the next three, in that order; the audit view is everything
+# under its own heading below them. Which of them actually lands above 844 px
+# is a separate measurement and it is printed separately, by
+# check_heatmap_fits_one_screen and check_first_screen_clean, because on a
+# 390x844 phone the ladder alone fills the first screen and calling the next
+# three "above the fold" would be a false claim with a key on it.
+# ---------------------------------------------------------------------------
+HALF_TYPED = "the-overview/typed-judgement/ruled-by-Jafar"
+HALF_DERIVED = "the-audit-view/derived-from-committed-files"
+HALF_WHOLE = "both-halves/the-whole-page"
+HALF_OF = {
+    # THE OVERVIEW. Typed states, said to be typed, and counted.
+    "heatmap": HALF_TYPED,
+    "heatmapIsTyped": HALF_TYPED,
+    "heatmapFitsOneScreen": HALF_TYPED,
+    "visualLadderCount": HALF_TYPED,
+    "visualLadderIsRuled": HALF_TYPED,
+    "firstScreenClean": HALF_TYPED,
+    "nextThree": HALF_TYPED,
+    "onePrioritySource": HALF_TYPED,
+    # THE AUDIT VIEW. Every word derived, and the four guards Jafar's ruling
+    # moved are in here: noComfortingBar, availabilityWords and
+    # playerControlMatchesScan police these blocks and nothing above them.
+    "firstScreen": HALF_DERIVED,
+    "picture": HALF_DERIVED,
+    "probeIsNotAGame": HALF_DERIVED,
+    "playerControlMatchesScan": HALF_DERIVED,
+    "areasSpoken": HALF_DERIVED,
+    "noComfortingBar": HALF_DERIVED,
+    "areaTiles": HALF_DERIVED,
+    "denominators": HALF_DERIVED,
+    "availabilityWords": HALF_DERIVED,
+    "ladderStepCount": HALF_DERIVED,
+    "ladderDoneHonest": HALF_DERIVED,
+    "ladderNoRawContent": HALF_DERIVED,
+    "ladderStaleRungsSaySo": HALF_DERIVED,
+    "svgTextFits": HALF_DERIVED,
+    "capAnnounced": HALF_DERIVED,
+    # BOTH. noAbsenceClaim reads every sentence in the rendered bytes, which is
+    # the one thing that must hold wherever it is written: a scan of a checkout
+    # cannot say a thing does not exist, and a typed board may not say it
+    # either.
+    "noAbsenceClaim": HALF_WHOLE,
+    "ladderAtTop": HALF_WHOLE,
+    "links": HALF_WHOLE,
+    "materialRule": HALF_WHOLE,
+    "servedPage": HALF_WHOLE,
+    "themeAware": HALF_WHOLE,
+    "stamp": HALF_WHOLE,
+    "publisherMarker": HALF_WHOLE,
+    "viewport": HALF_WHOLE,
+    "maxDeclaredWidthPx": HALF_WHOLE,
+    "externalRefs": HALF_WHOLE,
+    "pageBytes": HALF_WHOLE,
+    "formatting": HALF_WHOLE,
+    "secrets": HALF_WHOLE,
+}
+
+
 def run_checks(page, model):
-    return [f(page, model) for f in CHECKS]
+    """Every check, each one carrying the surface it speaks about.
+
+    The half is attached HERE, from one table, rather than typed into 34
+    strings: a scope that lives in 34 places drifts, and the drift is invisible
+    because every one of them still reads like a sentence. A check with no
+    declared half prints so loudly rather than defaulting to a half it might
+    not police.
+    """
+    out = []
+    for f in CHECKS:
+        name, good, said = f(page, model)
+        out.append((name, good, "%s %sHalf=%s"
+                    % (said, name,
+                       HALF_OF.get(name, "not-declared-WHICH-IS-THE-FAULT"))))
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -4904,9 +5941,116 @@ def selftest():
        "no tick nobody earned (%s)"
        % check_visual_ladder_is_ruled_not_measured(page, model)[2],
        check_visual_ladder_is_ruled_not_measured(page, model)[1])
-    ok("and the seven areas are tiles coloured by the word this run derived "
-       "(%s)" % check_area_tiles(page, model)[2],
+    ok("and the seven derived areas are tiles in the AUDIT VIEW, coloured by "
+       "the word this run derived (%s)" % check_area_tiles(page, model)[2],
        check_area_tiles(page, model)[1])
+
+    # ------------------------------------------------------------------
+    # THE BOARD, RULED 2026-09-09, ACCEPTING CASE FIRST: the live inventory.
+    # It is another builder's file and it grew from 27 systems to 67 while
+    # this was being written, so NOTHING HERE IS PINNED TO A COUNT: every
+    # assertion is a shape, a denominator or a relation, and the counts are
+    # printed. A fixture pinned to 27 would have called a correct board broken
+    # by lunchtime, which has happened twice on this page already.
+    # ------------------------------------------------------------------
+    hm = model["heat"]
+    ok("the board is read from %s: %d tile(s) over %d system(s) walked, in %d "
+       "area(s) of the %d he ruled, states %s"
+       % (INVENTORY, hm["tiles"], hm["walked"], hm["areasDrawn"],
+          hm["areasAsked"],
+          "/".join("%s.%d" % kv for kv in sorted(hm["counts"].items()))
+          or NOTHING),
+       hm["present"] and not hm["refused"] and hm["tiles"] == hm["walked"]
+       and hm["tiles"] >= 1 and hm["areasDrawn"] >= len(HEAT_AREAS), hm)
+    ok("and the five areas are in HIS order and HIS words, which is a list and "
+       "not a sort (%s)" % ", ".join(n for _k, n in HEAT_AREAS),
+       [row["name"] for row in hm["rows"][:len(HEAT_AREAS)]]
+       == [n for _k, n in HEAT_AREAS]
+       and all(n in page for _k, n in HEAT_AREAS),
+       [row["name"] for row in hm["rows"]])
+    # THE FILE'S OWN AREA TABLE AGAINST THE RULING. The accepting case is the
+    # live file, which today agrees on all five; the rejecting one is synthetic.
+    ok("and the file's own area labels agree with the ruling this board draws "
+       "(%d of the %d it lists, stamp field %s, typed against %s)"
+       % (hm["areaLabelsAgree"], hm["theirAreas"], hm["stampField"],
+          hm["typedAgainst"] or NOTHING),
+       hm["areaLabelsAgree"] == len(HEAT_AREAS) and hm["stampField"] != "neither",
+       (hm["areaLabelsAgree"], hm["theirAreas"], hm["stampField"]))
+    ok("and every system is a tile whose SHAPE matches its colour, so a "
+       "colourblind reader reads the same board (%s)"
+       % check_heatmap(page, model)[2], check_heatmap(page, model)[1])
+    ok("and the board says on its own face that its colours are typed "
+       "judgement and not measured here (%s)"
+       % check_heatmap_is_typed_not_measured(page, model)[2],
+       check_heatmap_is_typed_not_measured(page, model)[1])
+    ok("and it never claims to have proven one: %d state(s) typed, 0 of %d "
+       "proven by any key, because nothing in this repository decides one"
+       % (hm["tiles"], hm["tiles"]),
+       ("heatStatesProven=0/%d" % hm["tiles"])
+       in " ".join(model["detail"]), [d for d in model["detail"]
+                                      if "heatStatesProven" in d][:1])
+    ok("and the one-screen question is answered with numbers, either by "
+       "fitting or by saying it does not (%s)"
+       % check_heatmap_fits_one_screen(page, model)[2],
+       check_heatmap_fits_one_screen(page, model)[1])
+    print("\n    the board, one row per area, and then the height series:")
+    for row in hm["rows"]:
+        counts = {}
+        for t in row["tiles"]:
+            counts[t["stateWord"]] = counts.get(t["stateWord"], 0) + 1
+        print("    %-28s %2d tile(s) of %d walked  %s"
+              % (row["name"], len(row["tiles"]), hm["walked"],
+                 " ".join("%s=%d" % (s, counts.get(s, 0))
+                          for s in HEAT_STATES)))
+    print("    heightPx=%d of a %d px screen (%.2f screens), fits up to %d "
+          "tile(s), %d drawn" % (hm["heightPx"], FOLD_PX, hm["screens"],
+                                 hm["fitsUpToTiles"], hm["tiles"]))
+    for n, px in hm["series"]:
+        print("      %3d synthetic tile(s) at %d chars: %4d px %s"
+              % (n, hm["medianNameLen"], px,
+                 "fits" if px <= FOLD_PX else "over one screen"))
+    # THE TYPED NOTE'S SCOPE. The accepting case is the live file, which today
+    # carries three notes claiming something does not exist; the page prints
+    # them scoped and noAbsenceClaim passes on the rendered bytes.
+    ok("and %d typed note(s) of the %d with text were given their scope, so "
+       "noAbsenceClaim passes on a board full of human prose (%s)"
+       % (hm["notesScoped"], hm["notesWithText"],
+          check_no_absence_claim(page, model)[2]),
+       check_no_absence_claim(page, model)[1]
+       and hm["notesScoped"] == hm["sentencesScoped"], hm["notesScoped"])
+    scoped, n = scope_typed_claim("The credits screen does not exist: the two "
+                                  "mentions are comments.")
+    ok("and the scoping adds the words in this checkout to the END of the one "
+       "sentence that needed it: '%s'" % scoped,
+       n == 1 and scoped.endswith("in this checkout.")
+       and any(q in scoped.lower() for q in CHECKOUT_QUALIFIERS)
+       and scoped.count("in this checkout") == 1, scoped)
+    already, n2 = scope_typed_claim("No packaged build exists in this checkout.")
+    ok("and a note that already names the checkout is NOT scoped twice, so "
+       "this is not a ratchet either (%d added)" % n2,
+       n2 == 0 and already.count("in this checkout") == 1, already)
+    # THE SCOPE TABLE. Every guard says which surface it polices, and a guard
+    # with no declared half is the fault, not a default.
+    undeclared = [n for n, _c, _s in [f(page, model) for f in CHECKS]
+                  if n not in HALF_OF]
+    ok("every one of the %d check(s) declares which half of the page it "
+       "polices, %d above the board's line and %d in the audit view"
+       % (len(CHECKS), sum(1 for v in HALF_OF.values() if v == HALF_TYPED),
+          sum(1 for v in HALF_OF.values() if v == HALF_DERIVED)),
+       not undeclared, undeclared)
+    ok("and the four guards Jafar's ruling moved are all still in CHECKS and "
+       "all declared as the audit view's: noComfortingBar, availabilityWords, "
+       "noAbsenceClaim, playerControlMatchesScan",
+       all(f in CHECKS for f in (check_no_comforting_bar,
+                                 check_availability_words,
+                                 check_no_absence_claim,
+                                 check_player_control_matches_scan))
+       and HALF_OF["noComfortingBar"] == HALF_DERIVED
+       and HALF_OF["availabilityWords"] == HALF_DERIVED
+       and HALF_OF["playerControlMatchesScan"] == HALF_DERIVED
+       and HALF_OF["noAbsenceClaim"] == HALF_WHOLE,
+       [HALF_OF[k] for k in ("noComfortingBar", "availabilityWords",
+                             "noAbsenceClaim", "playerControlMatchesScan")])
     ok("and the first screen carries no diagnostic text, with the words and "
        "the numbers above the fold counted (%s)"
        % check_first_screen_clean(page, model)[2],
@@ -4944,6 +6088,130 @@ def selftest():
        "than falling back to the other ladder (%s)" % md["refusedSay"],
        md["refused"] and not md["present"]
        and "not in this checkout" in md["refusedSay"], md)
+
+    # ------------------------------------------------------------------
+    # THE BOARD'S REJECTING FIXTURES, ALL SYNTHETIC. A system name and an area
+    # word that exist in no real inventory, so filling the real one can never
+    # satisfy or break one of these.
+    # ------------------------------------------------------------------
+    ok("a checkout with NO inventory refuses the board in words, counts no "
+       "tile, and leaves every other check passing (%s)"
+       % check_heatmap(p2, m2)[2],
+       m2["heat"]["refused"] and m2["heat"]["tiles"] == 0
+       and "CANNOT BE SHOWN" in heat_slice(p2) and NOTHING in heat_slice(p2)
+       and check_heatmap(p2, m2)[1]
+       and check_heatmap_fits_one_screen(p2, m2)[1],
+       (m2["heat"]["refusedWhy"], heat_slice(p2)[:160]))
+    drifted = _tree({INVENTORY: json.dumps(
+        {"areas": [{"key": "moat", "label": "a planted label for the moat"}],
+         "typedOn": "2026-01-02",
+         "systems": [{"name": "a planted system", "area": "moat",
+                      "status": "exists"}]}, indent=1)})
+    _dr, dread = heatmap(drifted)
+    ok("an inventory whose own area label drifts from the ruling is counted as "
+       "disagreeing rather than drawn as his board (%d of %d agree)"
+       % (dread["areaLabelsAgree"], dread["theirAreas"]),
+       dread["areaLabelsAgree"] == 0 and dread["theirAreas"] == 1
+       and dread["tiles"] == 1, dread)
+    bad_inv = _tree({INVENTORY: json.dumps({"systems": [
+        {"name": "a planted system", "area": "moat", "status": "exists"},
+        {"name": "a planted elsewhere", "area": "zzz-planted-area",
+         "status": "partial"},
+        {"name": "a planted unknown", "area": "world",
+         "status": "zzz-planted-state"}]}, indent=1)})
+    brows, bread = heatmap(bad_inv)
+    bhtml = heatmap_html(brows, bread)
+    ok("a system in an area this page does not draw is given a SIXTH row "
+       "rather than dropped (%d tile(s) over %d walked, unplaced=%d, rows=%d)"
+       % (bread["tiles"], bread["walked"], bread["unplaced"],
+          bread["areasDrawn"]),
+       bread["tiles"] == 3 and bread["unplaced"] == 1
+       and bread["areasDrawn"] == len(HEAT_AREAS) + 1
+       and "a planted elsewhere" in bhtml
+       and HEAT_OTHER_NAME in bhtml, bread)
+    ok("and a state that is not one of the three is counted, said on the face "
+       "and coloured as a fault rather than guessed (badStates=%s)"
+       % "/".join(bread["badStates"]),
+       len(bread["badStates"]) == 1 and HEAT_UNKNOWN_CLASS in bhtml
+       and "not one of the three" in bhtml
+       and bread["counts"].get("status-not-one-of-the-three") == 1, bread)
+    ok("and an area with no system prints its zero with what it was counted "
+       "over, so an empty area cannot read as a finished one",
+       ("none of %d" % bread["walked"]) in bhtml
+       and bread["emptyAreas"] >= 1, bread["emptyAreas"])
+    # A BOARD TOO BIG FOR ONE SCREEN, PLANTED, so the sentence and the bound
+    # are proven without waiting for the inventory to grow into them.
+    big = synthetic_heat_rows(200, 18)
+    bigread = {"walked": 200, "tiles": 200, "counts": {"exists": 200},
+               "capped": 0, "unplaced": 0, "badStates": [], "refused": False,
+               "areasDrawn": len(HEAT_AREAS), "areasAsked": len(HEAT_AREAS),
+               "emptyAreas": 0, "sha": None, "day": None, "measuredAt": None,
+               "tallerThanOneScreen": True}
+    big_px = block_height_px(heatmap_html(big, bigread))
+    ok("a 200-tile board is %d px, which is %.1f phone screens, and it says so "
+       "on its face instead of shrinking its tiles or hiding any"
+       % (big_px, big_px / float(FOLD_PX)),
+       big_px > FOLD_PX and HEAT_TOO_TALL_SAYS in heatmap_html(big, bigread)
+       and len(re.findall(r'class="hTile ', heatmap_html(big, bigread))) == 200,
+       big_px)
+    # THE CONFESSION BRANCH, BOTH WAYS. Accepting first: a board one pixel over
+    # the fold that SAYS it is over passes, which is the behaviour the ruling
+    # asked for. Then the same board with the sentence deleted must go red, or
+    # the branch is a hole rather than a guard.
+    n, c, s = check_heatmap_fits_one_screen(page, dict(
+        model, heat=dict(model["heat"], heightPx=FOLD_PX + 1)))
+    ok("heatmapFitsOneScreen PASSES a board one pixel over one screen that "
+       "says so on its face (%s)" % s,
+       c and HEAT_TOO_TALL_SAYS in heat_slice(page), s)
+    n, c, s = check_heatmap_fits_one_screen(
+        page.replace(HEAT_TOO_TALL_SAYS, "all is well", 1),
+        dict(model, heat=dict(model["heat"], heightPx=FOLD_PX + 1)))
+    ok("and with the sentence deleted from an over-size board it goes red "
+       "(%s)" % s, not c, s)
+    n, c, s = check_heatmap(
+        re.sub(r'<span class="hTile [^>]+>[^<]*</span>', "", page, count=1),
+        model)
+    ok("heatmap bites when ONE system is dropped from the board (%s)" % s,
+       not c, s)
+    n, c, s = check_heatmap(
+        page.replace('<span class="hTile h-partial" title',
+                     '<span class="hTile h-exists" title', 1), model)
+    ok("and bites when a tile's colour is not the state the inventory types "
+       "(%s)" % s, not c, s)
+    first_mark = re.search(r'<span class="hTile (h-[a-z]+)"[^>]*>(.)',
+                           heat_slice(page))
+    n, c, s = check_heatmap(
+        page.replace('%s' % first_mark.group(0),
+                     first_mark.group(0)[:-1] + "x", 1), model)
+    ok("and bites when a tile's SHAPE stops matching its colour, which is the "
+       "half a colourblind reader depends on (%s)" % s, not c, s)
+    # THE REPLACEMENT IS SCOPED TO THE BOARD'S OWN BYTES, because the visual
+    # ladder's note carries the same sentence higher up the page and a blind
+    # replace(..., 1) edited THAT one and left the board untouched, which made
+    # this fixture pass a page it had not changed.
+    n, c, s = check_heatmap_is_typed_not_measured(
+        page.replace(heat_slice(page),
+                     heat_slice(page).replace("not measured by this page",
+                                              "measured by this page", 1), 1),
+        model)
+    ok("heatmapIsTyped bites when the board stops saying its colours are not "
+       "measured here (%s)" % s, not c, s)
+    n, c, s = check_heatmap_is_typed_not_measured(
+        page.replace(HEAT_START, HEAT_START + "<p>all done ✓</p>", 1), model)
+    ok("and bites on a tick glyph on the board, the same way both ladders "
+       "refuse one", not c, s)
+    n, c, s = check_heatmap_is_typed_not_measured(
+        page.replace(HEAT_START,
+                     HEAT_START + "<p>production/systems-inventory.json "
+                     "heatTiles=999/999</p>", 1), model)
+    ok("and bites on a raw path and a key=value put on the board's face, "
+       "which is where the typed claim has to be readable (%s)" % s, not c, s)
+    dirty_prose = dict(model)
+    dirty_prose["fold"] = dict(model["fold"],
+                               proseWords=FOLD_PROSE_WORD_BOUND + 1)
+    n, c, s = check_first_screen_clean(page, dirty_prose)
+    ok("firstScreenClean bites when the PROSE half of the first screen passes "
+       "the density of the page Jafar rejected (%s)" % s, not c, s)
 
     # THE GUARDS MUST BE ABLE TO GO RED, or they are ratchets.
     # THE NEW GUARDS MUST GO RED TOO. One planted page each, on the live
@@ -5187,6 +6455,23 @@ def main():
                  else NOTHING.replace(" ", "-"),
                  "/".join("%s=%s" % (k, v) for k, v in a["readings"]
                           if v is not None) or NOTHING.replace(" ", "-")))
+    # PER-AREA NUMBERS ON THE AREA'S OWN LINE, for the board. The whole-board
+    # tally is on the done line above; these are one row each, so a grep across
+    # lines cannot read one area's tally as the board's. Every state prints even
+    # when it is zero, with the row's own tile count as the denominator.
+    for row in model["heat"]["rows"]:
+        counts = {}
+        for t in row["tiles"]:
+            counts[t["stateWord"]] = counts.get(t["stateWord"], 0) + 1
+        print("map: heatArea=%s tiles=%d/%d-walked %s"
+              % (row["key"], len(row["tiles"]), model["heat"]["walked"],
+                 " ".join("%s=%d/%d" % (s.replace(" ", "-"),
+                                        counts.get(s, 0), len(row["tiles"]))
+                          for s in HEAT_STATES)
+                 + ("" if len(counts) <= len(HEAT_STATES) else
+                    " notOneOfTheThree=%d/%d"
+                    % (sum(n for w, n in counts.items()
+                           if w not in HEAT_STATES), len(row["tiles"])))))
     # PER-STEP NUMBERS ON THE STEP'S OWN LINE. A done step's evidence is a
     # per-sample reading (which file, which key, was it found), so it belongs
     # here and not on the done line, where a grep would read one step's pairs
@@ -5226,18 +6511,30 @@ def main():
     # a different chrome assumption can be re-read off without a second run.
     f = model["fold"]
     for row in f["above"]:
-        print("map: foldBlock=%s topPx=%d heightPx=%d words=%d"
-              % (row["what"], int(row["top"]), int(row["h"]), row["words"]))
+        print("map: foldBlock=%s topPx=%d heightPx=%d words=%d isLabel=%s"
+              % (row["what"], int(row["top"]), int(row["h"]), row["words"],
+                 "yes" if row.get("label") else "no"))
     nxt = f["firstBelow"]
     print("map: foldFirstBlockBelow=%s topPx=%s foldPx=%d"
           % (nxt["what"] if nxt else NOTHING.replace(" ", "-"),
              int(nxt["top"]) if nxt else NOTHING.replace(" ", "-"), FOLD_PX))
+    # WHERE EACH RULED BLOCK SITS, one line each, so the board's position is
+    # never read off the page-wide numbers on the line below it.
+    for land, span in model["fold"]["landmarks"].items():
+        print("map: foldBlockSpan=%s found=%s topPx=%s bottomPx=%s heightPx=%d "
+              "blocks=%d words=%d foldPx=%d"
+              % (land, "yes" if span["found"] else "no",
+                 span["top"] if span["found"] else NOTHING.replace(" ", "-"),
+                 span["bottom"] if span["found"] else NOTHING.replace(" ", "-"),
+                 span["heightPx"], span["blocks"], span["words"], FOLD_PX))
     hits, tokens = diagnostics_above_fold(f["textAbove"])
-    print("map: wordsAboveFold%d=%d/%d-bound distinctNumbersAboveFold%d=%d "
+    print("map: proseWordsAboveFold%d=%d/%d-bound labelWordsAboveFold%d=%d "
+          "wordsAboveFold%d=%d distinctNumbersAboveFold%d=%d "
           "diagnosticTokensAboveFold%d=%d/%d-tokens-examined "
           "blocksAboveFold=%d/%d modelledPageHeightPx=%d foldModel=%s "
           "cssRulesIndexed=%d/%d unknownClassesAboveFold=%d"
-          % (FOLD_PX, f["words"], FOLD_WORD_BOUND, FOLD_PX,
+          % (FOLD_PX, f["proseWords"], FOLD_PROSE_WORD_BOUND, FOLD_PX,
+             f["labelWords"], FOLD_PX, f["words"], FOLD_PX,
              f["distinctNumbers"], FOLD_PX, len(hits), tokens,
              f["blocksAboveFold"], f["blocksTotal"], f["pageHeightPx"],
              f["model"], f["cssRulesIndexed"], f["cssRulesSeen"],

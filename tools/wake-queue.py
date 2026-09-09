@@ -1272,8 +1272,17 @@ def _selftest_body(work, ok, passed, failed):
     #          without parsing a sentence.
     ok("accept/due-on-an-empty-directory-exits-nothing-measured",
        report_due(empty, noon, say=lambda *a: None) == EXIT_NOTHING_MEASURED)
+    # THE CLOCK MUST BE THE ONE THE FIXTURE WAS ARMED ON, and this line read
+    # the other one until 2026-09-09. `loop` is armed at `past`, which is REAL
+    # now minus an hour, while `noon` is frozen at 12:00Z. The two agree only
+    # while the real clock is before 13:00Z, so this case passed every morning
+    # and turned red at one in the afternoon with nothing changed. It is the
+    # mirror of the fault the comment at the top of this section records: that
+    # one planted a fixed hour and judged it against the real clock, and the
+    # repair introduced this one by making the fixture real and leaving the
+    # assertion frozen. TWO CLOCKS AND ONE FIXTURE.
     ok("accept/due-with-something-due-exits-10",
-       report_due(loop, noon, say=lambda *a: None) == EXIT_BLOCK)
+       report_due(loop, real, say=lambda *a: None) == EXIT_BLOCK)
     future = work / "future"
     future.mkdir()
     arm(future, "2027-01-01T04:00:00Z", "Next year.", "resident", noon)

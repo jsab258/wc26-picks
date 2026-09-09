@@ -3,6 +3,7 @@ spec: production/NOW.md, "JAFAR'S STANDING ORDER, 2026-09-05", item 4, first par
 acceptance: one machine-readable inventory file where every entry carries all six ruled fields with values from the fixed sets, and its validator prints entries=N namesFromOrder=27 covered=27/27 naming any name with no entry; an entry whose status is exists or partial and whose evidence path does not resolve in this checkout is REFUSED, as is an entry whose area, status, class or phase is not in the fixed set, both proven with planted entries; an empty or unreadable inventory makes the validator print the words "nothing measured" rather than passing; and the validator is called by `python3 ledger/verify.py` so the file cannot rot silently
 max_sessions: 1
 status: LANDED 2026-09-05. 27 entries, exists=13 partial=11 absent=3, 61 evidence references resolving, validator called by ledger/verify.py, selftest 9/9 rungs. The seventh field, evidence, is KEPT by game-design/decision-2026-09-05-ruling-build-batch-and-roadmap-fold.md section 5.
+contract-retired: 2026-09-09. The `acceptance:` line above and the section "A seventh field, added here with its reason" below describe the RETIRED contract. Jafar ruled on 2026-09-09 that a typed state is the standard on the map page and that evidence is provenance, never the licence for a status word; the guard that replaced it is attribution, typedBy and typedOn on every entry. Both passages stay as the record of what was accepted on 5 September and neither is a live requirement. The live contract is game-design/decision-2026-09-09-ruling-typed-systems-inventory.md and the docstring of tools/systems-inventory-check.py. STILL LIVE IN THIS FILE: the "## The names" heading and its 27 numbered lines, parsed by that tool as the coverage denominator (order_names, EXPECTED_NAMES=27); change the heading or the count and the validator prints CANNOT RUN and exits 3.
 
 ## The names, carried here so nobody re-derives them
 
@@ -53,6 +54,8 @@ It may never hold fewer.
     blocker   what blocks it: a queue number, a decision, or the word none
 
 ## A seventh field, added here with its reason
+
+RETIRED 2026-09-09, kept as the record. The requirement below, evidence REQUIRED when status is exists or partial, was cut by Jafar's ruling of 2026-09-09 and by game-design/decision-2026-09-09-ruling-typed-systems-inventory.md. This section's own last paragraph reserved that cut for a director, and this is it. What survives unchanged is its warning: a status word nobody can check is still the fault this project repeats, and 37 props and 14 decals were once counted as progress while the grep returned 0.
 
 `evidence`, REQUIRED when status is exists or partial. A status word with no
 path is exactly the claim this project keeps being burned by: 37 props and 14

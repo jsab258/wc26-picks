@@ -1,42 +1,513 @@
 {
-  "schema": "systems-inventory/v1",
-  "source": "production/NOW.md JAFAR'S STANDING ORDER 2026-09-05 item 4; the 27 names pinned in production/queue/098-the-player-facing-systems-inventory-as-data.md",
+  "schema": "systems-inventory/v2",
+  "source": "The five areas and the typed-state contract are Jafar's ruling of 2026-09-09. The 27 player-facing names are his standing order of 2026-09-05, pinned in production/queue/098-the-player-facing-systems-inventory-as-data.md and unchanged here. The moat, world, content and studio entries are derived from this repository.",
+  "ruling": "Jafar, 2026-09-09: the heatmap approved on 31 August, every system a tile in five areas coloured exists, partial or absent, is the map, and this file is its data. ON THIS PAGE, TYPED IS THE STANDARD: a director's overview is a human's judgement of state, ruled by him and updated by rulings; measured evidence sits one tap below and never on the first screen.",
   "validator": "tools/systems-inventory-check.py",
-  "measuredAt": "2026-09-05, against this checkout",
+  "typedOn": "2026-09-09",
+  "typedAgainst": "this checkout at commit 42af6769",
+  "areas": [
+    {"key": "moat", "label": "the moat", "order": 1, "asks": "do people perceive, remember, gossip and hold it against you"},
+    {"key": "world", "label": "the world", "order": 2, "asks": "does Meridian run whether or not you are looking at it"},
+    {"key": "player-facing", "label": "what the player touches", "order": 3, "asks": "can somebody pick this up and not bounce off it"},
+    {"key": "content", "label": "content", "order": 4, "asks": "is there enough authored material for the systems to say anything"},
+    {"key": "studio", "label": "the studio", "order": 5, "asks": "can the studio see what it built and tell you about it"}
+  ],
   "howToRead": [
-    "area is the layer the system mostly lives in: moat (social memory, consequence, information), world (simulation and environment), player-facing (interface and input), content (authored material), studio (tools and process).",
-    "status is evidenced, never guessed. exists and partial each carry an evidence list of paths that resolve in this checkout; path#token means the token was found inside that file, which is the nearest thing to a call site provable without a compiler. absent carries no evidence, and the validator prints the words nothing measured for those.",
+    "area is the layer a system mostly lives in, and the five are Jafar's own, in his order: the moat (social memory, consequence persistence, information), the world (the simulation that runs whether you look or not), what the player touches (the surfaces and inputs a player meets in a session), content (authored material), the studio (its tools and its process). The keys are stable and the labels the page shows are in the areas block above.",
+    "status is a TYPED JUDGEMENT of where a system stands: exists, partial, absent. It is the studio's reading, ruled by Jafar, and it changes by a ruling rather than by a grep.",
+    "WHY THE OLD RULE EXISTED, because it was not stupid. Until 2026-09-09 this field said status is evidenced, never guessed, and every exists and partial had to carry a path that resolves. It existed so nobody could paint a tile green on a hope, which is the fault this project keeps repeating: 37 props and 14 decals were once counted as progress while the grep for the mesh token returned 0 in both street scripts. That risk is real and it does not go away.",
+    "WHAT REPLACES THAT GUARD: a typed state is ATTRIBUTABLE. Every entry carries typedBy and typedOn, so a wrong tile is somebody's wrong judgement with a date on it rather than an anonymous colour. typedBy is role/name with role one of jafar, director, builder or producer; typedOn is the date that state was last typed. A director or Jafar retyping a state replaces both.",
+    "evidence stays on every entry that has any and is now PROVENANCE for the audit view one tap down, never the thing that licenses the state. It is still checked for shape where present: path or path#token, no whitespace, the path resolving in this checkout and the token found inside that file. It is not required. An entry typed absent carries none, so a tile cannot read absent while citing paths that say otherwise.",
+    "EVIDENCE RESOLUTION IS BRANCH-LOCAL and that is a known blind spot. The art deliveries live on the art/atlas-01 branch and cannot be cited from here, so an art system reads thinner in its evidence list than it is. The note says so where it bites.",
+    "status is about where a system stands in the project, judged on the working codebase (ledger/, C#, where the tests and the headless sim run) plus the Unreal probe under ue-probe/. It does NOT claim a person has played it: D1 is the one open decision, no packaged game build is committed in this checkout, and the note and the blocker carry what stands between a system and live play.",
+    "TYPE THE LOWER STATE WHEN UNSURE and say why in the note. A partial that is really absent is a lie Jafar discovers by playing, and the whole value of this page is that its colours can be trusted at a glance.",
+    "note is the short plain-words reading. Where a state was typed DOWN from what the code alone would suggest, the note says what the lower reading is for.",
     "phase names a row in ledger-v2/respec/roadmap-v2.md and means the phase whose gate this system has to clear, not the phase it was first touched in.",
-    "blocker is a queue number (queue-NNN), a decision id, or the word none. D1 is the open engine probe: every system built in Unity waits on it before more is invested."
+    "blocker is a queue number (queue-NNN), a decision id, or the word none. D1, the engine probe, is the ONLY decision record still open, and it is the commonest blocker here for the reason the first version gave: every system built in Unity waits on D1 before more is invested in it. D2 to D15 are all decided or approved, so a blocker naming one of those is stale, as is one naming a landed queue item, and the validator prints how many of each there are with their denominators.",
+    "class is the authoring cost, cheap-to-author, taste-bound or moat-adjacent. It is a judgement too and the same attribution covers it."
   ],
   "systems": [
     {
       "name": "the Ledger notebook",
       "area": "moat",
-      "status": "exists",
+      "status": "partial",
       "class": "moat-adjacent",
       "phase": "2",
-      "blocker": "D1",
+      "blocker": "queue-037",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
       "evidence": [
         "ledger/Assets/Scripts/Game/DialogueUI.cs#BuildLedgerPanel",
         "ledger/Assets/Scripts/Game/UiSmokeTest.cs#_ledgerPanel",
-        "ledger/Assets/Scripts/Game/DialogueUI.cs#Key(\"Ledger\")"
+        "ledger-v2/respec/decision-register/D12-information-surfaces.md",
+        "production/queue/037-d12-ledger-core-rescope.md"
       ],
-      "note": "Panel built in code, bound to the Ledger key, opened and closed by the panel smoke test. What it SHOWS is D12's question, not this field's."
+      "note": "A panel opens on the bound key and shows your books, the rackets and the audit date. D12's journal, one tagged entry per person and per event, witnessed, heard or deduced, is not in it. Typed down from exists: the panel exists, the moat surface does not, and queue 037 is still the unbuilt spec row."
     },
     {
-      "name": "HUD",
-      "area": "player-facing",
+      "name": "perception",
+      "area": "moat",
+      "status": "exists",
+      "class": "moat-adjacent",
+      "phase": "1",
+      "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/Perception.cs#NoticeSeconds",
+        "ledger/Assets/Scripts/Game/Perceivers.cs#VisionHz",
+        "ledger/Assets/Scripts/Game/Witnesses.cs#Observe.Resolve",
+        "ue-probe/Source/LedgerProbe/Public/Perception.h#FovDegrees",
+        "ledger/PerceptionGolden"
+      ],
+      "note": "Sight and hearing against light, walls, rain and a stagger budget; twelve Game files call it and the last headless run logged 346 looks and 508 sounds over seventeen days. The vision and hearing halves are ported to Unreal for the crime probe; the attention accumulator is not, which is queue 148."
+    },
+    {
+      "name": "permanent memory",
+      "area": "moat",
+      "status": "partial",
+      "class": "moat-adjacent",
+      "phase": "1",
+      "blocker": "queue-115",
+      "typedBy": "director/studio-director",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/MemoryStore.cs#PruneTo",
+        "ledger/Assets/Scripts/Core/MemoryStore.cs#ToMarkdown",
+        "ledger/Assets/Scripts/Core/MemoryRetrieval.cs",
+        "ue-probe/Source/LedgerProbe/Public/MemoryStore.h"
+      ],
+      "note": "Events append per person and the markdown a crime run commits is the artefact of remembering. It prunes at 600 events while canon says nothing is ever wiped, an open conflict (queue 115). Typed down from exists because the pillar word is permanent."
+    },
+    {
+      "name": "gossip propagation",
+      "area": "moat",
+      "status": "partial",
+      "class": "moat-adjacent",
+      "phase": "1",
+      "blocker": "queue-129",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/Gossip.cs#HopDecay",
+        "ledger/Assets/Scripts/Game/GossipDirector.cs#StreetVoice.Exchange",
+        "ue-probe/Source/LedgerProbe/Public/Gossip.h#HopDecay",
+        "production/stranger-test/study.txt#lieHeard"
+      ],
+      "note": "One rule decides whether a story passes from one person to the next, and the sim ran 4422 retell rounds clean. At the build's own cadence three of the five player-rumour events measured were phantom retells from a guard that leaks on one bit (queue 129), so what you would watch today is partly floating point. Typed down for that."
+    },
+    {
+      "name": "suspicion and heat",
+      "area": "moat",
+      "status": "partial",
+      "class": "moat-adjacent",
+      "phase": "1",
+      "blocker": "queue-128",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/Suspicion.cs#SuspicionTracker",
+        "ledger/Assets/Scripts/Game/GossipDirector.cs",
+        "ledger/Assets/Scripts/Game/LawHost.cs",
+        "production/stranger-test/study-curve.txt"
+      ],
+      "note": "Suspicion does move: 0.060 to 0.176 across the 90 caught lies in the sweep. The contradiction that should drive it cannot fire at the shipped tick rate, 0 of 5 events (queue 128), and SuspicionTracker is the one type deliberately left out of the Unreal port (queue 149). Typed down from exists for both."
+    },
+    {
+      "name": "the player's claims and lies",
+      "area": "moat",
+      "status": "partial",
+      "class": "moat-adjacent",
+      "phase": "1",
+      "blocker": "queue-130",
+      "typedBy": "director/studio-director",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/Claims.cs#Process",
+        "ledger/Assets/Scripts/Game/DialogueUI.cs",
+        "ledger/Assets/Scripts/Game/LawHost.cs",
+        "production/stranger-test/study.txt#lieHeard"
+      ],
+      "note": "Claims are made, caught and held in the harness, two made and one contradiction in the last sim. Truth and silence both end at suspicion 0.060, so honesty pays nothing (queue 130), and in 90 of 90 caught lies not one spoken line differed. Typed down from exists."
+    },
+    {
+      "name": "recognition and confrontation",
+      "area": "moat",
+      "status": "partial",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "queue-127",
+      "typedBy": "director/studio-director",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/StreetVoice.cs#Recognition",
+        "ledger/Assets/Scripts/Core/Acquaintance.cs#HeardOfYou",
+        "ledger/Assets/Scripts/Game/Standoff.cs",
+        "production/stranger-test/study.txt#liveSilent"
+      ],
+      "note": "The stance ladder, the recognition line and the standoff all fire from the gossip director. In the shipped build every recognition beat measured sat below the rung at which anybody comments, 1944 of 1944, so nobody says a word to you. Typed down: the code runs and the street is silent."
+    },
+    {
+      "name": "the town's own voice",
+      "area": "moat",
       "status": "exists",
       "class": "taste-bound",
       "phase": "2",
       "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
       "evidence": [
-        "ledger/Assets/Scripts/Game/DialogueUI.cs#_clockText",
-        "ledger/Assets/Scripts/Game/DialogueUI.cs#Toast("
+        "ledger/Assets/Scripts/Core/StreetVoice.cs#Exchange",
+        "ledger/Assets/Scripts/Game/NpcWalker.cs",
+        "ue-probe/Source/LedgerProbe/Public/StreetVoice.h",
+        "production/stranger-test/study.txt#realPointed"
       ],
-      "note": "Clock, money and slot on one line plus the toast channel. The what-they-know HUD the roadmap names for wanted states is a separate thing and is not here."
+      "note": "What you overhear is built around the rumour's own summary rather than picked from a list of written lines, and it is the one consequence route the sweep found that speaks: 540 of 3240 lines pointed at something the player did. Ported to Unreal; no golden row in this checkout pins a template yet, which is queue 160."
     },
+    {
+      "name": "witnesses and what they caught",
+      "area": "moat",
+      "status": "exists",
+      "class": "moat-adjacent",
+      "phase": "1",
+      "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/Observation.cs",
+        "ledger/Assets/Scripts/Game/Witnesses.cs#Observe.Resolve",
+        "ledger/Assets/Scripts/Game/ViolenceHost.cs",
+        "ue-probe/Source/LedgerProbe/Public/Observation.h"
+      ],
+      "note": "A sighting fills seven slots independently instead of answering did he see it, and the last sim offered 743 sightings and dropped 1. The sweep's roster was four people and 36 sightings were dropped because only two of four are awake at any hour it offered, so the coverage is narrower than the pass rate looks."
+    },
+    {
+      "name": "spoken conversation",
+      "area": "moat",
+      "status": "partial",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "D1",
+      "typedBy": "director/studio-director",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/ConversationEngine.cs",
+        "ledger/Assets/Scripts/Game/ConversationHost.cs#CharacterCard.Parse",
+        "ledger/Assets/Scripts/Game/OnnxSpeech.cs",
+        "ledger/ConvoProbe/Program.cs"
+      ],
+      "note": "Character cards, an intent router, a response validator and a local voice path all run, and the probe drives four cards dry. No gate in the sim verdict names conversation or latency, which is phase 2's own budget, and no record committed here says anybody has held a spoken conversation in a build. Typed down from exists for that."
+    },
+    {
+      "name": "what the player knows",
+      "area": "moat",
+      "status": "partial",
+      "class": "moat-adjacent",
+      "phase": "3",
+      "blocker": "queue-037",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/PlayerKnowledge.cs",
+        "ledger/Assets/Scripts/Core/Hooks.cs",
+        "ledger/Assets/Scripts/Core/Press.cs",
+        "ledger/Assets/Scripts/Game/PressHost.cs"
+      ],
+      "note": "Hooks, the newspaper, reliability and the phone lines all carry information, and the press named nobody across two editions in the last run. D12 decided the shape on 2 September; the Core rescope naming which type carries each clause is queue 037 and still ready, so no surface for it is in this checkout yet."
+    },
+    {
+      "name": "consequence persistence",
+      "area": "moat",
+      "status": "partial",
+      "class": "moat-adjacent",
+      "phase": "1",
+      "blocker": "none",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/LooseEnds.cs",
+        "ledger/Assets/Scripts/Core/Summons.cs",
+        "ledger/Assets/Scripts/Core/Notice.cs",
+        "ledger/Assets/Scripts/Game/GameController.cs#LooseEnds"
+      ],
+      "note": "Loose ends, summonses and notoriety carry across days: six ends fed, two with the law and four owed, one summons placed and one missed over seventeen days, notoriety peaking at 1.000. Nothing blocks it but the run it has never survived, which the law entry owns."
+    },
+
+    {
+      "name": "the what-they-know HUD for wanted states",
+      "area": "moat",
+      "status": "absent",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "none",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "note": "Nothing measured: zero hits in the scripts walked here for any surface showing what anybody knows about you. D12 scoped this down to law enforcement's knowledge during a wanted state and nothing else, and phase 2's row names it. The HUD under what the player touches is the clock and the money, not this."
+    },
+    {
+      "name": "the street you walk",
+      "area": "world",
+      "status": "partial",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "queue-180",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "production/specs/vignette-pieces.json",
+        "ue-probe/Source/LedgerProbe/Public/VignetteShot.h",
+        "production/d1-probe/ue-vignette-verdict.txt",
+        "production/ladder.md"
+      ],
+      "note": "Quay Street is built from one JSON file with nothing hand placed, and it renders in a packaged Unreal build on your PC carrying Meridian's own brick, cobbles, wood and glass. The last probe run committed here wrote a street with no sky, and the road reads near white from its own albedo. Rung 1 of the visual ladder is the current one."
+    },
+    {
+      "name": "the town layout",
+      "area": "world",
+      "status": "exists",
+      "class": "cheap-to-author",
+      "phase": "3",
+      "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/CityPlan.cs#Districts",
+        "ledger/Assets/Scripts/Core/StreetMap.cs#NearestOnStreet",
+        "ledger/Assets/Scripts/Core/Skyline.cs",
+        "ledger/Assets/Scripts/Game/WorldBuilder.cs"
+      ],
+      "note": "Seven districts with home and work shares, a street network with junctions and widths, and a skyline, all Core data the world builder reads and the walkers and cars steer on. How the town comes into being at all is ruled by D13."
+    },
+    {
+      "name": "daily routines",
+      "area": "world",
+      "status": "exists",
+      "class": "moat-adjacent",
+      "phase": "1",
+      "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/DayJob.cs",
+        "ledger/Assets/Scripts/Core/Occupancy.cs#HomeFraction",
+        "ledger/Assets/Scripts/Core/Household.cs",
+        "ledger/Assets/Scripts/Game/SimDirector.cs#StageDayJobShift"
+      ],
+      "note": "Day jobs, shifts, households and lit windows put people somewhere for a reason, and the last sim ran eleven days of an open day job and counted nights home against nights away. This is the half the moat rests on: a witness has to have a reason to be there."
+    },
+    {
+      "name": "the crowd you see",
+      "area": "world",
+      "status": "partial",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/Population.cs#Generate",
+        "ledger/Assets/Scripts/Game/PopulationHost.cs#Population.Generate",
+        "ledger/Assets/Scripts/Game/NpcWalker.cs",
+        "production/ladder.md"
+      ],
+      "note": "Walkers move, keep their gaps and huddle in the headless sim: 65 listed, none duplicated, tightest gap 0.33 metres. No frame committed here shows anybody walking the Unreal street, which is rung 4 and not started. Typed down from exists for that."
+    },
+    {
+      "name": "traffic and vehicles",
+      "area": "world",
+      "status": "exists",
+      "class": "cheap-to-author",
+      "phase": "5",
+      "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/Traffic.cs",
+        "ledger/Assets/Scripts/Game/TrafficHost.cs",
+        "ledger/Assets/Scripts/Game/PlayerCar.cs"
+      ],
+      "note": "28 vehicles of seven kinds, all awake, none off road, 57 km covered in the last sim with five clamps. The player car exists and the camera hands over to it; driving as a milestone is phase 5 and gated behind 3 and 4."
+    },
+    {
+      "name": "weather and wet streets",
+      "area": "world",
+      "status": "partial",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "queue-186",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/Assets/Scripts/Game/Weather.cs#Rain",
+        "ledger/Assets/Scripts/Game/WetReflections.cs",
+        "ledger/Assets/Scripts/Core/Acoustics.cs"
+      ],
+      "note": "Rain changes what people can see and hear and wets 13755 surfaces in the Unity sim. The last probe run committed here wrote no sky over the Unreal street, so nothing wet reaches it, which is queue 186 and why the sky comes before the wetness."
+    },
+    {
+      "name": "light and the time of day",
+      "area": "world",
+      "status": "exists",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/LightModel.cs#FogDensity",
+        "ledger/Assets/Scripts/Game/SceneLighting.cs",
+        "ledger/Assets/Scripts/Game/LightShaft.cs",
+        "production/d1-probe/ue-vignette-verdict.txt"
+      ],
+      "note": "A day and night cycle with lamps that toggle, fog, shafts and a measured night floor, and the Unreal probe switches each lantern off in turn and prints what the frame lost. Both engines carry it, which is why this is exists rather than partial."
+    },
+    {
+      "name": "doors and who gets in",
+      "area": "world",
+      "status": "exists",
+      "class": "moat-adjacent",
+      "phase": "2",
+      "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/Access.cs#AccessKey",
+        "ledger/Assets/Scripts/Game/AccessHost.cs",
+        "ledger/Assets/Scripts/Game/AccessSetup.cs",
+        "ledger/Assets/Scripts/Game/DoorHost.cs"
+      ],
+      "note": "A door asks for an introduction, standing, a payment or the right clothes, and a hook on the doorman opens it. In the last sim notoriety at 0.87 shut the laundry and left the repair yard open, which is the system doing its job."
+    },
+    {
+      "name": "interiors you can enter",
+      "area": "world",
+      "status": "absent",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "none",
+      "typedBy": "director/studio-director",
+      "typedOn": "2026-09-09",
+      "note": "Nothing measured: no room a player walks into exists in this checkout. The interiors you see are layered behind glass so a street reads inhabited, which is a look and not a place. D14 rules every interior a designed layout, and walking into Mickey's is rung 6 and later."
+    },
+    {
+      "name": "props and dressing",
+      "area": "world",
+      "status": "partial",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "queue-181",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/Dressing.cs#Roll",
+        "ledger/Assets/Scripts/Core/KitDressing.cs",
+        "ledger/Assets/Scripts/Game/StreetDressing.cs",
+        "ledger/Assets/Scripts/Game/DecalLayer.cs"
+      ],
+      "note": "791 dressed items placed by rule in the Unity street, and 23 of the bill's 37 props and 20 decals reach a frame. Whether a prop reads as the material it is meant to be is rung 2 and next. The first art batch's catalogue sits on the art/atlas-01 branch and cannot be cited from this checkout."
+    },
+    {
+      "name": "bodies and faces",
+      "area": "world",
+      "status": "partial",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/Assets/Scripts/Game/CharacterRig.cs",
+        "ledger/Assets/Scripts/Game/RealBody.cs",
+        "ledger/Assets/Scripts/Game/FootIk.cs",
+        "ledger/Assets/Scripts/Core/Physique.cs"
+      ],
+      "note": "92 rigs, heights 1.58 to 1.91, Mixamo clips advancing, feet solved, nobody in a T-pose. The last landed run read bodySkinned=0 and bodyDressed=0, Core/MotionMatch.cs has no caller in the Game layer walked here, and one face that moves is rung 5 and later."
+    },
+    {
+      "name": "crime jobs and takings",
+      "area": "world",
+      "status": "exists",
+      "class": "moat-adjacent",
+      "phase": "3",
+      "blocker": "queue-138",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/Operation.cs",
+        "ledger/Assets/Scripts/Game/OperationHost.cs",
+        "ledger/Assets/Scripts/Game/OperationSetup.cs",
+        "ledger/Assets/Scripts/Game/EvidenceHost.cs"
+      ],
+      "note": "A job is planned, run and paid, the takings bank, the money launders and the aftermath goes to the witnesses and the law, and the sim clears every one of those gates. It has never run on the street you can see, which is queue 138 and the next game milestone."
+    },
+    {
+      "name": "the law and the police",
+      "area": "world",
+      "status": "partial",
+      "class": "moat-adjacent",
+      "phase": "1",
+      "blocker": "none",
+      "typedBy": "director/studio-director",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/Assets/Scripts/Game/LawHost.cs",
+        "ledger/Assets/Scripts/Core/Informing.cs",
+        "ledger/Assets/Scripts/Core/Notice.cs",
+        "ledger/Assets/Scripts/Game/CoatHost.cs#Arrested"
+      ],
+      "note": "Denouncing, informers, marks, patrol focus and an inquiry all run, and a denouncement blew back at 0.90 against 0.00 in the last sim. Arrest cannot happen in this checkout: CoatHost.Arrested has no caller outside Core walked here, so the spine's terminal state is unreachable in play. Typed down from exists for that."
+    },
+    {
+      "name": "phone boxes and answering machines",
+      "area": "world",
+      "status": "exists",
+      "class": "cheap-to-author",
+      "phase": "3",
+      "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/Phones.cs",
+        "ledger/Assets/Scripts/Game/PhoneSetup.cs",
+        "ledger/Assets/Scripts/Game/PhoneUI.cs",
+        "ledger/Assets/Scripts/Game/SummonsHost.cs#Summons"
+      ],
+      "note": "Twenty calls tried, nine reachable, eleven rang out, and a summons was left on a line nobody picked up. This is canon's late analog spine: landlines, phone boxes, answering machines, cash and paper, and no mobiles."
+    },
+    {
+      "name": "factions and the empire",
+      "area": "world",
+      "status": "exists",
+      "class": "moat-adjacent",
+      "phase": "3",
+      "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/Empire.cs#Businesses",
+        "ledger/Assets/Scripts/Game/EmpireSetup.cs",
+        "ledger/Assets/Scripts/Core/Debts.cs",
+        "ledger/Assets/Scripts/Game/DialogueUI.cs"
+      ],
+      "note": "Arms, fronts, rounds, debts and allegiance run: two allegiance moves, a pledge, a refusal and a break in the last sim, with the Dockside arm escalating by stage. How many factions the town finally holds is phase 3 content and a separate question."
+    },
+    {
+      "name": "the frame budget",
+      "area": "world",
+      "status": "partial",
+      "class": "cheap-to-author",
+      "phase": "2",
+      "blocker": "D1",
+      "typedBy": "director/studio-director",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/Assets/Scripts/Game/Perf.cs",
+        "ledger/Assets/Scripts/Core/FrameRate.cs",
+        "production/d1-probe/ue-vignette-verdict.txt"
+      ],
+      "note": "Typed down for one reason: no budget for the Unreal street at a resident count is set in this checkout, which is phase 1's gate. The Unity sim's 0.24 ms against its own 4.00 ms over 24702 samples is carried from the builder's read of the last landed run. CORRECTED 2026-09-09 by the director: Core/FrameRate.cs IS called from the Game layer every frame, at Game/DialogueUI.cs:1354 inside Update, and Line() and Hitching feed the F1 panel."
+    },
+
     {
       "name": "menus",
       "area": "player-facing",
@@ -44,6 +515,8 @@
       "class": "taste-bound",
       "phase": "6",
       "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
       "evidence": [
         "ledger/Assets/Scripts/Game/MainMenu.cs#MenuButton",
         "ledger/Assets/Scripts/Game/OptionsScreen.cs#MenuToggle",
@@ -52,18 +525,35 @@
       "note": "Front end built from code, no scenes and no prefabs; one options screen shared with the pause menu."
     },
     {
+      "name": "HUD",
+      "area": "player-facing",
+      "status": "exists",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/Assets/Scripts/Game/DialogueUI.cs#_clockText",
+        "ledger/Assets/Scripts/Game/DialogueUI.cs#Toast("
+      ],
+      "note": "Clock, money and slot on one line plus the toast channel, 43 labels with none fontless or blank. The what-they-know HUD the roadmap names for wanted states is a separate thing and is not here."
+    },
+    {
       "name": "controls",
       "area": "player-facing",
       "status": "exists",
       "class": "taste-bound",
       "phase": "2",
       "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
       "evidence": [
         "ledger/Assets/Scripts/Game/PlayerController.cs#Input.GetAxisRaw",
         "ledger/Assets/Scripts/Game/GameSettings.cs#Rebind",
         "ledger/Assets/Scripts/Game/OptionsScreen.cs#Rebind"
       ],
-      "note": "Keyboard and mouse, nine rebindable actions, no two sharing a key. Pad support is the separate gamepad entry."
+      "note": "Keyboard and mouse, nine rebindable actions, no two sharing a key. Pad support is the separate gamepad entry and nothing in this checkout reads a pad axis."
     },
     {
       "name": "camera",
@@ -72,6 +562,8 @@
       "class": "taste-bound",
       "phase": "2",
       "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
       "evidence": [
         "ledger/Assets/Scripts/Core/Feel.cs#CameraRig",
         "ledger/Assets/Scripts/Game/PlayerController.cs#MainCamera"
@@ -80,16 +572,18 @@
     },
     {
       "name": "first hour and tutorial",
-      "area": "content",
+      "area": "player-facing",
       "status": "partial",
       "class": "taste-bound",
       "phase": "3",
       "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
       "evidence": [
         "ledger/Assets/Scripts/Game/GameController.cs#CheckOnboarding",
         "ledger/Assets/Scripts/Game/ActOne.cs#ActOneState"
       ],
-      "note": "First-morning onboarding is four diegetic toast lines fired on conditions, and Act I has its pressure points. There is no authored first hour judged as one."
+      "note": "First-morning onboarding is four diegetic toast lines fired on conditions, and Act I has its pressure points. No authored first hour judged as one thing is in this checkout, and no record committed here says anybody has played one."
     },
     {
       "name": "save and load",
@@ -98,6 +592,8 @@
       "class": "cheap-to-author",
       "phase": "1",
       "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
       "evidence": [
         "ledger/Assets/Scripts/Core/SaveCodec.cs",
         "ledger/Assets/Scripts/Game/SaveSlots.cs#SlotPath",
@@ -112,6 +608,8 @@
       "class": "cheap-to-author",
       "phase": "6",
       "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
       "evidence": [
         "ledger/Assets/Scripts/Game/MainMenu.cs#StartGame",
         "ledger/Assets/Scripts/Game/SaveSlots.cs#DeleteAuto"
@@ -125,6 +623,8 @@
       "class": "cheap-to-author",
       "phase": "6",
       "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
       "evidence": [
         "ledger/Assets/Scripts/Game/GameSettings.cs#Serialize",
         "ledger/Assets/Scripts/Game/OptionsScreen.cs#GameSettings"
@@ -138,6 +638,8 @@
       "class": "cheap-to-author",
       "phase": "6",
       "blocker": "none",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
       "evidence": [
         "ledger/Assets/Scripts/Game/GameSettings.cs#TextScalePercent",
         "ledger/Assets/Scripts/Game/GameSettings.cs#ColourblindSafe",
@@ -152,12 +654,14 @@
       "class": "cheap-to-author",
       "phase": "2",
       "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
       "evidence": [
         "ledger/Assets/Scripts/Core/Captions.cs",
         "ledger/Assets/Scripts/Game/CaptionBar.cs",
         "ledger/Assets/Scripts/Game/Bootstrap.cs#CaptionBar"
       ],
-      "note": "Caption model in Core, bar in Game, created at boot; setting is 0 off, 1 speech, 2 speech and sounds."
+      "note": "Caption model in Core, bar in Game, created at boot; the setting is 0 off, 1 speech, 2 speech and sounds."
     },
     {
       "name": "gamepad",
@@ -166,8 +670,9 @@
       "class": "cheap-to-author",
       "phase": "6",
       "blocker": "D1",
-      "evidence": [],
-      "note": "Only mouse and keyboard axes are read, there is no InputManager.asset in ProjectSettings, and the single gamepad mention is a comment about menu focus. Nothing measures pad play."
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "note": "Only mouse and keyboard axes are read, there is no InputManager.asset in ProjectSettings in this checkout, and the single gamepad mention is a comment about menu focus. Nothing measures pad play."
     },
     {
       "name": "pause",
@@ -176,6 +681,8 @@
       "class": "cheap-to-author",
       "phase": "6",
       "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
       "evidence": [
         "ledger/Assets/Scripts/Game/DialogueUI.cs#_pausePanel",
         "ledger/Assets/Scripts/Game/UiSmokeTest.cs#_pausePanel"
@@ -188,9 +695,10 @@
       "status": "absent",
       "class": "taste-bound",
       "phase": "3",
-      "blocker": "D12",
-      "evidence": [],
-      "note": "Zero hits for minimap or a map panel anywhere in the scripts. Core/StreetMap.cs is the street network as sim data for walkers and cars, not a surface the player sees."
+      "blocker": "none",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "note": "Zero hits for a minimap or a map panel anywhere in the scripts walked here. Core/StreetMap.cs is the street network as sim data for walkers and cars, not a surface you see. The blocker was D12 and D12 was decided on 2 September, so nothing blocks this but the work."
     },
     {
       "name": "inventory",
@@ -199,61 +707,71 @@
       "class": "taste-bound",
       "phase": "4",
       "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
       "evidence": [
         "ledger/Assets/Scripts/Core/Coat.cs",
         "ledger/Assets/Scripts/Game/CoatHost.cs",
         "ledger/Assets/Scripts/Game/DialogueUI.cs#Key(\"Coat\")"
       ],
-      "note": "By design there is no grid and no bag: the Coat is the whole idea, and it is toggled by a key. The one screen Coat.cs says it should have does not exist, so this is partial and not exists."
+      "note": "The design carries no grid and no bag: the Coat is the whole idea, and it is toggled by a key. The one screen Coat.cs says it should have is not in this checkout, so this is partial and not exists."
     },
     {
       "name": "economy and trading",
-      "area": "world",
+      "area": "player-facing",
       "status": "partial",
       "class": "moat-adjacent",
       "phase": "3",
       "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
       "evidence": [
         "ledger/Assets/Scripts/Core/Economy.cs",
         "ledger/Assets/Scripts/Game/PurseSetup.cs",
         "ledger/Assets/Scripts/Game/GameController.cs#Wallet"
       ],
-      "note": "Money, purses and dirty cash are wired across the Game layer. Trading is not: Core/Negotiation.cs is reached only from Core/Empire.cs and there are no prices, no trade surface and no shop."
+      "note": "Money, purses and dirty cash are wired across the Game layer. Trading is not: Core/Negotiation.cs is reached only from Core/Empire.cs, its one Game-layer mention is a comment, and no prices, no trade surface and no shop are in the scripts walked here."
     },
     {
       "name": "combat",
-      "area": "world",
+      "area": "player-facing",
       "status": "partial",
       "class": "taste-bound",
       "phase": "4",
       "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
       "evidence": [
         "ledger/Assets/Scripts/Core/Combat.cs#StaminaAfterMoving",
         "ledger/Assets/Scripts/Game/PlayerController.cs#Combat.",
         "ledger/Assets/Scripts/Game/ViolenceHost.cs"
       ],
-      "note": "Violence, harm and standoffs are wired, but the ONLY call into Core/Combat from the Game layer is the stamina term the walk uses; the comment beside it says combat takes it over when it arrives. Phase 4's gate is combat called from live play."
+      "note": "Violence, harm and standoffs are wired, and the ONLY call into Core/Combat from the Game layer is the stamina term the walk uses. Phase 4's gate is a blow resolved from a call site outside Core, and it is not met."
     },
     {
       "name": "music",
-      "area": "content",
+      "area": "player-facing",
       "status": "partial",
       "class": "taste-bound",
       "phase": "3",
       "blocker": "none",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
       "evidence": [
         "ledger/Assets/Scripts/Core/MusicModel.cs#MusicLayer",
         "ledger/Assets/Scripts/Game/Audio.cs#_music"
       ],
-      "note": "A music bus plays a synthesised day and night pair and the adaptive layer model exists in Core. Audio.cs says it plainly: no authored score yet, and a score is a composer's job."
+      "note": "A music bus plays a synthesised day and night pair and the adaptive layer model exists in Core. Audio.cs says it plainly: no authored score is in this checkout yet, and a score is a composer's job."
     },
     {
       "name": "SFX",
-      "area": "content",
+      "area": "player-facing",
       "status": "exists",
       "class": "taste-bound",
       "phase": "2",
       "blocker": "none",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
       "evidence": [
         "ledger/Assets/Scripts/Game/Audio.cs#PlayOneShot",
         "ledger/Assets/Scripts/Game/RoomTone.cs",
@@ -263,11 +781,13 @@
     },
     {
       "name": "audio mix",
-      "area": "world",
+      "area": "player-facing",
       "status": "exists",
       "class": "taste-bound",
       "phase": "2",
       "blocker": "none",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
       "evidence": [
         "ledger/Assets/Scripts/Core/Mixing.cs",
         "ledger/Assets/Scripts/Game/Audio.cs#Mixing."
@@ -276,30 +796,34 @@
     },
     {
       "name": "loading and streaming",
-      "area": "world",
+      "area": "player-facing",
       "status": "partial",
       "class": "cheap-to-author",
       "phase": "5",
       "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
       "evidence": [
         "ledger/Assets/Scripts/Game/AssetLibrary.cs#streamingAssetsPath",
         "ledger/Assets/Scripts/Game/ScreenCurtain.cs"
       ],
-      "note": "Assets load from a StreamingAssets pack when present and the curtain covers staged transitions. There is no loading screen and no streaming of world chunks: grep for loading in Bootstrap, AssetLibrary and ScreenCurtain returns nothing."
+      "note": "Assets load from a StreamingAssets pack when present and the curtain covers staged transitions. No loading screen and no streaming of world chunks are in this checkout: grep for loading in Bootstrap, AssetLibrary and ScreenCurtain returns nothing."
     },
     {
       "name": "failure states and autosave policy",
-      "area": "world",
+      "area": "player-facing",
       "status": "partial",
       "class": "moat-adjacent",
       "phase": "1",
-      "blocker": "queue-046",
+      "blocker": "none",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
       "evidence": [
         "ledger/Assets/Scripts/Game/GameController.cs#SaveNow(",
         "ledger/Assets/Scripts/Game/ScreenCurtain.cs",
         "ledger/Assets/Scripts/Game/CoatHost.cs#Arrested"
       ],
-      "note": "Autosave is policy and runs: the morning close saves quietly. The Fall is staged behind the curtain. Arrest is NOT a live failure state: CoatHost.Arrested has zero callers in the whole Game layer, named in Core/Homicide.cs as the cost of a lowercase bug."
+      "note": "Autosave is policy and runs: the morning close saves quietly, and the Fall is staged behind the curtain. Arrest is NOT a live failure state, since CoatHost.Arrested has zero callers in the Game layer walked here. The blocker read queue-046, which landed on 2 September, so it is now none."
     },
     {
       "name": "time and calendar display",
@@ -308,6 +832,8 @@
       "class": "cheap-to-author",
       "phase": "1",
       "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
       "evidence": [
         "ledger/Assets/Scripts/Core/GameTime.cs",
         "ledger/Assets/Scripts/Game/DialogueUI.cs#_clockText"
@@ -321,12 +847,14 @@
       "class": "cheap-to-author",
       "phase": "6",
       "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
       "evidence": [
         "ledger/Assets/Scripts/Game/GameSettings.cs#RenderScalePercent",
         "ledger/Assets/Scripts/Game/OptionsScreen.cs#ScaleStop",
         "ledger/Assets/Scripts/Game/FilmGrade.cs#GrainAmount"
       ],
-      "note": "Graphics half exists: two sliders on the options screen, preset and render scale 100/75/55. Grain is a live setting applied by FilmGrade with NO row on that screen. The local-LLM half is ABSENT, zero hits for any llm toggle in settings or options; the only live switch is an Anthropic API key panel on F2."
+      "note": "The graphics half exists: two sliders, a preset and render scale 100/75/55. Grain is a live setting applied by FilmGrade with no row on that screen. The local-LLM half is absent, zero hits for any llm toggle in settings or options in this checkout; the only live switch is an API key panel on F2."
     },
     {
       "name": "credits and attributions",
@@ -335,12 +863,14 @@
       "class": "cheap-to-author",
       "phase": "6",
       "blocker": "none",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
       "evidence": [
         "THIRD-PARTY.md",
         "tools/attribution-check.py",
         "ledger/verify.py#attribution-check"
       ],
-      "note": "The attribution ledger exists and is checked on every commit by verify. The in-game credits screen does not exist: the only two mentions in the scripts are comments."
+      "note": "The attribution ledger exists and is checked on every commit by verify. The in-game credits screen is not in this checkout: the only two mentions in the scripts walked here are comments."
     },
     {
       "name": "photo mode",
@@ -349,21 +879,244 @@
       "class": "cheap-to-author",
       "phase": "6",
       "blocker": "none",
-      "evidence": [],
-      "note": "Zero hits for photo mode or a screenshot capture path in the scripts; the screenshot mentions are all about the studio's own stills. Nothing measured."
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "note": "Zero hits for photo mode or a screenshot capture path in the scripts walked here; the screenshot mentions are all about the studio's own stills. Nothing measured."
     },
     {
       "name": "feedback path",
+      "area": "player-facing",
+      "status": "absent",
+      "class": "cheap-to-author",
+      "phase": "6",
+      "blocker": "none",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "note": "Typed down from partial, because as a thing the PLAYER touches there is nothing in this checkout: no in-game way for anybody to report a bug, a crash or a complaint. The path that does exist carries Jafar's messages from Telegram into the repo, and it is the studio's channel entry, not this one."
+    },
+
+    {
+      "name": "dialogue banks",
+      "area": "content",
+      "status": "partial",
+      "class": "cheap-to-author",
+      "phase": "2",
+      "blocker": "queue-160",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "content/dialogue/crime-witness-v1.json",
+        "content/dialogue/pub-regular-v1.json",
+        "ledger/Assets/Scripts/Core/SpeechText.cs",
+        "ledger/BarkGen"
+      ],
+      "note": "Two banks from the pilot assembly line plus the bark generator, and the street voice builds its own sentences rather than reading a row. No golden row in this checkout pins the templates yet (queue 160) and the no-repetition blind test is phase 3's gate, so the volume question is open."
+    },
+    {
+      "name": "the cast",
+      "area": "content",
+      "status": "partial",
+      "class": "cheap-to-author",
+      "phase": "3",
+      "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/Assets/Scripts/Game/CastTier1.cs",
+        "ledger/Assets/Scripts/Game/Tier2Batch.cs",
+        "ledger/Assets/StreamingAssets/tier2-batch-1.json",
+        "game-design/cast-tier1-batch2.md"
+      ],
+      "note": "Tier-1 characters with written cards that drive conversation, and one tier-2 batch generated. The town needs 30 to 50 residents at phase 2 and the population generator supplies names, not people, so most of the town is a body with a schedule."
+    },
+    {
+      "name": "the three acts",
+      "area": "content",
+      "status": "partial",
+      "class": "taste-bound",
+      "phase": "3",
+      "blocker": "none",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "game-design/act1-draft.md",
+        "game-design/act2-draft.md",
+        "game-design/act3-draft.md",
+        "ledger/Assets/Scripts/Core/ActThree.cs"
+      ],
+      "note": "Three act drafts, their beats and their endings run in the sim, including the Fall and the audit with a date. Narrative v2 is phase 3 and unwritten, and no record committed here says any of it has been read by somebody playing."
+    },
+    {
+      "name": "brands and signage",
+      "area": "content",
+      "status": "partial",
+      "class": "cheap-to-author",
+      "phase": "3",
+      "blocker": "none",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "content/brands/brand-bible-v1.json",
+        "ledger/Assets/Scripts/Game/WorldText.cs",
+        "ledger/Assets/Scripts/Game/Billboard.cs"
+      ],
+      "note": "One brand bible, and 153 pieces of world text placed and depth tested in the Unity street with none refused. Radio, TV and the rest of the bible are phase 3, and no frame committed here shows a brand in the Unreal street."
+    },
+    {
+      "name": "concept art and the town atlas",
+      "area": "content",
+      "status": "partial",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "queue-188",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "production/art/atlas-01/REVIEW.md",
+        "production/art/atlas-02/DELIVERY.md",
+        "production/ladder.md"
+      ],
+      "note": "Two commissions delivered and reviewed. The atlas-01 catalogue, the district sheets and Mickey's design live on the art/atlas-01 branch and cannot be cited from this checkout, so this evidence list is thinner than the work. Whether the boards may ship is queue 188."
+    },
+    {
+      "name": "voices",
+      "area": "content",
+      "status": "partial",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "D1",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/VoiceBank.cs#VoiceFor",
+        "voice-candidates",
+        "ledger/SpeechBench/Program.cs"
+      ],
+      "note": "The voice bank maps a speaker to a clip and a bench proves the bound path on your PC. The corpus is still candidates under the consent rule, no voice is picked for any character in the files committed here, and no record committed here says anybody has heard one in a build."
+    },
+
+    {
+      "name": "radio and TV",
+      "area": "content",
+      "status": "absent",
+      "class": "cheap-to-author",
+      "phase": "3",
+      "blocker": "none",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "note": "Nothing measured: zero hits for radio in the Core and Game scripts walked here, and one comment about the UHF band the country watched television on. Phase 3 names radio, TV and the brand bible together, and only the bible is in this checkout."
+    },
+    {
+      "name": "the channel to Jafar",
       "area": "studio",
       "status": "partial",
       "class": "cheap-to-author",
       "phase": "0",
-      "blocker": "queue-090",
+      "blocker": "queue-189",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
       "evidence": [
+        ".claude/agents/producer.md",
         "tools/runner/inbox.py",
         "production/inbox/README.md"
       ],
-      "note": "The path that exists carries Jafar's messages from Telegram into the repo, and it has two named holes until queue 090. There is no in-game path by which a player reports anything."
+      "note": "Messages reach his phone and his replies reach the repo, and the machinery that shaped them was retired on 9 September for one judgement step a day. The measure he set is seven consecutive readable briefs tapped by him, and that count stands at zero."
+    },
+    {
+      "name": "the evidence channel",
+      "area": "studio",
+      "status": "exists",
+      "class": "cheap-to-author",
+      "phase": "0",
+      "blocker": "none",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "game-design/sim-shots/verdict.txt",
+        "production/d1-probe/ue-vignette-verdict.txt",
+        ".github/workflows/ledger-core-tests.yml"
+      ],
+      "note": "A file committed by CI, naming its commit on line 1, with stills beside it. Log tails, step summaries and artifact hosts have all failed here; this has not, and it is the only reason anything on this page can be checked."
+    },
+    {
+      "name": "the verify suite",
+      "area": "studio",
+      "status": "exists",
+      "class": "cheap-to-author",
+      "phase": "0",
+      "blocker": "none",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "ledger/verify.py",
+        "tools/systems-inventory-check.py",
+        "ledger/SaveChaos"
+      ],
+      "note": "One command gates every commit, runs the tool selftests, the save chaos harness and this file's own validator, and writes a footer only when it is green."
+    },
+    {
+      "name": "the overview pages",
+      "area": "studio",
+      "status": "partial",
+      "class": "cheap-to-author",
+      "phase": "0",
+      "blocker": "queue-183",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "tools/map.py",
+        "map.html",
+        "tools/publish-glance.py",
+        "production/map-notified.json"
+      ],
+      "note": "The glance, the map and the gallery all render from repo state with no network calls. The last successful publish was about 36 hours before this was typed, eight runs in a row failed this morning, and nothing in this checkout watches whether the page a link opens is the page today's messages describe (queue 183)."
+    },
+    {
+      "name": "the art pipeline",
+      "area": "studio",
+      "status": "partial",
+      "class": "cheap-to-author",
+      "phase": "0",
+      "blocker": "queue-178",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "tools/art-deliveries.py",
+        "production/art/atlas-02/DELIVERY.md",
+        "production/pc-ops"
+      ],
+      "note": "Commissions arrive on their own branches and a tool walks them, and the preview lane renders on your PC. The commit step died on a repository ownership error until 9 September, the tool still walks a thing a ruling retired (queue 178), and the lane yields rather than queues when a game workflow is running, which loses the run."
+    },
+    {
+      "name": "the queue and the roadmap",
+      "area": "studio",
+      "status": "exists",
+      "class": "cheap-to-author",
+      "phase": "0",
+      "blocker": "queue-107",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "production/queue/README.md",
+        "ledger-v2/respec/roadmap-v2.md",
+        "tools/queue-check.py"
+      ],
+      "note": "Every item is a file with its acceptance written before the work, counted by a checker, and the roadmap carries eight phase rows. The row law that demands an instrument link and a verified date per row is enforced by nothing, which is queue 107."
+    },
+    {
+      "name": "the cost meter",
+      "area": "studio",
+      "status": "partial",
+      "class": "cheap-to-author",
+      "phase": "0",
+      "blocker": "queue-082",
+      "typedBy": "builder/tier3",
+      "typedOn": "2026-09-09",
+      "evidence": [
+        "production/budget.md",
+        "production/token-ledger.md"
+      ],
+      "note": "Spend is recorded as dated rows with their denominators and a ceiling, and every reading is typed in by hand from your own screen because nothing can read the meter from here (queue 082). So the number is as fresh as the last time you looked."
     }
   ]
 }

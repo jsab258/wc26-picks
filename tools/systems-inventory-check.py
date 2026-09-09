@@ -1,39 +1,61 @@
 #!/usr/bin/env python3
-"""The player-facing systems inventory, and the check that it is not fiction.
+"""The systems inventory, and the check that a TYPED state is attributable.
 
-WHAT THIS IS. `production/systems-inventory.json` is Jafar's item 4 of the
-2026-09-05 standing order as DATA: one entry per player-facing system, with
-the six fields he named (name, area, status, class, phase, blocker) plus a
-seventh the director kept, `evidence`, because a status word nobody can check
-is the fault this project keeps repeating. 37 props and 14 decals were counted
-as progress while `grep -c "base-mesh|BaseMesh"` returned 0 in both street
-scripts, so here "exists" means a path that resolves and, where a token is
-given, a token that is IN that path. The check proves it on every run.
+WHAT THIS IS. `production/systems-inventory.json` is the data behind the
+heatmap Jafar approved on 31 August: every system a tile, in five areas, in
+his order, coloured exists, partial or absent. One entry per system with the
+six fields he named (name, area, status, class, phase, blocker), a one-line
+note he reads, an optional evidence list, and the two attribution fields the
+contract below turns on.
 
-WHY JSON, and not YAML, TOML, a table or key=value lines. Two tools consume
-this file and neither may guess: queue 099 renders the map view from it and
-queue 100 folds the phase field into the roadmap. JSON parses with the Python
-standard library on both the container and the PC runner, it fails LOUDLY on a
-malformed file rather than half-parsing it, it nests the evidence list without
-a quoting convention somebody has to remember, and it embeds into the map
-page's HTML with zero external references (queue 099's own bar). YAML was the
-near miss and was rejected on one concrete hazard: the blocker field's legal
-value `none` is a string in JSON and `no`/`yes`/`on` are booleans in YAML 1.1,
-so a blocker word would change type on the way in. A flat key=value channel
-cannot carry the evidence list at all.
+THE CONTRACT CHANGED ON 2026-09-09, AND THIS TOOL CHANGED WITH IT. Jafar:
+"ON THIS PAGE, TYPED IS THE STANDARD: a director's overview is a human's
+judgement of state, ruled by me and updated by rulings; measured evidence sits
+one tap below and never on the first screen."
 
-THE DENOMINATOR IS NOT SELF-SUPPLIED. Coverage is measured against the 27
-names pinned in `production/queue/098-*.md`, which copied them from the
-standing order and recorded the count discrepancy (the resident's brief said
-28; splitting Jafar's sentence on its commas gives 27). Reading the names from
-the inventory itself would make `covered=27/27` a tautology: the file would
-grade its own homework. A name with no entry is printed BY NAME.
+WHAT THE OLD RULE WAS AND WHY IT WAS NOT STUPID. Until that ruling, `status`
+was "evidenced, never guessed": every `exists` and every `partial` had to carry
+a path that resolves in this checkout, and an entry without one was REFUSED.
+It existed because of a real incident: 37 props and 14 decals were counted as
+progress while `grep -c "base-mesh|BaseMesh"` returned 0 in both street
+scripts. A tile painted green on a hope is the fault this project keeps
+repeating, and that risk does not go away because the contract moved.
+
+WHAT REPLACES IT, AND IT IS THE WHOLE POINT OF THIS FILE NOW. A typed state is
+ATTRIBUTABLE. Every entry carries `typedBy` (role/name, role one of jafar,
+director, builder, producer) and `typedOn` (the date it was last typed), so a
+wrong tile is somebody's wrong judgement with a date on it rather than an
+anonymous colour. Evidence stays where it exists and becomes provenance for the
+audit view one tap down: still checked for SHAPE where present, never required,
+and never again the thing that licenses the state.
+
+WHY JSON, unchanged from the first version. Two tools consume this file and
+neither may guess: the map view renders it and the roadmap fold reads the phase
+field. JSON parses with the Python standard library on both the container and
+the PC runner, fails LOUDLY on a malformed file rather than half-parsing it,
+nests the evidence list without a quoting convention somebody has to remember,
+and embeds into the map page with zero external references. YAML was the near
+miss and was rejected on one concrete hazard: the blocker value `none` is a
+string in JSON and `no`/`yes`/`on` are booleans in YAML 1.1, so a blocker word
+would change type on the way in. A flat key=value channel cannot carry the
+evidence list at all.
+
+THE DENOMINATOR IS NOT SELF-SUPPLIED. Coverage is measured against the 27 names
+pinned in `production/queue/098-*.md`, which copied them from the standing
+order and recorded the count discrepancy (the resident's brief said 28;
+splitting Jafar's sentence on its commas gives 27). Reading the names from the
+inventory itself would make `covered=27/27` a tautology: the file would grade
+its own homework. A name with no entry is printed BY NAME. The order says "At
+minimum", so the file may hold MORE entries than names and today does.
 
 WHAT THE NUMBERS ARE STATISTICS OF. Everything printed here is a WHOLE-FILE
 CENSUS at the moment of the run: counts over all entries, not a sample, not a
-peak, not a running total. `covered=N/27` is a set intersection; `resolved=N/M`
-is a count of evidence references whose path (and token, when given) was found
-on disk in this checkout, with M the number examined in the same pass.
+peak, not a running total. `covered=N/27` is a set intersection. `resolved=N/M`
+counts evidence references whose path (and token, when given) was found on disk
+in this checkout, with M the number examined in the same pass. `noteChars` is a
+printed series (min, median, max over n notes) and NOT a bound: no length is
+enforced, because no length has been measured across enough real runs to set
+one. `blockerStale` is likewise a printed series and not a refusal.
 
 EXIT CODES, distinct per outcome so a caller can tell them apart:
   0  accepted
@@ -41,13 +63,16 @@ EXIT CODES, distinct per outcome so a caller can tell them apart:
   2  nothing measured: the inventory is missing, unreadable or empty
   3  the tool could not run (bad argument, no names file)
 
-SELFTEST: `--selftest` runs the accepting case FIRST (the live inventory, the
-live queue file: the codebase is the accepting fixture) and then four planted
-rejecting fixtures, each synthetic, so that doing the work this tool asks for
-can never break the tool.
+SELFTEST: `--selftest` runs the ACCEPTING CASES FIRST (the live inventory and
+the live queue file, because the codebase is the accepting fixture, then a
+planted entry typed `exists` with no evidence at all, which the old contract
+refused and this one must accept), and then the planted refusals. Every
+rejecting fixture is synthetic, so doing the work this tool asks for can never
+break the tool.
 """
 
 import argparse
+import datetime
 import json
 import os
 import re
@@ -57,14 +82,20 @@ import tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# The fixed sets, ruled in production/queue/098. Consumers (099, 100) import
-# these rather than writing a second copy: one implementation per idea.
+# The fixed sets. Consumers (the map view, the roadmap fold) import these
+# rather than writing a second copy: one implementation per idea.
 AREAS = ("moat", "world", "player-facing", "content", "studio")
 STATUSES = ("exists", "partial", "absent")
 CLASSES = ("cheap-to-author", "taste-bound", "moat-adjacent")
 PHASES = ("R", "0", "1", "2", "3", "4", "5", "6")
-REQUIRED = ("name", "area", "status", "class", "phase", "blocker")
-EVIDENCE_STATUSES = ("exists", "partial")
+# WHO MAY TYPE A STATE. The judgement is Jafar's and a director's; a builder
+# may type one and says so, which is the point of recording the role.
+ROLES = ("jafar", "director", "builder", "producer")
+# `note` and the two attribution fields are REQUIRED under the typed contract:
+# a tile with no words and no owner is the anonymous colour the ruling replaced.
+REQUIRED = ("name", "area", "status", "class", "phase", "blocker",
+            "typedBy", "typedOn", "note")
+SCHEMA = "systems-inventory/v2"
 
 INVENTORY = os.path.join(ROOT, "production", "systems-inventory.json")
 # The names file may move to the done/ folder when the item closes, so both
@@ -126,27 +157,28 @@ def order_names(path=None):
 # ------------------------------------------------------------- loading data
 
 def load(path):
-    """Returns (entries, error). An unreadable or empty file is an ERROR and
-    never an empty success: a zero with no denominator cannot tell nothing
-    from fine."""
+    """Returns (doc, entries, error). An unreadable or empty file is an ERROR
+    and never an empty success: a zero with no denominator cannot tell nothing
+    from fine. The whole doc comes back because the header (schema, areas) is
+    load-bearing under the typed contract."""
     if not os.path.exists(path):
-        return None, "file does not exist: " + rel(path)
+        return None, None, "file does not exist: " + rel(path)
     try:
         with open(path, encoding="utf-8") as fh:
             doc = json.load(fh)
     except (ValueError, OSError) as exc:
-        return None, "unreadable (%s)" % str(exc).replace(" ", "_")[:80]
+        return None, None, "unreadable (%s)" % str(exc).replace(" ", "_")[:80]
     if isinstance(doc, list):
         entries = doc
     elif isinstance(doc, dict):
         entries = doc.get("systems")
     else:
-        return None, "top level is neither a list nor an object"
+        return None, None, "top level is neither a list nor an object"
     if entries is None:
-        return None, "no 'systems' key"
+        return None, None, "no 'systems' key"
     if not isinstance(entries, list):
-        return None, "'systems' is not a list"
-    return entries, None
+        return None, None, "'systems' is not a list"
+    return doc, entries, None
 
 
 # --------------------------------------------------------------- the checks
@@ -154,9 +186,15 @@ def load(path):
 def check_evidence_ref(ref):
     """One evidence reference: 'path' or 'path#token'. Returns (ok, why).
 
-    The token half is what catches BUILT IS NOT RUNNING: a file existing
-    proves a file exists, and a token inside it is the nearest thing to a
-    call site this tool can prove without a compiler.
+    PROVENANCE, NOT A LICENCE, since 2026-09-09: this no longer decides whether
+    a status may be claimed. It decides whether the audit view one tap down
+    shows a reader something real. The token half is what catches BUILT IS NOT
+    RUNNING: a file existing proves a file exists, and a token inside it is the
+    nearest thing to a call site this tool can prove without a compiler.
+
+    IT IS BRANCH-LOCAL and that is a known blind spot, named in the data's own
+    howToRead: work on another branch (the art deliveries on art/atlas-01)
+    cannot be cited here at all.
     """
     if not isinstance(ref, str) or not ref.strip():
         return False, "empty"
@@ -178,13 +216,179 @@ def check_evidence_ref(ref):
     return True, "ok"
 
 
-def validate(entries, names):
+def queue_files(num):
+    """Every queue file whose name starts with this number, open or done."""
+    hits = []
+    for d in ("queue", "queue/done"):
+        folder = os.path.join(ROOT, "production", d)
+        if os.path.isdir(folder):
+            hits += [os.path.join(folder, f) for f in os.listdir(folder)
+                     if f.startswith(num + "-")]
+    return hits
+
+
+# THE TWO STATUS PARSERS ARE PURE, and they are pure for the reason the
+# standing rule gives: measurement arithmetic and string parsing live where the
+# tests can reach them. Both were wrong once. The selftest pins each on
+# synthetic text, including the exact shape that fooled the first version.
+def queue_status_word(text):
+    """The first line whose FIRST token is status:, which is the queue row
+    law's own shape. Returns the word, upper case, or None."""
+    for line in text.splitlines():
+        if line.lower().startswith("status:"):
+            rest = line.split(":", 1)[1].strip()
+            if rest:
+                return rest.split()[0].upper().strip(".,;")
+    return None
+
+
+def decision_status_word(text):
+    """A decision record's status word. NOT ANCHORED TO LINE START, and that
+    was an instrument fault caught by reading this tool's own first series:
+    D1's line is "Date: 2026-08-31. Status: OPEN, probe authorized.", so an
+    anchored pattern missed it and the series read decisionSettled=33/33 with
+    the one OPEN record in the project counted as settled."""
+    m = re.search(r"(?i)status[:\s]+([A-Za-z]+)", text)
+    return m.group(1).upper() if m else None
+
+
+def says_landed(text):
+    return queue_status_word(text) in ("LANDED", "DONE")
+
+
+def says_open(text):
+    return decision_status_word(text) == "OPEN"
+
+
+def queue_is_landed(num):
+    """True when a queue item's own status line says LANDED or DONE.
+
+    A PRINTED SERIES AND NOT A REFUSAL. A blocker naming a landed item is the
+    decay this file exists to show (one entry pointed at queue 046, landed on
+    2 September; this rewrite pointed two at items that landed on the 7th and
+    the 9th), but no bound is set here: the count prints with its denominator
+    and a director decides whether it should ever refuse.
+    """
+    for p in queue_files(num):
+        try:
+            with open(p, encoding="utf-8", errors="replace") as fh:
+                return says_landed(fh.read())
+        except OSError:
+            continue
+    return False
+
+
+def decision_records(ident):
+    reg = os.path.join(ROOT, "ledger-v2", "respec", "decision-register")
+    if not os.path.isdir(reg):
+        return []
+    return [os.path.join(reg, f) for f in os.listdir(reg)
+            if f.startswith(ident + "-")]
+
+
+def decision_is_open(ident):
+    """True when the record's status line says OPEN. Same deal as above: a
+    blocker naming a settled decision is printed, never refused."""
+    for p in decision_records(ident):
+        try:
+            with open(p, encoding="utf-8", errors="replace") as fh:
+                return says_open(fh.read(4000))
+        except OSError:
+            continue
+    return False
+
+
+def check_header(doc, problems):
+    """The schema pin and the areas block. Returns the areas seen.
+
+    THE SCHEMA PIN IS NOT DECORATION: a v1 file has no attribution on any
+    entry, so it would pass every other check here while carrying exactly the
+    anonymous colours the 2026-09-09 ruling replaced. It must be refused by
+    name rather than silently accepted.
+    """
+    if not isinstance(doc, dict):
+        problems.append("top level is a bare list: the typed contract needs a "
+                        "header carrying schema=%s and the areas block" % SCHEMA)
+        return []
+    got = doc.get("schema")
+    if got != SCHEMA:
+        problems.append("schema=%r is not %r; the typed contract of 2026-09-09 "
+                        "requires the header and the attribution fields"
+                        % (got, SCHEMA))
+    areas = doc.get("areas")
+    if not isinstance(areas, list) or not areas:
+        problems.append("no 'areas' block: the page renders Jafar's labels "
+                        "from it, so the five areas declare their label and "
+                        "order here rather than in the renderer")
+        return []
+    keys, orders = [], []
+    for i, a in enumerate(areas):
+        if not isinstance(a, dict):
+            problems.append("areas[%d] is not an object" % i)
+            continue
+        k, lab, order = a.get("key"), a.get("label"), a.get("order")
+        keys.append(k)
+        if k not in AREAS:
+            problems.append("areas[%d] key=%r is not one of %s"
+                            % (i, k, "|".join(AREAS)))
+        if not isinstance(lab, str) or not lab.strip():
+            problems.append("areas[%r] has no label; the page shows the label, "
+                            "never the key" % (k,))
+        if not isinstance(order, int):
+            problems.append("areas[%r] order=%r is not an integer" % (k, order))
+        else:
+            orders.append(order)
+    for k in AREAS:
+        if k not in keys:
+            problems.append("the areas block does not declare %r; all five of "
+                            "%s are declared or the page cannot group them"
+                            % (k, "|".join(AREAS)))
+    if len(set(orders)) != len(orders):
+        problems.append("two areas share an order value: %s"
+                        % "/".join(str(o) for o in orders))
+    return keys
+
+
+def check_attribution(e, tag, problems, today):
+    """typedBy and typedOn, the guard that replaced the evidence gate."""
+    by = e.get("typedBy")
+    if isinstance(by, str) and by:
+        if any(c.isspace() for c in by):
+            problems.append("%s typedBy=%r contains whitespace; use role/name"
+                            % (tag, by))
+        else:
+            role = by.split("/", 1)[0]
+            if role not in ROLES:
+                problems.append("%s typedBy=%r names role %r, not one of %s; a "
+                                "typed state is somebody's judgement and the "
+                                "roles are fixed"
+                                % (tag, by, role, "|".join(ROLES)))
+    on = e.get("typedOn")
+    if isinstance(on, str) and on:
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", on):
+            problems.append("%s typedOn=%r is not a plain YYYY-MM-DD date"
+                            % (tag, on))
+        elif on > today:
+            problems.append("%s typedOn=%s is after today (%s): nobody types "
+                            "tomorrow's judgement" % (tag, on, today))
+
+
+def validate(doc, entries, names, today=None):
     """Whole-file census. Returns (problems, stats). Every entry is examined;
     `checks` is the denominator for `problems`."""
+    today = today or datetime.date.today().isoformat()
     problems, checks = [], 0
     seen = {}
     ev_refs = ev_ok = 0
-    need_ev = 0
+    with_ev = 0
+    note_lens = []
+    roles = {}
+    dates = []
+    q_blockers = d_blockers = 0
+    q_landed, d_settled = [], []
+
+    checks += 1
+    check_header(doc, problems)
 
     for i, e in enumerate(entries):
         tag = "entry[%d]" % i
@@ -213,6 +417,15 @@ def validate(entries, names):
                 problems.append("%s %s=%r is not one of %s"
                                 % (tag, field, val, "|".join(allowed)))
 
+        checks += 2
+        check_attribution(e, tag, problems, today)
+        by = e.get("typedBy")
+        if isinstance(by, str) and by:
+            roles[by.split("/", 1)[0]] = roles.get(by.split("/", 1)[0], 0) + 1
+        on = e.get("typedOn")
+        if isinstance(on, str) and re.match(r"^\d{4}-\d{2}-\d{2}$", on):
+            dates.append(on)
+
         checks += 1
         blocker = e.get("blocker")
         if isinstance(blocker, str) and any(c.isspace() for c in blocker):
@@ -221,20 +434,21 @@ def validate(entries, names):
         checks += 1
         if isinstance(blocker, str) and blocker.startswith("queue-"):
             num = blocker[len("queue-"):]
-            hits = []
-            for d in ("queue", "queue/done"):
-                folder = os.path.join(ROOT, "production", d)
-                if os.path.isdir(folder):
-                    hits += [f for f in os.listdir(folder) if f.startswith(num + "-")]
-            if not hits:
+            q_blockers += 1
+            if not queue_files(num):
                 problems.append("%s blocker=%s names no queue file" % (tag, blocker))
+            elif queue_is_landed(num):
+                q_landed.append(pair(name, blocker))
         checks += 1
         if isinstance(blocker, str) and re.match(r"^D\d+$", blocker):
-            reg = os.path.join(ROOT, "ledger-v2", "respec", "decision-register")
-            hits = [f for f in os.listdir(reg)] if os.path.isdir(reg) else []
-            if not any(f.startswith(blocker + "-") for f in hits):
+            d_blockers += 1
+            if not decision_records(blocker):
                 problems.append("%s blocker=%s names no decision record in %s"
-                                % (tag, blocker, rel(reg)))
+                                % (tag, blocker,
+                                   rel(os.path.join(ROOT, "ledger-v2", "respec",
+                                                    "decision-register"))))
+            elif not decision_is_open(blocker):
+                d_settled.append(pair(name, blocker))
 
         status = e.get("status")
         ev = e.get("evidence", [])
@@ -242,12 +456,13 @@ def validate(entries, names):
         if not isinstance(ev, list):
             problems.append("%s evidence is not a list" % tag)
             ev = []
-        if status in EVIDENCE_STATUSES:
-            need_ev += 1
-            if not ev:
-                problems.append("%s status=%s with no evidence; the honest "
-                                "status is absent" % (tag, status))
-        elif status == "absent" and ev:
+        if ev:
+            with_ev += 1
+        # EVIDENCE IS NO LONGER REQUIRED for exists or partial: the state is
+        # typed and attributed instead. The one rule kept is that an entry
+        # typed absent may not cite paths that say otherwise.
+        checks += 1
+        if status == "absent" and ev:
             problems.append("%s status=absent must carry no evidence" % tag)
         for ref in ev:
             ev_refs += 1
@@ -263,6 +478,8 @@ def validate(entries, names):
         checks += 1
         if note is not None and (not isinstance(note, str) or "\n" in note):
             problems.append("%s note must be a single-line string" % tag)
+        elif isinstance(note, str):
+            note_lens.append(len(note))
 
     covered = [n for n in names if n in seen]
     missing = [n for n in names if n not in seen]
@@ -275,7 +492,14 @@ def validate(entries, names):
         "extra": sorted(extra),
         "evRefs": ev_refs,
         "evOk": ev_ok,
-        "needEv": need_ev,
+        "withEv": with_ev,
+        "noteLens": sorted(note_lens),
+        "roles": roles,
+        "dates": sorted(dates),
+        "qBlockers": q_blockers,
+        "dBlockers": d_blockers,
+        "qLanded": sorted(q_landed),
+        "dSettled": sorted(d_settled),
         "tally": {
             "status": tally(entries, "status", STATUSES),
             "area": tally(entries, "area", AREAS),
@@ -284,6 +508,13 @@ def validate(entries, names):
         },
     }
     return problems, stats
+
+
+def pair(name, blocker):
+    """One entry carrying both halves, and NO SPACES IN A VALUE: every reader
+    of a key=value channel splits on whitespace and truncates silently, so a
+    system name with spaces goes in with underscores."""
+    return "%s->%s" % (re.sub(r"\s+", "_", str(name)), blocker)
 
 
 def tally(entries, field, allowed):
@@ -301,14 +532,22 @@ def fmt_tally(counts, total):
     return " ".join("%s=%d/%d" % (k, v, total) for k, v in counts.items())
 
 
+def series(vals):
+    """min/median/max over n, the printed series a bound would come FROM."""
+    if not vals:
+        return NOTHING.replace(" ", "_") + "/n=0"
+    n = len(vals)
+    return "%d..%d/med%d/n=%d" % (vals[0], vals[-1], vals[n // 2], n)
+
+
 # ---------------------------------------------------------------- reporting
 
-def run(path, names_path=None, out=sys.stdout, emit=False):
+def run(path, names_path=None, out=sys.stdout, emit=False, today=None):
     """Validate and report. With emit=True the report goes to stderr and the
-    VALIDATED entries go to stdout as JSON, so queue 099's renderer and queue
-    100's fold consume this file through the check rather than around it: one
-    parser, one set of fixed values, one refusal path. Exit code is unchanged,
-    so a refusal cannot be rendered as a page."""
+    VALIDATED entries go to stdout as JSON, so the map view and the roadmap
+    fold consume this file through the check rather than around it: one parser,
+    one set of fixed values, one refusal path. Exit code is unchanged, so a
+    refusal cannot be rendered as a page."""
     if emit:
         out = sys.stderr
     names, used, err = order_names(names_path)
@@ -321,7 +560,7 @@ def run(path, names_path=None, out=sys.stdout, emit=False):
               "builder's" % (len(names), EXPECTED_NAMES, rel(used)), file=out)
         return 3
 
-    entries, err = load(path)
+    doc, entries, err = load(path)
     if err is not None or not entries:
         why = err or "zero entries"
         print("systems-inventory: %s entries=0 namesFromOrder=%d covered=0/%d "
@@ -330,22 +569,41 @@ def run(path, names_path=None, out=sys.stdout, emit=False):
                  rel(path)), file=out)
         return 2
 
-    problems, st = validate(entries, names)
+    problems, st = validate(doc, entries, names, today=today)
     n = len(entries)
     print("systems-inventory: entries=%d namesFromOrder=%d covered=%d/%d "
           "file=%s order=%s"
           % (n, len(names), len(st["covered"]), len(names), rel(path), rel(used)),
           file=out)
-    # Whole-run censuses, all four on their own lines with their denominator.
+    # Whole-file censuses, each on its own line with its denominator.
     print("  byStatus: " + fmt_tally(st["tally"]["status"], n), file=out)
     print("  byClass:  " + fmt_tally(st["tally"]["class"], n), file=out)
     print("  byArea:   " + fmt_tally(st["tally"]["area"], n), file=out)
     print("  byPhase:  " + fmt_tally(st["tally"]["phase"], n), file=out)
     absent = st["tally"]["status"]["absent"]
-    print("  evidence: refs=%d resolved=%d/%d entriesNeedingEvidence=%d/%d "
-          "absentCarryNone=%d (%s for those)"
-          % (st["evRefs"], st["evOk"], st["evRefs"], st["needEv"], n, absent,
+    # TYPED, AND BY WHOM. The zero that matters here is untypedBy: a tile with
+    # no owner is the anonymous colour the ruling replaced.
+    print("  typedBy:  %s untyped=%d/%d typedOn=%s..%s (oldest..newest of %d)"
+          % ("/".join("%s.%d" % (r, c) for r, c in sorted(st["roles"].items()))
+             or NOTHING.replace(" ", "_"),
+             n - sum(st["roles"].values()), n,
+             st["dates"][0] if st["dates"] else NOTHING.replace(" ", "_"),
+             st["dates"][-1] if st["dates"] else NOTHING.replace(" ", "_"),
+             len(st["dates"])), file=out)
+    print("  evidence: refs=%d resolved=%d/%d entriesWithEvidence=%d/%d "
+          "absentCarryNone=%d (%s for those) evidenceIsProvenanceNotTheGate=true"
+          % (st["evRefs"], st["evOk"], st["evRefs"], st["withEv"], n, absent,
              NOTHING), file=out)
+    # PRINTED SERIES, NOT BOUNDS. Neither line refuses anything today; both
+    # exist so a director can read real runs before any number is set.
+    print("  noteChars: %s (series, no bound set)" % series(st["noteLens"]),
+          file=out)
+    print("  blockerStale: queueLanded=%d/%d decisionSettled=%d/%d "
+          "(series, no bound set) landed=%s settled=%s"
+          % (len(st["qLanded"]), st["qBlockers"], len(st["dSettled"]),
+             st["dBlockers"],
+             ",".join(capped(st["qLanded"])) or "none",
+             ",".join(capped(st["dSettled"])) or "none"), file=out)
     if st["missing"]:
         print("  UNCOVERED %d/%d names have no entry: %s"
               % (len(st["missing"]), len(names),
@@ -374,62 +632,152 @@ def run(path, names_path=None, out=sys.stdout, emit=False):
 GOOD = {
     "name": "planted", "area": "studio", "status": "absent",
     "class": "cheap-to-author", "phase": "0", "blocker": "none",
+    "typedBy": "builder/tier3", "typedOn": "2026-09-09",
+    "note": "A synthetic entry that exists nowhere in the project.",
+}
+HEADER = {
+    "schema": SCHEMA,
+    "areas": [{"key": k, "label": k, "order": i + 1}
+              for i, k in enumerate(AREAS)],
 }
 
 
-def _fixture(tmp, entries):
-    p = os.path.join(tmp, "fixture.json")
+def _fixture(tmp, entries, header=None, tag="fixture"):
+    p = os.path.join(tmp, tag + ".json")
+    doc = dict(HEADER if header is None else header)
+    doc["systems"] = entries
     with open(p, "w", encoding="utf-8") as fh:
-        json.dump({"systems": entries}, fh)
+        json.dump(doc, fh)
     return p
 
 
+def selftest_parsers():
+    """The two status parsers, on SYNTHETIC text only, so no real queue item or
+    decision record can break this rung by being worked on. Returned in the
+    exit-code convention (0 means the parser answered as it should) so these
+    fold into the same rung table as the file cases."""
+    cases = [
+        ("accept/queue-status-LANDED-is-landed",
+         says_landed("status: LANDED 2026-09-05, commit c1311ea7"), True),
+        ("accept/queue-status-DONE-is-landed",
+         says_landed("status: DONE 2026-09-07. Jafar allowed the branch"), True),
+        ("accept/queue-status-READY-is-not-landed",
+         says_landed("status: READY 2026-09-08. Filed by the ruling"), False),
+        ("accept/queue-status-BLOCKED-is-not-landed",
+         says_landed("status: BLOCKED 2026-09-09 behind rung 1"), False),
+        ("accept/no-status-line-is-not-landed",
+         says_landed("line: production\nspec: nothing\n"), False),
+        # THE REGRESSION PIN for the fault this tool's own first series found.
+        ("accept/decision-status-mid-line-is-open",
+         says_open("Date: 2026-08-31. Status: OPEN, probe authorized."), True),
+        ("accept/decision-status-DECIDED-is-not-open",
+         says_open("STATUS: DECIDED 2026-09-02 by Jafar, recorded"), False),
+        ("accept/decision-status-APPROVED-is-not-open",
+         says_open("Date: 2026-09-08. Status: APPROVED (Jafar, in session)"),
+         False),
+    ]
+    return [(label, 0, 0 if got == want else 1) for label, got, want in cases]
+
+
 def selftest():
-    """Accepting case FIRST, then the planted refusals. The accepting fixture
-    is the LIVE inventory and the LIVE queue file, so doing the work this tool
-    asks for cannot break the tool; every rejecting fixture is synthetic."""
+    """Accepting cases FIRST, then the planted refusals. The first accepting
+    fixture is the LIVE inventory and the LIVE queue file, so doing the work
+    this tool asks for cannot break the tool; every rejecting fixture is
+    synthetic."""
     rungs, ok = [], True
 
     print("== rung 1 ACCEPTING: the live inventory and the live names file ==")
     code = run(INVENTORY)
     rungs.append(("accept/live-inventory", 0, code))
 
+    print("\n== rungs ACCEPTING: the two status parsers on synthetic text ==")
+    for row in selftest_parsers():
+        print("  %-48s %s" % (row[0], "PASS" if row[1] == row[2] else "FAIL"))
+        rungs.append(row)
+
     with tempfile.TemporaryDirectory() as tmp:
+        # RUNG 2 IS THE CONTRACT REVERSAL ITSELF. Under the old rule this exact
+        # entry was refused ("status=exists with no evidence; the honest status
+        # is absent"). Jafar's 2026-09-09 ruling makes it legal, so it is an
+        # ACCEPTING case and sits before every refusal.
+        print("\n== rung 2 ACCEPTING: typed exists with no evidence at all "
+              "(the reversal) ==")
+        code = run(_fixture(tmp, [dict(GOOD, name="planted-typed-only",
+                                       status="exists")], tag="typedonly"))
+        rungs.append(("accept/typed-exists-with-no-evidence", 0, code))
+
         planted = [
-            ("refuse/exists-with-unresolvable-evidence", 1, [dict(
-                GOOD, name="planted-ghost", status="exists",
-                evidence=["ledger/Assets/Scripts/Game/NoSuchFile.cs"])]),
-            ("refuse/exists-with-token-that-exists-nowhere", 1, [dict(
-                GOOD, name="planted-token", status="partial",
-                evidence=["ledger/Assets/Scripts/Game/GameController.cs"
-                          "#ZzQqSyntheticTokenThatExistsNowhere"])]),
-            ("refuse/area-outside-the-five", 1, [dict(
-                GOOD, name="planted-area", area="vibes")]),
+            ("refuse/schema-from-the-retired-contract", 1,
+             [dict(GOOD)], dict(HEADER, schema="systems-inventory/v1")),
+            ("refuse/areas-block-missing-one-of-the-five", 1, [dict(GOOD)],
+             {"schema": SCHEMA,
+              "areas": [{"key": k, "label": k, "order": i + 1}
+                        for i, k in enumerate(AREAS) if k != "studio"]}),
+            ("refuse/no-typedBy", 1,
+             [{k: v for k, v in GOOD.items() if k != "typedBy"}], None),
+            ("refuse/typedBy-role-that-is-nobody", 1,
+             [dict(GOOD, typedBy="wizard/zz")], None),
+            ("refuse/typedBy-with-a-space-in-it", 1,
+             [dict(GOOD, typedBy="builder tier3")], None),
+            ("refuse/typedOn-not-a-date", 1,
+             [dict(GOOD, typedOn="yesterday")], None),
+            ("refuse/typedOn-in-the-future", 1,
+             [dict(GOOD, typedOn="2099-01-01")], None),
+            ("refuse/no-note", 1,
+             [{k: v for k, v in GOOD.items() if k != "note"}], None),
+            ("refuse/absent-carrying-evidence", 1,
+             [dict(GOOD, name="planted-absent-cited", status="absent",
+                   evidence=["ledger/verify.py"])], None),
+            ("refuse/evidence-path-that-does-not-resolve", 1,
+             [dict(GOOD, name="planted-ghost", status="exists",
+                   evidence=["ledger/Assets/Scripts/Game/NoSuchFile.cs"])], None),
+            ("refuse/evidence-token-that-exists-nowhere", 1,
+             [dict(GOOD, name="planted-token", status="partial",
+                   evidence=["ledger/Assets/Scripts/Game/GameController.cs"
+                             "#ZzQqSyntheticTokenThatExistsNowhere"])], None),
+            ("refuse/area-outside-the-five", 1,
+             [dict(GOOD, name="planted-area", area="vibes")], None),
             ("refuse/missing-required-field", 1,
-             [{k: v for k, v in GOOD.items() if k != "phase"}]),
-            ("refuse/exists-with-no-evidence-at-all", 1, [dict(
-                GOOD, name="planted-bare", status="exists")]),
-            ("refuse/blocker-names-no-decision-record", 1, [dict(
-                GOOD, name="planted-blocker", blocker="D9999")]),
-            ("refuse/duplicate-name", 1, [dict(GOOD), dict(GOOD)]),
+             [{k: v for k, v in GOOD.items() if k != "phase"}], None),
+            ("refuse/blocker-names-no-decision-record", 1,
+             [dict(GOOD, name="planted-blocker", blocker="D9999")], None),
+            ("refuse/blocker-names-no-queue-file", 1,
+             [dict(GOOD, name="planted-queue", blocker="queue-99999")], None),
+            ("refuse/duplicate-name", 1, [dict(GOOD), dict(GOOD)], None),
+            ("refuse/bare-list-with-no-header", 1, None, None),
         ]
-        for label, want, entries in planted:
+        for label, entries, header in [(l, e, h) for l, _, e, h in planted]:
+            want = 1
             print("\n== rung: %s (expect exit %d) ==" % (label, want))
-            code = run(_fixture(tmp, entries))
+            if entries is None:
+                p = os.path.join(tmp, "bare.json")
+                with open(p, "w", encoding="utf-8") as fh:
+                    json.dump([dict(GOOD)], fh)
+            else:
+                p = _fixture(tmp, entries, header,
+                             tag=re.sub(r"[^A-Za-z0-9]+", "-", label))
+            code = run(p)
             rungs.append((label, want, code))
 
         print("\n== rung: nothing-measured/empty-file (expect exit 2) ==")
-        code = run(_fixture(tmp, []))
+        code = run(_fixture(tmp, [], tag="empty"))
         rungs.append(("nothing-measured/empty-file", 2, code))
+
+        print("\n== rung: could-not-run/no-names-file (expect exit 3) ==")
+        code = run(INVENTORY,
+                   names_path=os.path.join(tmp, "no-such-names-file.md"))
+        rungs.append(("could-not-run/no-names-file", 3, code))
 
     print("\n== selftest done ==")
     for label, want, got in rungs:
         good = want == got
         ok = ok and good
-        print("  %-45s want=%d got=%d %s" % (label, want, got,
+        print("  %-48s want=%d got=%d %s" % (label, want, got,
                                              "PASS" if good else "FAIL"))
     passed = sum(1 for l, w, g in rungs if w == g)
-    print("  selftest: passed=%d/%d rungs (accepting first)" % (passed, len(rungs)))
+    print("  selftest: passed=%d/%d rungs (accepting first: %d of them)"
+          % (passed, len(rungs),
+             sum(1 for l, w, g in rungs if l.startswith("accept/"))))
     return 0 if ok else 1
 
 
@@ -444,10 +792,10 @@ def main():
     ap.add_argument("--file", default=INVENTORY, help="inventory to validate")
     ap.add_argument("--names", default=None, help="queue file holding the names")
     ap.add_argument("--selftest", action="store_true",
-                    help="accepting case then the planted refusals")
+                    help="accepting cases then the planted refusals")
     ap.add_argument("--emit-json", action="store_true",
                     help="report on stderr, validated entries on stdout "
-                         "(for queue 099's map view and queue 100's fold)")
+                         "(for the map view and the roadmap fold)")
     args = ap.parse_args()
     if args.selftest:
         return selftest()

@@ -2565,3 +2565,246 @@ message called owed", because nothing writes that down in a form a hook can read
 The cheap version is a discipline with teeth: any turn that names owed work arms a
 record for it BEFORE writing the sentence that names it, so the sentence and the
 schedule cannot come apart. Filed as queue 192.
+
+
+================================================================================
+2026-09-09 12:35Z: THE BOT IS ON TODAY'S CODE, AND THE PROOF NEEDS A LINE-ENDING
+================================================================================
+
+Owed item 1 of Jafar's list: restart the bot so tomorrow's tap lands, and CONFIRM
+FROM ITS EVIDENCE FILE that the new process runs today's code.
+
+Done. `botPidChanged=True`, `stableHead=bc7e114a` (which contains this morning's
+commit), and:
+
+    botSourceSha256=C0EA5105AFDB5BEEEAD9E284155FEFCE9E63885ABFDD0EB4ACE6DAA306F76E3A
+
+I HAD PREDICTED DE848FBA7B1E8348... AND THAT PREDICTION WAS WRONG, in a way worth
+recording because the next person to check will make the same mistake and reach the
+opposite conclusion:
+
+    sha256 of tools/runner/telegram-bot.py as it sits here, LF   DE848FBA7B1E8348...
+    sha256 of the same bytes with CRLF line endings                C0EA5105AFDB5BEE...
+    what his machine reported                                      C0EA5105AFDB5BEE...
+
+All 64 characters. GIT CHECKS OUT WITH TRANSLATED LINE ENDINGS ON WINDOWS, so a
+file's hash on his disk CAN NEVER EQUAL the hash computed in this Linux container,
+and a naive comparison reads as "the restart did not take" when the restart took
+perfectly.
+
+THE TRAP IS SHARP BECAUSE BOTH READINGS ARE HONEST. His machine hashed the file it
+actually loaded, which is the right thing to hash. This container hashed the file
+it actually has, which is also the right thing to hash. Neither is wrong and they
+cannot agree. The comparison is only meaningful after the transform, and nothing
+anywhere said so.
+
+WHAT I WROTE INTO THE COMMIT MESSAGE AN HOUR AGO: "the confirmation he asked for is
+the evidence file's own botSourceSha256, which must become DE848FBA...". THAT
+SENTENCE WAS WRONG WHEN I WROTE IT and it would have made a successful restart read
+as a failure. It is corrected here rather than left in the log.
+
+WHAT TO DO ABOUT IT, and the cheap fix is not a code change: whoever compares these
+hashes must compare the CRLF transform, and the restart tool should say so beside
+the key it prints. Filed as queue 193. A key whose value cannot be reproduced by
+the only party that reads it is a key that will be misread, and this one is read at
+exactly the moment somebody is anxious about whether a restart worked.
+
+================================================================================
+2026-09-09, AFTER THE SKY LANDED: TWO OF MY OWN READINGS WERE WRONG, AND THE
+FRAME THAT MATTERS WAS NOT THE ONE I READ.
+
+The sky run landed as bc7e114a. Four predictions written before the run held.
+Then I judged it, and two of the sentences I wrote about it were false. Both
+are the same fault: I read a whole-run key as if it described one frame, and I
+read one frame's key as if it described the frame Jafar will look at.
+
+FIRST: "the control quads were not hidden in the sky run". FALSE.
+
+    what I read      controlQuadsStatus=ALL controlQuads=3/3
+    what it counts   controlQuadsStat=counts-over-the-controls-this-build-asks-for
+    the visibility   controlQuadHidden=3/5
+                     controlQuadHiddenOn=vign_camB_day;vign_camB_night;vign_hook_day
+                     controlQuadVisibilityStat=cumulative-over-the-shots-this-run-took
+
+Two keys, two questions. controlQuads=3/3 says all three controls were PLACED.
+controlQuadHidden=3/5 says they were HIDDEN on three of the five shots, and the
+rung-1 camera is in that list by name. I saw them in ue-vign_camA_day.png and
+concluded the rule had not fired; camA is the camera they were placed from,
+which is the one shot where they are supposed to be visible. The rule worked
+exactly as written. The instrument named its own statistic on both keys and I
+still read the placement count as a visibility count.
+
+SECOND, AND THIS ONE CHANGED A CONCLUSION: "band.skyCentre.meanLuma=0.8459,
+down from 0.98, reference 0.81, so the fog signature is gone". That number is
+cam_A's. The rung-1 camera is cam_hook, and the same key on that shot reads:
+
+    shot            skyCentre  spread   meanRGB              ground   g/s
+    vign_camA_day   0.8459     0.5434   215.9/215.7/215.5    0.7526   0.8896
+    vign_camA_night 0.3482     0.5494    94.9/ 86.4/ 85.2    0.0341   0.0978
+    vign_camB_day   0.4428     0.4952   124.5/108.9/103.1    0.8424   1.9024
+    vign_camB_night 0.0296     0.0441    10.4/  6.4/  5.9    0.0361   1.2209
+    vign_hook_day   0.9323     0.0078   236.9/237.8/239.5    0.7728   0.8289
+
+Five shots, one run, one sky. The rung-1 shot is the brightest and the only one
+with no variation at all: spread 0.0078 against cam_A's 0.5434, seventy times
+flatter, on the same sky in the same condition.
+
+WHY THE TWO NUMBERS DIFFER, AND IT IS NOT THE SKY. band.skyCentre is a FIXED
+PIXEL RECTANGLE, 512/0/768/90, read on every shot. cam_A and cam_B render at
+fovV=60.0; cam_hook renders at fovV=39.0. The same 90 rows cover a different
+slice of the world per camera, and on the wide cameras that rectangle is full
+of BUILDINGS. cam_A's spread of 0.5434 is rooftops, not sky structure. The
+verdict says so on its own face and I read past it:
+
+    bandStat=per-frame-geometric-bands/named-for-what-they-cover-not-for-what-is-in-them
+
+So this run contains no measurement of the sky alone, on any camera. What it
+contains is a rectangle that is mostly sky on one camera and mostly brick on
+another, under one key name.
+
+WHAT THE PIXELS SAY WHEN ASKED PROPERLY. Column profile of the top 90 rows of
+ue-vign_hook_day.png, 16 columns of 80px, luma 0..255:
+
+    x    0.. 240   mean 118..129   spread 145..160     buildings, left side
+    x  320.. 720   mean 238..239   spread   3.1..3.3   FLAT WHITE, 400px wide
+    x  800..1280   mean  84..134   spread 135..191     buildings, right side
+
+Between the two terraces, down the street, the sky is 238 of 255 with three
+levels of variation across four hundred pixels. Nothing is clipped
+(shotClipHiAny=0/921600), so this is not exposure blowing out: it is a flat
+bright field where an overcast British sky and a far end of the street should
+be. The street has no distant anything. Queue 016 (period skyline silhouettes)
+is the item that answers it.
+
+WHAT THIS COSTS. The sky is IN and it works: cam_A and cam_B both show
+structure and neutral colour, and the fog signature is genuinely gone there.
+On the one camera the rung is judged from, the change is not yet visible as
+sky. I would have reported the opposite from the key I first read.
+
+THE REPAIR IS AN INSTRUMENT, NOT A LIGHT. A band named skyCentre must either
+measure sky or stop being called sky. The honest version finds the roofline per
+column and measures above it, so the number is about sky on every camera and
+the denominator (how many columns found a roofline) says when it could not.
+Filed as queue 194.
+
+--------------------------------------------------------------------------------
+2026-09-09, WHAT THE RUNG-1 FRAME ACTUALLY SHOWS, HAVING OPENED IT
+
+Read at full size, ue-vign_hook_day.png, the frame Jafar judges rung 1 from.
+This is looking, not measuring, and it is listed in the order of how much each
+item costs the sentence "a person who loves GTA or KCD2 does not bounce off the
+visuals":
+
+1. THE BUILDINGS HAVE NO WINDOWS. Upper storeys carry thin dark slots where
+   windows go. A British street reads as British almost entirely through its
+   glazing: frames, sills, mullions, reflections, curtains, a lit room. This is
+   the single largest gap and nothing in the queue names it.
+2. THE FAR END OF THE STREET IS NOTHING. See above. No skyline, no water, no
+   terminating facade.
+3. THE STREET FURNITURE IS UNTEXTURED. Lamp posts, bollards, bench, bin,
+   railings and the phone box are all the same flat grey. They read as
+   primitives, which is queue 181's rung and it has not run.
+4. THE ROAD IS PALE AND DRY. band.ground.meanLuma=0.7728 on this shot. Wet
+   British tarmac is far darker and it reflects. Queue 176 named the cause
+   MATERIAL-ALBEDO and queue 186's wetness half has not been built.
+5. THE LIGHTING IS FLAT. No contact shadow under the bollards or the bench, no
+   occlusion in the recesses. This is what makes it read as a viewport.
+6. THE PHONE BOX IS GREY. In the working window, 1988 to 1992, it reads red.
+   In-world brand, never a real one, but the colour and silhouette are the
+   period signal.
+7. The right-hand terrace carries a large ribbed brown canopy at an angle that
+   belongs on an industrial shed, and its wall is a sandy rubble stone where the
+   left is red brick. The left half is closer to the reference than the right.
+
+Items 1, 3, 5 and 6 are not in the queue under any name. Items 2, 4 and 7 are.
+
+--------------------------------------------------------------------------------
+2026-09-09, THE REFERENCE MEASURED BESIDE OUR FRAME, AND IT NAMES THE FAULT IN
+ONE LINE: OUR STREET HAS NO DARK IN IT.
+
+Codex's hook.png fetched from origin/art/atlas-01 and its lower panel measured
+against ue-vign_hook_day.png, same street, the camera rung 1 is judged from:
+
+    picture                       mean     p05      p50      p95    range
+    hook sheet, lower panel     0.4937  0.1215   0.3942   0.9720   0.8505
+    ue-vign_hook_day            0.6714  0.3238   0.6987   0.9527   0.6289
+
+The two p95 values nearly agree: both pictures have a bright top end. Everything
+else disagrees. The reference's darkest twentieth sits at 0.12 and ours at 0.32,
+so our frame contains no shadow at all, and its median is nearly twice the
+reference's. The range is a fifth narrower.
+
+READ IT AS WHAT IT IS. A concept panel is an illustration and its histogram is
+not a photometric target, so this is a comparison of two pictures meant to match
+and not a calibration. What makes it worth writing down is that it agrees with
+the eye and with a queue item filed before it was taken: nothing in our frame
+casts a contact shadow (queue 197).
+
+AND IT POINTS THE SKY WORK THE OTHER WAY. shotMeanLuma is the only key that
+exists on both the before and after runs, because every band key shipped WITH
+the sky change:
+
+    vign_camA_day   0.5291 -> 0.7063   (+0.1772)
+    vign_camB_day   0.6049 -> 0.7053   (+0.1004)
+
+Before the sky, cam_A sat at 0.5291, which is within 0.04 of the reference's
+0.4937. After it, 0.7063. The sky lit the street UP when what the reference has
+is not more light but more contrast. The change is still right: the fog is gone,
+the brick reads as brick and the stone as stone, and there is now something for
+a wet road to reflect. But the next move on this rung is shadow, not brightness,
+and anyone reading "the sky landed" as "the frame got closer" would have it
+backwards on this measure.
+
+WHAT THE SIDE BY SIDE SHOWS THAT NO NUMBER DOES, in the order the two pictures
+differ:
+
+  1. THE REFERENCE HAS EIGHT PEOPLE IN IT. Ours has none. That is rung 4 and it
+     is the loudest single difference on the page.
+  2. THE REFERENCE'S RIGHT SIDE IS A ROW OF SHOPS: signage, glazing, goods on
+     display, warm interior light spilling out. Ours is a blank stone wall with
+     an awning in front of it.
+  3. THE REFERENCE HAS A ROOFLINE: slate, chimney pots, and the town on the hill
+     behind. Ours has flat parapets against nothing.
+  4. THE REFERENCE'S ROAD IS WET AND DARK AND REFLECTS THE WHOLE STREET. Ours is
+     dry and pale. This is the strongest single material difference and it is
+     queue 186's unbuilt half.
+  5. No windows either side (queue 195).
+  6. PROPORTION. The reference is a narrow street of two and three storey
+     buildings. Ours is a wide canyon of tall blank walls. Nothing in the queue
+     names this and I am not filing it yet: it may be the camera rather than the
+     street, and that is one measurement, not an argument.
+
+The left-hand building is the encouraging half. It is red brick in both pictures
+and the material reads correctly. What it is missing is everything drawn ON a
+building: windows, a drainpipe, a sill, a door.
+
+--------------------------------------------------------------------------------
+2026-09-09, A SUITE WENT RED WITH NOTHING CHANGED, AND THE CAUSE WAS THE HOUR
+
+tools/wake-queue.py --selftest read 63 passed at 12:25 and 62 passed at 13:00, on
+a file byte-identical to the commit that last touched it (git diff empty). The
+failing case was accept/due-with-something-due-exits-10.
+
+TWO CLOCKS AND ONE FIXTURE. The `loop` fixture is armed at `past`, which is
+now_utc() minus an hour. The assertion asks report_due(loop, noon), and `noon` is
+the frozen literal 2026-09-09T12:00:00Z. While the real clock is before 13:00Z,
+past lands before noon and the record is due; after 13:00Z it lands after noon
+and nothing is due, so the call returns 0 where the case wants 10.
+
+WHAT MAKES IT WORTH RECORDING RATHER THAN JUST FIXING. The comment sitting eight
+lines above the fixture describes the MIRROR of this fault, in this same file:
+"The first version of this suite planted 11:00 and ran at 08:03, and the case
+that should have blocked quietly permitted." The repair for that one made the
+fixture real and left the assertion frozen. A fix for a clock fault introduced
+the opposite clock fault in the same section, and the comment recording the first
+one did not prevent the second.
+
+PROVEN BOTH WAYS BEFORE IT LANDED, per rule 5b. Accepting: 63 of 63 with the
+assertion moved onto the fixture's clock. Rejecting: with the record planted two
+hours in the FUTURE, the case fails along with four others (58 passed, 5 failed),
+so it can still tell a regression from an improvement.
+
+THE SWEEP IS QUEUE 198 AND ITS LIST IS A SHAPE, NOT A CHARGE SHEET. Five tools of
+the 69 that have a selftest carry both a frozen datetime literal and a real-clock
+call: gallery, map, morning-brief, producer-check, wake-queue. Being on that list
+is not evidence of a fault. It is where to look.

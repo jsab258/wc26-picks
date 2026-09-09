@@ -7,6 +7,8 @@
 > 16:15:44Z and is not re-reviewed here. NOT CURRENT once the dictated edits
 > in section 9 are applied and the batch is committed; from then the files
 > are the reading copies.
+>
+> SUPERSEDED IN PART 2026-09-09: section 5's evidence contract, and the roadmap text dictated in section 9 D1, were retired by game-design/decision-2026-09-09-ruling-typed-systems-inventory.md. Section 5's three limits are still true and still worth reading.
 
 VERDICT: APPROVED WITH DICTATED EDITS. The commit goes once section 9 is
 applied and section 10's printed lines are in the message. The roadmap fold
@@ -228,6 +230,8 @@ reader delivers receipts to `production/outbound` and rulings to
 failure the inbox gate was written for.
 
 ## 5. The inventory's seventh field: KEPT, and sound enough to consume
+
+SUPERSEDED 2026-09-09 by game-design/decision-2026-09-09-ruling-typed-systems-inventory.md, question 3: evidence no longer licenses a status word. The three limits below still hold, and the first of them is why.
 
 `evidence` stays. The instrument is `check_evidence_ref`: the path must
 resolve and, where a token is given, the token must be a substring of the
