@@ -1,4 +1,4 @@
-# LEDGER one inbox flush - a0ff30d @1788886518
+# LEDGER one inbox flush - e95f5e4 @1788930680
 # Line 1 names the commit this was run on. This step PUSHES the
 # return half: his messages and the bot's own receipts, onto
 # pc-inbox. It sends nothing and loads no credentials. The return
@@ -12,9 +12,9 @@
 # read ok= and detail= below, and pcInboxHeadShort in the verify step,
 # before calling it fixed. Last measurement: HUNG at 150s, 12 waiting.
 flushPython=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\python.exe
-flushRepoHead=a0ff30d46
+flushRepoHead=e95f5e46c
 flushStatus=EXITED flushWaitedSec=3 flushExitCode=0
 flushStream=flush-raw.txt flushLines=2
-18:55:19  flush: waiting=0 tip=a3a74c7
-18:55:19  flush done: pushed=0/0 waiting=0 tracked=381, the branch already carries every file on this disk
+07:11:20  flush: waiting=0 tip=650c2c3
+07:11:20  flush done: pushed=0/0 waiting=0 tracked=507, the branch already carries every file on this disk
 flushStream=flush-raw.txt.err flushLines=0
