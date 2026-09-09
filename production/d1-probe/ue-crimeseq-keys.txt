@@ -1,4 +1,4 @@
-# UE crime sequence keys 8aaf780 @1788957151
+# UE crime sequence keys 082f0a0 @1788972662
 # One line per sequence frame. tools/clip-from-frames.py --frame-keys reads
 #   this and burns the bank's text for lineId on frames whose heard is yes.
 frame=ue-crimeseq_000.png beat=approach_a speaker=none lineId=none lineText=none lineTextSource=none/this-frame-carries-no-words lineTextEscape=spaces-are-~ heard=no
