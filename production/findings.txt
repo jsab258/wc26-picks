@@ -1507,3 +1507,52 @@ ONE THING STILL REFUSED AND CORRECTLY: outbox: REFUSED
 once, including a deadline 70 hours in the past. A six-day-old message that fails
 the register should not be sent, and the sweep saying so on every pass is the
 guard working rather than a fault.
+
+--------------------------------------------------------------------------
+2026-09-09  RUN 36: THE GRATE IS IN THE PICTURE AND READABLE AS IRONWORK, AND
+            EVERY PREDICTION WRITTEN BEFORE THE RUN HELD.
+--------------------------------------------------------------------------
+THE FRAME WAS OPENED FIRST. ue-walk_05_grate_a.png, dead centre: a drainage grate
+with diagonal slots and a frame around them, unmistakably ironwork, nothing across
+it. Jafar named this piece as the accepting case for the whole prop route and this
+is it, in a walk frame, on his own machine.
+
+MEASURED, run 36 on 7a3fa3e:
+
+    grateShotStatus=AIMED grateOccluded=no grateBlocker=none
+    grateSubjectRaysClear=5/5 grateCandChosen=02
+    grateCandidatesTried=3/8 grateCandidatesBlocked=2/3
+    row 00: grateCandSubjectRaysClear=0/5 grateCandSubjGridClear=24/81
+            grateCandBlocker=rail_post1 grateCandSubjGridFirstBlocker=rail_bar0_45
+    row 01: grateCandSubjectRaysClear=2/5 grateCandSubjGridClear=32/81
+            grateCandBlocker=rail_post1
+    row 02: grateCandSubjectRaysClear=5/5 grateCandSubjGridClear=81/81
+            grateCandBlocker=none
+    grateCandCtrlOffPitchDeg=13.1 / 18.7 / 25.2   grateRectStatus=OFF-FRAME
+
+FOUR PREDICTIONS, WRITTEN INTO THE DISPATCH ENTRY BEFORE THE RUN SO THE RUN COULD
+JUDGE THEM, AND ALL FOUR HELD. Rows 00 and 01 refused with a RAIL piece named:
+rail_post1, not prop_crowd_control_barrier_0, which is the reading that would have
+refuted the director's section 0 and this entry with it. Row 02 taken. Its control
+rectangle OFF-FRAME, so the tie reading is unavailable from this run exactly as
+predicted rather than as an excuse afterwards. And the framing angles reproduce the
+computed series to 0.1 degree.
+
+THE VOTE AND THE GRID AGREE ON THE CHOSEN ROW, 5/5 against 81/81. So on THIS
+geometry the five-ray vote was not sampling past anything, and the harness's
+planted disagreement (5/5 clear against 72/81) did not occur here. THAT IS NOT A
+REASON TO DROP THE GRID: the harness proved the vote CAN miss a 42 mm bar 5.5 cm
+off centre, and one run agreeing is not the class being safe. It is the difference
+between an instrument that has been tested and one that has been lucky.
+
+AND THE GRID SAW SOMETHING THE VOTE COULD NOT NAME. On row 00 the vote named
+rail_post1 and the grid's first blocked cell named rail_bar0_45, an INFILL BAR.
+The 2.75 cm spacing was chosen to resolve a 25 mm bar projecting to about 42 mm,
+and it resolved one on the first real run.
+
+WHAT THE PICTURE ALSO SHOWS, and it is queue 176 made unmistakable: the grate and
+the channel and kerb band it sits in render NEAR-WHITE, almost paper, while the
+asphalt 1 to 2.7 m further off in the same frame is properly textured dark grey
+with red aggregate and the setts below are grey with moss. The piece is readable
+as a shape and it is not readable as METAL. That is the visual bar, not the prop
+route, and it needs the Pillow read rather than a run.

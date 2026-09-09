@@ -9,6 +9,32 @@ session would otherwise duplicate, abandon, or wait for forever.
 Keep it current or delete it. A stale NOW is worse than none, because it
 looks like a live state.
 
+## 2026-09-09 05:25Z: THE GRATE IS IN A FRAME, READABLE AS IRONWORK
+
+RUN 36 ON 7a3fa3e. The camera traces before it shoots now: it tried three
+standpoints, two were refused with rail_post1 named, and the third had five clear
+subject rays and took the picture. grateShotStatus=AIMED, grateOccluded=no,
+grateBlocker=none, grateCandChosen=02. ue-walk_05_grate_a.png has the drainage
+grate dead centre, diagonal slots and a frame, nothing across it. That is the
+piece Jafar named as the accepting case for the whole prop route.
+
+EVERY PREDICTION WRITTEN INTO THE DISPATCH ENTRY BEFORE THE RUN HELD, including
+the one that would have refuted the ruling behind it: rows 00 and 01 named a RAIL
+piece and not prop_crowd_control_barrier_0. Row 02 taken, its control rectangle
+OFF-FRAME as predicted, and the framing angles reproduced the computed series to
+0.1 degree.
+
+THE VOTE AND THE GRID AGREE ON THE CHOSEN ROW, 5/5 against 81/81, so on this
+geometry the five-ray vote sampled past nothing. That is not the class being safe:
+the harness proved the vote CAN miss a 42 mm bar 5.5 cm off centre, and the grid
+stays for the run where it does. On row 00 the grid's first blocked cell already
+named an infill BAR the vote could only call a post.
+
+WHAT THE PICTURE ALSO SHOWS: the grate and the channel and kerb band around it
+render NEAR-WHITE, almost paper, while the asphalt a metre further off in the same
+frame is textured dark grey with red aggregate. It reads as a shape and not as
+metal. Queue 176, and it is the visual bar rather than the prop route.
+
 ## 2026-09-09 03:30Z: EVERY KEY IS GREEN AND A RAILING STANDS IN THE LINE
 
 RUN 35 aimed a camera at the grate and wrote two frames. grateShotStatus=AIMED,
