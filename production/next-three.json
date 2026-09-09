@@ -2,9 +2,9 @@
  "what": "THE ONE SOURCE OF CURRENT PRIORITIES. tools/map.py reads this file and nothing else to fill the next-three on map.html. Nothing is scraped out of prose, here or anywhere: production/NOW.md is a log of what happened and a log cannot say what is next without a reader guessing which paragraph is an instruction. That guess is what put a task completed by run 25 and a task Jafar superseded the same day on his phone as the plan.",
  "howItChanges": "A human or a ruling edits this file. There is no other writer. Two guards sit under that: tools/map.py REFUSES to render an item whose queue file has moved to production/queue/done/ or whose status line says DONE, SUPERSEDED, DROPPED or ABANDONED, and it prints the refusal loudly instead of the task. Supersession that leaves the queue file READY (queue 119 is the live example) is caught by the structural half instead: an item that is not named here cannot appear here. A finished step MOVES from `next` to the end of `done`, carrying the date and the evidence files whose named keys prove it. It is never deleted. A human or a ruling makes the move, and the ladder counts done, then next, then the goal.",
  "ruledBy": "Jafar",
- "ruledOn": "2026-09-06",
- "milestone": "one playable visual crime-and-consequence loop on the street that is now textured",
- "milestoneFrom": "production/queue/138-one-playable-visual-crime-and-consequence-loop.md",
+ "ruledOn": "2026-09-09",
+ "milestone": "rung 1 of the visual ladder: the built street matched to the lower panel of Codex's Hook sheet, judged by Jafar side by side",
+ "milestoneFrom": "production/ladder.md",
  "done": [
   {
    "title": "Control a character in the street that already exists",
@@ -55,7 +55,23 @@
    ]
   }
  ],
- "next": [],
- "correctedOn": "2026-09-07",
- "correctedWhy": "Item 1's reason had decayed into a false sentence on the map, which is Jafar's phone view: it still said the probe only aims a screenshot camera and there is nobody to be. A character, a game mode, a player start, input binding and a default pawn landed on 2026-09-07 and packaged successfully in run 28. The TITLE and the ORDER are untouched; only the reason is corrected, because the step is not done. Source markers prove code exists, not that it runs, and the automated walk that would prove it has never been dispatched."
+ "next": [
+  {
+   "title": "The street matched to the Hook sheet",
+   "why": "rung 1 and the current rung. The built Quay Street rendered from the same viewpoint as the lower panel of Codex's Hook sheet, with rain, a wet road, worn materials and sky, for Jafar to judge side by side. His eye is the gate; no number passes this rung.",
+   "queue": "production/queue/180-rung-1-the-street-matched-to-the-hook-sheet.md"
+  },
+  {
+   "title": "Props read as their materials",
+   "why": "rung 2. The 22 props already placed as real meshes with collision are there but do not yet read as brick, slate, painted timber and quay stone; and the first batch of clutter is not placed. This rung is how they look, not whether they exist.",
+   "queue": "production/queue/181-rung-2-props-read-as-their-materials.md"
+  },
+  {
+   "title": "Mickey's frontage on the street",
+   "why": "rung 3. The pub's frontage on Quay Street from the design. It waits on taste rather than on work: three cards decide its size, its bay and whether it is a free house, and each carries a default and a deadline.",
+   "queue": "production/queue/182-rung-3-mickeys-frontage-on-the-street.md"
+  }
+ ],
+ "correctedOn": "2026-09-09",
+ "correctedWhy": "The next list was EMPTY and the milestone behind it was fully done: all three of queue 138's steps sit in done with their evidence keys, and nothing had replaced them, so the map has been showing Jafar a plan with no next in it. Jafar ruled the visual-first ladder this morning (production/ladder.md, his item 5), so the next three are its first three rungs and the milestone is its current rung. The done list is untouched: a finished step is never deleted."
 }

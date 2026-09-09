@@ -116,3 +116,8 @@ tools/meshgen/blender/__pycache__/
 dashboard.html
 tools/dashboard/live-dashboard.html
 tools/dashboard/live-dashboard.json
+
+# Written by tools/gallery.py when it is run without --assets-dir. The
+# publisher always passes one, so CI never produces these; a bare local run
+# writes 92 files beside gallery.html at the repo root.
+gallery-img/

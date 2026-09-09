@@ -135,6 +135,11 @@ UE_VERDICT = "production/d1-probe/ue-vignette-verdict.txt"
 UE_BUILD = "production/d1-probe/ue-build.txt"
 STUDY = "production/stranger-test/study.txt"
 PRIORITIES = "production/next-three.json"
+# JAFAR'S OWN LADDER, ruled 2026-09-09 and a LIVE document. It is a different
+# thing from the studio ladder this file already built out of PRIORITIES, and
+# the two are kept as separate blocks with separate names for the reason the
+# next comment gives.
+LADDER_FILE = "production/ladder.md"
 QUEUE_DIR = "production/queue"
 QUEUE_DONE_DIR = "production/queue/done"
 INVENTORY = "production/systems-inventory.json"
@@ -1741,6 +1746,291 @@ def goal_sheet(reading):
 LADDER_START = "<!-- LADDER START -->"
 LADDER_END = "<!-- LADDER END -->"
 
+# ---------------------------------------------------------------------------
+# JAFAR'S VISUAL LADDER, ruled 2026-09-09, item 2, verbatim: "The map page is
+# the project overview and today it is not one: the ladder with the current
+# rung marked, the game's areas as tiles coloured by status, and the next
+# three, readable on a phone in five seconds, with no diagnostic text on the
+# first screen."
+#
+# TWO LADDERS, TWO BLOCKS, TWO NAMES, decided here and reported rather than
+# guessed. The ladder already in this file is the STUDIO ladder: it is derived
+# from production/next-three.json, its done rungs are PROVEN by {file, key}
+# evidence this run reads back, and check_ladder_done_not_invented exists
+# because a rung once read done that nothing could prove. Jafar's ladder is a
+# different instrument on a different axis: seven rungs of things he can SEE,
+# and its own file says so ("A RUNG IS CLEARED BY HIS EYE, NOT BY A GATE").
+# NO RUNG ON IT CAN EVER BE PROVEN DONE BY A NUMBER, so rendering it through
+# the studio ladder's machinery would either put a status on his phone that no
+# evidence supports or refuse a ladder that is working exactly as ruled. They
+# are therefore two blocks: his at the top, the studio's below the fold under
+# its own heading, and every one of the seven ladder* checks keeps guarding the
+# studio one unchanged.
+#
+# WHAT THE HONEST RENDERING IS. Every rung's status here is TYPED BY A HUMAN in
+# production/ladder.md. The page says that in words, on the face, and the file
+# name and its commit are one tap down with the rest of the provenance. The
+# rule that transfers from ladderDoneHonest is the important one: a rung may
+# not read done unless this run can say where the word came from, so DONE here
+# renders as the word plus "as ruled", never as a tick and never as a
+# measurement.
+#
+# THE FILE IS A CONTRACT, and its own text says so: columns rung, name, status,
+# done looks like; status exactly one of done/current/next/later; exactly one
+# row current. Every one of those is checked here and a file that breaks one
+# REFUSES the block with the reason on the page, because a step count on his
+# phone that nobody can trace is the invented progress this page already
+# refuses elsewhere.
+# ---------------------------------------------------------------------------
+VLADDER_START = "<!-- VISUAL LADDER START -->"
+VLADDER_END = "<!-- VISUAL LADDER END -->"
+VLADDER_COLUMNS = ("rung", "name", "status", "done looks like")
+VLADDER_STATUSES = ("done", "current", "next", "later")
+VLADDER_TAGS = {"done": "DONE, AS RULED", "current": "NOW",
+                "next": "NEXT", "later": "LATER"}
+TABLE_ROW_RX = re.compile(r"^\s*\|(.*)\|\s*$")
+
+
+def table_rows(text):
+    """(rows, linesExamined) for every markdown table row in `text`.
+
+    Cells are stripped; separator rows (the dashes) are dropped. One
+    implementation: the reader and the selftest's fixtures both come through
+    here, so a file that parses in the test parses on the page.
+    """
+    rows, lines = [], 0
+    for line in text.splitlines():
+        lines += 1
+        m = TABLE_ROW_RX.match(line)
+        if not m:
+            continue
+        cells = [c.strip() for c in m.group(1).split("|")]
+        if all(re.fullmatch(r":?-{2,}:?", c or "") for c in cells):
+            continue
+        rows.append(cells)
+    return rows, lines
+
+
+def visual_ladder(root):
+    """(rungs, reading) read from production/ladder.md and from nothing else.
+
+    NO SECOND SOURCE AND NO FALLBACK. The previous version of this page had no
+    such file and read the steps out of production/next-three.json; that is the
+    STUDIO ladder and it is still rendered, lower down, from that same file. If
+    this one is absent the block says the words nothing measured and names what
+    it looked for, because quietly showing the other ladder in its place is how
+    a reader ends up believing he is looking at the thing he ruled.
+    """
+    p = Path(root) / LADDER_FILE
+    reading = {"source": LADDER_FILE, "present": p.is_file(), "rows": 0,
+               "linesExamined": 0, "total": 0, "currentNum": None,
+               "currentName": None, "counts": {}, "refused": False,
+               "refusedWhy": "none", "sha": None, "day": None,
+               "columnsAsked": len(VLADDER_COLUMNS), "columnsFound": 0,
+               "statusesAsked": len(VLADDER_STATUSES), "badStatuses": [],
+               # TWO WORDINGS FOR ONE FACT, on purpose. refusedWhy is the key
+               # on the done line and it names the file, because a log reader
+               # needs the path. refusedSay is what the BLOCK prints and it
+               # carries no path: Jafar ruled no diagnostic text on the first
+               # screen and this block sits at the top of it, so the path goes
+               # in the provenance sheet one tap down.
+               "refusedSay": "none"}
+    if not p.is_file():
+        reading["refused"] = True
+        reading["refusedWhy"] = "no-%s-in-this-checkout" % LADDER_FILE
+        reading["refusedSay"] = ("the studio's ladder file is not in this "
+                                 "checkout")
+        return [], reading
+    text = p.read_text(encoding="utf-8", errors="replace")
+    sha = GLANCE.git(root, "log", "-1", "--format=%h %ct", "--", LADDER_FILE)
+    if sha:
+        parts = sha.split()
+        reading["sha"] = parts[0]
+        if len(parts) > 1:
+            reading["day"] = datetime.datetime.fromtimestamp(
+                int(parts[1]), datetime.timezone.utc).strftime("%Y-%m-%d")
+    rows, lines = table_rows(text)
+    reading["linesExamined"] = lines
+    if not rows:
+        reading["refused"] = True
+        reading["refusedWhy"] = "no-table-row-in-%s" % LADDER_FILE
+        reading["refusedSay"] = ("the ladder file holds no table row this "
+                                 "run could read")
+        return [], reading
+    header = [c.lower() for c in rows[0]]
+    reading["columnsFound"] = sum(1 for c in VLADDER_COLUMNS if c in header)
+    if reading["columnsFound"] != len(VLADDER_COLUMNS):
+        reading["refused"] = True
+        # NO SPACES IN A VALUE, instruments.md: the fourth column is called
+        # "done looks like" and printing it raw put two spaces inside
+        # vladderRefusedWhy= on the done line, where every reader splits on
+        # whitespace and would have truncated the reason to "columns-are-...".
+        reading["refusedWhy"] = ("columns-are-%s-not-%s"
+                                 % ("/".join(re.sub(r"\s+", ".", c)
+                                             for c in header) or "none",
+                                    "/".join(re.sub(r"\s+", ".", c)
+                                             for c in VLADDER_COLUMNS)))
+        reading["refusedSay"] = ("the ladder table does not carry the four "
+                                 "columns this page reads")
+        return [], reading
+    ci = {c: header.index(c) for c in VLADDER_COLUMNS}
+    rungs = []
+    for cells in rows[1:]:
+        if len(cells) < len(header):
+            continue
+        status = cells[ci["status"]].strip().lower()
+        name = cells[ci["name"]].strip()
+        if not name:
+            continue
+        reading["rows"] += 1
+        if status not in VLADDER_STATUSES:
+            reading["badStatuses"].append("%s/%s" % (name[:24], status or
+                                                     "empty"))
+            continue
+        rungs.append({"num": len(rungs) + 1, "name": name, "status": status,
+                      "done": cells[ci["done looks like"]].strip(),
+                      "said": cells[ci["rung"]].strip()})
+        reading["counts"][status] = reading["counts"].get(status, 0) + 1
+    reading["total"] = len(rungs)
+    current = [r for r in rungs if r["status"] == "current"]
+    if reading["badStatuses"]:
+        reading["refused"] = True
+        reading["refusedWhy"] = ("status-not-one-of-%s-on-%d-row(s)"
+                                 % ("/".join(VLADDER_STATUSES),
+                                    len(reading["badStatuses"])))
+        reading["refusedSay"] = ("%d rung(s) carry a status that is not one "
+                                 "of the four words the file allows"
+                                 % len(reading["badStatuses"]))
+    elif not rungs:
+        reading["refused"] = True
+        reading["refusedWhy"] = "no-rung-row-under-the-header"
+        reading["refusedSay"] = ("the ladder table has a header and no "
+                                 "rungs under it")
+    elif len(current) != 1:
+        reading["refused"] = True
+        reading["refusedWhy"] = ("current-rows-are-%d-and-the-file-allows-1"
+                                 % len(current))
+        reading["refusedSay"] = ("%d rung(s) are marked current and the "
+                                 "file allows exactly one" % len(current))
+    else:
+        reading["currentNum"] = current[0]["num"]
+        reading["currentName"] = current[0]["name"]
+    return rungs, reading
+
+
+def visual_ladder_html(rungs, r):
+    """HIS LADDER, PLAIN HTML, AND EVERY STATUS SAID IN WORDS.
+
+    The face carries the rung count, the current rung's name, the seven names
+    and where the words came from IN WORDS. The file path, the commit, the row
+    count and each rung's "done looks like" are one tap down, because Jafar
+    ruled no diagnostic text on the first screen and a raw path is the first
+    thing he named when he rejected the previous page.
+    """
+    if r["refused"]:
+        return ('%s<section class="vladder vStale" id="ladder-visual">'
+                '<p class="vHead">THE VISUAL LADDER CANNOT BE SHOWN</p>'
+                '<p class="vNow">%s Nothing here is guessed from another '
+                'file.</p><p class="vNote">%s</p></section>%s'
+                % (VLADDER_START,
+                   esc("The ladder is ruled in one file and this run could "
+                       "not read it: %s." % r["refusedSay"]),
+                   esc("Fix the ladder file and this block fills itself in."),
+                   VLADDER_END))
+    rows = []
+    for x in rungs:
+        cls = "v-" + x["status"]
+        tag = VLADDER_TAGS[x["status"]]
+        body = esc(x["name"])
+        if x["done"]:
+            body += (' <a class="vlink" href="#v-%d">what done looks '
+                     'like</a>' % x["num"])
+        rows.append('<li class="vrung %s"><span class="tag">%s</span>%s</li>'
+                    % (cls, esc(tag), body))
+    return ('%s<section class="vladder" id="ladder-visual">'
+            '<p class="vHead">RUNG %d OF %d</p>'
+            '<p class="vNow">%s</p>'
+            '<ol class="vrungs">%s</ol>'
+            '<p class="vNote">%s <a class="tap" href="#v-source">where these '
+            'come from</a></p>'
+            '</section>%s'
+            % (VLADDER_START, r["currentNum"], r["total"],
+               esc(r["currentName"]), "".join(rows),
+               esc("Every rung is a picture or a session Jafar clears by eye, "
+                   "so these words are ruled by him and typed in the studio's "
+                   "ladder file, not measured by this page."),
+               VLADDER_END))
+
+
+def visual_ladder_sheets(rungs, r):
+    """One sheet per rung for its "done looks like", and one for the
+    provenance. This is where the raw path, the commit and the row counts
+    live: off the first screen, never deleted."""
+    out = []
+    for x in rungs:
+        if not x["done"]:
+            continue
+        out.append('<section class="sheet" id="v-%d"><div class="inner">'
+                   '<a class="close" href="#map">back to the map</a>'
+                   '<h3>%s</h3><p class="word">%s</p>'
+                   '<dl><dt>what done looks like</dt><dd>%s</dd>'
+                   '<dt>who decides</dt><dd>%s</dd></dl>'
+                   '<a class="close" href="#map">back to the map</a>'
+                   '</div></section>'
+                   % (x["num"], esc(x["name"]), esc(VLADDER_TAGS[x["status"]]),
+                      esc(x["done"]),
+                      esc("Jafar, by eye. No number on this page passes a "
+                          "rung, and none is offered as if it did.")))
+    said = ("%d rung(s) read from %d table row(s) over %d line(s) of %s, last "
+            "changed in commit %s on %s. Status is one of %s and exactly one "
+            "row may be current; a file that breaks either refuses this block "
+            "rather than showing a count nobody can trace."
+            % (r["total"], r["rows"], r["linesExamined"], LADDER_FILE,
+               r["sha"] or NOTHING, r["day"] or NOTHING,
+               "/".join(VLADDER_STATUSES)))
+    out.append('<section class="sheet" id="v-source"><div class="inner">'
+               '<a class="close" href="#map">back to the map</a>'
+               '<h3>where the ladder comes from</h3>'
+               '<dl><dt>the file</dt><dd>%s</dd>'
+               '<dt>what this run read</dt><dd>%s</dd>'
+               '<dt>what it is not</dt><dd>%s</dd></dl>'
+               '<a class="close" href="#map">back to the map</a>'
+               '</div></section>'
+               % (esc(LADDER_FILE), esc(said),
+                  esc("This is not the studio ladder lower down the page. That "
+                      "one counts steps whose evidence keys this run reads "
+                      "back out of committed files; this one counts pictures "
+                      "Jafar judges by eye.")))
+    return "".join(out)
+
+
+def vladder_slice(page):
+    i, j = page.find(VLADDER_START), page.find(VLADDER_END)
+    return page[i:j] if 0 <= i < j else ""
+
+
+# ---------------------------------------------------------------------------
+# THE AREAS AS TILES. Jafar asked for "the game's areas as tiles coloured by
+# status" on the first screen. THE DERIVATION IS UNTOUCHED: these are the same
+# seven areas with the same words out of area_states(), the same WORD_CLASS
+# colours the diagram uses, and each tile taps through to the same sheet the
+# diagram's boxes tap through to, where every number is still named with its
+# file. What changed is only which of the two is on the first screen: the tall
+# chain (953 px of SVG, one box per area) is still on the page, below, under
+# its own heading, because it carries the ORDER of the chain and a grid does
+# not.
+# ---------------------------------------------------------------------------
+
+def tiles_html(areas):
+    tiles = []
+    for a in areas:
+        tiles.append('<a class="tile %s" href="#a-%s">'
+                     '<span class="tName">%s</span>'
+                     '<span class="tWord">%s</span></a>'
+                     % (WORD_CLASS[a["word"]], esc(a["key"]), esc(a["name"]),
+                        esc(a["word"].upper())))
+    return '<div class="tiles">%s</div>' % "".join(tiles)
+
 
 def ladder_slice(page):
     """The bytes between the ladder's own markers, or "" if either is
@@ -2023,6 +2313,13 @@ def read_picture(root, probe_reading, budget):
         out["bytes"] = n
         return out
     out.update(shown=True, b64=b64, mime=mime, bytes=n, quality=q, how=how)
+    # THE SOURCE'S OWN DIMENSIONS, out of the encoder's own sentence rather
+    # than by opening the file a second time. The fold model needs the aspect
+    # to know how much of the first screen a picture eats, and a picture whose
+    # height it has to guess is a first screen it cannot measure.
+    m = re.search(r"(\d+) by (\d+) source", how or "")
+    if m:
+        out["width"], out["height"] = int(m.group(1)), int(m.group(2))
     return out
 
 
@@ -2063,6 +2360,36 @@ a { color: #8fb8ff; }
 .ladderNote { font-size: 12.5px; line-height: 1.5; color: #868d95;
   margin: 8px 0 0; }
 .ladderStale .ladderHead { color: #ff8f8f; }
+.vladder { margin: 0 0 18px; }
+.vHead { font-size: 27px; font-weight: 800; letter-spacing: 0.01em;
+  color: #f3f5f7; margin: 0 0 2px; }
+.vNow { font-size: 18px; font-weight: 600; color: #dbe0e6; margin: 0 0 12px;
+  line-height: 1.3; }
+.vrungs { list-style: none; margin: 0; padding: 0; }
+.vrung { border-left: 5px solid #4b535d; border-radius: 6px;
+  background: #191c21; padding: 8px 11px; margin: 0 0 6px; font-size: 15px;
+  line-height: 1.35; color: #ccd2d8; }
+.vrung .tag { display: inline-block; font-size: 10.5px; font-weight: 800;
+  letter-spacing: 0.07em; color: #8a9199; margin-right: 6px; }
+.v-current { border-left-color: #6fd08c; background: #16241c; color: #f0f2f4;
+  font-size: 17px; font-weight: 600; }
+.v-current .tag { color: #6fd08c; }
+.v-done { border-left-color: #b6bec7; }
+.v-done .tag { color: #b6bec7; }
+.v-later { opacity: 0.75; }
+.vNote { font-size: 12.5px; line-height: 1.5; color: #868d95; margin: 8px 0 0; }
+.vlink { color: #8fb8ff; text-decoration: none; font-size: 12.5px;
+  white-space: nowrap; }
+.vStale .vHead { color: #ff8f8f; }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 7px;
+  margin: 0 0 16px; }
+.tile { display: block; border: 1px solid #2b3038; border-left: 5px solid
+  #4b535d; border-radius: 8px; background: #191c21; padding: 9px 10px;
+  text-decoration: none; }
+.tile .tName { display: block; font-size: 14px; line-height: 1.3;
+  color: #e7e9ec; font-weight: 600; }
+.tile .tWord { display: block; font-size: 10.5px; letter-spacing: 0.06em;
+  font-weight: 800; margin-top: 5px; color: #99a0a8; }
 .top { display: flex; justify-content: space-between; align-items: baseline;
   font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
   color: #7d848c; margin-bottom: 14px; }
@@ -2125,6 +2452,16 @@ h2 { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
 .s-heard .nbox { stroke: #63b97e; } .s-heard .pill { fill: #74cc90; }
 .s-harness .nbox { stroke: #c9a25a; } .s-harness .pill { fill: #d7b46a; }
 .s-playable .nbox { stroke: #6fd08c; } .s-playable .pill { fill: #6fd08c; }
+.tile.s-none { border-left-color: #99a0a8; } .tile.s-none .tWord { color: #99a0a8; }
+.tile.s-seen { border-left-color: #8fb8ff; } .tile.s-seen .tWord { color: #8fb8ff; }
+.tile.s-notstarted { border-left-color: #d09090; } .tile.s-notstarted .tWord { color: #d09090; }
+.tile.s-unproven { border-left-color: #ab9fe0; } .tile.s-unproven .tWord { color: #ab9fe0; }
+.tile.s-built { border-left-color: #4fc2b2; } .tile.s-built .tWord { color: #4fc2b2; }
+.tile.s-failing { border-left-color: #ff8f8f; } .tile.s-failing .tWord { color: #ff8f8f; }
+.tile.s-unheard { border-left-color: #e5aa55; } .tile.s-unheard .tWord { color: #e5aa55; }
+.tile.s-heard { border-left-color: #74cc90; } .tile.s-heard .tWord { color: #74cc90; }
+.tile.s-harness { border-left-color: #d7b46a; } .tile.s-harness .tWord { color: #d7b46a; }
+.tile.s-playable { border-left-color: #6fd08c; } .tile.s-playable .tWord { color: #6fd08c; }
 .legend { font-size: 13px; color: #99a1a9; line-height: 1.5; margin: 12px 0 0; }
 .tap { display: block; text-align: center; font-size: 13.5px; color: #8fb8ff;
   text-decoration: none; padding: 12px 0 4px; }
@@ -2149,6 +2486,12 @@ h2 { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
   font-weight: 600; }
 @media (prefers-color-scheme: light) {
   body { background: #f4f6f8; color: #191d22; }
+  .vHead { color: #0f1216; } .vNow { color: #23282e; }
+  .vrung { background: #ffffff; border-color: #d9dee4; color: #2b3138; }
+  .v-current { background: #eafaf0; color: #12161a; }
+  .vNote { color: #5d646c; }
+  .tile { background: #ffffff; border-color: #d9dee4; }
+  .tile .tName { color: #12161a; } .tile .tWord { color: #4d545c; }
   .ladderHead { color: #0f1216; } .ladderNow { color: #23282e; }
   .rung { background: #ffffff; border-color: #d9dee4; color: #2b3138; }
   .r-current { background: #eafaf0; } .r-stale { background: #fdeeee; }
@@ -2688,6 +3031,7 @@ def build(root, now, out_path=None, served=None):
     code = code_only(root)
     items, r3 = next_three(root)
     ladder, r4 = ladder_rungs(root, items, r3)
+    vrungs, r5 = visual_ladder(root)
     commit = (GLANCE.git(root, "rev-parse", "--short", "HEAD") or NOTHING)
 
     # THE PICTURE IS ENCODED AGAINST WHAT THE REST OF THE PAGE LEAVES, so the
@@ -2741,7 +3085,8 @@ def build(root, now, out_path=None, served=None):
              "changedGroups": groups, "q1": q1, "things": things,
              "served": srv, "picture": picture, "geo": geo,
              "shellBytes": shell,
-             "ladder": dict(r4, rungs=ladder)}
+             "ladder": dict(r4, rungs=ladder),
+             "vladder": dict(r5, rungs=vrungs)}
     detail = [
         "picture=%s pictureShown=%s pictureB64Bytes=%d/%d-budget "
         "pictureSourceBytes=%d pictureQuality=%s resizer=%s pictureFrom=%s"
@@ -2844,6 +3189,24 @@ def build(root, now, out_path=None, served=None):
            r4["doneShown"], r4["doneClaimed"], r4["doneProven"],
            r4["doneClaimed"], r4["doneKeysFound"], r4["doneKeysAsked"],
            "yes" if r4["refused"] else "no", r4["refusedWhy"]),
+        # JAFAR'S LADDER, WHOLE-RUN NUMBERS. vladderSource is the only file
+        # these rungs come from; typed is the point, not a fault: every status
+        # here is ruled by him and none is proven by a key, which is why
+        # vladderStatesProven is a printed zero with its denominator beside it
+        # rather than an absent number.
+        "vladderSource=%s vladderPresent=%s vladderRungs=%d/%d-table-row(s) "
+        "vladderCurrentNum=%s vladderStates=%s vladderStatesTyped=%d/%d "
+        "vladderStatesProven=0/%d-because-a-rung-is-cleared-by-eye "
+        "vladderColumns=%d/%d vladderRefused=%s vladderRefusedWhy=%s "
+        "vladderCommit=%s"
+        % (LADDER_FILE, "yes" if r5["present"] else "no", r5["total"],
+           r5["rows"],
+           r5["currentNum"] if r5["currentNum"] else NOTHING.replace(" ", "-"),
+           "/".join("%s.%d" % kv for kv in sorted(r5["counts"].items()))
+           or NOTHING.replace(" ", "-"), r5["total"], r5["total"],
+           r5["total"], r5["columnsFound"], r5["columnsAsked"],
+           "yes" if r5["refused"] else "no", r5["refusedWhy"],
+           r5["sha"] or NOTHING.replace(" ", "-")),
         "flowNodes=%d/%d-areas svgHeightPx=%d boxWidthPx=%d textWidthPx=%d "
         "widestLineChars=%d atFontPx=%d wrapModel=avg-advance-0.5em"
         % (geo["nodes"], r2["areas"], geo["svgHeightPx"], geo["boxWidthPx"],
@@ -2889,12 +3252,22 @@ def build(root, now, out_path=None, served=None):
                         for i, it in enumerate(items[:NEXT_ASKED])
                         if not it["refused"]]
                      + [goal_sheet(r4)]
+                     + [visual_ladder_sheets(vrungs, r5)]
                      + [tools_sheet(rows, r1), about_sheet(model, now, detail)])
     body = "\n".join([
-        # RULING 3: THE LADDER IS THE FIRST THING ON THE PAGE, above even the
-        # top bar and "what exists now" below it. Everything that used to be
-        # the first screen stays, unmoved, beneath it.
-        LADDER_START, ladder_html(ladder, r4), LADDER_END,
+        # THE FIRST SCREEN, RULED BY JAFAR 2026-09-09: his ladder with the
+        # current rung marked, the areas as tiles coloured by status, and the
+        # next three. Nothing else, and no diagnostic text: every path, key,
+        # sha and count that used to sit here is still on the page, lower or
+        # one tap down, and check_first_screen_clean reads the rendered bytes
+        # to prove it.
+        visual_ladder_html(vrungs, r5),
+        tiles_html(areas),
+        '<h2>the next three, in order</h2>',
+        next_html(items, r3),
+        # AND BELOW THE FOLD, EVERYTHING THAT WAS THE FIRST SCREEN BEFORE, in
+        # the order it was already checked in: what exists now with the frame,
+        # what you can run, the milestone, the chain, the studio's own ladder.
         '<div class="top"><b>LEDGER</b><span>%s at %s UTC</span></div>'
         % (esc(commit), esc(now.strftime("%Y-%m-%d %H:%M"))),
         now_html(picture, probe, q1["probeHours"], areas),
@@ -2906,15 +3279,314 @@ def build(root, now, out_path=None, served=None):
         'talks, and you hear the result. Each box says its state in words as '
         'well as colour. Tap one for its evidence.</p>',
         flow,
-        '<h2>the next three, in order</h2>',
-        next_html(items, r3),
+        '<h2>the studio ladder, which is a different measurement</h2>',
+        '<p class="legend">The steps above are pictures Jafar clears by eye. '
+        'These are the studio\'s own steps, and a done one is only shown when '
+        'this run can find the evidence keys that prove it in a committed '
+        'file.</p>',
+        LADDER_START, ladder_html(ladder, r4), LADDER_END,
         foot_html(r3),
         sheets,
         "<!-- Generated by %s at %s UTC -->"
         % (TOOL, now.strftime("%Y-%m-%d %H:%M")),
         "<!-- mapDigest=%s mapFields=%s -->" % (dig, encode_fields(fields)),
     ])
-    return PAGE % (css(), body), model
+    page = PAGE % (css(), body)
+    # THE FIRST SCREEN, MEASURED ON THE BYTES THAT SHIP, and only here: the
+    # model needs the finished page, so it cannot be printed into the about
+    # sheet the page contains. Whole-run numbers go on the run's done line
+    # instead, which is where a reader greps for them anyway.
+    model["fold"] = fold_reading(
+        page, css(), img_aspect=(picture["height"] / picture["width"])
+        if picture.get("width") else None)
+    return page, model
+
+
+# ---------------------------------------------------------------------------
+# THE FOLD MODEL. "Readable on a phone in five seconds" is Jafar's acceptance
+# and it is not a thing a file can time. What a file CAN count is what is on
+# the first screen at all, so this walks the rendered page in document order,
+# gives every block a modelled height, and reports what falls above a named
+# pixel line: the words, the distinct numbers, and the diagnostic tokens.
+#
+# THE FOLD IS 844 px AND HERE IS WHY THAT NUMBER. This page is already verified
+# by looking at a screenshot at 390 by 844 (the note above check_first_screen
+# says so, and PHONE_WIDTH_PX = 390 is this file's own phone width). 844 is the
+# whole device height, so browser chrome makes the REAL visible strip shorter:
+# every block's cumulative top is printed with the reading, so the same series
+# answers the question for any chrome assumption without a second constant to
+# keep in step. For the diagnostic check a longer fold is the STRICTER
+# reading, which is the direction to be wrong in.
+#
+# IT IS A MODEL AND IT SAYS SO. Heights come from the stylesheet this same run
+# emitted (font-size, line-height, margin, padding, parsed out of the CSS text
+# rather than retyped here) and from tools/map.py's own average-advance wrap
+# model, the one flow_svg already uses. Margins do not collapse in it, so it
+# over-estimates a little; classes it has no rule for are counted and named as
+# unknownClasses rather than silently defaulted. It cannot see fonts, it cannot
+# see a wrapped word breaking early, and it is not a browser. It is a printer,
+# and the bounds below were set from what it printed on real runs.
+# ---------------------------------------------------------------------------
+FOLD_PX = 844
+# THE WORD BOUND, ANCHORED TO THE ONLY PAGE A HUMAN HAS ACTUALLY REJECTED.
+# 180 is what this model reads above 844 px on the page Jafar rejected on the
+# morning of 2026-09-09, so 179 is the largest first screen that is not at
+# least as dense as that one. It is not a taste threshold and it is not tight:
+# the rebuilt page reads 129, which is 28 percent of headroom. The number that
+# actually enforces the ruling is the diagnostic count, which is zero and needs
+# no headroom. See check_first_screen_clean for the whole series.
+FOLD_WORD_BOUND = 179
+FOLD_MODEL = "block-flow/css-derived/avg-advance-0.5em/margins-do-not-collapse"
+CSS_RULE_RX = re.compile(r"([^{}]+)\{([^{}]*)\}")
+PX_RX = re.compile(r"(-?[\d.]+)px")
+
+
+def css_metrics(css_text):
+    """{selector: {prop: value}} for the SIMPLE selectors of the stylesheet.
+
+    Only a bare tag or a single class is indexed, and the light-scheme media
+    block is skipped: a compound selector cannot be resolved without a real
+    cascade, and pretending otherwise is how a model starts lying quietly. The
+    count of rules indexed over rules seen is returned with it.
+    """
+    body = css_text
+    cut = body.find("@media")
+    if cut >= 0:
+        body = body[:cut]
+    out, seen = {}, 0
+    for sel, decls in CSS_RULE_RX.findall(body):
+        for one in sel.split(","):
+            one = one.strip()
+            seen += 1
+            if not re.fullmatch(r"\.?[A-Za-z][\w-]*", one):
+                continue
+            d = out.setdefault(one, {})
+            for decl in decls.split(";"):
+                if ":" not in decl:
+                    continue
+                k, v = decl.split(":", 1)
+                d[k.strip().lower()] = v.strip()
+    return out, seen
+
+
+def _px(value, default=0.0):
+    m = PX_RX.search(value or "")
+    return float(m.group(1)) if m else default
+
+
+def _box(decls):
+    """(marginTop, marginBottom, padTop, padBottom, padSides) in px, from the
+    shorthand as written. Four values, then three, then two, then one, which is
+    the CSS order and not a guess."""
+    def sides(v):
+        parts = [p for p in re.split(r"\s+", v.strip()) if p]
+        nums = [_px(p) for p in parts]
+        if not nums:
+            return 0.0, 0.0, 0.0
+        if len(nums) == 1:
+            return nums[0], nums[0], nums[0]
+        if len(nums) == 2:
+            return nums[0], nums[0], nums[1]
+        if len(nums) == 3:
+            return nums[0], nums[2], nums[1]
+        return nums[0], nums[2], nums[1]
+    mt, mb, _ms = sides(decls.get("margin", ""))
+    pt, pb, ps = sides(decls.get("padding", ""))
+    return mt, mb, pt, pb, ps
+
+
+def _fold_tree(page):
+    """The body as a nested list of (tag, classes, text, children), with the
+    hidden sheets dropped. One small parser, because the alternative is a
+    regex walk that cannot nest and this model is about nesting."""
+    from html.parser import HTMLParser
+    VOID = {"img", "br", "hr", "meta", "link", "input"}
+
+    class P(HTMLParser):
+        def __init__(self):
+            HTMLParser.__init__(self, convert_charrefs=True)
+            self.root = {"tag": "body", "cls": [], "text": "", "kids": [],
+                         "attrs": {}}
+            self.stack = [self.root]
+            self.skip = 0
+
+        def handle_starttag(self, tag, attrs):
+            a = dict(attrs)
+            cls = (a.get("class") or "").split()
+            if self.skip or "sheet" in cls or tag in ("style", "head",
+                                                      "script"):
+                self.skip += 1
+                return
+            node = {"tag": tag, "cls": cls, "text": "", "kids": [], "attrs": a}
+            self.stack[-1]["kids"].append(node)
+            if tag not in VOID:
+                self.stack.append(node)
+
+        def handle_endtag(self, tag):
+            if self.skip:
+                self.skip -= 1
+                return
+            if tag in VOID:
+                return
+            for i in range(len(self.stack) - 1, 0, -1):
+                if self.stack[i]["tag"] == tag:
+                    del self.stack[i:]
+                    break
+
+        def handle_data(self, data):
+            if self.skip:
+                return
+            self.stack[-1]["text"] += data
+
+    p = P()
+    p.feed(page.split("<body", 1)[-1].split(">", 1)[-1])
+    return p.root
+
+
+def fold_reading(page, css_text, fold_px=FOLD_PX, width=PHONE_WIDTH_PX,
+                 img_aspect=None):
+    """What is on the first screen, modelled. Returns a dict of readings.
+
+    Every number here is a WHOLE-PAGE-AT-ONE-FOLD statistic and is named so on
+    the done line: wordsAboveFold844 is a count of words whose modelled top is
+    above 844 px, not a peak or a median of anything.
+    """
+    rules, rules_seen = css_metrics(css_text)
+    body_rule = rules.get("body", {})
+    base_font = _px(re.sub(r"^.*?(\d+(?:\.\d+)?px).*$", r"\1",
+                           body_rule.get("font", "16px/1.5")), 16.0)
+    base_lead = base_font * 1.5
+    root = _fold_tree(page)
+    rows, unknown = [], set()
+    state = {"y": 0.0}
+
+    def metrics(node, parent):
+        d = {}
+        for sel in [node["tag"]] + ["." + c for c in node["cls"]]:
+            if sel in rules:
+                d.update(rules[sel])
+            elif sel.startswith(".") and node["cls"]:
+                unknown.add(sel)
+        font = _px(d.get("font-size", ""), parent["font"])
+        lead_raw = d.get("line-height", "")
+        if lead_raw and "px" in lead_raw:
+            lead = _px(lead_raw)
+        elif lead_raw:
+            try:
+                lead = font * float(lead_raw)
+            except ValueError:
+                lead = font * 1.4
+        else:
+            lead = font * (parent["lead"] / parent["font"])
+        mt, mb, pt, pb, ps = _box(d)
+        cols = 1
+        m = re.search(r"repeat\((\d+)", d.get("grid-template-columns", ""))
+        if m:
+            cols = int(m.group(1))
+        elif "1fr 1fr" in d.get("grid-template-columns", ""):
+            cols = 2
+        gap = _px(d.get("gap", ""), 0.0)
+        return {"font": font, "lead": lead, "mt": mt, "mb": mb, "pt": pt,
+                "pb": pb, "ps": ps, "cols": cols, "gap": gap,
+                "display": d.get("display", "")}
+
+    def text_height(text, font, lead, w):
+        text = re.sub(r"\s+", " ", text).strip()
+        if not text:
+            return 0.0, 0
+        per_line = max(1.0, w / max(1.0, font * AVG_ADVANCE_EM))
+        lines = max(1, int(len(text) / per_line + 0.999))
+        return lines * lead, len(text.split())
+
+    def walk(node, w, parent, top):
+        m = metrics(node, parent)
+        y = top + m["mt"] + m["pt"]
+        inner = w - 2 * m["ps"]
+        if node["tag"] == "img":
+            h = inner * (img_aspect or 0.5625)
+            rows.append({"what": "img", "top": top, "h": h, "words": 0,
+                         "text": ""})
+            return m["mt"] + m["pt"] + h + m["pb"] + m["mb"]
+        if node["tag"] == "svg":
+            vb = (node["attrs"].get("viewbox")
+                  or node["attrs"].get("viewBox") or "0 0 1 1").split()
+            try:
+                ratio = float(vb[3]) / max(1.0, float(vb[2]))
+            except (IndexError, ValueError):
+                ratio = 1.0
+            h = min(inner, FLOW_W) * ratio
+            rows.append({"what": "svg", "top": top, "h": h, "words": 0,
+                         "text": ""})
+            return m["mt"] + m["pt"] + h + m["pb"] + m["mb"]
+        own, words = text_height(node["text"], m["font"], m["lead"], inner)
+        if own:
+            rows.append({"what": node["tag"] + ("." + node["cls"][0]
+                                                if node["cls"] else ""),
+                         "top": y, "h": own, "words": words,
+                         "text": re.sub(r"\s+", " ", node["text"]).strip()})
+        y += own
+        kids = node["kids"]
+        if m["cols"] > 1 and kids:
+            col_w = (inner - m["gap"] * (m["cols"] - 1)) / m["cols"]
+            row_h = 0.0
+            for i, k in enumerate(kids):
+                kh = walk(k, col_w, m, y)
+                row_h = max(row_h, kh)
+                if (i + 1) % m["cols"] == 0 or i == len(kids) - 1:
+                    y += row_h + m["gap"]
+                    row_h = 0.0
+        else:
+            for k in kids:
+                y += walk(k, inner, m, y)
+        return (y - top) + m["pb"] + m["mb"]
+
+    body_pad = BODY_PAD_PX
+    walk_parent = {"font": base_font, "lead": base_lead}
+    y = body_pad
+    for kid in root["kids"]:
+        y += walk(kid, width - 2 * body_pad, walk_parent, y)
+    above = [r for r in rows if r["top"] < fold_px]
+    text_above = " ".join(r["text"] for r in above)
+    words = sum(r["words"] for r in above)
+    numbers = re.findall(r"\b\d[\d.,/]*\b", text_above)
+    return {"foldPx": fold_px, "model": FOLD_MODEL, "pageHeightPx": int(y),
+            "blocksAboveFold": len(above), "blocksTotal": len(rows),
+            "words": words, "numbers": len(numbers),
+            "distinctNumbers": len(set(numbers)),
+            "textAbove": text_above, "rows": rows, "above": above,
+            "unknownClasses": sorted(unknown), "cssRulesIndexed": len(rules),
+            "cssRulesSeen": rules_seen,
+            "firstBelow": next((r for r in rows if r["top"] >= fold_px), None)}
+
+
+# THE DIAGNOSTIC SHAPES, NAMED ONE BY ONE so a reading says WHICH bit. Jafar
+# rejected the previous page for "raw paths and gate counts"; these are those,
+# written down as patterns rather than as a feeling.
+DIAGNOSTIC_SHAPES = (
+    ("rawPath", re.compile(r"\b(?:production|tools|ledger|ue-probe|"
+                           r"game-design|\.github)/[\w./-]+")),
+    ("keyValue", re.compile(r"\b[a-z][A-Za-z]+=[^\s]+")),
+    ("commitSha", re.compile(r"\b[0-9a-f]{7,40}\b")),
+    ("countedFraction", re.compile(r"\b\d+ of \d+\b")),
+    ("slashFraction", re.compile(r"\b\d+/\d+\b")),
+    ("gateWord", re.compile(r"\bgate(?:s)?\b", re.I)),
+)
+# THE ONE FRACTION RULED ONTO THE FIRST SCREEN. Jafar asked to read "step 2 of
+# 10" at a glance, so the rung count is not a diagnostic; it is the headline.
+# It is excused BY SHAPE, not by position, so a second fraction sneaking in
+# beside it still bites.
+FOLD_ALLOWED = (re.compile(r"RUNG \d+ OF \d+"), re.compile(r"STEP \d+ OF \d+"))
+
+
+def diagnostics_above_fold(text):
+    """(hits, tokensExamined) over the first screen's own words."""
+    for rx in FOLD_ALLOWED:
+        text = rx.sub(" ", text)
+    hits = []
+    for name, rx in DIAGNOSTIC_SHAPES:
+        for m in rx.findall(text):
+            hits.append("%s/%s" % (name, str(m)[:28].replace(" ", "-")))
+    return hits, len(text.split())
 
 
 # ---------------------------------------------------------------------------
@@ -3093,22 +3765,150 @@ def check_no_comforting_bar(page, model):
 
 
 def check_ladder_at_top(page, model):
-    """RULING 3, Jafar, 2026-09-07: the ladder is the first thing on the
-    page, above even "what exists now". Order is a fact about the bytes: the
-    ladder marker must sit immediately after the opening <body> tag (measured
-    at 16 bytes on a real build, for "<body id=\"map\">\\n"), with nothing
-    else rendered before it, and the existing top bar and "now" section must
-    still follow it."""
+    """A LADDER IS THE FIRST THING ON THE PAGE, and since 2026-09-09 it is
+    JAFAR'S ladder.
+
+    RULING 3 of 2026-09-07 put a ladder at the very top and this check has
+    guarded that ever since. His ruling of 2026-09-09 says which ladder the
+    first screen carries: the visual one. So the position requirement is
+    unchanged and the marker it reads is the visual ladder's; the studio
+    ladder must still be on the page and must now come AFTER it. That is two
+    ordered markers where there was one, which is more constrained than
+    before, not less.
+    """
     body_at = page.find("<body")
+    vlad = page.find(VLADDER_START)
     lad = page.find(LADDER_START)
     top = page.find('class="top"')
     now = page.find('class="now"')
-    ok = (body_at >= 0 and 0 <= lad - body_at <= 40
-          and top > lad and (now < 0 or now > top))
+    ok = (body_at >= 0 and 0 <= vlad - body_at <= 40
+          and lad > vlad and top > vlad and (now < 0 or now > top))
     return ("ladderAtTop", ok,
-            "bodyTagAt=%d ladderMarkerAt=%d bytesBetween=%d/40-allowed "
-            "topBarAt=%d nowSectionAt=%d aboveTop=%s"
-            % (body_at, lad, lad - body_at, top, now, "yes" if ok else "no"))
+            "bodyTagAt=%d visualLadderMarkerAt=%d bytesBetween=%d/40-allowed "
+            "studioLadderMarkerAt=%d topBarAt=%d nowSectionAt=%d "
+            "visualIsFirst=%s"
+            % (body_at, vlad, vlad - body_at, lad, top, now,
+               "yes" if ok else "no"))
+
+
+def check_visual_ladder_count(page, model):
+    """"RUNG N OF M" ON THE PAGE MATCHES WHAT THIS RUN READ, or the block says
+    it cannot be shown. The same rule as the studio ladder's step count, on the
+    other ladder's own bytes, because a count on his phone that no file
+    supports is the failure both exist to avoid."""
+    lad = vladder_slice(page)
+    r = model["vladder"]
+    if r["refused"]:
+        ok = "CANNOT BE SHOWN" in lad
+        return ("visualLadderCount", ok,
+                "refusedWhy=%s refusalShownOnPage=%s rowsRead=%d"
+                % (r["refusedWhy"], "yes" if ok else "MISSING", r["rows"]))
+    m = re.search(r"RUNG (\d+) OF (\d+)", lad)
+    ok = (bool(m) and int(m.group(1)) == r["currentNum"]
+          and int(m.group(2)) == r["total"])
+    names = sum(1 for x in r["rungs"] if esc(x["name"]) in lad)
+    return ("visualLadderCount", ok and names == r["total"],
+            "onPage=%s computedCurrentOfTotal=%s/%s rungNamesOnPage=%d/%d "
+            "rowsRead=%d/%d-table-row(s) statuses=%s"
+            % ("/".join(m.groups()) if m else NOTHING.replace(" ", "-"),
+               r["currentNum"], r["total"], names, r["total"], r["total"],
+               r["rows"],
+               "/".join("%s.%d" % kv for kv in sorted(r["counts"].items()))
+               or NOTHING.replace(" ", "-")))
+
+
+def check_visual_ladder_is_ruled_not_measured(page, model):
+    """THE RULE THAT TRANSFERS FROM ladderDoneHonest, to a source that can
+    never prove a rung with a number.
+
+    Jafar's ladder is cleared BY HIS EYE: production/ladder.md says so and no
+    run in this repository can decide one of its rungs. So the honest rendering
+    is that the status is TYPED IN A FILE A HUMAN EDITS and the page says
+    where it came from. Three things are read off the block's own bytes: it
+    says the words ruled and typed, it does NOT claim anything was measured
+    here, and there is no tick glyph, which is the invented progress the other
+    check bites on.
+    """
+    lad = vladder_slice(page)
+    r = model["vladder"]
+    if r["refused"]:
+        return ("visualLadderIsRuled", True,
+                "block refused; nothing claims to be done rowsRead=%d"
+                % r["rows"])
+    ticks = lad.count("✓")
+    said_ruled = "ruled by him" in lad and "not measured by this page" in lad
+    done_rows = sum(1 for x in r["rungs"] if x["status"] == "done")
+    tagged = lad.count(VLADDER_TAGS["done"])
+    return ("visualLadderIsRuled",
+            said_ruled and ticks == 0 and tagged == done_rows,
+            "provenanceWordsOnBlock=%s tickGlyphs=%d/0-allowed "
+            "doneRungs=%d/%d-rung(s) doneTagsOnPage=%d/%d-needed "
+            "provenIsNotClaimed=yes"
+            % ("yes" if said_ruled else "MISSING", ticks, done_rows,
+               r["total"], tagged, done_rows))
+
+
+def check_area_tiles(page, model):
+    """EVERY AREA IS A TILE ON THE FIRST SCREEN, coloured by its own derived
+    word, and every tile taps to the sheet that names the files behind it. The
+    derivation is not touched here: the tile prints the word area_states()
+    computed, and the count is read off the rendered bytes."""
+    tiles = re.findall(r'<a class="tile ([a-z-]+)" href="#a-([^"]+)"', page)
+    keys = [k for _, k in tiles]
+    want = [a["key"] for a in model["areas"]]
+    classes = [c.split()[-1] for c, _ in tiles]
+    wanted_classes = [WORD_CLASS[a["word"]] for a in model["areas"]]
+    return ("areaTiles", keys == want and classes == wanted_classes,
+            "tiles=%d/%d-areas coloursMatchTheDerivedWord=%s "
+            "everyTileTapsToItsSheet=%d/%d"
+            % (len(tiles), len(want),
+               "yes" if classes == wanted_classes else "no",
+               sum(1 for k in keys if ('id="a-%s"' % k) in page), len(keys)))
+
+
+def check_first_screen_clean(page, model):
+    """NO DIAGNOSTIC TEXT ON THE FIRST SCREEN, ruled 2026-09-09, measured on
+    the rendered bytes with the fold model above.
+
+    THE BOUND CAME FROM A PRINTED SERIES AND HERE IS THE SERIES. Both pages
+    were measured with this same model on 2026-09-09, the page as Jafar
+    rejected it and the page that replaced it:
+
+      before (commit 650f0755, the studio ladder first): wordsAboveFold844=180
+        distinctNumbersAboveFold844=8 diagnosticTokensAboveFold844=3 of 176
+        tokens examined, and the three were the commit sha 650f0755 in the top
+        bar and the fractions "3 of 4" and "6 of 6" in the ladder note.
+      after, first draft (rung taps rendered with the page's big block link
+        class): wordsAboveFold844=111 diagnosticTokens=0 of 107, and the model
+        showed why that number was low: the ladder alone was 838 px, so the
+        tiles Jafar asked for were BELOW the fold. The reading found that, not
+        a screenshot.
+      after, with the rung taps inline: wordsAboveFold844=129
+        distinctNumbersAboveFold844=2 diagnosticTokensAboveFold844=0 of 125,
+        the ladder ends at 716 px and the tiles begin above the fold.
+
+    So the diagnostic bound is ZERO, which is the ruling itself and needs no
+    headroom, and the word bound is 179, one below the page he rejected: a
+    drift back to that density goes red and today's 129 has 28 percent of room
+    under it. Both are counts above ONE fold, 844 px, and every block's
+    modelled top is printed beside them, so a shorter fold can be read off the
+    same series without a second constant.
+    """
+    f = model["fold"]
+    hits, tokens = diagnostics_above_fold(f["textAbove"])
+    ok = not hits and f["words"] <= FOLD_WORD_BOUND
+    return ("firstScreenClean", ok,
+            "diagnosticTokensAboveFold%d=%d/%d-tokens-examined "
+            "wordsAboveFold%d=%d/%d-bound distinctNumbersAboveFold%d=%d "
+            "blocksAboveFold=%d/%d modelledPageHeightPx=%d foldModel=%s "
+            "unknownClasses=%d%s"
+            % (FOLD_PX, len(hits), tokens, FOLD_PX, f["words"],
+               FOLD_WORD_BOUND, FOLD_PX, f["distinctNumbers"],
+               f["blocksAboveFold"], f["blocksTotal"], f["pageHeightPx"],
+               f["model"], len(f["unknownClasses"]),
+               "" if not hits else " (" + ",".join(hits[:4])
+               + (" +%d-more-not-shown" % (len(hits) - 4) if len(hits) > 4
+                  else "") + ")"))
 
 
 def check_ladder_step_count(page, model):
@@ -3248,8 +4048,13 @@ def check_links(page, model):
     Jafar ruled those out of anything he reads."""
     hrefs = re.findall(r'href="([^"]+)"', page)
     allowed = {h for h, _ in SIBLINGS} | {"#about", "#map", "#tools"}
+    # #v- IS NEW, 2026-09-09: the visual ladder's rungs tap to their own
+    # sheets, the way the areas (#a-) and the tasks (#t-) already do. This
+    # widens the IN-PAGE anchor shapes and not the destinations: anything with
+    # a host, a scheme or a .md still fails, which is the thing Jafar ruled
+    # out and the thing this check exists for.
     bad = [h for h in hrefs
-           if h not in allowed and not re.match(r"^#(a-|t-)", h)]
+           if h not in allowed and not re.match(r"^#(a-|t-|v-)", h)]
     md = [h for h in hrefs if h.endswith(".md")]
     return ("links", not bad and not md,
             "hrefsExamined=%d outsideTheAllowList=%d markdownLinks=%d%s"
@@ -3460,6 +4265,10 @@ check_secrets = shared(GLANCE.check_secrets)
 CHECKS = (check_ladder_at_top, check_ladder_step_count,
           check_ladder_done_not_invented, check_ladder_no_raw_content,
           check_ladder_stale_rungs_say_so,
+          # JAFAR'S LADDER, THE TILES AND THE FIRST SCREEN, 2026-09-09. The
+          # five above still guard the STUDIO ladder, unchanged and unweakened.
+          check_visual_ladder_count, check_visual_ladder_is_ruled_not_measured,
+          check_area_tiles, check_first_screen_clean,
           check_first_screen, check_picture, check_probe_is_not_a_game,
           check_player_control_matches_scan,
           check_every_area_spoken, check_no_comforting_bar, check_next_three,
@@ -3663,24 +4472,39 @@ def selftest():
     # so what must equal NEXT_ASKED is the two arrays together, not `next`
     # alone: the day the street step moved into `done`, pinning `next` to
     # three would have called a correct plan broken.
+    # WHAT MUST HOLD IS THE SHAPE, NOT THE DAY'S CONTENTS. This assertion used
+    # to require done + next == NEXT_ASKED, which was true of the plan on the
+    # morning it was written and false by lunchtime: the milestone completed,
+    # three finished steps stayed in `done` and three new ones landed in
+    # `next`, so a correct plan was called broken by a fixture pinned to a
+    # count. What the page actually owes is that the file is read, that its
+    # done list is present, that no item is silently refused, and that the
+    # cards show min(named, 3) with the overflow announced.
     ok("the steps come from %s: %d done and %d next, %d shown, %d refused as "
        "stale"
        % (PRIORITIES, model["r3"]["doneNamed"], model["r3"]["named"],
           model["r3"]["shown"], model["r3"]["refused"]),
        model["r3"]["present"] and model["r3"]["donePresent"]
-       and model["r3"]["doneNamed"] + model["r3"]["named"] == NEXT_ASKED
+       and model["r3"]["named"] >= 1
+       and model["r3"]["shown"] == min(model["r3"]["named"], NEXT_ASKED)
        and model["r3"]["refused"] == 0, model["r3"])
     ok("and production/NOW.md is named nowhere on the page, because the "
        "heading parser that read it is deleted",
        "production/NOW.md" not in page,
        [l for l in page.splitlines() if "NOW.md" in l][:1])
-    ok("and the three are the three Jafar ordered, done first then next: "
-       "control, then crime, then gossip",
-       [d["title"][:12] for d in model["r3"]["done"]]
-       + [i["title"][:12] for i in model["items"]]
-       == ["Control a ch", "Commit one c", "Overhear the"],
-       [d["title"] for d in model["r3"]["done"]]
-       + [i["title"] for i in model["items"]])
+    # THE ORDER IS THE FILE'S OWN ORDER, done first and then next, and that is
+    # the property rather than three particular titles: the titles moved the
+    # day the milestone completed and a fixture naming them went red on a plan
+    # that was correct. The rungs are compared against the arrays as read.
+    ok("the rungs are the file's own order, done first then next (%s)"
+       % " then ".join([d["title"][:18] for d in model["r3"]["done"]]
+                       + [i["title"][:18] for i in model["items"]]),
+       [r["title"] for r in model["ladder"]["rungs"] if r["state"] == "done"]
+       == [d["title"] for d in model["r3"]["done"]]
+       and [r["title"] for r in model["ladder"]["rungs"]
+            if r["taskNum"] is not None]
+       == [i["title"] for i in model["items"][:NEXT_ASKED]],
+       [r["title"] for r in model["ladder"]["rungs"]])
     # THE EVIDENCE UNDER THE DONE STEP, opened and searched on the LIVE files.
     # This is the accepting case for read_done(): the tool's own claim that a
     # step is finished is only as good as the keys it just found again.
@@ -4058,12 +4882,115 @@ def selftest():
            "%s %s ladderCurrent=%s" % (mf["change"], mf["changedGroups"],
                                        mf["ladder"]["currentNum"]))
 
+    # ------------------------------------------------------------------
+    # JAFAR'S LADDER, ACCEPTING CASE FIRST: the live production/ladder.md.
+    # The rejecting fixtures are synthetic tables, never the live file, so
+    # doing the work the tool prompts can never break the tool.
+    # ------------------------------------------------------------------
+    v = model["vladder"]
+    ok("Jafar's ladder is read from %s: %d rung(s) from %d table row(s), "
+       "rung %s is current, states %s"
+       % (LADDER_FILE, v["total"], v["rows"],
+          v["currentNum"] or NOTHING,
+          "/".join("%s.%d" % kv for kv in sorted(v["counts"].items()))
+          or NOTHING),
+       v["present"] and not v["refused"] and v["total"] >= 2
+       and v["currentNum"] is not None
+       and v["columnsFound"] == v["columnsAsked"], v)
+    ok("and its rung names and its count are on the page, with the current "
+       "one marked (%s)" % check_visual_ladder_count(page, model)[2],
+       check_visual_ladder_count(page, model)[1])
+    ok("and every status on it is shown as RULED and never as measured, with "
+       "no tick nobody earned (%s)"
+       % check_visual_ladder_is_ruled_not_measured(page, model)[2],
+       check_visual_ladder_is_ruled_not_measured(page, model)[1])
+    ok("and the seven areas are tiles coloured by the word this run derived "
+       "(%s)" % check_area_tiles(page, model)[2],
+       check_area_tiles(page, model)[1])
+    ok("and the first screen carries no diagnostic text, with the words and "
+       "the numbers above the fold counted (%s)"
+       % check_first_screen_clean(page, model)[2],
+       check_first_screen_clean(page, model)[1])
+
+    GOOD_LADDER = ("# planted\n\n| rung | name | status | done looks like |\n"
+                   "|---|---|---|---|\n"
+                   "| 1 | a planted first rung | current | a picture |\n"
+                   "| 2 | a planted second rung | next | another picture |\n")
+    good = _tree({LADDER_FILE: GOOD_LADDER})
+    gr, gread = visual_ladder(good)
+    ok("a planted ladder table parses: %d rung(s), current=%s, columns %d/%d"
+       % (gread["total"], gread["currentNum"], gread["columnsFound"],
+          gread["columnsAsked"]),
+       len(gr) == 2 and gread["currentNum"] == 1 and not gread["refused"],
+       gread)
+    for name, text in (
+            ("two rows marked current",
+             GOOD_LADDER.replace("| next |", "| current |")),
+            ("a status the file does not allow",
+             GOOD_LADDER.replace("| next |", "| nearly |")),
+            ("columns that are not the contract",
+             GOOD_LADDER.replace("| rung | name | status | done looks like |",
+                                 "| a | b | c | d |")),
+            ("no table at all", "# planted\n\nno table here\n"),
+    ):
+        _rungs, rd = visual_ladder(_tree({LADDER_FILE: text}))
+        ok("a ladder file with %s is REFUSED, and the refusal says why "
+           "without a path on the face (%s)" % (name, rd["refusedWhy"]),
+           rd["refused"] and rd["refusedSay"] != "none"
+           and "/" not in rd["refusedSay"], rd)
+    missing_tree = _tree({"PLANTED.bat": FIXTURE_BAT})
+    _r, md = visual_ladder(missing_tree)
+    ok("and a checkout with no ladder file at all says so in words rather "
+       "than falling back to the other ladder (%s)" % md["refusedSay"],
+       md["refused"] and not md["present"]
+       and "not in this checkout" in md["refusedSay"], md)
+
     # THE GUARDS MUST BE ABLE TO GO RED, or they are ratchets.
+    # THE NEW GUARDS MUST GO RED TOO. One planted page each, on the live
+    # model, because a guard that cannot fail is a ratchet.
+    n, c, s = check_visual_ladder_count(
+        page.replace("RUNG %d OF %d" % (v["currentNum"], v["total"]),
+                     "RUNG 9 OF 9", 1), model)
+    ok("visualLadderCount bites when the printed rung count is not the one "
+       "this run read", not c, s)
+    n, c, s = check_visual_ladder_is_ruled_not_measured(
+        page.replace("not measured by this page", "measured by this page", 1),
+        model)
+    ok("visualLadderIsRuled bites when the block stops saying the statuses "
+       "are ruled rather than measured", not c, s)
+    n, c, s = check_visual_ladder_is_ruled_not_measured(
+        page.replace("</ol>", "<li>done \u2713</li></ol>", 1), model)
+    ok("and bites on a tick glyph on Jafar's ladder, the same way the studio "
+       "ladder refuses one", not c, s)
+    n, c, s = check_area_tiles(
+        page.replace('<a class="tile s-', '<a class="tile s-failing" '
+                     'data-was="s-', 1), model)
+    ok("areaTiles bites when a tile's colour is not the word this run "
+       "derived", not c, s)
+    dirty = dict(model)
+    dirty["fold"] = dict(model["fold"],
+                         textAbove=model["fold"]["textAbove"]
+                         + " production/d1-probe/DISPATCH shotsWrote=4/4")
+    n, c, s = check_first_screen_clean(page, dirty)
+    ok("firstScreenClean bites when a raw path and a key=value are put back "
+       "above the fold", not c, s)
+
+    # BOTH LADDERS, BOTH DIRECTIONS. Since 2026-09-09 this check reads two
+    # ordered markers: Jafar's ladder must be the first thing on the page and
+    # the studio's must come after it. A fixture that only moved one of them
+    # would leave the other half unguarded, which is how the first version of
+    # this edit passed a page with the visual ladder half way down.
+    n, c, s = check_ladder_at_top(
+        page.replace(VLADDER_START, "", 1).replace(VLADDER_END, "", 1)
+        + VLADDER_START + "<p>moved</p>" + VLADDER_END, model)
+    ok("ladderAtTop bites when JAFAR'S ladder is not the first thing on the "
+       "page", not c, s)
     n, c, s = check_ladder_at_top(
         page.replace(LADDER_START, "", 1).replace(LADDER_END, "", 1)
-        + LADDER_START + "<p>moved</p>" + LADDER_END, model)
-    ok("ladderAtTop bites when the ladder is not the first thing on the page",
-       not c, s)
+        .replace(VLADDER_START, LADDER_START + "<p>studio</p>" + LADDER_END
+                 + VLADDER_START, 1), model)
+    ok("and bites when the STUDIO ladder is put above it, so the two are not "
+       "interchangeable", not c, s)
     n, c, s = check_ladder_step_count(
         "%sSTEP 9 OF 9%s" % (LADDER_START, LADDER_END), model)
     ok("ladderStepCount bites when the printed step does not match what this "
@@ -4293,6 +5220,28 @@ def main():
     print("map: NOTE %s" % served_sentence(model["served"]))
     for line in model["detail"]:
         print("map: " + line)
+    # THE FIRST SCREEN, AS A SERIES AND THEN AS A NUMBER. The per-block rows
+    # are printed first (each block's modelled top and height, in document
+    # order) because that series is what the two bounds were read off and what
+    # a different chrome assumption can be re-read off without a second run.
+    f = model["fold"]
+    for row in f["above"]:
+        print("map: foldBlock=%s topPx=%d heightPx=%d words=%d"
+              % (row["what"], int(row["top"]), int(row["h"]), row["words"]))
+    nxt = f["firstBelow"]
+    print("map: foldFirstBlockBelow=%s topPx=%s foldPx=%d"
+          % (nxt["what"] if nxt else NOTHING.replace(" ", "-"),
+             int(nxt["top"]) if nxt else NOTHING.replace(" ", "-"), FOLD_PX))
+    hits, tokens = diagnostics_above_fold(f["textAbove"])
+    print("map: wordsAboveFold%d=%d/%d-bound distinctNumbersAboveFold%d=%d "
+          "diagnosticTokensAboveFold%d=%d/%d-tokens-examined "
+          "blocksAboveFold=%d/%d modelledPageHeightPx=%d foldModel=%s "
+          "cssRulesIndexed=%d/%d unknownClassesAboveFold=%d"
+          % (FOLD_PX, f["words"], FOLD_WORD_BOUND, FOLD_PX,
+             f["distinctNumbers"], FOLD_PX, len(hits), tokens,
+             f["blocksAboveFold"], f["blocksTotal"], f["pageHeightPx"],
+             f["model"], f["cssRulesIndexed"], f["cssRulesSeen"],
+             len(f["unknownClasses"])))
     # PAGE BYTES ARE THE BYTES THIS RUN WROTE, with the picture's share beside
     # them so no reader can take the page's weight for the shell's.
     print("map: %s pageBytesGenerated=%d/%d-cap ofWhichPictureB64=%d "

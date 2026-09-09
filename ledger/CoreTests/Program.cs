@@ -19476,12 +19476,26 @@ namespace Ledger.CoreTests
             Console.WriteLine($"    plan: pieces={plan.Pieces.Count} feet={plan.Feet.Count} " +
                               $"bomLines={plan.PerBom.Count} cameras={plan.Cameras.Count} " +
                               $"conditions={plan.Conditions.Count} shots={plan.Shots.Count}");
-            Check(plan.Cameras.Count == 2, "two cameras", plan.Cameras.Count.ToString());
+            Check(plan.Cameras.Count == 3, "three cameras", plan.Cameras.Count.ToString());
             Check(plan.Conditions.Count == 2, "two conditions", plan.Conditions.Count.ToString());
-            // FOUR MATCHED FRAMES: two cameras by two conditions is what the
-            // re-scope ruling judges on, and eight would silently change the
-            // bar the engine decision is made against.
-            Check(plan.Shots.Count == 4, "four matched shots", plan.Shots.Count.ToString());
+            // FOUR MATCHED FRAMES PLUS ONE THAT IS NOT PART OF THE PAIRING.
+            // The engine decision is judged on cam_A and cam_B by the two
+            // conditions, which is four pairs, and eight would silently
+            // change the bar it is made against. cam_hook is a FIFTH shot and
+            // it is deliberately NOT a matched pair: it exists to stand the
+            // built street beside the lower panel of the Hook concept sheet
+            // for rung 1 of production/ladder.md, it is shot under
+            // overcast_day only, and adding a wet_night twin would make it
+            // six and reopen the pairing question. So the count below is
+            // 4 + 1 and the comment says which is which, because a bare 5
+            // would read as the pairing having changed.
+            Check(plan.Shots.Count == 5, "four matched shots plus the hook viewpoint",
+                  plan.Shots.Count.ToString());
+            int matched = 0;
+            foreach (var sh in plan.Shots)
+                if (sh.CameraId == "cam_A" || sh.CameraId == "cam_B") matched++;
+            Check(matched == 4, "the four judged pairs are still exactly four",
+                  matched.ToString());
 
             // WHAT SHAPE EVERY PIECE IS, AND HOW MANY PIPES ARE LYING DOWN.
             // Printed through the same formatter the Unity host prints, so

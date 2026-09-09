@@ -430,6 +430,138 @@ def parse_record(content):
     return fields, None
 
 
+def card_slot(card_id, fingerprint):
+    """The stem a DECISION CARD's receipt is named from.
+
+    A SLOT, NOT A FILE: `receipt_rel` and `refusal_rel` above turn it into the
+    two names, so a card receipt is the same shape as a Producer message's
+    receipt and `inbox.OUTBOUND_RE` carries it back to the studio without
+    learning a fourth suffix. That regex is a fixed allowlist of three shapes,
+    which is why a new suffix here would be a record the container never reads.
+
+    ONE RECEIPT PER (CARD, FINGERPRINT), which is what makes "he has seen this"
+    mean "he has seen this card as it now reads": see
+    `cards.card_fingerprint`. A card whose question or options change gets a
+    new slot and goes again; an unchanged one is skipped for ever.
+    """
+    return "card-%s-%s" % (card_id, fingerprint)
+
+
+def quiet_day_slot(day):
+    """The stem the once-a-day "nothing needs you" receipt is named from. The
+    day is UTC, the same clock `inbox.iso_utc` stamps every record with."""
+    return "nothing-needs-you-%s" % day
+
+
+def render_card_receipt(card, fingerprint, sent_epoch, message_id, chars):
+    """The proof that ONE decision card reached his phone.
+
+    NO TOKEN AND NO CHAT ID, like every other record here. The heading is
+    public: it is a line of production/decision-queue.md, which this file is
+    committed beside.
+    """
+    return ("receipt: card\n"
+            "cardId: %s\n"
+            "fingerprint: %s\n"
+            "card: %s\n"
+            "options: %s\n"
+            "sent: %s\n"
+            "sentEpoch: %d\n"
+            "messageId: %d\n"
+            "chars: %d\n"
+            % (card["id"], fingerprint,
+               inbox.one_line(card["heading"], 300),
+               "/".join(le for le, _b in card["options"]) or "none",
+               inbox.iso_utc(sent_epoch), int(sent_epoch), int(message_id),
+               int(chars)))
+
+
+def render_quiet_day_receipt(day, sent_epoch, message_id, chars):
+    """The proof that the "nothing needs you" message went once on this day."""
+    return ("receipt: nothing-needs-you\n"
+            "dayUtc: %s\n"
+            "sent: %s\n"
+            "sentEpoch: %d\n"
+            "messageId: %d\n"
+            "chars: %d\n"
+            % (day, inbox.iso_utc(sent_epoch), int(sent_epoch),
+               int(message_id), int(chars)))
+
+
+class CardReceipts:
+    """What Jafar has already been sent, asked of the files on this disk.
+
+    THE STORE `cards.send_cards` TAKES. Six methods, no network, and every one
+    of them reads or writes through the functions above rather than inventing a
+    name: `receipt_rel`, `refusal_rel`, `receipt_is_valid` and `holds_for` are
+    the same four a Producer message goes through.
+
+    WHY IT LIVES HERE AND NOT IN cards.py. cards.py is imported at both ends
+    and stays free of disk layout; this file already owns production/outbound
+    and is where the receipt rules are tested. The clock is injectable so the
+    selftest can pin a sent instant.
+    """
+
+    def __init__(self, repo, now=None):
+        self.repo = repo
+        self.now = now
+
+    def _when(self):
+        return int(self.now if self.now is not None else time.time())
+
+    def _state(self, slot):
+        rel = receipt_rel(slot)
+        have = _read(self.repo, rel)
+        if have is not None:
+            good, detail = receipt_is_valid(have)
+            if good:
+                return "sent", "receipt=%s/messageId=%s" % (rel, detail)
+            # A RECEIPT THAT IS NOT A RECEIPT HOLDS THE THING IT NAMES, the
+            # same rule a Producer message follows: sending it twice is worse
+            # than sending it late, and a human deleting the file is the
+            # release.
+            return "held", ("the receipt at %s does not prove a send (%s) so "
+                            "this is held rather than sent again" % (rel,
+                                                                    detail))
+        held = holds_for(self.repo, slot)
+        if held:
+            return "held", ("a hold record is on this (%s); delete it once you "
+                            "know whether it arrived" % held[-1])
+        return "unsent", ""
+
+    # -- the cards ---------------------------------------------------------
+    def card_state(self, card_id, fingerprint):
+        return self._state(card_slot(card_id, fingerprint))
+
+    def card_sent(self, card, fingerprint, chars, message_id):
+        slot = card_slot(card["id"], fingerprint)
+        return _write(self.repo, receipt_rel(slot),
+                      render_card_receipt(card, fingerprint, self._when(),
+                                          message_id, chars))
+
+    def card_hold(self, card, fingerprint, clause):
+        slot = card_slot(card["id"], fingerprint)
+        return _write(self.repo, refusal_rel(slot, clause),
+                      render_refusal(slot, "card", clause, self._when(), True,
+                                     inbox.one_line(card["heading"], 300)))
+
+    # -- the quiet day -----------------------------------------------------
+    def nothing_state(self, day):
+        return self._state(quiet_day_slot(day))
+
+    def nothing_sent(self, day, chars, message_id):
+        slot = quiet_day_slot(day)
+        return _write(self.repo, receipt_rel(slot),
+                      render_quiet_day_receipt(day, self._when(), message_id,
+                                               chars))
+
+    def nothing_hold(self, day, clause):
+        slot = quiet_day_slot(day)
+        return _write(self.repo, refusal_rel(slot, clause),
+                      render_refusal(slot, "nothing-needs-you", clause,
+                                     self._when(), True, day))
+
+
 def receipt_is_valid(content):
     """(True, id) or (False, reason). A RECEIPT WITH NO MESSAGE ID IS REFUSED.
 
@@ -1340,7 +1472,7 @@ def outbound_summary(records):
     """
     out = {"records": len(records), "sent": [], "refused": [], "photos": [],
            "replies": [], "captioned": [], "captionedClips": [],
-           "videos": [], "unreadable": []}
+           "videos": [], "cards": [], "quietDays": [], "unreadable": []}
     for name in sorted(records):
         fields, why = parse_record(records[name] or "")
         if fields is None:
@@ -1371,6 +1503,16 @@ def outbound_summary(records):
             # than a photo one, so it is kept apart from `captioned` as well
             # as from `sent` and `videos`: four record shapes, four buckets.
             out["captionedClips"].append(fields)
+        elif fields.get("receipt") == "card":
+            # THE SIXTH SHAPE, 2026-09-09. A decision card is not a Producer
+            # message: it carries buttons, it is keyed on a cardId and a
+            # fingerprint rather than on a file in production/outbox, and
+            # folding it into `sent` would inflate the number the studio reads
+            # as "Producer messages that reached him" by one per card. Its own
+            # bucket, its own count, like the four before it.
+            out["cards"].append(fields)
+        elif fields.get("receipt") == "nothing-needs-you":
+            out["quietDays"].append(fields)
         elif fields.get("receipt") == "photo":
             out["photos"].append(fields)
         elif fields.get("receipt") == "video":
@@ -1425,6 +1567,21 @@ def outbound_lines(summary):
                         f.get("messageId", "?"),
                         f.get("videoDescriptor", "none"),
                         f.get("captionChars", "?")))
+    for f in summary.get("cards") or []:
+        lines.append("  outbound card   cardId=%s fingerprint=%s messageId=%s "
+                     "options=%s chars=%s sentAt=%s"
+                     % (f.get("cardId", "?"), f.get("fingerprint", "?"),
+                        f.get("messageId", "?"), f.get("options", "?"),
+                        f.get("chars", "?"), f.get("sent", "?")))
+    # ONE TALLY LINE FOR THE QUIET DAYS, not one per record, for the same
+    # reason the replies get one: there is a receipt per day for ever.
+    quiet = summary.get("quietDays") or []
+    if quiet:
+        newest = max(quiet, key=lambda f: int(f.get("sentEpoch") or 0))
+        lines.append("  outbound quietDays=%d newestDayUtc=%s "
+                     "newestMessageId=%s"
+                     % (len(quiet), newest.get("dayUtc", "?"),
+                        newest.get("messageId", "?")))
     for f in summary["refused"]:
         lines.append("  outbound REFUSED file=%s kind=%s hold=%s clause=%s"
                      % (f.get("file", "?"), f.get("kind", "?"),
@@ -1441,12 +1598,13 @@ def outbound_lines(summary):
         lines.append("  outbound replies=%d newestMessageId=%s"
                      % (len(reps), newest.get("messageId", "?")))
     lines.append("outbound: records=%d sent=%d replies=%d captioned=%d "
-                 "captionedClips=%d videos=%d refused=%d photos=%d "
-                 "unreadable=%d"
+                 "captionedClips=%d videos=%d cards=%d quietDays=%d "
+                 "refused=%d photos=%d unreadable=%d"
                  % (summary["records"], len(summary["sent"]), len(reps),
                     len(summary.get("captioned") or []),
                     len(summary.get("captionedClips") or []),
                     len(summary.get("videos") or []),
+                    len(summary.get("cards") or []), len(quiet),
                     len(summary["refused"]), len(summary["photos"]),
                     len(summary["unreadable"])))
     if summary["records"] == 0:
@@ -2541,6 +2699,97 @@ def _selftest_cases(ok, bad, state):
           sum(1 for l in l2 if "outbound replies" in l) == 1
           and any("newestMessageId=60677" in l for l in l2),
           [l for l in l2 if "outbound replies" in l])
+
+    # ---- THE CARD RECEIPTS, 2026-09-09 ----------------------------------
+    # WHAT THEY ARE FOR. `cards.send_cards` now has a caller that runs every
+    # two minutes, so "has he already been sent this card" has to be answered
+    # by something outside the process. This is that answer, and it is THE
+    # SAME receipt mechanism a Producer message uses: `receipt_rel`,
+    # `refusal_rel`, `receipt_is_valid` and `holds_for`, with a slot instead of
+    # a file. Accepting case first: an unsent card, then sent, then skipped.
+    print("")
+    cstore = CardReceipts(repo, now=sent_at)
+    a_card = {"id": "c37b5b24", "heading": "How close should strangers stand?",
+              "options": [("A", "0.7 m"), ("B", "1.0 m"), ("C", "1.4 m")]}
+    fp_now, fp_changed = "ab12cd34", "99887766"
+    state0, why0 = cstore.card_state(a_card["id"], fp_now)
+    check("accept/a-card-with-no-receipt-reads-as-unsent",
+          state0 == "unsent" and why0 == "", (state0, why0))
+    crel = cstore.card_sent(a_card, fp_now, 734, 9101)
+    check("accept/the-card-receipt-is-named-for-the-card-and-fingerprint",
+          crel == receipt_rel(card_slot(a_card["id"], fp_now))
+          and inbox.OUTBOUND_RE.match(os.path.basename(crel)) is not None,
+          crel)
+    state1, why1 = cstore.card_state(a_card["id"], fp_now)
+    check("accept/and-the-same-card-then-reads-as-sent-with-its-message-id",
+          state1 == "sent" and "messageId=9101" in why1, (state1, why1))
+    check("reject/a-changed-card-is-a-different-slot-and-reads-as-unsent",
+          cstore.card_state(a_card["id"], fp_changed)[0] == "unsent",
+          cstore.card_state(a_card["id"], fp_changed))
+    hold_rel = cstore.card_hold(a_card, fp_changed,
+                                "the platform returned no message id")
+    state2, why2 = cstore.card_state(a_card["id"], fp_changed)
+    check("accept/a-card-the-platform-left-unknown-is-held-by-its-record",
+          state2 == "held" and os.path.basename(hold_rel) in why2, (state2,
+                                                                   why2))
+    _write(repo, receipt_rel(card_slot(a_card["id"], "55556666")),
+           "receipt: card\ncardId: %s\nmessageId: none\n" % a_card["id"])
+    state3, why3 = cstore.card_state(a_card["id"], "55556666")
+    check("reject/a-receipt-with-no-message-id-holds-rather-than-clears",
+          state3 == "held" and "messageId" in why3, (state3, why3))
+
+    qstate0 = cstore.nothing_state("2026-09-09")
+    qrel = cstore.nothing_sent("2026-09-09", 18, 9102)
+    qstate1 = cstore.nothing_state("2026-09-09")
+    check("accept/the-quiet-day-message-is-unsent-then-sent-once",
+          qstate0[0] == "unsent" and qstate1[0] == "sent"
+          and "messageId=9102" in qstate1[1]
+          and inbox.OUTBOUND_RE.match(os.path.basename(qrel)) is not None,
+          (qstate0, qstate1, qrel))
+    check("reject/and-the-next-day-is-a-different-slot-so-it-goes-again",
+          cstore.nothing_state("2026-09-10")[0] == "unsent",
+          cstore.nothing_state("2026-09-10"))
+
+    c_records = {}
+    for rel in inbox.outbound_files(repo):
+        c_records[rel] = _read(repo, rel)
+    s3 = outbound_summary(c_records)
+    l3 = outbound_lines(s3)
+    # TWO CARD RECORDS, NOT ONE, and the second is the planted receipt with no
+    # message id: it is still a card record and is still counted as one, which
+    # is what keeps `cards=` a count of records rather than a claim about
+    # arrivals. What it is NOT is a receipt that clears the card, and
+    # `reject/a-receipt-with-no-message-id-holds-rather-than-clears` above is
+    # where that is proven.
+    check("accept/the-container-side-buckets-a-card-apart-from-every-other-"
+          "shape",
+          len(s3["cards"]) == 2
+          and {f.get("messageId") for f in s3["cards"]} == {"9101", "none"}
+          and all(f.get("cardId") == a_card["id"] for f in s3["cards"])
+          and len(s3["quietDays"]) == 1, (s3["cards"], s3["quietDays"]))
+    check("reject/a-card-does-not-inflate-sent-replies-or-any-attachment-"
+          "bucket",
+          not any(f.get("messageId") in ("9101", "9102")
+                  for f in s3["sent"] + s3["replies"] + s3["captioned"]
+                  + s3["captionedClips"] + s3["videos"] + s3["photos"]),
+          [f.get("messageId") for f in s3["sent"] + s3["replies"]])
+    check("accept/and-neither-card-record-reads-as-unreadable",
+          not any(n.startswith("production/outbound/card-")
+                  or "nothing-needs-you" in n
+                  for n, _w in s3["unreadable"]), s3["unreadable"])
+    check("accept/the-tally-line-carries-cards-and-quietdays-with-counts",
+          ("cards=%d" % len(s3["cards"])) in l3[-1]
+          and ("quietDays=%d" % len(s3["quietDays"])) in l3[-1], l3[-1])
+    print("      says: %s" % l3[-1])
+    check("accept/a-card-line-carries-its-own-per-card-numbers",
+          any(l.startswith("  outbound card ") and "fingerprint=" in l
+              and "messageId=" in l for l in l3),
+          [l for l in l3 if "outbound card" in l])
+    check("accept/no-spaces-inside-any-value-on-the-card-lines",
+          all(" " not in kv.split("=", 1)[1]
+              for l in l3 if "outbound card " in l or "quietDays=" in l
+              for kv in l.split() if "=" in kv),
+          [l for l in l3 if "outbound card" in l])
 
 
 def selftest():

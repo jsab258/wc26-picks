@@ -27,6 +27,64 @@ Irreversible items wait for Jafar and never guess.
 
 ## WAITING
 
+### When does the last bus leave Meridian?
+CLASS: DECISION
+added 2026-09-09, from the atlas-02 transport research
+
+The research says outright that the last-bus time is a design decision and not
+a researched one, so nobody is going to find the answer in a timetable. It
+matters more than it sounds: closing time is 23:00 with twenty minutes drinking
+up, so the bus either catches the pub crowd or strands it, and the walk home
+through a dark port town is where a lot of this game happens.
+
+- A. About half past ten, before last orders. Everyone still in Mickey's at the
+  bell walks home through the town at night, or rings the minicab office, which
+  the research names as a natural gossip node.
+- B. About quarter past eleven, after drinking up. The pub crowd can still catch
+  it and the town empties faster.
+- C. No evening service on the Hook's route at all, only the main road. Harshest,
+  and truest to a deregulated port town after the 1985 Act.
+
+RECOMMENDATION A, because the walk home is where the game happens and B quietly
+removes it.
+DEFAULT A if unruled by 2026-09-11.
+EVIDENCE: `production/art/atlas-02/research/transport-timetables.md`, section 1
+and its HOLE 1.
+
+---
+### Is this the visual ladder?
+CLASS: DECISION
+added 2026-09-09, from your own item 5 this morning
+
+Written out as you dictated it, in `production/ladder.md`, and it is now the
+first screen of the map: rung 1 the built street matched to the lower panel of
+Codex's Hook sheet, same viewpoint, rain, wet road, worn materials, sky, judged
+by you side by side; rung 2 props reading as their materials with the first
+batch of clutter placed per the catalogue; rung 3 Mickey's frontage on the
+street from the design; rung 4 people on the street with varied bodies; rung 5
+a face that moves and a voice, per D2; rung 6 Mickey's enterable; then your
+thirty minute dry run. The crime and gossip work continues underneath.
+
+Rung 1 has started. This card is about the ORDER of what follows it, which is
+the one thing the ladder cannot settle for itself.
+
+- A. As you dictated it. Seven rows, unchanged.
+- B. People before Mickey's frontage, swapping rungs 3 and 4. A street with
+  people on it reads alive one rung sooner, and one more building on a street
+  that is already six bays does less for the first impression than bodies do.
+- C. Collapse rungs 5 and 6 into one. The face, the voice and walking into the
+  pub are judged together in a single sitting rather than two, which is fewer
+  handoffs to you but a bigger step to get wrong.
+
+RECOMMENDATION A, because it is your order and the one argument against it, B,
+is a guess about what reads alive faster that nobody here has measured. If you
+want B, say so and it costs nothing to swap; if you are unsure, A and we find
+out at rung 3 whether the street wanted people first.
+DEFAULT A if unruled by 2026-09-11.
+EVIDENCE: `production/ladder.md`, and the map's first screen once this morning's
+batch lands.
+
+---
 ### Is Mickey's a free house or a tied house?
 CLASS: DECISION
 added 2026-09-08, from the first in-house art commission
@@ -110,6 +168,20 @@ channel invert; that is what makes water reach it. B is more faithful to the
 masonry and buys nothing a camera can see, at ten times the risk.
 DEFAULT A if unruled by 2026-09-11. The studio is proceeding on A tonight so that
 a clip can exist; if you rule B, A is two numbers to revert.
+A HAS NOW BEEN EXECUTED AND IT LANDED, recorded 2026-09-09: the grate rises and
+takes the cross-fall, and run 36 photographed it. Its diagonal slots are legible
+in the frame. The piece count did not move, 593 either side, and exactly one line
+of the scene file differs. So a tap on B now reverts something you can see, which
+is a better position to rule from than the one this card was written in.
+
+ONE HONEST QUALIFICATION, added the same day after opening the picture rather
+than the verdict. THE SHAPE IS RIGHT AND THE COLOUR IS WRONG. In that frame the
+bars and the gaps between them are both pale grey, nearly white, with almost no
+separation: it reads as white plastic and not as iron. That is a separate fault
+already on the list as a near-white road across the whole near half of the frame,
+and it is not caused by raising the grate. It does not change this card's
+question, which is where the grate SITS; it does mean the picture is not yet one
+that would survive a stranger's first thirty seconds.
 EVIDENCE: `production/d1-probe/ue-crime-verdict.txt`,
 propBurialSubject=prop_drainage_grate_01_0/via=loaded-asset/collision=YES/
 buried=100.0pct, and
@@ -179,6 +251,14 @@ ruled by default, unapplied, and the smallest fix is the one that also stops the
 next one, a check that reads every DEFAULT line's date.
 
 ---
+## ON US, NOT ON HIM
+
+A card sits here when it was a real ask and a later measurement showed the
+nearest blocker is the studio's own, so there is nothing for Jafar to do yet.
+It returns to WAITING the moment our half is cleared and the ask is still live.
+Nothing here is pushed to his phone, by construction: `cards.waiting_cards`
+filters on the WAITING heading and this is not it.
+
 ### The pages cannot be published until the studio's branch may deploy
 CLASS: DECISION
 added 2026-09-06, from queue 139
@@ -204,6 +284,43 @@ RECOMMENDATION A: one setting, nothing else moves.
 DEFAULT: the studio waits. There is no action it can take in your place.
 DEADLINE: none set. Nothing decays while it waits, and every day it waits
 the Producer's messages link to nothing.
+
+AMENDED 2026-09-09, AND THE AMENDMENT MOVES IT OFF HIS PHONE. Measured on publish
+run 48 (commit 650f0755, 06:28Z): the job now fails BEFORE it reaches the deploy,
+on our own gate.
+
+    tools/gallery.py --selftest: FAILED. 11 passed, 1 failed, over 10 check(s)
+      FAIL the live repository renders a gallery and every check passes
+             got: failed=pageBytes
+    ##[error]Process completed with exit code 3.
+
+The gallery embeds every picture as base64, the live repository outgrew its own
+1000000 byte budget (1000108, twelve pictures dropped), and the publisher runs
+that selftest as a gate. Eight consecutive runs this morning, numbers 41 to 48,
+failed this way. So the sentence at the top of this card, "every publish run has
+failed in seconds with zero steps executed", describes 2026-09-06 and is NOT what
+is happening today: runs now execute, get further, and die on us.
+
+AND THE CARD'S OTHER SENTENCE IS ALSO WRONG, CORRECTED 2026-09-09 08:50Z. It says
+the three pages "have never been served from this branch". Of 48 publish runs,
+FOUR SUCCEEDED: 12, 13, 14 and 18, the last at 2026-09-07T20:23:12Z on commit
+45de6c21, which is exactly the pageCommit recorded in production/map-notified.json.
+THE PAGES EXIST AND ARE ABOUT 36 HOURS STALE. That is why this card is here rather
+than on his phone: the ask it carries was written against a total outage that is
+not the current fault, and the current fault is ours.
+
+WHAT IS STILL UNKNOWN, and it is named rather than guessed: whether the
+environment protection rule also still refuses the deploy. No run has reached the
+deploy step since, so there is no evidence either way. The step summary still
+prints `pagesEnableHttp: 403`, which is the agent proxy's answer and not
+GitHub's, so it is not evidence about the environment either. The order of
+operations is therefore ours first: un-embed the gallery, let a run reach the
+deploy, and read what it says. That is the standing rule in `.claude/rules/ci.md`,
+run the existing entry point and read its output before proposing a mechanism. If
+the environment rule bites after that, this card returns to WAITING unchanged and
+option A is still one setting.
+
+---
 
 ## RULED THIS WEEK
 

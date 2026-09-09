@@ -512,10 +512,22 @@ def selftest():
     lines = []
     fold = cards.fold_from_disk(reader, say=lines.append)
     after = open(queue_rel, encoding="utf-8").read()
+    # THE EXPECTED COUNTS COME FROM THE FIXTURE ITSELF, NOT FROM A LITERAL.
+    # This read `waitingBefore == 4 and waitingAfter == 3` and went red on
+    # 2026-09-09 when cards.FIXTURE grew from four waiting cards to seven to
+    # carry the three new rejecting cases `sendable()` needs (a card with no
+    # recommendation, one with no default, one with no deadline). Nothing about
+    # this test's meaning changed: it asserts that ONE card is ruled and the
+    # waiting count falls by EXACTLY ONE, which is what its name says, and a
+    # fresh literal here would re-arm the same trap for whoever grows the
+    # fixture next.
+    fixture_waiting = len(cards.waiting_cards(cards.parse_queue(cards.FIXTURE)))
     check("accept/the-fold-rules-the-card-and-the-waiting-count-falls-by-one",
-          len(fold["applied"]) == 1 and fold["waitingBefore"] == 4
-          and fold["waitingAfter"] == 3
-          and "RULED 2026-09-05 BY JAFAR: B." in after, lines[-1:])
+          len(fold["applied"]) == 1
+          and fold["waitingBefore"] == fixture_waiting
+          and fold["waitingAfter"] == fixture_waiting - 1
+          and "RULED 2026-09-05 BY JAFAR: B." in after,
+          ["fixtureWaiting=%d" % fixture_waiting] + lines[-1:])
     check("accept/and-the-done-line-counts-records-with-denominators",
           any("applied=1/1" in l and "refused=0/1" in l for l in lines),
           lines[-1:])

@@ -553,6 +553,59 @@ namespace LedgerSurface
 
 	inline bool ControlQuadBindsTexture(int I) { return I == 0; }
 
+	// WHICH SHOTS MAY SEE THE CONTROLS, AND WHY THE ANSWER IS NOT "ALL OF
+	// THEM". The quads are an INSTRUMENT: three swatches standing in the
+	// carriageway that prove a material instance can be told from the street
+	// around it. They are placed 3.5 m in front of the FIRST shot's camera
+	// and nothing in that placement knows any other camera exists, so a
+	// second camera pointed anywhere near the same stretch of road
+	// photographs them. cam_hook, the rung 1 viewpoint, is exactly that
+	// case: vignette-spec-test measures one quad's left edge landing at
+	// column 1274 of a 1280 wide frame, which is an instrument standing in
+	// the picture a person is being asked to judge a street by.
+	//
+	// So the rule is one line and it lives here, where the test runs, rather
+	// than as a condition buried in the shot loop: the controls are visible
+	// ONLY in the frames of the camera they were placed from. Every other
+	// shot sees the street. This is the same reasoning that already skips
+	// them for an interactive build, generalised from one flag to the
+	// camera identity that actually decides it.
+	inline bool ControlQuadsVisibleFor(const std::string& ShotCameraId,
+	                                   const std::string& ControlCameraId)
+	{
+		if (ShotCameraId.empty() || ControlCameraId.empty()) { return false; }
+		return ShotCameraId == ControlCameraId;
+	}
+
+	// AND WHAT THE RUN SAYS IT DID, formatted here for the same reason.
+	// WHOLE-RUN NUMBERS: how many shots were taken, how many of them had the
+	// controls hidden, and the ids of those shots, so "the swatches were not
+	// in that frame" is a reading rather than a belief. A run that took no
+	// shot prints the words rather than a clean zero.
+	inline std::string ControlQuadVisibilityLine(int Shots, int Hidden,
+	                                             const std::string& HiddenIds)
+	{
+		if (Shots <= 0)
+		{
+			return std::string("controlQuadVisibility=nothing-measured "
+			                   "controlQuadHiddenOn=none controlQuadShots=0 "
+			                   "controlQuadVisibilityStat=no-shot-reached-the-loop");
+		}
+		// 512 AND NOT 160. The first version of this line was truncated by
+		// snprintf at 160 bytes and g++ said so; a formatter that silently
+		// drops its own stat suffix is the quiet instrument failure this
+		// project keeps paying for, so the buffer is sized past the longest
+		// string this can produce (about 210 bytes plus the ids).
+		char Buf[512];
+		std::snprintf(Buf, sizeof(Buf),
+		              "controlQuadVisibility=hidden-for-every-shot-whose-camera-is-not-"
+		              "the-one-they-were-placed-from controlQuadHidden=%d/%d "
+		              "controlQuadHiddenOn=%s controlQuadVisibilityStat=cumulative-over-"
+		              "the-shots-this-run-took",
+		              Hidden, Shots, HiddenIds.empty() ? "none" : HiddenIds.c_str());
+		return std::string(Buf);
+	}
+
 	// STATED CONVENTIONS, PRINTED BESIDE THE NUMBERS THEY PRODUCED. None of
 	// these is a measured bound. The distance is far enough that a 0.70 m
 	// quad is about a sixth of the frame height and near enough that the

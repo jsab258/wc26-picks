@@ -109,6 +109,24 @@ on:
     # Unreal frame would land and the gallery would keep showing yesterday's.
       - 'production/d1-probe/**'
       - 'tools/gallery.py'
+    # production/ladder.md IS NEW, 2026-09-09, and it is the source of the
+    # first thing on the map: Jafar's visual ladder, seven rungs, one of them
+    # current. tools/map.py reads that file and nothing else for those rungs,
+    # so a re-ruling that did not republish would leave yesterday's rung
+    # highlighted on his phone, which is the exact failure the next-three swap
+    # above was made to end.
+      - 'production/ladder.md'
+    #
+    # THE ONE HOLE THIS FILTER CANNOT CLOSE, NAMED RATHER THAN PAPERED OVER.
+    # The gallery's world page is read out of the art/atlas-01 BRANCH, and a
+    # paths filter only sees the commits pushed to THIS branch. A new atlas
+    # commit therefore does not republish, and adding art/atlas-01 to the
+    # branches list above would be worse: this job would then check that
+    # branch out and publish ITS tools and ITS pages. Two things stand in for
+    # it. The world page prints the atlas commit it read, so a stale page says
+    # which version it is showing rather than looking current, and
+    # workflow_dispatch is the one-click manual path. Anything cleverer is a
+    # scheduled job nobody asked for.
   workflow_dispatch:
 
 permissions:
@@ -144,6 +162,31 @@ jobs:
           # date every frame by file mtime instead. 200 covers the 60 it asks
           # for with room to spare.
           fetch-depth: 200
+
+      # THE ART BRANCH, FETCHED BY NAME, AND THE READING OF WHETHER IT CAME.
+      # actions/checkout fetches the triggering ref only, so without this step
+      # `git show origin/art/atlas-01:<path>` finds nothing and the world page
+      # correctly says the words nothing measured, which would be a true
+      # sentence about a fetch nobody attempted. NOT FATAL on purpose: an art
+      # branch that has been renamed or deleted must not take the glance off
+      # his phone, and tools/gallery.py prints atlasRef=missing-in-this-checkout
+      # with its own counts when this fails.
+      - name: fetch the art branch the world page reads, and say if it arrived
+        run: |
+          set -u
+          git fetch --depth=1 origin \
+            'refs/heads/art/atlas-01:refs/remotes/origin/art/atlas-01' \
+            || echo "atlasFetch=FAILED"
+          sha=$(git rev-parse --verify --quiet origin/art/atlas-01 || echo none)
+          echo "atlasRef=origin/art/atlas-01 atlasSha=$sha"
+          if [ "$sha" = "none" ]; then
+            echo "atlasResult=NOTHING-MEASURED (nothing measured: the world"
+            echo "page will say so and the other pages are unaffected)"
+          else
+            n=$(git ls-tree -r --name-only origin/art/atlas-01 -- \
+              production/art/atlas-01 | wc -l | tr -d ' ')
+            echo "atlasResult=OK atlasFilesOnThatBranch=$n"
+          fi
 
       - uses: actions/setup-python@v5
         with:
@@ -276,7 +319,7 @@ jobs:
           # not, joining it to a file name would silently request a sibling
           # directory. Normalised here rather than assumed.
           case "$base" in */) ;; *) base="$base/" ;; esac
-          echo "glanceUrl=$base mapUrl=${base}map.html galleryUrl=${base}gallery.html"
+          echo "glanceUrl=$base mapUrl=${base}map.html galleryUrl=${base}gallery.html worldUrl=${base}world.html"
           # Retries are for the CDN, which makes "not published" and "published
           # but stale" look identical. Every wait announces itself and the
           # attempt series is printed, so a future bound can be set from
@@ -303,6 +346,54 @@ jobs:
             --check "${base}gallery.html" \
             --expect-commit "${{ github.sha }}" \
             --retries 8 --wait-sec 15
+          # AND THE FOURTH PAGE. world.html is the town atlas, linked from the
+          # gallery, so it is requested for the reason the map and the gallery
+          # are: a page that deployed and does not serve is a tap into a 404.
+          python3 tools/publish-glance.py \
+            --check "${base}world.html" \
+            --expect-commit "${{ github.sha }}" \
+            --retries 8 --wait-sec 15
+          # AND THE PICTURES THEMSELVES, WHICH ARE NEW AND ARE NOT PAGES. The
+          # gallery stopped embedding base64 on 2026-09-09 and now references
+          # published FILES, so "the page served" and "the pictures on it
+          # served" became two different facts. One file is requested by name,
+          # read out of the manifest the generator wrote, because a gallery of
+          # broken images is indistinguishable on a phone from a page that
+          # failed to load. The count is printed with its denominator.
+          python3 - "$base" <<'PY'
+          import json, sys, urllib.request
+          base = sys.argv[1]
+          try:
+              man = json.load(open("_site/gallery-img/manifest.json"))
+          except Exception as e:
+              print("picturesServed=nothing-measured reason=no-manifest/%s "
+                    "(nothing measured)" % type(e).__name__)
+              raise SystemExit(0)
+          files = man.get("files", [])
+          if not files:
+              print("picturesServed=nothing-measured filesInManifest=0 "
+                    "(nothing measured)")
+              raise SystemExit(0)
+          name = files[0]["name"]
+          url = "%sgallery-img/%s" % (base, name)
+          try:
+              with urllib.request.urlopen(url, timeout=30) as r:
+                  n = len(r.read())
+                  print("pictureHttp=%d pictureBytes=%d/%d-expected "
+                        "pictureName=%s filesInManifest=%d picturesAsked=1/%d"
+                        % (r.status, n, files[0].get("bytes", 0), name,
+                           len(files), len(files)))
+                  if r.status != 200 or n == 0:
+                      raise SystemExit("the first published picture did not "
+                                       "serve, so the gallery is a page of "
+                                       "broken images")
+          except SystemExit:
+              raise
+          except Exception as e:
+              print("pictureHttp=nothing-measured reason=%s "
+                    "(nothing measured: the request did not complete, which "
+                    "is not the same as a 404)" % type(e).__name__)
+          PY
 
       - name: the verdict, and the refusal record if there was one
         if: always()
@@ -314,6 +405,7 @@ jobs:
             echo "url: ${{ steps.deployment.outputs.page_url }}"
             echo "map: ${{ steps.deployment.outputs.page_url }}map.html"
             echo "gallery: ${{ steps.deployment.outputs.page_url }}gallery.html"
+            echo "world: ${{ steps.deployment.outputs.page_url }}world.html"
             echo "pagesEnableHttp: ${{ steps.enable.outputs.pagesEnableHttp }}"
             echo "job: ${{ job.status }}"
             echo ""

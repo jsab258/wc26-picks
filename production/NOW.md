@@ -9,6 +9,91 @@ session would otherwise duplicate, abandon, or wait for forever.
 Keep it current or delete it. A stale NOW is worse than none, because it
 looks like a live state.
 
+## 2026-09-09 09:10Z: SMALL, OPEN, AND EASY TO LOSE
+
+The map's visual-ladder block carries one sentence in the third person on a page
+written for Jafar in the second: "Every rung is a picture or a session Jafar
+clears by eye, so these words are ruled by him". Every tile beside it says "the
+street YOU see", "a character YOU control". The ladder file was mine and has been
+corrected to second person throughout; this sentence is `tools/map.py` line 1960
+and its wording is ASSERTED by `check_visual_ladder_is_ruled_not_measured` at line
+3839 (`"ruled by him" in lad`), so it is a two-site change in a builder's file and
+not a resident one-liner. Carried into the batch review rather than hand-applied.
+
+## 2026-09-09 07:00Z: JAFAR'S STANDING ORDER, AND IT GATES THE GAME
+
+His words, and the first sentence is the ordering rule for the whole day: "The
+channel is not actionable and the art line skipped its visual half. Fix both
+before any new game rung." Budget with it: total 16, Fable 17, taken at about
+06:00Z, plan is Max 20x, ceiling 75 on the governing meter. Recorded as a row in
+production/budget.md with its denominators.
+
+THE ORDER OF THE DAY, his numbering kept:
+1. MESSAGES. Every needs-you is its own message naming the exact question, its
+   options, the recommendation, the default, the deadline, and a link to that
+   one card and nothing else, with tap buttons. A message with nothing for him
+   says nothing needs you and nothing more. The brief leads with outcomes, never
+   counts, and queue 179 is DONE NOW by his ruling. Every image or clip sent is
+   the newest of its kind, dated in its caption.
+2. PAGES. The cards page reads the budget from his latest reading. The gallery
+   shows the newest images first, dated, all of them, not two embedded files.
+   The map page is the project overview: the ladder with the current rung
+   marked, the areas as tiles coloured by status, and the next three, readable
+   on a phone in five seconds, with no diagnostic text on the first screen. The
+   town atlas from art/atlas-01 goes in the gallery as a world page, not on the
+   map.
+3. WAKES. A trigger that fires mid-turn is lost and it cost him yesterday's
+   brief. Make wakes queue until the turn ends, and prove it.
+4. ART, THE VISUAL HALF THAT WAS SKIPPED. (a) Regenerate the Hook district sheet
+   through the local imagegen lane from concept-final-prompts.json and send it
+   beside Codex's hook.png as two images in ONE message; that comparison decides
+   whether concept images are made in house, and the previous run answered a
+   different question. (b) Run the Mickey's five-camera blockout on his PC
+   through the art lane and send the five previews. (c) One message, plain
+   English, digesting the atlas-02 research: what was found, what is missing,
+   with the link.
+5. THE LADDER, visual-first, as a card. Written to production/ladder.md and
+   filed as the card "Is this the visual ladder?".
+6. THEN START RUNG 1. Art at its quarter share, game the rest. Brief at 06:00.
+
+WHAT THIS REVERSES: the 2026-09-08 ruling "No further channel work this week."
+The channel is now item 1 and it explicitly gates the game. The supervisor's
+staleness stays a recorded finding.
+
+## 2026-09-09 07:00Z: THE PAGES ARE 36 HOURS STALE, AND TODAY IT IS OUR FAULT
+
+MEASURED on publish run 48, commit 650f0755, 06:28Z. Eight consecutive publish
+runs failed this morning, numbers 41 to 48. Run 48 died on our own gate:
+
+    tools/gallery.py --selftest: FAILED. 11 passed, 1 failed, over 10 check(s)
+      FAIL the live repository renders a gallery and every check passes
+             got: failed=pageBytes
+    ##[error]Process completed with exit code 3.
+
+The gallery base64-embeds every picture, the live repository outgrew its own
+1000000 byte budget at 1000108, twelve of forty-nine pictures were dropped, and
+the publisher runs that selftest as a gate before deploying.
+
+CORRECTED AT 08:50Z, AND THE CORRECTION MATTERS. The resident first wrote that
+the pages had NEVER been served. That is FALSE and a director refuted it. Of 48
+publish runs, FOUR SUCCEEDED: 12, 13, 14 and 18, the last at 2026-09-07T20:23:12Z
+on commit 45de6c21, which is exactly the pageCommit recorded in
+production/map-notified.json. So the pages EXIST and were last published about 36
+hours ago. THE FAULT IS STALENESS, NOT ABSENCE: every one of the 30 runs since has
+failed, so a link Jafar taps opens a real page that does not show what today's
+messages describe. That is a different fault with a different fix, and the card
+that blamed the github-pages environment protection rule is describing 2026-09-06.
+
+WHETHER THE ENVIRONMENT RULE STILL BITES IS UNKNOWN and is named as unknown: no
+run has reached the deploy step since run 18. The order is ours first, un-embed the
+gallery, let a run reach the deploy, and read what it says. That card has moved
+out of WAITING into a new ON US, NOT ON HIM section of the decision queue so it
+does not reach his phone as an ask he cannot act on.
+
+CONSEQUENCE FOR ITEM 1: the per-card link resolves to a 36-hour-old page. The needs-you message
+therefore carries the question, options, recommendation, default and deadline IN
+FULL, and the link is a convenience rather than the payload.
+
 ## 2026-09-09: THE DAILY PROMPT DIFFERS FROM ITS RECORD, WRITTEN HERE FIRST
 
 The daily wake's last line tells the session to compare what it is reading

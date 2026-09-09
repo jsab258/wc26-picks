@@ -43,6 +43,36 @@ name: LEDGER install supervisor scheduled task
 # further channel work this week", stands, and nothing here investigates or
 # repairs anything. If the brief still does not arrive, that is the supervisor
 # staleness already recorded as a finding and it stays a finding.
+# WHY THE MESSAGE PATHS ARE IN THE FILTER BELOW, added 2026-09-09. The two
+# steps that actually move the channel (the outbox sweep and the return-half
+# flush) live in THIS workflow, and the filter listed only supervisor plumbing:
+# so writing a message into production/outbox/ and pushing it started NOTHING
+# on his machine, and receipts came back only when somebody happened to
+# dispatch this by hand. Measured on the return branch: origin/pc-inbox took
+# exactly two pushes in the eighteen hours to 2026-09-09 07:30Z, both at the
+# minute CI ran --flush-inbox, and nothing between them. That is absence of a
+# LOOK, not absence of a delivery.
+#
+# production/decision-queue.md is here for the same reason one layer up: it is
+# the input to the --send-cards step below, and a new card that nothing sends
+# is the same fault as a message that nothing sweeps.
+#
+# WHAT THIS COSTS, AND WHAT ELSE WAITS. The runner is his one PC
+# ([self-hosted, ledger-pc]), so each of these runs occupies it briefly. The
+# install step is IDEMPOTENT and cheap on a machine already installed: it
+# compares the registered task against the desired one and prints
+# installAction=already-correct without touching it, and it starts the task
+# only when its own query proves nothing is running. The work is bounded by the
+# step timeouts in this file: checkout 6 min, bootstrap 1, install 5, sweep 6
+# (inside it a 180 s hard wait), flush 5 (90 s hard wait), status 3, pc-inbox
+# read 3, under a 20 minute job ceiling. Not measured from real run durations:
+# there is no gh CLI in the container this was written in, so the numbers above
+# are the file's own ceilings and not a series.
+# The concurrency group `ledger-install-supervisor-task` with
+# cancel-in-progress: false means these runs QUEUE WITH EACH OTHER and with
+# nothing else, so a burst of message commits makes a queue of channel runs
+# rather than interleaving with game work, and a run mid-install is never cut
+# off. Read from the `concurrency:` block below rather than taken on trust.
 on:
   workflow_dispatch:
   push:
@@ -52,6 +82,8 @@ on:
       - 'tools/runner/launch-supervisor.py'
       - 'tools/runner/single_instance.py'
       - 'tools/runner/process-query.ps1'
+      - 'production/outbox/**'
+      - 'production/decision-queue.md'
 
 permissions:
   contents: write
@@ -417,6 +449,102 @@ jobs:
           }
           Write-Host (Get-Content $out -Raw)
 
+      # THE DECISION CARDS, AFTER THE OUTBOX AND ON THE SAME TRIGGER, added
+      # 2026-09-09 for Jafar's ruling that every "needs you" arrives as its own
+      # message with tap buttons. `--send-cards` existed from queue 090 and
+      # NOTHING EVER CALLED IT: a grep for send-cards across the workflows, the
+      # runner and the batch files found only the usage text and its own
+      # argument parser, so the only sender that ever ran was the text-only
+      # outbox sweep, whose sender has no place to put a keyboard. That is rule
+      # 6, built is not running.
+      #
+      # IT IS ALLOWED TO SEND, like the sweep above, and for the same reason it
+      # is safe to: one receipt per (cardId, fingerprint of the card's
+      # content), written into production/outbound and checked before any send,
+      # so a card he has already been sent is skipped and the skip is counted
+      # (cardsAlreadySent=K/M). A card whose question or options CHANGE is a new
+      # fingerprint and goes again, which is the behaviour a reader of the queue
+      # needs. The receipts are the same mechanism the outbox uses, proven by
+      # `python3 tools/runner/outbox.py --selftest`.
+      #
+      # STRUCTURE COPIED LINE BY LINE FROM THE SWEEP STEP ABOVE, deliberately:
+      # absolute $out (a relative one resolves inside Push-Location and lands
+      # in his checkout), -u so each line appears as it happens, a bounded wait
+      # so a hang still leaves the lines it reached, a status line on EVERY
+      # path, and the tail cap announcing itself.
+      - name: Run one decision-cards pass on his machine and print what it says
+        if: always()
+        continue-on-error: true
+        timeout-minutes: 6
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          $out = Join-Path (Get-Location).Path "production/pc-ops/cards-send.txt"
+          New-Item -ItemType Directory -Force -Path "production/pc-ops" | Out-Null
+          $repo = "C:\Users\Jafar\wc26-picks"
+          $sha = if ($env:GITHUB_SHA) { $env:GITHUB_SHA.Substring(0,7) } else { "SHA-UNKNOWN" }
+          "# LEDGER one decision-cards pass - $sha @$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())" |
+            Set-Content $out -Encoding utf8
+          "# Line 1 names the commit this was run on. This step SENDS: it runs" | Add-Content $out
+          "# tools/runner/telegram-bot.py --send-cards once, which is the same" | Add-Content $out
+          "# pass the bot's own loop makes every 120s. One message per WAITING" | Add-Content $out
+          "# card, with one tap button per option, and a receipt per card so an" | Add-Content $out
+          "# unchanged card is never sent twice. Streamed, so a timeout still" | Add-Content $out
+          "# leaves everything it learned." | Add-Content $out
+          if (-not (Test-Path "$repo\tools\runner\telegram-bot.py")) {
+            "cardsStatus=NOTHING-MEASURED reason=no-bot-at-that-path" | Add-Content $out
+          } else {
+            $py = $null
+            foreach ($c in @("$repo\tools\voice-live\env-export\Scripts\python.exe",
+                             "$env:USERPROFILE\miniconda3\python.exe", "python")) {
+              if (Test-Path $c) { $py = $c; break }
+              try { & $c --version *> $null; if ($LASTEXITCODE -eq 0) { $py = $c; break } } catch { }
+            }
+            if (-not $py) {
+              "cardsStatus=NOTHING-MEASURED reason=no-python-found" | Add-Content $out
+            } else {
+              "cardsPython=$($py -replace ' ','~')" | Add-Content $out
+              $raw = Join-Path $env:RUNNER_TEMP "cards-raw.txt"
+              Remove-Item $raw -Force -ErrorAction SilentlyContinue
+              Remove-Item "$raw.err" -Force -ErrorAction SilentlyContinue
+              Push-Location $repo
+              $proc = $null
+              try {
+                $proc = Start-Process -FilePath $py -PassThru -NoNewWindow -ArgumentList @("-u", "tools\runner\telegram-bot.py", "--send-cards") -RedirectStandardOutput $raw -RedirectStandardError "$raw.err"
+              } catch {
+                "cardsStatus=NOT-STARTED reason=$($_.Exception.GetType().Name)" | Add-Content $out
+              }
+              if ($null -eq $proc) {
+                "cardsStatus=NO-PROCESS cardsWaitedSec=0" | Add-Content $out
+              } else {
+                $waited = 0
+                while (-not $proc.HasExited -and $waited -lt 180) {
+                  Start-Sleep -Seconds 3
+                  $waited += 3
+                }
+                if (-not $proc.HasExited) {
+                  "cardsStatus=HUNG cardsWaitedSec=$waited cardsNote=killed-after-the-wait/lines-below-are-where-it-got-to" | Add-Content $out
+                  try { $proc.Kill() } catch { }
+                  Start-Sleep -Seconds 2
+                } else {
+                  "cardsStatus=EXITED cardsWaitedSec=$waited cardsExitCode=$($proc.ExitCode)" | Add-Content $out
+                }
+              }
+              Pop-Location
+              foreach ($f in @($raw, "$raw.err")) {
+                if (Test-Path $f) {
+                  $lines = @(Get-Content $f -ErrorAction SilentlyContinue)
+                  "cardsStream=$(Split-Path $f -Leaf) cardsLines=$($lines.Count)" | Add-Content $out
+                  $lines | Select-Object -Last 40 | Add-Content $out
+                  if ($lines.Count -gt 40) { "(+$($lines.Count - 40) earlier line(s) not shown)" | Add-Content $out }
+                } else {
+                  "cardsStream=$(Split-Path $f -Leaf) cardsLines=nothing-measured reason=no-such-file" | Add-Content $out
+                }
+              }
+            }
+          }
+          Write-Host (Get-Content $out -Raw)
+
       - name: Push the return half from his machine and print what it says
         if: always()
         continue-on-error: true
@@ -620,6 +748,12 @@ jobs:
           # rather than by eye, because by eye missed it twice.
           git add -A -- production/pc-ops/push-diagnosis.txt 2>/dev/null || true
           git add -A -- production/pc-ops/outbox-sweep.txt 2>/dev/null || true
+          # AND THE CARDS PASS, BY NAME. Fourth time a step wrote a file this
+          # step did not name would be the fourth incident of the same kind:
+          # -A so its ABSENCE is staged too, because a run where the cards step
+          # wrote nothing must not leave the last run's copy standing as this
+          # run's evidence.
+          git add -A -- production/pc-ops/cards-send.txt 2>/dev/null || true
           git add -A -- production/pc-ops/inbox-flush.txt 2>/dev/null || true
           git diff --cached --quiet && { echo "install verification unchanged; nothing to commit"; exit 0; }
           git commit -m "scheduled task install/verify from $(git rev-parse --short HEAD)"

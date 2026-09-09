@@ -15,10 +15,10 @@ name: LEDGER art Blender preview
 #               exits without doing anything and says so. Yielding loses this
 #               run; queueing would cost the game one.
 #
-# It runs a NAMED recipe. There is no recipe in the tree yet, and the step
-# refuses with the name it was given rather than inventing a default, so a
-# run against a recipe nobody wrote reads as a refusal and not as an empty
-# success.
+# It runs a NAMED recipe. `tools/art-recipes/mickeys-blockout.py` renders the
+# atlas-01 commission's five authored views, and the step refuses with the name
+# it was given rather than inventing a default, so a run against a recipe
+# nobody wrote reads as a refusal and not as an empty success.
 
 # THE SECOND TRIGGER IS NOT A CONVENIENCE, and the note is the same one the
 # mesh import carries: `workflow_dispatch` only registers for a workflow that
@@ -47,10 +47,40 @@ permissions:
   contents: write
   actions: read
 
+# SCOPED TO THIS WORKFLOW ALONE, which is not the thing the header above
+# refuses. What was refused is a group SHARED with the game jobs, because that
+# makes a game job queue behind a render. A group containing only art previews
+# makes two previews serialise on one PC and can never delay anything else.
+concurrency:
+  group: ledger-art-preview
+  cancel-in-progress: false
+
 jobs:
   preview:
     runs-on: [self-hosted, windows]
+    # A CEILING ON A HANG, NOT A TARGET, and it sits above the sum of the step
+    # caps below (2 checkout + 1 yield + 6 art checkout + 1 studio checkout +
+    # 30 render + 2 commit). Blender rendering five frames is the only step
+    # that can stall for hours, and this PC is the one the game builds run on.
+    timeout-minutes: 45
     steps:
+      # THE STUDIO CHECKOUT COMES FIRST, AND IT IS NOT OPTIONAL. Until this
+      # step existed, the resolve step below read `production/pc-ops/
+      # art-preview.request` out of whatever the PREVIOUS job left in the
+      # workspace, because no checkout had happened yet in this job. On a
+      # self-hosted runner that is a stale tree: the request file is new on the
+      # pushed commit, so the most likely readings were "file absent, exit 1"
+      # and, worse, an older run's commission read as this run's. ci.md calls
+      # that class by name.
+      - name: Checkout the studio branch, for the request file
+        id: studio_root
+        timeout-minutes: 2
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
       # ONE SOURCE OF TRUTH FOR THE TWO VALUES, whichever trigger fired.
       # A dispatch carries them as inputs; a push carries them in the request
       # file as `key=value`, one per line. Without this step the push trigger
@@ -67,16 +97,19 @@ jobs:
           if (-not $c -or -not $r) {
             $req = "production/pc-ops/art-preview.request"
             if (Test-Path $req) {
-              foreach ($ln in (Get-Content $req)) {
+              $lines = @(Get-Content $req)
+              foreach ($ln in $lines) {
                 if ($ln -match "^\s*commission\s*=\s*(\S+)") { $c = $Matches[1] }
                 if ($ln -match "^\s*recipe\s*=\s*(\S+)")     { $r = $Matches[1] }
               }
-              $src = "request-file"
-            } else { $src = "none/no-request-file" }
+              # NAMED, AND IT NAMES THE COMMIT IT WAS READ FROM, so a stale
+              # tree can never be mistaken for this run's instruction again.
+              $src = "request-file/of-${{ github.sha }}/lines=$($lines.Count)"
+            } else { $src = "none/no-request-file-in-checkout-of-${{ github.sha }}" }
           }
           Write-Host "artResolvedFrom=$src artCommission=$(if ($c) { $c } else { 'none' }) artRecipe=$(if ($r) { $r } else { 'none' })"
           if (-not $c -or -not $r) {
-            Write-Host "artPreviewStatus=NO-TARGET reason=neither-inputs-nor-request-file-named-both"
+            Write-Host "artPreviewStatus=NO-TARGET reason=neither-inputs-nor-request-file-named-both nothing measured"
             exit 1
           }
           "commission=$c" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
@@ -85,6 +118,7 @@ jobs:
       # THE YIELD. Read-only, and it decides everything after it.
       - name: Yield to any running game job
         id: yield
+        timeout-minutes: 1
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -94,6 +128,17 @@ jobs:
           # a pattern that grew to match this workflow itself would make it
           # yield to its own run for ever, which is a deadlock that looks
           # exactly like politeness.
+          #
+          # WHY `ledger-imagegen.yml` IS NOT ON THIS LIST, ruled rather than
+          # left silent. It is the other job that wants this PC's GPU, and it
+          # runs for up to 300 minutes by its own cap. Adding it would mean the
+          # art lane yields for five hours of picture generation and Jafar gets
+          # no previews on any evening a batch is running. It is also the one
+          # case the list cannot help with: `ledger-pc` is one machine with one
+          # runner, and a runner executes one job at a time, so an imagegen
+          # batch in progress already prevents this job from STARTING. The
+          # queue is the mechanism there, not the yield, and the yield would
+          # only convert a wait into a loss.
           $game = @("ledger-probe-unreal.yml", "ledger-build-windows.yml",
                     "ledger-build-mac.yml", "ledger-core-tests.yml",
                     "ledger-ai-playtest.yml")
@@ -125,59 +170,184 @@ jobs:
 
       - name: Checkout the art branch
         if: steps.yield.outputs.yielded == 'false'
+        timeout-minutes: 6
         uses: actions/checkout@v4
         with:
           ref: art/${{ steps.what.outputs.commission }}
           fetch-depth: 0
 
-      - name: Render the named recipe headlessly
+      # THE SECOND STUDIO CHECKOUT, AND IT HAS TO BE AFTER THE ART ONE. The art
+      # checkout owns the workspace root and cleans it, which takes an untracked
+      # `studio/` with it, so this cannot be hoisted above it and the first
+      # checkout cannot be reused. The recipe lives here; the commission's data
+      # and scripts live in the art checkout at the root. That is why the recipe
+      # takes `--root` explicitly: a root derived from its own path would find
+      # the studio tree and no commission data in it.
+      - name: Checkout the studio branch again, for the recipe
         if: steps.yield.outputs.yielded == 'false'
+        timeout-minutes: 2
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: studio
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Render the named recipe headlessly
+        id: render
+        if: steps.yield.outputs.yielded == 'false'
+        timeout-minutes: 30
+        # A FAILED RENDER MUST STILL PUBLISH. Without this the commit and gate
+        # steps would be skipped and a failure would leave no committed word
+        # about itself, which is how this lane has always failed silently.
+        continue-on-error: true
         shell: pwsh
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: safe.directory
+          GIT_CONFIG_VALUE_0: "*"
         run: |
           $ErrorActionPreference = "Continue"
-          $recipe = "tools/art-recipes/${{ steps.what.outputs.recipe }}.py"
-          $outDir = "production/art/${{ steps.what.outputs.commission }}/previews"
+          $name = "${{ steps.what.outputs.recipe }}"
+          $commission = "${{ steps.what.outputs.commission }}"
+          $ws = $env:GITHUB_WORKSPACE
+          # ABSOLUTE, BOTH OF THEM. Blender is handed a script from one checkout
+          # and asked to read data out of another, so nothing here may depend on
+          # what the working directory happens to be.
+          $recipe = Join-Path $ws "studio/tools/art-recipes/$name.py"
+          $outDir = Join-Path $ws "production/art/$commission/previews"
+          $verdict = Join-Path $outDir "$name-verdict.txt"
           New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+          # WHICH REVISION OF EACH HALF RAN. Two checkouts means two shas, and a
+          # run that cannot say which recipe it executed cannot be reproduced.
+          $artSha = (& git -c "safe.directory=*" -C $ws rev-parse --short HEAD 2>$null)
+          if (-not $artSha) { $artSha = "${{ github.sha }}".Substring(0,7) + "/git-refused" }
+          $studioSha = (& git -c "safe.directory=*" -C (Join-Path $ws "studio") rev-parse --short HEAD 2>$null)
+          if (-not $studioSha) { $studioSha = "${{ github.sha }}".Substring(0,7) + "/git-refused" }
+          Write-Host "artRecipeFrom=studio-checkout/$studioSha artRecipePath=studio/tools/art-recipes/$name.py artDataFrom=art/$commission/$artSha"
           if (-not (Test-Path $recipe)) {
-            # REFUSE BY NAME. An empty success here would read on the art
-            # branch as "the recipe ran and drew nothing".
-            Write-Host "artPreviewStatus=NO-RECIPE recipeAsked=${{ steps.what.outputs.recipe }} recipePath=$($recipe -replace ' ','~')"
+            # REFUSE BY NAME, AND LEAVE THE REFUSAL IN THE FILE THE LANE
+            # COMMITS. An empty success here would read on the art branch as
+            # "the recipe ran and drew nothing".
+            Write-Host "artPreviewStatus=NO-RECIPE recipeAsked=$name recipePath=$($recipe -replace ' ','~') nothing measured"
+            "artPreviewVerdict=1 commit=$artSha commission=$commission recipe=$name status=NO-RUN at=$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())" | Set-Content -Path $verdict -Encoding utf8
+            Add-Content -Path $verdict -Value ""
+            Add-Content -Path $verdict -Value "NO RUN - the recipe file was not in the studio checkout, so Blender was never started."
+            Add-Content -Path $verdict -Value "artPreviewStatus=NO-RECIPE recipeAsked=$name studioSha=$studioSha previewsWrote=0/0-cameras-read nothing measured"
             exit 1
           }
           $blender = $null
+          $tried = 0
           foreach ($c in @("$env:ProgramFiles\Blender Foundation\Blender 4.2\blender.exe",
                            "$env:ProgramFiles\Blender Foundation\Blender 4.1\blender.exe",
                            "blender")) {
+            $tried = $tried + 1
             if (Test-Path $c) { $blender = $c; break }
             try { & $c --version *> $null; if ($LASTEXITCODE -eq 0) { $blender = $c; break } } catch { }
           }
           if (-not $blender) {
-            Write-Host "artPreviewStatus=NO-BLENDER recipeAsked=${{ steps.what.outputs.recipe }}"
+            Write-Host "artPreviewStatus=NO-BLENDER recipeAsked=$name candidatesTried=$tried/3 nothing measured"
+            "artPreviewVerdict=1 commit=$artSha commission=$commission recipe=$name status=NO-RUN at=$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())" | Set-Content -Path $verdict -Encoding utf8
+            Add-Content -Path $verdict -Value ""
+            Add-Content -Path $verdict -Value "NO RUN - no Blender was found on this machine, so nothing was rendered."
+            Add-Content -Path $verdict -Value "artPreviewStatus=NO-BLENDER recipeAsked=$name candidatesTried=$tried/3 previewsWrote=0/0-cameras-read nothing measured"
             exit 1
           }
+          # WHICH BLENDER WON, and its own version string rather than the path's
+          # claim about it: the 4.1 path can hold a 4.2 install.
+          $ver = (& $blender --version 2>$null | Select-Object -First 1)
+          Write-Host "artBlenderChosen=$($blender -replace ' ','~') artBlenderCandidatesTried=$tried/3 artBlenderVersion=$($ver -replace ' ','~')"
           $before = @(Get-ChildItem $outDir -Filter *.png -ErrorAction SilentlyContinue).Count
-          & $blender --background --factory-startup --python $recipe -- --out $outDir
+          $mineBefore = @(Get-ChildItem $outDir -Filter "$name-*.png" -ErrorAction SilentlyContinue).Count
+          & $blender --background --factory-startup --python $recipe -- --out $outDir --root $ws --commission $commission --run-sha $artSha --studio-sha $studioSha
           $code = $LASTEXITCODE
           $after = @(Get-ChildItem $outDir -Filter *.png -ErrorAction SilentlyContinue).Count
-          Write-Host "artPreviewStatus=RAN recipeAsked=${{ steps.what.outputs.recipe }} blenderExit=$code previewsBefore=$before previewsAfter=$after previewsNew=$($after - $before)"
-          if ($code -ne 0 -or $after -le $before) { exit 1 }
+          $mineAfter = @(Get-ChildItem $outDir -Filter "$name-*.png" -ErrorAction SilentlyContinue).Count
+          # TWO COUNTS, AND THE GATE READS THE NARROW ONE. This directory already
+          # holds sixty-odd PNGs from the commission's SVG renders, so the total
+          # delta answers "did anything appear" while the recipe-prefixed delta
+          # answers "did THIS recipe draw", which is the question.
+          Write-Host "artPreviewStatus=RAN recipeAsked=$name blenderExit=$code previewsBefore=$before previewsAfter=$after previewsNew=$($after - $before) recipePngsBefore=$mineBefore recipePngsAfter=$mineAfter recipePngsNew=$($mineAfter - $mineBefore)"
+          if (-not (Test-Path $verdict)) {
+            Write-Host "artVerdictMissing=yes reason=recipe-wrote-no-verdict-file"
+          }
+          if ($code -ne 0 -or $mineAfter -le $mineBefore) { exit 1 }
 
       - name: Commit the previews to the art branch
-        if: steps.yield.outputs.yielded == 'false'
+        id: commit
+        if: always() && steps.yield.outputs.yielded == 'false'
+        timeout-minutes: 2
         shell: bash
+        # THE ENV TRIPLE, QUEUE 152 AND A5 OF THE 2026-09-08 RULING. The
+        # checkout on this runner is owned by NETWORK SERVICE while the steps
+        # run as Jafar, so a plain `git config` dies on dubious ownership and
+        # the render is lost with no word about it. That is what happened to the
+        # mesh import on 2026-09-08. Every git call below carries it twice over.
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: safe.directory
+          GIT_CONFIG_VALUE_0: "*"
         run: |
+          # NO -e HERE, DELIBERATELY. This step's whole job is to publish
+          # whatever was measured; a step that aborts on a failed command
+          # publishes nothing, which is worse than any wrong value it prints.
+          set +e
           set -u
-          git config user.name "ledger-art"
-          git config user.email "art@ledger.local"
-          # BY NAME, never `git add <directory>`: a failed render must not
-          # commit the previous run's pictures as its own.
-          git add -A -- "production/art/${{ steps.what.outputs.commission }}/previews/"*.png 2>/dev/null || true
-          git diff --cached --quiet && { echo "artCommitStatus=NOTHING-NEW"; exit 0; }
-          git commit -m "art preview: ${{ steps.what.outputs.commission }} / ${{ steps.what.outputs.recipe }}"
+          G="git -c safe.directory=*"
+          NAME="${{ steps.what.outputs.recipe }}"
+          DIR="production/art/${{ steps.what.outputs.commission }}/previews"
+          $G config user.name "ledger-art"
+          $G config user.email "art@ledger.local"
+          # STAGED BY NAME, never `git add <directory>` and never a bare
+          # `*.png`: this directory holds sixty-odd PNGs this run did not make,
+          # and a failed render must not commit them as its own evidence. The
+          # recipe prefixes every file it writes with its own name, which is
+          # what makes naming them possible at all.
+          shopt -s nullglob
+          FILES=( "$DIR/$NAME"-*.png "$DIR/$NAME-verdict.txt" )
+          N=${#FILES[@]}
+          if [ "$N" -eq 0 ]; then
+            # A NAMED REFUSAL, replacing the `2>/dev/null || true` that used to
+            # hide exactly this case. Queue 152 names it the second silence.
+            echo "artCommitStatus=NOTHING-TO-STAGE stagedPaths=0/0-matched pattern=$DIR/$NAME-*.png,$DIR/$NAME-verdict.txt nothing measured"
+            exit 1
+          fi
+          for f in "${FILES[@]}"; do echo "artStaging path=$f bytes=$(wc -c < "$f" 2>/dev/null || echo 0)"; done
+          $G add -A -- "${FILES[@]}"
+          ADDED=$($G diff --cached --name-only | wc -l | tr -d ' ')
+          echo "artCommitStaged=$ADDED/$N-matched"
+          $G diff --cached --quiet && { echo "artCommitStatus=NOTHING-NEW stagedPaths=$N-matched/0-changed"; exit 0; }
+          $G commit -m "art preview: ${{ steps.what.outputs.commission }} / $NAME"
+          if [ $? -ne 0 ]; then
+            echo "artCommitStatus=COMMIT-REFUSED stagedPaths=$ADDED/$N-matched"
+            exit 1
+          fi
           for i in 1 2 3; do
-            git pull --rebase --autostash origin "art/${{ steps.what.outputs.commission }}" || true
-            git push origin "HEAD:art/${{ steps.what.outputs.commission }}" && { echo "artCommitStatus=PUSHED"; exit 0; }
+            $G pull --rebase --autostash origin "art/${{ steps.what.outputs.commission }}"
+            $G push origin "HEAD:art/${{ steps.what.outputs.commission }}" && { echo "artCommitStatus=PUSHED attempt=$i/3 paths=$ADDED/$N-matched"; exit 0; }
             sleep $((2 ** i))
           done
-          echo "artCommitStatus=PUSH-FAILED"
+          echo "artCommitStatus=PUSH-FAILED attempts=3/3 paths=$ADDED/$N-matched"
           exit 1
+
+      # THE GATE READS THE FILE, NOT THE COLOUR. The render step is
+      # continue-on-error so that the commit step above always publishes, which
+      # means the job's own verdict has to be decided here, from the evidence
+      # that was actually committed.
+      - name: Gate on what was measured
+        if: always() && steps.yield.outputs.yielded == 'false'
+        shell: bash
+        run: |
+          set +e
+          set -u
+          NAME="${{ steps.what.outputs.recipe }}"
+          V="production/art/${{ steps.what.outputs.commission }}/previews/$NAME-verdict.txt"
+          if [ ! -s "$V" ]; then
+            echo "artGateStatus=NO-VERDICT renderOutcome=${{ steps.render.outcome }} commitOutcome=${{ steps.commit.outcome }} nothing measured"
+            exit 1
+          fi
+          head -1 "$V"
+          grep -o "previewsWrote=[^ ]*" "$V" | tail -1
+          echo "artGateStatus=READ renderOutcome=${{ steps.render.outcome }} commitOutcome=${{ steps.commit.outcome }} verdictLines=$(wc -l < "$V" | tr -d ' ')"
+          [ "${{ steps.render.outcome }}" = "success" ] || exit 1
+          [ "${{ steps.commit.outcome }}" = "success" ] || exit 1

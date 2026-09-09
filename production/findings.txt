@@ -1732,3 +1732,470 @@ landing, and the difference is queue 179.
 THE SHAPE, twice this morning: WHEN A GATE REFUSES A NOTE ABOUT A FILE, THE NOTE
 BELONGS SOMEWHERE ELSE, not inside an exemption. Both times the cheap fix was to
 move the text out rather than widen the rule to admit it.
+
+
+================================================================================
+2026-09-09 07:00Z: THE WAKE THAT SUCCEEDED IN TWELVE MILLISECONDS
+================================================================================
+
+Jafar's item 3 this morning: "A trigger that fires while the session is mid-turn
+is lost; it cost him yesterday's brief. Make wakes queue until the turn ends, and
+prove it."
+
+MEASURED, off the scheduler's own record for trigger trig_013itgDeay6t41BHEmaYFbAj
+("LEDGER daily: wake, plan the day, produce the brief", cron 0 4 * * *, bound to
+this session with persist_session true):
+
+    last_run.status      ROUTINE_RUN_STATUS_SUCCEEDED
+    last_run.fired_at    2026-09-09T04:09:00.554885534Z
+    last_run.finished_at 2026-09-09T04:09:00.567166Z
+
+TWELVE AND A HALF MILLISECONDS, reported as SUCCEEDED. No brief was written in
+12 ms and none was sent. SUCCEEDED means THE WAKE WAS DELIVERED, not that the
+work happened, and the two facts have one name in the only place a session can
+read them. The session was mid-turn, the injected user turn was absorbed into the
+running turn, and the day's brief never existed.
+
+THE CLASS: A STATUS THAT NAMES DELIVERY AND IS READ AS COMPLETION. It is the
+same shape as `propCollisionPrims=0/15`, where a refusal was counted as an
+absence, and the same shape as a green CI job that deleted content. In every case
+a single word covered two different facts and the reader took the flattering one.
+
+WHAT CANNOT BE FIXED HERE: the scheduler's delivery semantics. So the repair is
+not "stop losing the wake", it is "STOP THE WAKE BEING THE ONLY DELIVERY". A
+durable due record on disk, drained at the turn boundary by a Stop hook, makes a
+mid-turn firing harmless: the record was already written when the wake was armed
+and it is still due at the end of whatever turn absorbed it.
+
+CORRECTION, RECORDED BECAUSE IT NEARLY WENT INTO A BRIEF: this session was
+carrying trig_01Lb3XS3RcsAEDTgTfXpwmma as the daily trigger's id. That id does not
+appear in the account's trigger list at all. The real one is above. A remembered
+identifier is not a checked one, which is rule 1 in its plainest form, and the
+only reason it was caught is that the id was looked up rather than quoted.
+
+================================================================================
+2026-09-09 07:00Z: A GATE FOR A PAGE THAT STOPPED BEING REPUBLISHED
+================================================================================
+
+Eight consecutive publish-glance runs failed this morning, numbers 41 to 48. Run
+48 (commit 650f0755, 06:28Z) died on tools/gallery.py's OWN accepting case:
+`failed=pageBytes`, 1000108 bytes against its 1000000 budget, twelve of
+forty-nine pictures dropped.
+
+TWO THINGS WORTH KEEPING, and they point in opposite directions.
+
+THE GOOD HALF: the gallery's accepting fixture is THE LIVE REPOSITORY, and that
+is why this was caught at all. A synthetic fixture would still be passing. The
+repository grew past the tool's budget and the tool said so, in the accepting
+case, which is the half rule 5b says goes unrun. It ran.
+
+THE BAD HALF: NOBODY READ IT FOR THREE DAYS. The failure is visible only in a
+workflow log, which .claude/rules/ci.md already says is the channel that fails.
+Meanwhile the session generated the pages LOCALLY, read a green done line, and
+reasoned about what Jafar could see from a locally generated file. Rule 4 says
+open the artifact you are shipping; the artifact here was the SERVED page, and
+the local file is not it.
+
+CORRECTION, 08:50Z, AND IT IS THE SECOND TIME TODAY A TIDY STORY WAS FALSE. The
+resident wrote here and in three other places that the site "has never served a
+byte". A director refuted it from the tree, and the run list confirms it: of 48
+publish runs FOUR SUCCEEDED, 12, 13, 14 and 18, the last at 2026-09-07T20:23:12Z
+on commit 45de6c21, which is exactly the pageCommit in production/map-notified.json.
+THE PAGES ARE STALE, NOT ABSENT. Roughly 36 hours old, with all 30 runs since
+failed. Every link the register has enforced since Sunday evening therefore opens
+a REAL page showing SUNDAY'S state, which is a subtler and more dangerous failure
+than a 404: a 404 tells him something is wrong and a stale page does not.
+
+THE PATTERN, THIRD TIME TODAY: the false version was the one where the fault was
+total. Never served, two days stale, never resynced. Each time the true version
+was narrower and each time the check that found it was one command. A story that
+explains everything is the shape to distrust. tools/map.py's own selftest gets this exactly right
+already, in words worth copying: "THE SERVED PAGE, requested over HTTP from a
+local server, because checking the bytes we just wrote is not checking what is
+published."
+
+THE STANDING GAP THIS LEAVES: no instrument in this repository answers "is the
+site serving what this commit built". map.py checks a served copy from a LOCAL
+server, which proves the page can be served, not that it is. The publish workflow
+requests its own output at the end, which is the right check, and it never runs
+because the job dies before it. So the one check that would have said "he cannot
+see any of this" is downstream of the failure it would have reported.
+
+
+================================================================================
+2026-09-09 07:30Z: resync=ok/df7a7061, A STARTUP VALUE REPRINTED FOR 42 HOURS
+================================================================================
+
+WHAT I NEARLY PUBLISHED, AND WHY IT WAS WRONG. Chasing why the grate message had
+no receipt, I read the supervisor's status file and found
+
+    resync=ok/df7a7061
+    outboxFiles=15  outboxReceipts=23  outboxRefusals=483
+    studio-watcherUptimeSec=150745
+
+df7a7061 is dated 2026-09-07 10:45Z and is EIGHTY-FIVE COMMITS behind HEAD. The
+conclusion wrote itself: the PC's checkout is two days stale, the bot has never
+seen any message written since Sunday, and that is why 483 refusals accumulated
+for a message this branch retired. It is a tidy story and it is FALSE.
+
+THE MEASUREMENT THAT KILLED IT, and it took one command. `outboxFiles` counts
+message files on the PC's disk. So count the same thing on each candidate commit
+and see which one the PC agrees with:
+
+    df7a7061   6 message file(s)
+    e95f5e4   15 message file(s)      the commit CI read the status on
+    HEAD      15 message file(s)
+    the PC reported 15
+
+THE CHECKOUT IS CURRENT. Six against fifteen is not a near miss, and if the
+checkout had been sitting at df7a7061 the count could not have been fifteen.
+
+WHY THE STRING LIED. `supervise.resync_once` runs ONCE, before any child is
+spawned (supervise.py:714), and its result is formatted into a string at :715
+that the status loop at :790 then reprints every sixty seconds for the life of
+the process. The watcher child hard-resets the checkout EVERY PASS afterwards
+(`pc-watcher.resync`, and `resync_once`'s own docstring says so: "After this
+returns, the git index in this checkout belongs to the watcher child"). So the
+line describes an event 42 hours old, refreshed once a minute, next to counts
+that are genuinely live. `studio-watcherUptimeSec=150745` is 41.9 hours, which
+dates the startup to about 2026-09-07 11:20Z and corroborates it exactly.
+
+THE CLASS, and it is the third instance of it recorded today: A FROZEN READING
+PRINTED BESIDE LIVE ONES, UNDER ONE HEADING. The wake's SUCCEEDED covered
+delivered-and-completed; `propCollisionPrims=0/15` covered refused-and-absent;
+this covers resynced-once and resyncing-now. In every case the reader takes the
+reading the layout implies, because nothing on the page says which moment each
+number belongs to. `.claude/rules/instruments.md` already carries the rule this
+breaks, in its own words: "Whole-run numbers on the done line; per-sample numbers
+on the sample line. Never both moments under one key." This file puts two moments
+under one heading, which is the same fault one level up.
+
+WHAT IS STILL TRUE AFTER THE CORRECTION, and it is the smaller half:
+- The RETURN path does not run on its own. pc-inbox has exactly two pushes in the
+  last eighteen hours, 2026-09-08 16:55Z and 2026-09-09 05:11Z, and both are
+  times CI ran `--flush-inbox` on his machine. So receipts come back only when CI
+  fetches them, and between CI runs the studio cannot confirm any delivery.
+- Therefore the grate message's missing receipt is NOT evidence it was not sent.
+  It was committed at 05:41Z, the last flush was at 05:11Z, and nothing has
+  looked since. Absence of a receipt is absence of a look.
+
+WHAT WAS ALMOST DONE ABOUT IT: a builder was nearly dispatched to fix a stale
+checkout that is not stale. The cost of the check that prevented it was one
+`git ls-tree | wc -l` against three commits.
+
+
+================================================================================
+2026-09-09 07:55Z: HE HAS NEVER TAPPED A BUTTON, MEASURED FROM THE RECEIVING END
+================================================================================
+
+`python3 tools/inbox-read.py`, run just now:
+
+    rulings: onBranch=0 deliveredThisRun=0/0 dir=production/rulings
+    rulings: nothing measured, 0 tapped ruling(s) on the branch, so nothing is
+             known about what he tapped.
+    rulings-fold: records=0 applied=0/0 waitingBefore=6 waitingAfter=6 fileChanged=no
+
+Queue 090 built the whole tap path in August: an inline keyboard with one button
+per option (`cards.keyboard_for`), a callback handler that answers the query so
+his phone stops spinning (`telegram-bot.py:1114`), a ruling record pushed back on
+the inbox branch, and a deterministic fold into the decision queue with four
+rejecting cases. It selftests at 41 checks in cards.py and 73 in the bot. Its
+queue file has read "WAITS behind the first real tap" since 2026-09-05.
+
+IT HAS NEVER BEEN CALLED. `--send-cards` (telegram-bot.py:2518) has no caller:
+`Bot.poll_forever` sweeps the outbox at line 1204 and never touches the cards
+pass, and the scheduled CI step runs `--send-outbox` alone. So the only sender
+that has ever run is the text-only outbox sweep, whose `sender(text)` signature
+has nowhere to put a keyboard.
+
+THIS IS RULE 6 END TO END, AND THE INTERESTING PART IS THAT BOTH ENDS AGREED.
+The sending end reported healthy: cards.py green, bot green, the fold green,
+every selftest passing. The receiving end reported zero, and printed its zero
+with a denominator, which is the only reason the zero was legible as an absence
+rather than as calm. Four months of green on a path with no call site.
+
+WHAT JAFAR SAID THIS MORNING, and he is describing exactly this: "with tap
+buttons, which 090 was cut to text without, now rebuilt".
+
+THE TRANSFERABLE HALF: a selftest proves a function works. It cannot prove
+anything calls it, and a suite of 114 passing checks across two files was
+perfectly compatible with the feature never having run once. The grep that would
+have caught it is one line and it is in CLAUDE.md rule 6 in those words: "Grep
+for call sites before saying it is finished."
+
+
+================================================================================
+2026-09-09 08:10Z: THE HOOK COMPARISON CANNOT BE RUN AS INSTRUCTED
+================================================================================
+
+Jafar named `production/art/atlas-01/data/concept-final-prompts.json` as the
+source for regenerating the Hook sheet in house. Measured on the art branch: that
+file is not a prompt library. It holds two keys, `mickeys` and `hook`, each with
+one field, and BOTH ARE IMAGE-EDIT INSTRUCTIONS. The hook entry opens "Make a
+single spatial correction to the lower street panel of this Hook district concept
+board" and refers throughout to a board that already exists.
+
+Our lane is text-to-image only. A grep of `tools/imagegen/imagegen.py` for init,
+img2img and strength finds no image-input path, and the tool's own `negative_state`
+docstring quotes the shipped binary: "a model with no image conditioning has
+img_cfg forced to 1.0".
+
+SO OBEYING THE INSTRUCTION LITERALLY WOULD ANSWER "what does our lane draw when
+handed an edit instruction with nothing to edit". That is not the comparison, and
+it is the same class of miss as the run he was complaining about in the same
+sentence: "The previous run answered a different question." Doing what he said
+would have repeated the fault he was objecting to, and the only reason it did not
+is that a builder read the file before running it.
+
+THE PROMPT THAT WOULD ANSWER HIS QUESTION is `concept-prompts.json` key `hook`,
+1599 characters, the creation prompt that actually made the board. It is refused
+by `validate_spec`: "the POSITIVE prompt still says ['no', 'not']". That guard
+exists because 41 of 45 images came back wrong when positive prompts carried
+negative phrasing, so it is not a guard to wave through. It is with the director.
+
+THE TRANSFERABLE HALF: AN INSTRUCTION THAT NAMES A FILE IS STILL AN ASSUMPTION
+ABOUT WHAT IS IN IT. Jafar named the newest file in a three-stage chain, which is
+the natural thing to do, and the newest file was the least useful one because the
+chain went creation, edit, edit. Nobody could have known without opening it.
+
+================================================================================
+2026-09-09 08:10Z: THE ART LANE LOOKS FOR RECIPES ON A BRANCH THAT HAS NONE
+================================================================================
+
+`.github/workflows/ledger-art-blender-preview.yml` line 125 checks out the ART
+branch and then resolves `tools/art-recipes/<recipe>.py` inside that checkout.
+
+    $ git ls-tree -r --name-only origin/art/atlas-01 -- tools/art-recipes
+    (empty)
+
+The directory does not exist there. That branch forked at 7722b45 and our HEAD
+carries 46 commits it lacks, including the whole recipe runner. So every recipe
+this studio writes is invisible to the lane that runs recipes, and a dispatch
+prints NO-RECIPE and stops.
+
+The art branch's own `mickeys_blockout.py` would not have run either. Five faults,
+each measured: it renders nothing without a `--render` flag the workflow never
+passes; its ROOT resolves wrongly once moved, so its own guard refuses the
+workflow's output directory; it runs on import, so the runner cannot load it; it
+sets `bpy.context.window.scene`, which is None in background Blender; and it
+refuses a second run into the same directory. `PROVENANCE.md` marks it "Syntax
+checked only", which turns out to be exactly true.
+
+THE FIRST FAULT IS THE ONE WORTH REMEMBERING: without `--render` the recipe exits
+0 having written no PNG. The workflow would have reported a successful run that
+produced nothing, which is this project's EMPTY-SUCCESS class arriving by default
+rather than by accident. `run-recipe.py` already has a name for it (`EMPTY-SUCCESS`)
+and a check that catches it, which is the only reason it would have been visible.
+
+================================================================================
+2026-09-09 08:10Z: TWO DEFECTS INSIDE THE ATLAS-02 RESEARCH, FOUND BY READING IT
+================================================================================
+
+- `research/transport-timetables.md` twice cites a taste card that does not exist,
+  once for the last bus and once for ferry frequency. `DELIVERY.md` carries only
+  the free-house and size cards. Dangling references to a decision nobody was ever
+  asked. The last bus is now a card; the ferry is a canon question and is flagged
+  rather than optioned.
+- `research/household-contents-and-upstairs.md` reads as if the old large 10p was
+  demonetised in 1992. The Producer's recollection, explicitly unverified because
+  the hosts are blocked here, is that the small 10p arrived in 1992 and the old
+  coin ceased to be legal tender in mid-1993. Inside the 1988 to 1992 window the
+  file's derived rule still holds, so nothing downstream is wrong, but the
+  sentence must not be quoted as a 1992 date until somebody can reach a source.
+  RECORDED AS UNRESOLVED, not corrected, because a recollection is not a check.
+
+
+================================================================================
+2026-09-09 08:40Z: THE PLATFORM ALREADY CAPS STOP-HOOK BLOCKS, AND SAYS SO NOWHERE
+================================================================================
+
+Building the wake queue for Jafar's item 3, a builder read the Claude Code binary
+rather than guessing at the loop hazard, and found:
+
+    let Ad = a.CLAUDE_CODE_STOP_HOOK_BLOCK_CAP ?? 8;
+    if (Ad > 0 && _c > Ad) ... "A hook blocked the turn from ending ${_c}
+    consecutive times - overriding and ending turn."
+
+So a Stop hook that always blocks does NOT produce an unbounded session: the
+platform overrides at 8 consecutive blocks. But its notice goes only to the
+transcript, so from inside the repository the override is invisible.
+
+WHY OUR CAP IS 3 AND COUNTS SOMETHING ELSE. It is set to bite FIRST, and
+deliberately counts a DIFFERENT statistic: cumulative blocks per record, written
+to the record on disk, versus the platform's consecutive blocks per continuation
+chain. Two different questions, and only one of them survives a container
+reclaim. This is `.claude/rules/instruments.md`'s rule about naming which
+statistic a number is, applied to a number the platform also keeps.
+
+THE SECOND FIND IS THE MORE USEFUL ONE. The Stop payload carries `session_crons`,
+described in the binary as the tasks "that will wake this session later. Empty
+array when none are scheduled", each `{id, schedule, recurring, prompt}`. That is
+the PAIRED HALF of our own `wakesDue`. On the morning of the incident the
+platform's count was 1 and the disk's was 0, and no line anywhere printed both.
+Now every turn boundary prints them together, and the words "nothing measured"
+when the field is absent, which is a different fact from the platform saying 0.
+
+THE SHAPE, THIRD TIME TODAY: TWO SOURCES FOR ONE QUANTITY AND NOTHING COMPARING
+THEM. The wake existed in the scheduler and did not exist on disk; nothing read
+both, so nothing could notice. It is the same fault as the two `read_budget`
+implementations disagreeing on purpose, and the same repair: print them side by
+side and let the difference be visible rather than inferred.
+
+AND A NOTE ON WHERE THE PROOF WENT. `.claude/hooks/selftest.sh` exists and is run
+by NOTHING automated (grepped: only prose references it). Putting the hook's
+proof there would have been a proof nobody runs, which is the decay this project
+has a casebook about. It went into the tool's own `--selftest`, which
+`ledger/verify.py` runs before every commit.
+
+
+================================================================================
+2026-09-09 09:30Z: THE GRATE IS IN THE PICTURE, AND IT RENDERS AS WHITE PLASTIC
+================================================================================
+
+A builder reported that queue 179's claim "a drainage grate reached a frame for
+the first time" is not what the verdict says, citing
+`grateRectStatus=OFF-FRAME` in production/d1-probe/ue-walk-verdict.txt line 84.
+That is a real key with that real value. THE CONCLUSION DRAWN FROM IT IS WRONG,
+and settling it corrected the resident too.
+
+WHAT THE KEY SET ACTUALLY SAYS, read whole rather than one line:
+
+    grateShotStatus=AIMED  grateOccluded=no  grateBlocker=none
+    grateCandChosen=02  grateCandidatesTried=3/8  walkFramesWrote=7/7
+    grateSubjectRectFrac=0.4329/0.4615/0.5671/0.6835
+    grateControlRectFrac=0.4329/-0.2575/0.5671/-0.0354
+    grateRectStatus=OFF-FRAME
+
+THE SUBJECT RECTANGLE IS ON THE FRAME, between 0.4615 and 0.6835 of the height.
+THE CONTROL RECTANGLE IS NOT: its y fractions are NEGATIVE, so it sits off the
+top. `grateRectStatus` is the status of THE RECTANGLE PAIR, which is what the
+z-fight comparison needs, and it is OFF-FRAME because the control could not be
+placed. It says nothing about whether the grate was photographed. That is queue
+177 already, "the zfight tool reads rectangles it never checked the status of".
+
+THE PICTURE SETTLED IT. Cropping the subject rectangle out of
+ue-walk_05_grate_a.png shows diagonal slots inside a frame, unmistakably the
+grate, nothing across it. It is there.
+
+AND THE CROP CORRECTED THE RESIDENT, WHICH IS THE MORE USEFUL HALF. This session
+has been saying the grate "reads as ironwork". THE GEOMETRY READS; THE MATERIAL
+DOES NOT. The bars and the gaps between them are both pale grey, near white, with
+almost no separation. It reads as white plastic, not as iron. That is queue 176
+exactly, "the near road renders near-white", and the grate is inside the band it
+describes.
+
+SO THE HONEST SENTENCE, which replaces the one used all morning: the grate is in
+a frame, its slots are legible, and it is the wrong colour. A person who loves
+KCD2 would see a white plastic drain. The prop route is proven; the render is not.
+
+TWO LESSONS, and the second is the transferable one.
+
+ONE: A KEY THAT STARTS WITH THE SUBJECT'S NAME IS NOT NECESSARILY ABOUT THE
+SUBJECT. `grateRectStatus` is about rectangles. Everything before the last noun
+in a key name is a namespace, and reading it as the topic is how one line refutes
+a claim it does not touch. The fix is not a rename; it is reading the sibling
+keys before quoting one.
+
+TWO: A CHALLENGE TO A CLAIM IS WORTH RUNNING DOWN EVEN WHEN THE CHALLENGE IS
+WRONG. This one was wrong about the grate and it still produced the truest
+sentence anybody has written about that picture today, because settling it
+required opening the file instead of citing the commit message that described it.
+The commit message said "reads as ironwork". The pixels say otherwise.
+
+ALSO REFUTED IN THE SAME REPORT: the claim that `production/ladder.md`'s sentence
+about tools/map.py is ahead of the code. It is not. `tools/map.py:142` is
+`LADDER_FILE = "production/ladder.md"` with four more sites at 1771, 1815, 3824
+and 4886. The grep behind that finding ran before the page builder landed the
+change; two builders working the same hour on one tree will each read the other's
+"before".
+
+
+================================================================================
+2026-09-09 09:50Z: THE WHITE BAND IS A KERB TEXTURE, AND THE STREET HAS NO SKY
+================================================================================
+
+Queue 176 asked why the near half of the grate frames renders as a near-white
+field, and ruled that no material or light be touched until a number named the
+cause. The number, from tools/road-brightness.py on the already-committed frames,
+no dispatch:
+
+    subject (near band)      meanLuma 0.8571  p05/p50/p95 0.8157/0.8627/0.8863
+    control (carriageway)    meanLuma 0.3794  p05/p50/p95 0.2784/0.3725/0.5098
+    42000 px per band per frame, 168000 px cumulative over 2 frames and 2 bands
+    clipHiAny 0/42000 in BOTH bands
+
+    kerb.jpg     mean 0.7228   spread 0.0824   131072 of 2097152 px examined
+    asphalt.jpg  mean 0.2659   spread 0.1765   262144 of 4194304 px examined
+    source ratio 2.72, rendered ratio 2.26, rendered/source 0.83
+
+    roadCause=MATERIAL-ALBEDO
+
+THE PALE BAND IS NOT THE ROAD. It is the east channel and the kerb top, a
+DIFFERENT SURFACE from the carriageway, wearing
+ledger/Assets/StreamingAssets/CityPack/textures/kerb.jpg, which is a near-white,
+near-featureless light-grey wash. It was opened and looked at. It is not a
+British granite kerb.
+
+HOW THE OTHER THREE CAUSES WERE REFUTED, each by a number rather than by
+argument. EXPOSURE: a global monotone curve cannot invent a difference between
+two surfaces in one frame, and nothing clips, 0 of 42000 in both bands.
+LIGHTING: the rendered ratio 2.26 is SMALLER than the source albedo ratio 2.72,
+so no second multiplier is required to explain the frame. MISSING SURFACE: the
+kerb material resolved, albedoLoadedAs=2048x1024/JPEG-BGRA8/srgb=yes, 95 of 95
+pieces assigned, and the texture collapse is present IN THE SOURCE (kerb.jpg's
+own spread 0.0824 against asphalt's 0.1765).
+
+WHERE THE INSTRUMENT STOPS, PRINTED RATHER THAN GLOSSED: from one frame it
+cannot separate material albedo from lighting, because both multiply the same
+pixels and both preserve cv. What separated them here was the source base colour
+files, which is a second measurement and not a cleverer reading of the first.
+
+TWO CLAIMS IN QUEUE 176 CORRECTED BY THE MEASUREMENT THAT ANSWERED IT.
+- "the control carriageway is 1 to 2.7 m further off" overstates. Derived from
+  the printed camera transform, the whole frame spans about 0.14 m to 1.05 m of
+  ground distance.
+- "the ground is albedo-blind, road renders 0.85 from albedo 0.008" comes from
+  game-design/decision-ground-albedo.md, which is the UNITY sim's post-graded
+  pipeline. These are UNREAL frames. Different engine, different pipeline, and
+  the 0.85 coincidence is a coincidence: here the asphalt renders 0.379 from a
+  source of 0.266, which is not albedo-blind at all. A number carried across two
+  engines because it looked familiar.
+
+## AND THE LARGER FINDING, WHICH IS RUNG 1's REAL OBSTACLE
+
+THE BUILT STREET HAS NO SKY. skyModel=none-black/phase-C-owns-the-hdri and
+ambientModel=trilight-3-directional/not-a-captured-sky. The condition NAMES an
+HDRI, belfast_open_field_2k, that the Unreal probe never binds. There is no
+skylight, no reflection capture and no captured cubemap: three directional lights
+and fog.
+
+Codex's Hook panel is lit BY its sky. Its lower half is mostly sky and buildings
+reflected in standing water. So the two faults compound: `Wetness` is parsed and
+reaches nothing in this engine (three hits in ue-probe, all in VignetteSpec.h:
+the field, its initialiser, its parse; no read anywhere), and wiring it ALONE
+would make the road darker and smoother WITH NOTHING TO REFLECT, which is a black
+road rather than a wet one. THAT IS WHY WETNESS IS NOT A ONE-FIELD FIX, and it is
+the thing a builder would have discovered the expensive way.
+
+A THIRD THING THE INSTRUMENT CAUGHT THAT NOBODY ASKED ABOUT. The three material
+control quads are placed 3.5 m in front of the FIRST shot's camera, and that
+placement knows nothing about any other camera. Measured: quad tile4's left edge
+lands at column 1274 of 1280 in the new camera's frame. A colour swatch would
+have clipped the very frame Jafar is asked to judge side by side against Codex's
+sheet. The camera was NOT moved to avoid it; a rule now hides control quads per
+shot, tested both ways plus the empty case.
+
+## THE PANEL IS NOT A PINHOLE, AND THE CAMERA SAYS SO
+
+Every camera number was measured off the panel and each carries its reason. The
+one that cannot be measured is the field of view: a single image fixes a scene
+only up to scale, and every ratio in it is focal-length free. What pins it is one
+assumed longitudinal length, the 6.0 m shopfront bay, and the alternatives are
+printed: a 5.0 m bay gives 45 degrees vertical, a 6.5 m bay gives 37.
+
+AND THE REFERENCE ITSELF IS INCONSISTENT. The panel's right kerb, traced over 112
+columns, departs from a straight line by 21.7 px at worst and 9.68 px rms. A
+straight kerb in a true perspective is exactly straight. So no exact camera exists
+to be derived from that image, and the numbers reproduce THE COMPOSITION rather
+than a camera matrix. That is worth knowing before anybody treats a mismatch as
+our fault.

@@ -56,6 +56,7 @@ series is what a future bound would be set from); it only gates when
 import argparse
 import datetime
 import http.server
+import json
 import os
 import re
 import shutil
@@ -100,12 +101,59 @@ DOCTYPE = "<!DOCTYPE html>"
 # was dropped for want of a resizer and still writes the page saying how many,
 # which is the map's rule for the map's reason: a page that says what it holds
 # beats a stale one. A red gallery must never take index.html off his phone.
+#
+# WHY THE GALLERY ROW CARRIES TWO MORE FIELDS SINCE 2026-09-09. Jafar ruled
+# the gallery shows every picture, "not two embedded files", and the town
+# atlas belongs in it as a world page. So tools/gallery.py stopped embedding
+# base64 and now writes the pictures as FILES plus a second page. That makes
+# two things this publisher must do and used to be able to assume away:
+#   `extraPages` is the second page the generator writes under its own flag,
+#   published and stamped like any other page.
+#   `assets` is the directory the generator writes the picture files into. It
+#   is created INSIDE the publish directory, and the generator's manifest, not
+#   this file's guesswork, is what names them. A src naming a file the
+#   publisher does not copy is a broken image on his phone, which is the 404
+#   this file's own comments already describe for map.html.
+# Each row is (generatorPath, publishedNames, exitCodeIsFatal, extraPages,
+# assetsDir), where extraPages is ((generatorFlag, publishedName), ...).
 PAGES = (
-    (GENERATOR, ("index.html", "glance.html"), True),
-    (MAP_GENERATOR, ("map.html",), False),
-    (GALLERY_GENERATOR, ("gallery.html",), False),
+    (GENERATOR, ("index.html", "glance.html"), True, (), None),
+    (MAP_GENERATOR, ("map.html",), False, (), None),
+    (GALLERY_GENERATOR, ("gallery.html",), False,
+     (("--world-out", "world.html"),), "gallery-img"),
 )
-SITE_FILES = tuple(n for _, names, _ in PAGES for n in names) + (".nojekyll",)
+SITE_FILES = (tuple(n for _, names, _, _, _ in PAGES for n in names)
+              + tuple(n for _, _, _, extra, _ in PAGES for _, n in extra)
+              + (".nojekyll",))
+# THE PICTURE FILES ARE NOT IN SITE_FILES, and that is deliberate: their names
+# and their count are decided by how many pictures exist, so a fixed list would
+# be a denominator that stopped growing. They come from the generator's
+# manifest, are counted as their own number, and every one of them is checked
+# against the pages that reference it.
+ASSET_MANIFEST = "manifest.json"
+IMAGE_SUFFIXES = (".jpg", ".jpeg", ".png", ".gif", ".webp")
+
+
+def read_manifest(assets_dir):
+    """(files, how) from the generator's own manifest.
+
+    THE GENERATOR NAMES ITS FILES; THIS FILE DOES NOT GUESS THEM. A publisher
+    that globbed the directory would carry whatever was lying in it, which is
+    the "stale checkout's files ride out as this run's evidence" shape the CI
+    rules already forbid for git add. A missing manifest is a measured absence
+    with its own word, never an empty list that reads as "no pictures".
+    """
+    p = Path(assets_dir) / ASSET_MANIFEST
+    if not p.is_file():
+        return [], "absent-at-%s" % p.name
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+    except ValueError as e:
+        return [], "unparseable/%s" % type(e).__name__
+    files = data.get("files")
+    if not isinstance(files, list):
+        return [], "no-files-array"
+    return [f for f in files if isinstance(f, dict) and f.get("name")], p.name
 
 # THE CREDENTIAL SHAPES, NAMED SO A ZERO CAN SHIP ITS DENOMINATOR. Each entry
 # is one pattern; the count of this list IS the denominator every scan prints.
@@ -262,21 +310,74 @@ def refusal_reason(generator, code, exit_is_fatal, wrote_file):
     return ""
 
 
-def site_files(out_dir):
+def site_files(out_dir, assets=()):
     """(present, missing, extra) by NAME, over SITE_FILES as the denominator.
 
     Missing is what makes the publish a lie (a linked page that 404s); extra
     is how a stale checkout's files ride out under this run's name. Both are
     counted here rather than described, and both halves are exercised by
     `--selftest`.
+
+    `assets` is the picture files the generator declared in its manifest. They
+    are expected too, but they are NOT part of SITE_FILES: that tuple is the
+    fixed set of pages and a picture count belongs to the pictures. Passing
+    them in keeps a hundred published frames out of the `extra` column, where
+    they would read as a stale checkout's leftovers.
     """
     out_dir = Path(out_dir)
     on_disk = sorted(p.relative_to(out_dir).as_posix()
                      for p in out_dir.rglob("*") if p.is_file())
+    expected = list(SITE_FILES) + list(assets)
     present = [n for n in SITE_FILES if n in on_disk]
-    missing = [n for n in SITE_FILES if n not in on_disk]
-    extra = [n for n in on_disk if n not in SITE_FILES]
+    missing = [n for n in expected if n not in on_disk]
+    extra = [n for n in on_disk if n not in expected]
     return present, missing, extra
+
+
+IMG_SRC_RX = re.compile(r'<img[^>]*\ssrc="([^"]+)"')
+
+
+def image_refs(out_dir):
+    """THE SITE-WIDE READING: (referenced, found, missing, orphans, pages).
+
+    THE PUBLISHED SET IS THE DENOMINATOR ON BOTH SIDES. `missing` is a src
+    naming a file this publish does not carry, which is a broken picture on his
+    phone; `orphans` is a published file no page references, which is weight
+    nobody asked for and, on the day a page stops naming a picture, the only
+    sign the page changed shape.
+
+    NOT THE SAME CHECK AS tools/gallery.py's `imagesResolve`, and deliberately
+    not shared with it: that one asks whether the page a generator just wrote
+    agrees with the files it just wrote, before anything is published. This one
+    asks the question only the publisher can ask, over every page in the
+    directory that is about to be uploaded, including files no generator here
+    claims. Data URIs are counted separately and never as a miss: the glance
+    and the map embed their one frame on purpose.
+    """
+    out_dir = Path(out_dir)
+    referenced, found, missing, data_uris, pages = [], 0, [], 0, 0
+    for f in sorted(out_dir.rglob("*.html")):
+        pages += 1
+        text = f.read_text(encoding="utf-8", errors="replace")
+        for src in IMG_SRC_RX.findall(text):
+            if src.startswith("data:"):
+                data_uris += 1
+                continue
+            referenced.append(src)
+            if (f.parent / src).is_file():
+                found += 1
+            else:
+                missing.append("%s->%s" % (f.name, src))
+    named = {s.split("/")[-1] for s in referenced}
+    orphans = []
+    for f in sorted(out_dir.rglob("*")):
+        if not f.is_file() or f.suffix.lower() not in (".jpg", ".jpeg", ".png",
+                                                       ".gif", ".webp"):
+            continue
+        if f.name not in named:
+            orphans.append(f.relative_to(out_dir).as_posix())
+    return {"referenced": len(referenced), "found": found, "missing": missing,
+            "orphans": orphans, "dataUris": data_uris, "pages": pages}
 
 
 def run_generator(root, generator, out_path, extra_args=()):
@@ -299,13 +400,22 @@ def build(root, out_dir, commit, generator_args=()):
     stamp = make_stamp(commit, built_at)
 
     pre_hits, examined, lines, notes = [], len(SECRET_PATTERNS), [], []
+    assets, asset_bytes = [], 0
     with tempfile.TemporaryDirectory() as td:
-        for generator, names, exit_is_fatal in PAGES:
+        for generator, names, exit_is_fatal, extra_pages, assets_dir in PAGES:
             raw = Path(td) / Path(names[0]).name
             # generator_args reach the FIRST generator only: they are the
             # glance's flags (--now and friends) and the map does not share
             # them. Nothing in this repository passes any today.
-            extra = generator_args if generator == PAGES[0][0] else ()
+            extra = list(generator_args if generator == PAGES[0][0] else ())
+            for flag, name in extra_pages:
+                extra += [flag, str(Path(td) / name)]
+            if assets_dir:
+                # STRAIGHT INTO THE PUBLISH DIRECTORY. The pictures need no
+                # stamp and copying them twice would only give the two copies a
+                # chance to differ.
+                extra += ["--assets-dir", str(out_dir / assets_dir),
+                          "--url-prefix", assets_dir]
             text, code, wrote, proc, said = run_generator(root, generator, raw,
                                                           extra)
             reason = refusal_reason(generator, code, exit_is_fatal, wrote)
@@ -321,11 +431,39 @@ def build(root, out_dir, commit, generator_args=()):
             # ship). The scan below walks out_dir, so it reads these bytes.
             for name in names:
                 (out_dir / name).write_text(stamped, encoding="utf-8")
+            published = list(names)
+            for _flag, name in extra_pages:
+                src = Path(td) / name
+                if not src.is_file():
+                    raise SystemExit(
+                        "publish-glance: FAIL %s was asked for %s and wrote "
+                        "no such file. Nothing published: a page that is "
+                        "linked and absent is a tap into a 404."
+                        % (generator, name))
+                body = src.read_text(encoding="utf-8")
+                h2, examined = scan(body, generator + ":" + name)
+                pre_hits.extend(h2)
+                (out_dir / name).write_text(inject_stamp(body, stamp),
+                                            encoding="utf-8")
+                published.append(name)
+            if assets_dir:
+                got, why = read_manifest(out_dir / assets_dir)
+                # THE MANIFEST ITSELF IS PUBLISHED AND EXPECTED. It is the
+                # provenance of the picture set and it is what a later reader
+                # opens to ask which file came from which frame; counted as
+                # expected so it does not read as a stale checkout's leftover.
+                assets += ["%s/%s" % (assets_dir, f["name"]) for f in got] \
+                    + ["%s/%s" % (assets_dir, ASSET_MANIFEST)]
+                asset_bytes += sum(int(f.get("bytes", 0)) for f in got)
+                lines.append("  generator=%s assetsDir=%s manifest=%s "
+                             "assetFiles=%d assetBytes=%d"
+                             % (generator, assets_dir, why, len(got),
+                                sum(int(f.get("bytes", 0)) for f in got)))
             lines.append("  generator=%s exit=%d generatorHits=%d/%d-patterns "
                          "pageBytes=%d stampBytes=%d publishedAs=%s"
                          % (generator, code, len(hits), examined,
                             len(stamped.encode("utf-8")),
-                            len(stamped) - len(text), ",".join(names)))
+                            len(stamped) - len(text), ",".join(published)))
             if code != 0:
                 # Published on purpose, and never silently: this is the only
                 # path on which a green publish carries a page that failed its
@@ -336,9 +474,17 @@ def build(root, out_dir, commit, generator_args=()):
                              % (generator, code, said or "nothing on stdout"))
     (out_dir / ".nojekyll").write_text("", encoding="utf-8")
 
-    hits, files_scanned, bytes_scanned = [], 0, 0
+    # THE SCAN READS TEXT, AND SAYS WHAT IT SKIPPED. Reading five megabytes of
+    # published JPEG through seven credential patterns finds nothing and costs
+    # real time, so the picture files are skipped BY SUFFIX and counted: a
+    # denominator that quietly grew to include binaries would make "0 hits over
+    # 100 files" a bigger number about a smaller question.
+    hits, files_scanned, bytes_scanned, skipped = [], 0, 0, 0
     for f in sorted(out_dir.rglob("*")):
         if not f.is_file():
+            continue
+        if f.suffix.lower() in IMAGE_SUFFIXES:
+            skipped += 1
             continue
         blob = f.read_text(encoding="utf-8", errors="replace")
         h, examined = scan(blob, str(f.relative_to(out_dir)))
@@ -346,14 +492,18 @@ def build(root, out_dir, commit, generator_args=()):
         files_scanned += 1
         bytes_scanned += len(blob.encode("utf-8"))
 
-    present, missing, extra = site_files(out_dir)
+    present, missing, extra = site_files(out_dir, assets)
+    refs = image_refs(out_dir)
+    on_disk = [p for p in out_dir.rglob("*") if p.is_file()]
+    total_bytes = sum(p.stat().st_size for p in on_disk)
     print("%s buildVerdict commit=%s builtAt=%s outDir=%s"
           % (TOOL, commit, iso(built_at), out_dir))
     for line in lines:
         print(line)
     for line in notes:
         print(line)
-    print("  " + scan_verdict(hits, examined, files_scanned, bytes_scanned))
+    print("  " + scan_verdict(hits, examined, files_scanned, bytes_scanned)
+          + " binaryFilesSkipped=%d" % skipped)
     # WHOLE-RUN COUNTS, on their own line: how many of the named site files are
     # on disk, and how many files are there that this run did not name. The cap
     # on the extra names announces itself.
@@ -362,6 +512,20 @@ def build(root, out_dir, commit, generator_args=()):
           % (len(present), len(SITE_FILES), ",".join(missing) or "none",
              len(extra), shown,
              " (+%d-more-not-shown)" % (len(extra) - 5) if len(extra) > 5 else ""))
+    # THE PICTURE FILES AND THE REFERENCES INTO THEM. Two different ways for a
+    # published page to be wrong and so two keys: a src with no file behind it
+    # is a broken picture on his phone, a file no page names is weight nobody
+    # asked for. The whole-run byte and file totals are here because a Pages
+    # deploy has a real size and a real file-count cost, and neither was ever
+    # printed while every picture was base64 inside one page.
+    print("  assetFilesOnDisk=%d/%d-in-the-manifest publishedFiles=%d "
+          "publishedBytes=%d imageRefsResolved=%d/%d-referenced "
+          "imageRefsMissing=%s orphanImageFiles=%d dataUriImages=%d "
+          "htmlPagesRead=%d"
+          % (len([a for a in assets if (out_dir / a).is_file()]), len(assets),
+             len(on_disk), total_bytes, refs["found"], refs["referenced"],
+             ",".join(refs["missing"][:3]) or "none", len(refs["orphans"]),
+             refs["dataUris"], refs["pages"]))
     for name, where, ln in hits:
         print("  LEAK pattern=%s file=%s matchLen=%d" % (name, where, ln))
     if hits or pre_hits:
@@ -371,12 +535,26 @@ def build(root, out_dir, commit, generator_args=()):
             "commit and does not stop a render.")
     if missing:
         raise SystemExit(
-            "publish-glance: FAIL %d of %d site file(s) were not written: %s. "
-            "Nothing published. The glance links to map.html, so a site short "
-            "one file is a tap into a 404 on his phone."
-            % (len(missing), len(SITE_FILES), ",".join(missing)))
-    print("  publishedAs=%s stampedWith=%s..."
-          % ("+".join(SITE_FILES), stamp[:60]))
+            "publish-glance: FAIL %d of %d expected file(s) were not "
+            "written: %s. Nothing published. The glance links to map.html and "
+            "the gallery names its picture files, so a site short one file is "
+            "a tap into a 404 on his phone."
+            % (len(missing), len(SITE_FILES) + len(assets),
+               ",".join(missing[:6])
+               + (" (+%d-more-not-shown)" % (len(missing) - 6)
+                  if len(missing) > 6 else "")))
+    if refs["missing"]:
+        raise SystemExit(
+            "publish-glance: FAIL %d of %d image reference(s) name a file "
+            "this publish does not carry: %s. Nothing published: a broken "
+            "picture on his phone is indistinguishable from a page that "
+            "failed to load."
+            % (len(refs["missing"]), refs["referenced"],
+               ",".join(refs["missing"][:6])
+               + (" (+%d-more-not-shown)" % (len(refs["missing"]) - 6)
+                  if len(refs["missing"]) > 6 else "")))
+    print("  publishedAs=%s+%d-picture-file(s) stampedWith=%s..."
+          % ("+".join(SITE_FILES), len(assets), stamp[:60]))
     return out_dir
 
 
@@ -533,6 +711,51 @@ def check(url, expect_commit, max_age_min, retries, wait_sec, timeout=30):
 
 # ---------------------------------------------------------------- selftest
 
+# THE STUB GENERATOR THE SELFTEST PLANTS. It answers every "--...-out" flag it
+# is given, and when it is given an assets directory it writes one real picture
+# file, a manifest naming it and a page that references it, so the fixture
+# exercises the whole path the gallery now uses rather than the one flag the
+# first stub knew about.
+STUB_GENERATOR = """import base64, json, pathlib, sys
+argv = sys.argv
+outs = [argv[i + 1] for i, a in enumerate(argv[:-1]) if a.endswith('-out')]
+img = ''
+assets = None
+if '--assets-dir' in argv:
+    assets = pathlib.Path(argv[argv.index('--assets-dir') + 1])
+    prefix = argv[argv.index('--url-prefix') + 1] if '--url-prefix' in argv \\
+        else assets.name
+    assets.mkdir(parents=True, exist_ok=True)
+    blob = base64.b64decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAFElEQVR4nGPUsIliwAaY'
+        'sIoOWgkAmcoAzpfIFcsAAAAASUVORK5CYII=')
+    (assets / 'stub-001.png').write_bytes(blob)
+    (assets / 'manifest.json').write_text(json.dumps(
+        {'files': [{'name': 'stub-001.png', 'bytes': len(blob),
+                    'source': 'stub'}]}))
+    img = '<img src="%s/stub-001.png">' % prefix
+for o in outs:
+    pathlib.Path(o).write_text(
+        '<!DOCTYPE html><html><body>stub' + img + '</body></html>')
+"""
+# ... the same stub with its picture removed after the fact, which is the shape
+# of a manifest naming a file the publish does not carry ...
+STUB_DELETES_ITS_PICTURE = """
+if assets is not None:
+    (assets / 'stub-001.png').unlink()
+"""
+# ... and the same stub whose PAGE names a picture no manifest ever claimed,
+# which is the other half: the file list can be perfect and the page can still
+# point at nothing. Two faults, two fixtures, because the first refusal to fire
+# hides the second.
+STUB_GHOST_PICTURE = """
+for o in outs:
+    pathlib.Path(o).write_text(
+        '<!DOCTYPE html><html><body>stub' + img +
+        '<img src="gallery-img/ghost-nobody-published.png"></body></html>')
+"""
+
+
 class _Handler(http.server.BaseHTTPRequestHandler):
     ROUTES = {}
 
@@ -581,11 +804,17 @@ def selftest():
         out = tmp / "site"
         build(ROOT, out, "aaaaaaaa")
         built = (out / "index.html").read_text(encoding="utf-8")
-        present, missing, extra = site_files(out)
+        built_assets = ["%s/%s" % (d, f["name"])
+                        for _, _, _, _, d in PAGES if d
+                        for f in read_manifest(out / d)[0]] \
+            + ["%s/%s" % (d, ASSET_MANIFEST)
+               for _, _, _, _, d in PAGES if d]
+        present, missing, extra = site_files(out, built_assets)
         ok("buildProducesPage", not missing and len(present) == len(SITE_FILES),
-           "wrote %s = %d/%d expected files, missing=%s extraFiles=%d"
+           "wrote %s = %d/%d expected page(s) plus %d picture file(s), "
+           "missing=%s extraFiles=%d"
            % ("+".join(present), len(present), len(SITE_FILES),
-              ",".join(missing) or "none", len(extra)))
+              len(built_assets), ",".join(missing) or "none", len(extra)))
 
         # ACCEPTING 1b: the MAP is its own stamped page and not a second copy
         # of the glance. Two files with one body would pass a file count and
@@ -605,23 +834,91 @@ def selftest():
         # builder's tool. The four files must still be there and the NOTE must
         # be printed, which is the only way a red generator reaches a green
         # publish without saying so.
-        stub_ok = ("import sys\n"
-                   "open(sys.argv[sys.argv.index('--out') + 1], 'w').write("
-                   "'<!DOCTYPE html><html><body>stub</body></html>')\n")
+        # THE STUB WRITES EVERY PAGE IT IS ASKED FOR, and its picture files
+        # and its manifest when it is given an assets directory: a stub that
+        # only knew --out stopped covering the site the day a generator wrote
+        # a second page, and the fixture would then pass while measuring less.
+        stub_ok = STUB_GENERATOR
         soft = tmp / "softroot"
         (soft / "tools").mkdir(parents=True)
-        # EVERY GENERATOR IN PAGES GETS A STUB, from PAGES itself: a hand
-        # written pair of stubs stops covering the site the day a third page
-        # is added, and the fixture then passes while measuring less.
-        for gen, _, _ in PAGES:
+        # EVERY GENERATOR IN PAGES GETS A STUB, from PAGES itself.
+        for gen, _, _, _, _ in PAGES:
             (soft / gen).write_text(stub_ok, encoding="utf-8")
         (soft / MAP_GENERATOR).write_text(stub_ok + "sys.exit(1)\n",
                                           encoding="utf-8")
         build(soft, tmp / "softsite", "aaaaaaaa")
-        p3, m3, _ = site_files(tmp / "softsite")
+        soft_assets = ["%s/%s" % (d, f["name"])
+                       for _, _, _, _, d in PAGES if d
+                       for f in read_manifest(tmp / "softsite" / d)[0]] \
+            + ["%s/%s" % (d, ASSET_MANIFEST) for _, _, _, _, d in PAGES if d]
+        p3, m3, x3 = site_files(tmp / "softsite", soft_assets)
         ok("redMapStillPublishes", not m3 and len(p3) == len(SITE_FILES),
-           "siteFiles=%d/%d-expected missing=%s with %s exiting 1"
-           % (len(p3), len(SITE_FILES), ",".join(m3) or "none", MAP_GENERATOR))
+           "siteFiles=%d/%d-expected missing=%s extraFiles=%d "
+           "assetFiles=%d with %s exiting 1"
+           % (len(p3), len(SITE_FILES), ",".join(m3) or "none", len(x3),
+              len(soft_assets), MAP_GENERATOR))
+
+        # ACCEPTING 1d: THE PICTURE FILES ARE PUBLISHED AND EVERY SRC RESOLVES.
+        # Read off the built directory, both ways: a src with no file is a
+        # broken picture on his phone and a file no page names is weight.
+        live_assets = ["%s/%s" % (d, f["name"])
+                       for _, _, _, _, d in PAGES if d
+                       for f in read_manifest(out / d)[0]]
+        live_refs = image_refs(out)
+        ok("picturesArePublishedFiles",
+           live_refs["referenced"] > 0
+           and live_refs["found"] == live_refs["referenced"]
+           and not live_refs["missing"]
+           and all((out / a).is_file() for a in live_assets),
+           "imageRefsResolved=%d/%d-referenced assetFiles=%d/%d-in-the-manifest "
+           "orphans=%d dataUriImages=%d htmlPagesRead=%d"
+           % (live_refs["found"], live_refs["referenced"],
+              sum(1 for a in live_assets if (out / a).is_file()),
+              len(live_assets), len(live_refs["orphans"]),
+              live_refs["dataUris"], live_refs["pages"]))
+
+        # REJECTING 0d: A PAGE THAT NAMES A PICTURE NOBODY PUBLISHED STOPS THE
+        # PUBLISH. This is the fault the manifest exists to prevent, planted:
+        # the stub writes the src and deletes the file behind it.
+        broke = tmp / "brokenroot"
+        (broke / "tools").mkdir(parents=True)
+        for gen, _, _, _, _ in PAGES:
+            (broke / gen).write_text(stub_ok, encoding="utf-8")
+        (broke / GALLERY_GENERATOR).write_text(
+            stub_ok + STUB_DELETES_ITS_PICTURE, encoding="utf-8")
+        broke_said = ""
+        try:
+            build(broke, tmp / "brokensite", "aaaaaaaa")
+        except SystemExit as e:
+            broke_said = str(e)
+        ok("refusesWhenAManifestFileIsMissing",
+           "were not written" in broke_said
+           and "gallery-img/stub-001.png" in broke_said,
+           (broke_said.replace("\n", " ")[:150]
+            or "NO REFUSAL: a manifest naming a file nobody published "
+               "was shipped"))
+
+        # REJECTING 0e: THE OTHER HALF. The file list can be perfect and the
+        # page can still point at nothing, so a stub whose page names a picture
+        # no manifest ever claimed must be refused by the reference check
+        # rather than by the file count.
+        ghost = tmp / "ghostroot"
+        (ghost / "tools").mkdir(parents=True)
+        for gen, _, _, _, _ in PAGES:
+            (ghost / gen).write_text(stub_ok, encoding="utf-8")
+        (ghost / GALLERY_GENERATOR).write_text(stub_ok + STUB_GHOST_PICTURE,
+                                               encoding="utf-8")
+        ghost_said = ""
+        try:
+            build(ghost, tmp / "ghostsite", "aaaaaaaa")
+        except SystemExit as e:
+            ghost_said = str(e)
+        ok("refusesWhenAPageNamesAnUnpublishedPicture",
+           "image reference" in ghost_said
+           and "ghost-nobody-published.png" in ghost_said,
+           (ghost_said.replace("\n", " ")[:150]
+            or "NO REFUSAL: a page naming a file nobody published was "
+               "shipped"))
 
         # REJECTING 0a: THE COUNT CAN GO WRONG. One file removed by hand from a
         # built site is named, so the count is not a ratchet.
@@ -639,7 +936,7 @@ def selftest():
         # the refusal names which generator and which file is absent.
         hard = tmp / "hardroot"
         (hard / "tools").mkdir(parents=True)
-        for gen, _, _ in PAGES:
+        for gen, _, _, _, _ in PAGES:
             (hard / gen).write_text(stub_ok, encoding="utf-8")
         (hard / MAP_GENERATOR).write_text("import sys\nsys.exit(3)\n",
                                           encoding="utf-8")
@@ -684,7 +981,7 @@ def selftest():
         # glance.html is index.html's twin (same bytes, two names), so the
         # first published name of each generator is the page to read.
         dated = []
-        for name in [names[0] for _, names, _ in PAGES]:
+        for name in [names[0] for _, names, _, _, _ in PAGES]:
             m = GENERATED_RX.search((out / name).read_text(encoding="utf-8"))
             dated.append("%s=%s" % (name, ("%sT%sZ" % (m.group(1), m.group(2)))
                                     if m else "nothing-measured"))

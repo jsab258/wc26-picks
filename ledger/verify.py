@@ -1187,6 +1187,15 @@ TOOL_SELFTESTS = (
     # real register, so it runs at every commit or it decays like the five
     # above did.
     ("executor", "tools/runner/executor.py"),
+    # THE TURN BOUNDARY, added 2026-09-09 for Jafar's ruling of that morning
+    # ("make wakes queue until the turn ends, and PROVE it"). This row is the
+    # proof half: the suite runs `.claude/hooks/wake-drain.sh` AS THE HOOK,
+    # through bash, with the real Stop payload on stdin, in both directions,
+    # and it reads the LIVE `.claude/settings.json` to assert the Stop event is
+    # still registered. Without this row nothing would run either assertion, a
+    # deleted registration would be invisible, and the hook would be the sixth
+    # selftest nobody runs.
+    ("wake queue", "tools/wake-queue.py"),
 )
 # `N passed, M failed` is the shape all four print. A tool that stops printing
 # it goes RED here rather than silently passing, which is the whole point: a
@@ -1253,6 +1262,24 @@ def executor_selftest():
     """The middle of the loop: which instruction runs, what happens when a
     session limit stops one, and every wording that can reach his phone."""
     return _tool_selftest_run(5)
+
+
+def wake_queue_selftest():
+    """THE TURN BOUNDARY, and the Stop hook run AS THE HOOK.
+
+    A trigger reports SUCCEEDED when the wake is DELIVERED, not when the work
+    happens: `trig_013itgDeay6t41BHEmaYFbAj` fired 2026-09-09T04:09:00.554Z and
+    finished 04:09:00.567Z, twelve and a half milliseconds, SUCCEEDED, no brief
+    written and none sent. The suite this runs plants that exact case (armed
+    before the turn, due during it, nobody reading in between) and asserts the
+    boundary still finds it, plus the case that matters more: a queue with
+    nothing due must PERMIT the stop, because a Stop hook that blocks wrongly is
+    a session that cannot end.
+
+    IT ALSO READS THE LIVE `.claude/settings.json`, which is why this row and
+    not only the tool's own arithmetic: rule 6, a drain nothing calls runs
+    never, and a deleted `Stop` registration is otherwise invisible."""
+    return _tool_selftest_run(6)
 
 
 # THE SYSTEMS INVENTORY (queue 098). Its own exit codes are distinct and this
@@ -6234,7 +6261,7 @@ def main():
     for fn in (director_cadence, footer_strings,
                lint, shape, shadow, tools_tracked, reach, stranger_test, shape_files, voice_cast, voice_gen, barks_current, voice_live, voice_assets, voices_into_build, pc_watcher, slop,
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape, producer_register, claude_md_size,
-               inbox_selftest, inbox_read_selftest, bot_config_selftest, outbox_selftest, supervise_selftest, executor_selftest, systems_inventory, inbox_tracked,
+               inbox_selftest, inbox_read_selftest, bot_config_selftest, outbox_selftest, supervise_selftest, executor_selftest, wake_queue_selftest, systems_inventory, inbox_tracked,
                template_sync,
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
                static_instance, raw_avenues, bat_editor, bootstrap_single, blender_hash_parse, filename_as_type, namespace_as_value, workflow_size,

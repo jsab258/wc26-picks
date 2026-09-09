@@ -32,7 +32,35 @@ tool's own provenance lines below the message:
   - tools/report-frame.py, for the picture, which it withholds when the last
     build measured nothing;
   - tools/gallery.py's find_pictures(), for how many pictures are newer than
-    the previous brief.
+    the previous brief AND for which picture is the newest of its kind;
+  - production/ladder.md, the visual ladder Jafar ruled on 2026-09-09, for the
+    CURRENT RUNG, which is where the project stands;
+  - the landed verdicts under production/d1-probe/ and game-design/sim-shots/,
+    for their own status words, which is the only place in this repository
+    that records what the GAME did;
+  - production/next-three.json, through tools/map.py's next_three(), so a
+    finished step is proved by the same evidence keys his page proves it by
+    and never by a second reader written here.
+
+WHY THE HEADLINE IS AN OUTCOME AND NOT A COUNT, ruled by Jafar 2026-09-06 and
+measured as broken on 2026-09-09 (queue 179). The generator read counts only,
+so its headline was "Eighteen new pictures of the street since the previous
+brief, and six decisions are waiting for you". Eighteen pictures is what was
+engineered. On the night it was measured, the town had composed its own
+sentence about a broken window and nothing the tool read could have told it.
+So the headline now comes from a verdict's own status words and from the
+ladder's current rung, and A HEADLINE THAT CANNOT BE EARNED IS NOT INVENTED:
+with no outcome named in the window the brief says nothing was measured about
+what changed for the game, in those words, and never falls back to a count to
+fill the line. "Nothing happened for the game since the last brief" is a
+legitimate and useful thing for this brief to say.
+
+THE WORD CAP IS A TRIM LADDER AND EVERY RUNG ANNOUNCES ITSELF. The spoken line
+the game composed is worth more than anything else in the message and is also
+the longest thing in it, so the composition drops optional clauses in one fixed
+order until the register's cap is cleared, and prints which rungs it dropped
+(`trimmed=`). A cap that bit in silence would read as a brief that had nothing
+to say.
 
 THE PICTURES ARE OF THE STREET AND THE BRIEF SAYS STREET. Measured 2026-09-06:
 every walked directory holds frames of the one D1 street, and the newest of
@@ -94,7 +122,17 @@ def _load(path, name):
 # latest" in this repository. If it cannot be imported the brief still writes
 # and says "nothing measured" about pictures, the way git does. A hard refusal
 # here would let a missing sibling stop the morning.
+# SOFT, AND NAMED: tools/map.py owns the one proof that a next-three.json
+# `done` step really finished (it opens each named evidence file and looks for
+# the exact key=value token). A second copy of that proof here is how his page
+# and his phone come to disagree about what is done. If map.py cannot be
+# imported the steps read "nothing measured" and the brief still writes.
+# tools/runner/outbox.py is imported for TWO CONSTANTS ONLY, its Telegram
+# caption cap and its sidecar suffix, so this program can print whether the
+# brief would fit as a captioned photo rather than carry a second copy of 1024.
 gal = _load(HERE / "gallery.py", "gallery")
+mp = _load(HERE / "map.py", "ledger_map")
+ob = _load(HERE / "runner" / "outbox.py", "ledger_outbox")
 pc = _load(HERE / "producer-check.py", "producer_check")
 qc = _load(HERE / "queue-check.py", "queue_check")
 vf = _load(REPO / "ledger" / "verify.py", "ledger_verify")
@@ -110,8 +148,21 @@ if _missing:
 BRIEFS_REL = "production/briefs"
 DECISIONS_REL = "production/decision-queue.md"
 BUDGET_REL = "production/budget.md"
+LADDER_REL = "production/ladder.md"
+STEPS_REL = "production/next-three.json"
 QUEUE_REL = qc.QUEUE_REL
 AGENT_LOG_REL = vf.DIRECTOR_LOG
+
+# WHERE A LANDED VERDICT LIVES. The two directories CI commits verdicts into,
+# named rather than walked from the root, because a glob over the tree would
+# find the fixtures, the specs and the documents that quote a key.
+VERDICT_DIRS = ("production/d1-probe", "game-design/sim-shots")
+# Line 1 of every verdict in this repository names the commit it was measured
+# on and the instant it was measured at (.claude/rules/ci.md, the verdict
+# format). That instant is the only honest date for an outcome: a file time in
+# a checkout is the moment of the clone, and a commit date is when the file
+# landed rather than when the game did the thing.
+VERDICT_STAMP_RE = re.compile(r"@(\d{9,12})\b")
 
 # WHERE A LINK MAY POINT, RULED BY JAFAR 2026-09-06: at most two links per
 # message, and only to the glance, the map or the gallery. Never to a
@@ -167,6 +218,48 @@ def in_words(n):
 
 def plural(n, one, many):
     return one if int(n) == 1 else many
+
+
+def _lower_first(s):
+    """Somebody else's heading spliced into the middle of a sentence: the first
+    letter drops and a trailing full stop goes, because "a door that opens.;
+    when is unknown" is what happens when it does not."""
+    s = s.strip().rstrip(".")
+    return (s[0].lower() + s[1:]) if s else s
+
+
+def in_date_words(epoch):
+    """A picture's or a verdict's instant as a date a person reads, and NOT a
+    bare count: tools/producer-check.py's numeral scrub names "9 September" a
+    named-month date and lets it through the ban on quantities, which is why
+    the date can be in the message at all. UTC, because every verdict stamp and
+    every commit date in this project is."""
+    d = datetime.datetime.fromtimestamp(int(epoch),
+                                        datetime.timezone.utc).date()
+    return d.strftime("%d %B").lstrip("0")
+
+
+# HOW LONG A RUNG'S OWN "done looks like" SENTENCE MAY BE before the brief uses
+# the rung's NAME instead. THE SERIES CAME FIRST (production/ladder.md,
+# 2026-09-09, printed by --selftest): 34, 28, 19, 14, 11, 12, 5 words for the
+# seven rungs, peak 34 and median 14. A 34-word section is a fifth of a
+# 150-word message, so the bound admits the median and refuses the peak.
+DETAIL_MAX_WORDS = 20
+# WHAT GETS DROPPED WHEN THE CAP BITES, IN THIS ORDER, AND THE ORDER IS WORTH
+# LEAST FIRST. Measured on the live tree 2026-09-09: with every clause in, the
+# message runs 178 words against a cap of 150, so something goes, and the order
+# decides what he reads. THE QUOTE GOES BEFORE ANY OUTCOME SENTENCE, ruled by
+# the director 2026-09-09 in these words: "if the word budget is fighting you,
+# cut the quote rather than the outcome; the quote is a nicety and the headline
+# is the whole ruling". It is also the biggest single clause at thirty words, so
+# dropping it once is usually the only drop the cap needs. Every drop is named
+# on the done line with the words it saved.
+TRIM_ORDER = ("detail", "quote", "second", "picture")
+# AND WHAT CHANGED IS NEVER EMPTY. The first version of the ladder above could
+# drop every clause in that section and printed `WHAT CHANGED:` with nothing
+# after it, which reads as a morning where nothing happened rather than as a
+# message that ran out of room. This is the floor under it.
+CHANGED_FLOOR = "The gallery has the newest picture of the street."
 
 
 # ------------------------------------------------------------------ the reads
@@ -343,23 +436,33 @@ def read_frame(root):
 
 
 def read_pictures(root, since_day):
-    """How many pictures are newer than the previous brief, out of how many.
+    """How many pictures are newer than the previous brief, out of how many,
+    AND WHICH ONE IS THE NEWEST, with the date it carries.
 
     ONE IMPLEMENTATION OF "WHICH FRAMES ARE THE LATEST": tools/gallery.py dates
     every picture by the commit that touched it (file times in a checkout are
     all the moment of the clone), and this reads its find_pictures() rather
     than a second walk. MEASURED-ABSENT, not required: a tree with no gallery
     tool yields the words nothing measured instead of a refusal.
+
+    THE NEWEST ONE IS HERE BECAUSE OF JAFAR'S RULING OF 2026-09-09: "every
+    image or clip sent is the newest of its kind, dated in its caption". The
+    brief is what the sender turns into the caption, so the DATE has to be in
+    the message and the CHOICE has to be the newest rather than a name typed
+    into a tool years ago. `newestDated` says commit or mtime and is never
+    silent: an mtime in a fresh checkout is the clone's time, which is not a
+    date anything happened on.
     """
+    blank = {"n": None, "total": 0, "newest": None, "newestWhen": None,
+             "newestDated": None}
     if gal is None:
-        return ({"n": None, "total": 0,
-                 "why": "the picture dater could not be imported"},
-                True, "tools/gallery.py(unavailable)")
+        blank["why"] = "the picture dater could not be imported"
+        return blank, True, "tools/gallery.py(unavailable)"
     try:
         shots, reading = gal.find_pictures(root)
     except Exception as e:                                       # noqa: BLE001
-        return ({"n": None, "total": 0, "why": type(e).__name__},
-                True, "tools/gallery.py(failed)")
+        blank["why"] = type(e).__name__
+        return blank, True, "tools/gallery.py(failed)"
     cut = datetime.datetime.fromisoformat(
         since_day + "T00:00:00").replace(
             tzinfo=datetime.timezone.utc).timestamp()
@@ -367,28 +470,367 @@ def read_pictures(root, since_day):
     # counts in one brief describe one period. Two windows with one name is the
     # fault this file's previous_brief_day() docstring already names.
     fresh = [s for s in shots if s["when"] >= cut]
+    # find_pictures() returns NEWEST FIRST, so the newest of its kind is the
+    # head of its list and not a second sort written here.
+    top = shots[0] if shots else None
     return ({"n": len(fresh), "total": len(shots), "why": "",
-             "dirs": reading["dirsWalked"], "dirsNamed": reading["dirsNamed"]},
+             "newest": top["rel"] if top else None,
+             "newestWhen": top["when"] if top else None,
+             "newestDated": top["dated"] if top else None,
+             "dirs": reading["dirsWalked"], "dirsNamed": reading["dirsNamed"],
+             "clips": reading["clipsFound"]},
             True, "tools/gallery.py(find_pictures,since-%s)" % since_day)
+
+
+# ------------------------------------------------- what the GAME did, and when
+# AN OUTCOME IS A THING THE GAME DID, so this reads the only files in the
+# repository that record one: the verdicts CI commits. Each row is
+#
+#     (key=value token, the sentence a person would say, )
+#
+# and THE ORDER IS THE RANK, highest first. The rank is not invented here: it
+# is the moat order of CLAUDE.md section 0, "the moat is social memory,
+# consequence persistence and information... Everything else is in service of
+# it". So somebody hearing a rumour outranks the rumour moving, which outranks
+# the crime being seen, which outranks the street being walkable.
+#
+# WHAT IS NOT IN THIS TABLE IS AS DELIBERATE AS WHAT IS. `grateRectStatus` is
+# not here, and the reason is NOT that the grate missed the frame. Read the
+# whole key set before quoting one of them: the live run says
+# grateShotStatus=AIMED, grateOccluded=no, grateBlocker=none, and its subject
+# rectangle sits on the frame at 0.4615 to 0.6835 of the height. The grate is
+# in the picture and its diagonal slots are legible in it.
+# grateRectStatus=OFF-FRAME describes THE RECTANGLE PAIR, not the piece: the
+# CONTROL rectangle's own fractions are NEGATIVE
+# (grateControlRectFrac=0.4329/-0.2575/0.5671/-0.0354), so the control sits off
+# the top of the frame and the subject-against-control comparison cannot be
+# made. That is queue 177 and it is a measurement fault, not a render one.
+# IT IS OUT OF THIS TABLE BECAUSE IT IS NOT AN OUTCOME. A rectangle's status
+# says nothing about social memory, consequence or information, which is what
+# this table ranks.
+# The separate and true observation: the word MEASURED appears in that file
+# only on a COMMENT line describing what the ruling asked for, so reading that
+# comment as a measurement would be queue 064's "a comment may not write a
+# key", which is why read_verdict_outcomes() skips every line starting with a
+# hash and counts how many it skipped.
+#
+# NO BANNED WORD MAY ENTER A SENTENCE HERE. `commit` and everything like it is
+# on tools/producer-check.py's run-internals list, so crimeStatus=COMMITTED
+# reads as a window going in rather than as a crime being committed. The
+# selftest runs every sentence through the register's own ban list, so a new
+# row cannot quietly redden the morning.
+OUTCOMES = (
+    ("overheardStatus=HEARD",
+     "you overheard two people on the street talking about the crime"),
+    ("gossipStatus=REAL",
+     "what one of them saw passed by word of mouth to the next person"),
+    ("witnessStatus=REAL",
+     "somebody standing on the street saw the crime and remembered it"),
+    ("crimeStatus=COMMITTED",
+     "a shop window went in on the street you can walk down"),
+    ("collisionStatus=REAL",
+     "a wall on the street stopped you walking through it"),
+    ("launchStatus=LAUNCHED",
+     "the game started up and played on your own machine"),
+    ("sceneStatus=WHOLE",
+     "the street built whole, every piece of it standing"),
+)
+# The spoken line the game composed, read out of the SAME file the chosen
+# outcome came from. Spaces are dashes inside a verdict value and tildes inside
+# a capped list, and the verdict says so itself
+# (overheardTextNote=spaces-become-dashes-in-a-value), so undoing both is the
+# inverse of a transform the source names rather than a guess about it.
+QUOTE_KEY = "overheardTellText"
+
+
+def _undash(value):
+    """A verdict value back into prose. Named so because it is lossy in one
+    direction only: a genuine hyphen in the source would already have been
+    written as one and is indistinguishable from a space here, which is the
+    emitter's convention and not this reader's choice."""
+    return re.sub(r"\s+", " ", value.replace("~", " ").replace("-", " ")).strip()
+
+
+def read_verdict_outcomes(root, since_day, until_day):
+    """Every outcome named by a verdict, with the instant the verdict was
+    measured at, newest-and-highest-ranked first.
+
+    THE WINDOW IS THE BRIEF'S WINDOW. A verdict measured before the previous
+    brief is not news, and a verdict with no `@epoch` on line 1 CANNOT BE
+    DATED, which is counted as its own number rather than folded into either
+    answer. MEASURED-ABSENT: no verdict directory yields "nothing measured"
+    about outcomes and is never a refusal, because a tree with no build is not
+    a broken tree.
+    """
+    lo = datetime.datetime.fromisoformat(since_day + "T00:00:00").replace(
+        tzinfo=datetime.timezone.utc).timestamp()
+    hi = (datetime.datetime.fromisoformat(until_day + "T00:00:00").replace(
+        tzinfo=datetime.timezone.utc) + datetime.timedelta(days=1)).timestamp()
+    walked, dated, undated, comment_lines, contradicted = 0, 0, 0, 0, []
+    hits, newest = [], None
+    dirs_present = [d for d in VERDICT_DIRS
+                    if (pathlib.Path(root) / d).is_dir()]
+    for d in dirs_present:
+        for p in sorted((pathlib.Path(root) / d).glob("*.txt")):
+            if "verdict" not in p.name.lower():
+                continue
+            walked += 1
+            try:
+                lines = p.read_text(encoding="utf-8",
+                                    errors="replace").splitlines()
+            except Exception:                                    # noqa: BLE001
+                continue
+            m = VERDICT_STAMP_RE.search(lines[0] if lines else "")
+            if not m:
+                undated += 1
+                continue
+            dated += 1
+            when = int(m.group(1))
+            if newest is None or when > newest[0]:
+                newest = (when, p.relative_to(root).as_posix())
+            if not (lo <= when < hi):
+                continue
+            # A COMMENT MAY NOT WRITE A KEY (queue 064). Every hash line is
+            # skipped and the skips are counted, because the one place
+            # `grateRectStatus=MEASURED` appears in this repository is a
+            # comment describing what a ruling asked for, and reading it would
+            # have put a claim in the brief that the live key contradicts.
+            body = []
+            for line in lines:
+                if line.lstrip().startswith("#"):
+                    comment_lines += 1
+                    continue
+                body.append(line)
+            tokens = set()
+            for line in body:
+                tokens.update(line.split())
+            rel = p.relative_to(root).as_posix()
+            quote = ""
+            for tok in tokens:
+                if tok.startswith(QUOTE_KEY + "="):
+                    quote = _undash(tok.split("=", 1)[1])
+            for rank, (token, sentence) in enumerate(OUTCOMES):
+                if token not in tokens:
+                    continue
+                key = token.split("=", 1)[0]
+                others = sorted(t for t in tokens
+                                if t.startswith(key + "=") and t != token)
+                if others:
+                    # THE SAME KEY WITH A DIFFERENT VALUE IN THE SAME FILE IS
+                    # NOT AN OUTCOME. Two answers under one name is the
+                    # instrument disagreeing with itself, and the honest
+                    # reading is to drop the claim and say it was dropped.
+                    contradicted.append("%s/by=%s" % (token, others[0]))
+                    continue
+                hits.append({"token": token, "sentence": sentence,
+                             "rank": rank, "when": when, "file": rel,
+                             "quote": quote})
+    # RANK FIRST (the moat order above), THEN THE NEWER VERDICT. Both halves
+    # are named so a reader never has to guess which one chose the headline.
+    hits.sort(key=lambda h: (h["rank"], -h["when"]))
+    return ({"hits": hits, "walked": walked, "dated": dated,
+             "undated": undated, "commentLines": comment_lines,
+             "contradicted": contradicted,
+             "dirs": len(dirs_present), "dirsNamed": len(VERDICT_DIRS),
+             "newestWhen": newest[0] if newest else None,
+             "newestFile": newest[1] if newest else None,
+             "chosenBy": "moat-rank-then-newest-instant"},
+            True, "%s(%d-dir(s),since-%s)" % ("+".join(VERDICT_DIRS),
+                                              len(dirs_present), since_day))
+
+
+LADDER_ROW_RE = re.compile(r"^\|(.+)\|\s*$")
+LADDER_STATUSES = ("done", "current", "next", "later")
+
+
+def read_ladder(root):
+    """The visual ladder's rungs and the ONE that is current.
+
+    production/ladder.md is LIVE and Jafar ruled it on 2026-09-09. Its table is
+    a contract in its own words: columns rung, name, status, "done looks like",
+    status exactly one of done/current/next/later, EXACTLY ONE ROW CURRENT. So
+    this reads the contract and never guesses: zero current rows or two are
+    both "nothing measured" about where the project stands, with the count
+    printed, rather than a rung picked by position.
+
+    THIS IS THE FIRST READER OF THAT TABLE IN THE REPOSITORY, measured
+    2026-09-09: the file says tools/map.py renders it and map.py contains no
+    reference to it, so the claim in the file is ahead of the code. If a second
+    reader is ever added, it imports this one.
+    """
+    p = pathlib.Path(root) / LADDER_REL
+    blank = {"rows": [], "current": None, "total": 0, "why": "",
+             "counts": {s: 0 for s in LADDER_STATUSES}, "unknown": 0}
+    if not p.is_file():
+        blank["why"] = "no-%s-in-this-checkout" % LADDER_REL
+        return blank, True, "%s(absent)" % LADDER_REL
+    try:
+        text = p.read_text(encoding="utf-8", errors="replace")
+    except Exception as e:                                       # noqa: BLE001
+        return {}, False, "%s could not be read (%s)" % (LADDER_REL,
+                                                         type(e).__name__)
+    rows, counts, unknown = [], {s: 0 for s in LADDER_STATUSES}, 0
+    for line in text.splitlines():
+        m = LADDER_ROW_RE.match(line.strip())
+        if not m:
+            continue
+        cells = [c.strip() for c in m.group(1).split("|")]
+        if len(cells) < 4 or not re.match(r"^\d+$", cells[0]):
+            continue                      # the header and its dashed rule
+        status = cells[2].lower()
+        if status in counts:
+            counts[status] += 1
+        else:
+            unknown += 1
+        rows.append({"rung": int(cells[0]), "name": cells[1],
+                     "status": status, "done_looks_like": cells[3]})
+    current = [r for r in rows if r["status"] == "current"]
+    out = dict(blank, rows=rows, total=len(rows), counts=counts,
+               unknown=unknown)
+    if len(current) == 1:
+        out["current"] = current[0]
+    else:
+        out["why"] = ("%d-of-%d-rows-say-current/the-files-own-contract-is-"
+                      "exactly-one" % (len(current), len(rows)))
+    return out, True, LADDER_REL
+
+
+def read_steps(root, since_day, until_day):
+    """The finished steps of production/next-three.json, PROVED by tools/map.py.
+
+    ONE IMPLEMENTATION OF "IS THIS STEP REALLY DONE": map.py's next_three()
+    opens every named evidence file and looks for the exact key=value token,
+    and his page is rendered from that same answer. A second proof written here
+    would let the brief and the page disagree with nobody able to see which was
+    wrong. SOFT: no map.py means nothing measured about steps, not a refusal.
+    """
+    if mp is None:
+        return ({"done": [], "inWindow": [], "proven": 0, "claimed": 0,
+                 "keysFound": 0, "keysAsked": 0,
+                 "why": "the step prover could not be imported"},
+                True, "tools/map.py(unavailable)")
+    try:
+        _items, reading = mp.next_three(root)
+    except Exception as e:                                       # noqa: BLE001
+        return ({"done": [], "inWindow": [], "proven": 0, "claimed": 0,
+                 "keysFound": 0, "keysAsked": 0, "why": type(e).__name__},
+                True, "tools/map.py(failed)")
+    done = reading.get("done") or []
+    in_window = [d for d in done
+                 if d.get("proven") and since_day <= str(d.get("doneOn", ""))
+                 <= until_day]
+    return ({"done": done, "inWindow": in_window,
+             "proven": reading.get("doneProven", 0),
+             "claimed": reading.get("doneNamed", 0),
+             "keysFound": reading.get("doneKeysFound", 0),
+             "keysAsked": reading.get("doneKeysAsked", 0),
+             "refusal": reading.get("doneRefusal"), "why": ""},
+            True, "%s(via-tools/map.py,since-%s)" % (STEPS_REL, since_day))
 
 
 # WHAT THE HEADLINE MUST LEAD WITH, ruled by Jafar 2026-09-06: "lead with
 # where the project stands and what changed for the game, not with what was
-# engineered". Mechanical and narrow on purpose: it reads which words the first
-# line opens on. It cannot tell whether the sentence is any good, and the
-# selftest runs it on the shape he rejected as well as on the one it writes,
-# because a rule only checked against the text it was written for is a ratchet.
+# engineered". Mechanical and narrow on purpose: it reads the first line's
+# words. It cannot tell whether the sentence is any good, and the selftest runs
+# it on the shape he rejected as well as on the one it writes, because a rule
+# only checked against the text it was written for is a ratchet.
+#
+# WHY THIS GUARD LET A COUNT HEADLINE THROUGH, measured 2026-09-09 (queue 179).
+# It had two readings, both of them about VOCABULARY: no engineering word, at
+# least one word of his. "Eighteen new pictures of the street since the previous
+# brief, and six decisions are waiting for you" carries no engineering word and
+# three of his (street, picture, decision), so it passed with both readings
+# green. The thing Jafar ruled against was never a word, it was the SHAPE: a
+# quantity of a studio artifact standing as the subject of the sentence. So the
+# third reading below counts that shape directly, and the rejected headline is
+# now refused by the pair `eighteen..pictures`/`six..decisions`.
 ENGINEERING_WORDS = ("queue", "work list", "items are ready", "landed",
                      "pipeline")
-GAME_WORDS = ("street", "town", "picture", "decision", "look")
+GAME_WORDS = ("street", "town", "picture", "decision", "look", "game",
+              "overheard", "saw", "remembered", "window", "walk", "ladder",
+              "stands", "played", "talking")
+# THE NOUNS THAT MAKE A QUANTITY A COUNT OF WHAT WAS ENGINEERED. A count of
+# things in the WORLD is not what he ruled against and is often the best thing
+# in the message ("two people on the street were overheard"), so this list is
+# studio artifacts only and nothing that exists in Meridian.
+COUNTED_NOUNS = ("picture", "pictures", "commit", "commits", "change",
+                 "changes", "session", "sessions", "item", "items", "card",
+                 "cards", "decision", "decisions", "file", "files", "frame",
+                 "frames", "task", "tasks", "gate", "gates", "build", "builds",
+                 "run", "runs", "spawn", "spawns", "point", "points", "step",
+                 "steps", "rung", "rungs", "line", "lines", "word", "words",
+                 "percent")
+# in_words() writes "twenty-one" and "one hundred and fifteen", so the
+# quantities to look for are exactly the words it can produce, plus a digit.
+# ONES[0] is "no", which is deliberate: "No new pictures this morning" is the
+# same shape with a zero in it and is no better a headline than eighteen.
+QUANTITY_WORDS = frozenset([w for w in ONES] + [w for w in TENS if w]
+                           + ["hundred", "dozen"])
+# HOW FAR A QUANTITY REACHES TO ITS NOUN, in words. Three covers "eighteen new
+# pictures" (two), "ninety-two changes have landed" (one, because the hyphen
+# splits) and "six of the sixteen cards" (three). It is a window and not a
+# sentence parser, and when it bites short the headline simply passes, which is
+# why the accepting fixture is checked first and on real text.
+COUNT_WINDOW = 3
+
+
+def counted_artifacts(headline):
+    """Every place this headline COUNTS a studio artifact, as
+    `<quantity>..<noun>` with no space in it so a done line can carry it."""
+    words = re.findall(r"[a-z0-9]+", headline.lower())
+    out = []
+    for i, w in enumerate(words):
+        if not (w in QUANTITY_WORDS or w.isdigit()):
+            continue
+        for j in range(i + 1, min(i + 1 + COUNT_WINDOW, len(words))):
+            if words[j] in COUNTED_NOUNS:
+                out.append("%s..%s" % (w, words[j]))
+                break
+    return out
 
 
 def leads_with_the_game(headline):
-    """(verdict, engineering words found, game words found)."""
+    """(verdict, reading). THREE READINGS, ALL PRINTED, so a failure says which
+    half broke: `engineered` is the words of the studio's own paperwork,
+    `counted` is the shape of a count of them, and `game` is whether anything
+    in the line is his at all."""
     low = headline.lower()
-    eng = [w for w in ENGINEERING_WORDS if w in low]
-    game = [w for w in GAME_WORDS if w in low]
-    return (not eng and bool(game)), eng, game
+    reading = {"engineered": [w for w in ENGINEERING_WORDS if w in low],
+               "counted": counted_artifacts(headline),
+               "game": [w for w in GAME_WORDS if w in low]}
+    ok = (not reading["engineered"] and not reading["counted"]
+          and bool(reading["game"]))
+    return ok, reading
+
+
+# THE SPLIT COVERAGE GATE, and it is not the register's split rule.
+# tools/producer-check.py already refuses a brief whose BUDGET section does not
+# carry the five parts of the sentence (studio, game, sessions, "not points",
+# "measured"); what nothing checked until 2026-09-09 is whether the sentence
+# carries the DENOMINATOR. "Sixty-one sessions went to the studio" and
+# "sixty-one of one hundred and twelve" are different facts, and a reader
+# completes the first one by guessing. The standing order in the daily wake is
+# "every brief reports the studio versus game split", so this is the half that
+# makes the report a measurement rather than a number.
+def split_in_words(text, split):
+    """(verdict, reading). The reading names every part it looked for, so a
+    failure says which half broke rather than only that one did."""
+    bodies, _order = pc.split_sections(text)
+    body = " ".join(bodies.get("BUDGET", [])).strip()
+    register = [f for f in pc.check(text, "brief")["findings"]
+                if f.rule == "split"]
+    total = in_words(split["total"])
+    # THE DENOMINATOR IS LOOKED FOR AS THE WORDS BEFORE THE UNIT, not as a
+    # substring. in_words(0) is "no", and a plain `"no" in body` passed on the
+    # "not points" three words later, so the zero case certified itself.
+    denom = re.compile(r"\b%s\s+sessions?\b" % re.escape(total), re.I)
+    parts = {
+        "theRegistersFiveParts": not register,
+        "theDenominatorInWords": bool(body) and bool(denom.search(body)),
+        "theBasisIsNamedAsSessions": "sessions" in body.lower(),
+    }
+    return all(parts.values()), {"parts": parts, "denominator": total,
+                                 "registerFindings": [str(f) for f in register]}
 
 
 def previous_brief_day(root, today):
@@ -423,17 +865,22 @@ def compose(root, today):
 
     prev = previous_brief_day(root, today)
     since = prev or today.isoformat()
+    until = today.isoformat()
     q = source("queue", read_queue(root))
     cards = source("cards", read_cards(root))
     budget = source("budget", read_budget(root, today))
-    split = source("split", read_split(root, since, today.isoformat()))
+    split = source("split", read_split(root, since, until))
     landed = source("landed", read_landed(root, since))
     frame = source("frame", read_frame(root))
     pics = source("pictures", read_pictures(root, since))
+    ladder = source("ladder", read_ladder(root))
+    outcomes = source("outcomes", read_verdict_outcomes(root, since, until))
+    steps = source("steps", read_steps(root, since, until))
     facts.update({"queue": q, "cards": cards, "budget": budget,
                   "split": split, "landed": landed, "frame": frame,
-                  "pictures": pics,
-                  "window_since": since, "window_until": today.isoformat(),
+                  "pictures": pics, "ladder": ladder, "outcomes": outcomes,
+                  "steps": steps,
+                  "window_since": since, "window_until": until,
                   "prev_brief": prev})
     if facts["failed"]:
         return None, facts
@@ -445,55 +892,124 @@ def compose(root, today):
     glance_url = site_url("")
 
     waiting = cards["waiting"]
-    lines = []
 
-    # THE HEADLINE IS WHERE THE GAME STANDS, ruled by Jafar 2026-09-06: "lead
-    # with where the project stands and what changed for the game, not with
-    # what was engineered". It used to open with the queue count, which is a
-    # fact about the studio's paperwork and tells him nothing about his game.
-    # So the first sentence carries the two things that are HIS: whether there
-    # is anything new to look at, and whether anything is waiting on him.
+    # ------------------------------------------------------------- the parts
+    # WHERE THE PROJECT STANDS: the ladder's current rung, and nothing else.
+    # Jafar wrote production/ladder.md on 2026-09-09 to be exactly this answer,
+    # with the contract that exactly one row says current. Zero rows or two is
+    # "nothing measured", never a rung chosen by position: a ladder that
+    # invents its own place is the failure its own last paragraph forbids.
+    rung = ladder.get("current")
+    if rung:
+        stands = ("the ladder's current rung is %s"
+                  % _lower_first(rung["name"]))
+    else:
+        stands = "nothing measured about where the ladder stands"
+
+    # WHAT CHANGED FOR THE GAME: a verdict's own status words, ranked by the
+    # moat. AN UNEARNED HEADLINE IS NOT INVENTED: with nothing in the window
+    # the lead says so in those words, and a count never fills the line.
+    hits = outcomes["hits"]
+    first, second = (hits[0] if hits else None), (hits[1] if len(hits) > 1
+                                                  else None)
+    if first:
+        lead = first["sentence"][0].upper() + first["sentence"][1:]
+    else:
+        lead = ("Nothing measured about what changed for the game since the "
+                "previous brief")
+    quote = (first or {}).get("quote") or ""
+    # THE SPOKEN LINE, AND IT IS CHECKED BEFORE IT IS QUOTED. The game composed
+    # it, so nothing here knows what is in it: a register finding inside a
+    # quotation would refuse the whole morning over a sentence a person said.
+    # Checked on the ban list only, for the reason the card heading is.
+    if quote:
+        quote_findings = [f for f in pc.check(quote, "answer")["findings"]
+                          if f.rule != "linkfloor"]
+        quote_why = "/".join(sorted(set(f.rule for f in quote_findings))) \
+            or "none"
+    else:
+        quote_findings, quote_why = [], "no-%s-in-the-chosen-verdict" % QUOTE_KEY
+    facts["quote_ok"] = 1 if (quote and not quote_findings) else 0
+    facts["quote_why"] = quote_why
+
+    # THE PICTURE CLAUSE CARRIES THE NEWEST ONE'S DATE, ruled by Jafar
+    # 2026-09-09: "every image or clip sent is the newest of its kind, dated in
+    # its caption". tools/runner/outbox.py makes the message body the caption of
+    # the attachment it carries, so the date belongs in the message.
+    #
+    # AND IT PROMISES HIM NO PAGE. It used to say the pictures are "in the
+    # gallery", which is a claim that a site he can open holds them; eight
+    # consecutive publish runs failed on the morning of 2026-09-09 (41 to 48),
+    # so the published pages have never served a byte. The brief says when the
+    # newest picture was taken, which is true of the repository, and the
+    # attachment on the done line is what actually reaches his phone.
     if pics["n"] is None:
-        stands = "Nothing measured about new pictures this morning"
-    elif pics["n"]:
-        stands = ("%s new %s of the street since the previous brief"
-                  % (in_words(pics["n"]).capitalize(),
-                     plural(pics["n"], "picture", "pictures")))
+        picture = "Nothing measured about new pictures this morning."
+    elif pics["n"] and pics["newest"]:
+        picture = ("The newest picture of the street is from %s."
+                   % in_date_words(pics["newestWhen"]))
+    elif pics["newest"]:
+        picture = ("No new picture since the previous brief; the newest is "
+                   "still from %s." % in_date_words(pics["newestWhen"]))
     else:
-        stands = "No new picture of the street since the previous brief"
-    asks = ("%s %s waiting for you"
-            % (in_words(waiting), plural(waiting, "decision is",
-                                         "decisions are"))
-            if waiting else "nothing is waiting for you")
-    lines.append("HEADLINE: %s, and %s." % (stands, asks))
-    lines.append("")
+        picture = "There is no picture of the street at all."
 
-    # WHAT CHANGED FOR THE GAME FIRST, then the studio behind it in one clause.
-    if pics["n"]:
-        changed = ("There are %s new %s of the street to look at, biggest and "
-                   "newest first." % (in_words(pics["n"]),
-                                      plural(pics["n"], "picture", "pictures")))
-    elif frame["rel"]:
-        changed = ("Nothing new to look at this morning, so the gallery still "
-                   "holds the last picture of the street.")
+    # THE NEXT THING HE WILL SEE is the current rung's own "done looks like"
+    # column when it survives two measured bounds, and the rung's NAME when it
+    # does not. THE BOUNDS COME FROM THE PRINTED SERIES, not from taste: the
+    # seven rungs' first sentences measure 34/28/19/14/11/12/5 words
+    # (2026-09-09, printed by --selftest), and two of the seven carry a file
+    # path that the register bans outright. DETAIL_MAX_WORDS admits the short
+    # ones and refuses the two longest, because one section may not eat a fifth
+    # of a 150-word message.
+    detail, detail_words = "", 0
+    if rung:
+        detail = re.split(r"(?<=[.!?])\s+", rung["done_looks_like"])[0].strip()
+        detail_words = len(detail.split())
+        bad = [f for f in pc.check(detail or "x", "answer")["findings"]
+               if f.rule != "linkfloor"]
+        if bad or detail_words > DETAIL_MAX_WORDS:
+            detail = ""
+    facts["rung_detail_words"] = detail_words
+    facts["rung_detail_used"] = 1 if detail else 0
+
+    if budget["reading"] is None or budget["stale"]:
+        money = ("Nothing measured on the budget: no reading newer than two "
+                 "days, so today's spend is unknown and an unknown budget is "
+                 "not permission.")
     else:
-        changed = ("No picture of the street this morning, because %s."
-                   % frame["why"])
-    # THE STUDIO'S OWN WORK, ONE CLAUSE, and the work list is NOT in it: the
-    # queue counts are on the provenance lines and the done line below, which
-    # is where a machine reads them and where they belong. Ruled 2026-09-06.
-    if landed["n"] is None:
-        studio = (" Behind it, nothing measured about what landed, because no "
-                  "history was readable here.")
-    elif landed["n"] == 0:
-        studio = " Behind it, nothing landed."
+        money = ("Your newest reading was %s percent on the meter that "
+                 "governs, taken %s."
+                 % (in_words(budget["reading"]),
+                    "today" if budget["age_days"] == 0 else "yesterday"))
+    # THE SPLIT SENTENCE, REQUIRED IN EVERY BRIEF by the standing order in the
+    # daily wake, in WORDS, in this section, COUNTED IN SESSIONS, WITH ITS
+    # DENOMINATOR, and with the reason it is not points. "Fifty-seven" and
+    # "fifty-seven of one hundred and seven" are different facts, and the first
+    # one is the fact a reader completes by guessing.
+    # producer-check --kind brief refuses a brief without the five parts; this
+    # program's own gate refuses one without the denominator.
+    if split["total"]:
+        money += (" Of %s %s since the previous brief, %s went to the studio "
+                  "and %s to the game, in sessions not points until the rate "
+                  "is measured."
+                  % (in_words(split["total"]),
+                     plural(split["total"], "session", "sessions"),
+                     in_words(split["studio"]), in_words(split["game"])))
     else:
-        studio = (" Behind them, %s %s landed."
-                  % (in_words(landed["n"]),
-                     plural(landed["n"], "change has", "changes have")))
-    lines.append("WHAT CHANGED: " + changed + studio)
-    lines.append("[the gallery](%s)" % gallery_url)
-    lines.append("")
+        money += (" No sessions at all since the previous brief, so the studio "
+                  "and the game both read nothing, in sessions not points "
+                  "until the rate is measured.")
+    # THE ART SHARE IS A THIRD QUANTITY AND IS NOT THE SPLIT. Jafar ruled on
+    # 2026-09-08 that the art line takes at most a quarter of the WEEK'S POINTS,
+    # and the hand-written brief of 2026-09-09 reported the art share where the
+    # standing order asks for the studio-versus-game split, which is a different
+    # question answered in a different unit. This program cannot compute the art
+    # share honestly: .claude/agent-log.tsv carries two columns, a time and an
+    # agent name, no agent name in it is the art line, and production/budget.md
+    # says the turns-to-points conversion is UNMEASURED. So it says that,
+    # rather than letting the split stand in for it.
+    money += " The art share is not measured here."
 
     if waiting:
         needs = ("%s %s waiting for you."
@@ -519,56 +1035,79 @@ def compose(root, today):
     else:
         needs = "Nothing needs you this morning."
         facts["card_title_used"] = 0
-    lines.append("NEEDS YOU: " + needs)
-    lines.append("[where it all stands](%s)" % glance_url)
-    lines.append("")
 
-    # THE NEXT THING COMES FROM THE ONE SOURCE THAT NAMES IT, never from a
-    # heading in a log. production/next-three.json is that source as of
-    # 2026-09-07; the map reads it too, so his phone and his page cannot
-    # disagree. A missing or unreadable file says so rather than guessing.
-    nxt = REPO / "production" / "next-three.json"
-    title = None
-    try:
-        import json as _json
-        items = (_json.loads(nxt.read_text(encoding="utf-8")) or {}).get("next") or []
-        if items and isinstance(items[0], dict):
-            title = (items[0].get("title") or "").strip() or None
-    except Exception:
-        title = None
-    facts["next_from"] = "production/next-three.json" if title else "nothing-measured"
-    if title:
-        # THE REGISTER WANTS A TIME OR THE WORD UNKNOWN, and naming the task
-        # without either is refused, which is right: he is asking WHEN he sees
-        # something, not what someone intends to do. So the task is named and
-        # the timing says unknown in that word, until a started item can date
-        # itself.
-        lines.append("NEXT VISIBLE THING: " + title[0].lower() + title[1:]
-                     + ", though when is unknown until it is started.")
-    else:
-        lines.append("NEXT VISIBLE THING: unknown, because nothing names it.")
-    lines.append("")
+    # ------------------------------------------------------------ the render
+    # THE TRIM LADDER. Optional clauses, dropped in this order until the
+    # register's word cap is clear, each drop announced on the done line. The
+    # spoken line is the most valuable thing in the message and also the
+    # longest, so it is the first thing dropped rather than the thing that
+    # refuses the morning.
+    def render(on):
+        out = ["HEADLINE: %s, and %s." % (lead, stands), ""]
+        changed = []
+        if "quote" in on and quote and not quote_findings:
+            changed.append('One of them said: "%s"' % quote)
+        if "second" in on and second:
+            changed.append(second["sentence"][0].upper()
+                           + second["sentence"][1:] + ".")
+        if not changed and not first:
+            changed.append("Nothing measured about what the game did since "
+                           "the previous brief.")
+        if "picture" in on:
+            changed.append(picture)
+        out.append("WHAT CHANGED: " + " ".join(changed or [CHANGED_FLOOR]))
+        out.append("[the gallery](%s)" % gallery_url)
+        out.append("")
+        out.append("NEEDS YOU: " + needs)
+        # THE LABEL IS "the console" AND NOT "where it all stands", corrected
+        # 2026-09-09. Of 48 publish runs four succeeded, the last at
+        # 2026-09-07T20:23:12Z, so the page a link opens EXISTS and is about 36
+        # hours stale. "Where it all stands" promises currency that page does
+        # not have; the destination is unchanged and still one of the three
+        # Jafar ruled.
+        out.append("[the console](%s)" % glance_url)
+        out.append("")
+        if "detail" in on and detail:
+            out.append("NEXT VISIBLE THING: %s; when is unknown until it "
+                       "starts." % _lower_first(detail))
+        elif rung:
+            out.append("NEXT VISIBLE THING: %s; when is unknown until it "
+                       "starts." % _lower_first(rung["name"]))
+        else:
+            out.append("NEXT VISIBLE THING: unknown, because nothing names it.")
+        out.append("")
+        out.append("BUDGET: " + money)
+        return "\n".join(out) + "\n"
 
-    if budget["reading"] is None or budget["stale"]:
-        money = ("Nothing measured on the budget: no reading newer than two "
-                 "days, so today's spend is unknown and an unknown budget is "
-                 "not permission.")
-    else:
-        money = ("Your newest reading was %s percent on the meter that "
-                 "governs, taken %s."
-                 % (in_words(budget["reading"]),
-                    "today" if budget["age_days"] == 0 else "yesterday"))
-    # THE SPLIT SENTENCE. Required by the standing order over every brief, in
-    # WORDS, in this section, COUNTED IN SESSIONS, with the reason it is not
-    # points. producer-check --kind brief refuses a brief without it.
-    money += (" %s %s went to the studio and %s to the game since the "
-              "previous brief, counted in sessions and not points until the "
-              "rate is measured."
-              % (in_words(split["studio"]).capitalize(),
-                 plural(split["studio"], "session", "sessions"),
-                 in_words(split["game"])))
-    lines.append("BUDGET: " + money)
-    return "\n".join(lines) + "\n", facts
+    # A RUNG THAT CANNOT CONTRIBUTE IS NOT A RUNG THAT WAS DROPPED. Dropping an
+    # absent clause would put a name in `trimmed=` that saved nothing, and a
+    # reader would read the cap as biting twice as hard as it did.
+    contributes = {"quote": bool(quote and not quote_findings),
+                   "second": bool(second), "detail": bool(detail),
+                   "picture": True}
+    on, dropped = set(k for k in TRIM_ORDER if contributes[k]), []
+    text = render(on)
+    for part in TRIM_ORDER:
+        res = pc.check(text, "brief")
+        if res["words"] <= res["cap"]:
+            break
+        if part not in on:
+            continue
+        before = res["words"]
+        on.discard(part)
+        text = render(on)
+        after = pc.check(text, "brief")["words"]
+        dropped.append("%s..%d-words-over..saved-%d"
+                       % (part, before - res["cap"], before - after))
+    facts["trimmed"] = dropped
+    facts["trim_order"] = [k for k in TRIM_ORDER if contributes[k]]
+    # THE HEADLINE GUARD RUNS ON EVERY MORNING, not only in the selftest. A
+    # guard nothing calls is decoration (CLAUDE.md rule 6), and this one let a
+    # count headline through for three days while passing its own test.
+    ok, lead_reading = leads_with_the_game(text.splitlines()[0])
+    facts["lead_ok"], facts["lead_reading"] = ok, lead_reading
+    facts["split_ok"], facts["split_reading"] = split_in_words(text, split)
+    return text, facts
 
 
 def brief_path(root, today):
@@ -582,6 +1121,7 @@ def provenance(facts):
     somewhere a reader can audit, and this is that somewhere."""
     q, b, s, l = (facts["queue"], facts["budget"], facts["split"],
                   facts["landed"])
+    p, o, st = facts["pictures"], facts["outcomes"], facts["steps"]
     out = [
         "queueReady=%d %s/" % (q["ready"], QUEUE_REL),
         "queueBlocked=%d %s/" % (q["blocked"], QUEUE_REL),
@@ -597,8 +1137,23 @@ def provenance(facts):
             BUDGET_REL),
         "budgetRowsThatAreReadings=%d/%d %s"
         % (b["rows"], b["rows"] + b["not_readings"], BUDGET_REL),
-        "splitStudio=%d/%d %s" % (s["studio"], s["total"], AGENT_LOG_REL),
-        "splitGame=%d/%d %s" % (s["game"], s["total"], AGENT_LOG_REL),
+        # THE SPLIT, CUMULATIVE OVER THE WINDOW, WITH ITS BASIS AND ITS
+        # DENOMINATOR ON THE SAME LINE AS THE NUMERATOR. `splitUnparsedRows` is
+        # the rows the classifier could not read at all (three merge-conflict
+        # markers sit in the log as of 2026-09-09): they are in neither answer
+        # and would otherwise vanish, which is how a denominator quietly stops
+        # counting what it claims to.
+        "splitStudio=%d/%d basis=spawns %s" % (s["studio"], s["total"],
+                                               AGENT_LOG_REL),
+        "splitGame=%d/%d basis=spawns %s" % (s["game"], s["total"],
+                                             AGENT_LOG_REL),
+        "splitUnparsedRows=%d %s" % (s["unparsed"], AGENT_LOG_REL),
+        # THE ART SHARE IS A THIRD QUANTITY AND IS NOT MEASURED HERE. Named on
+        # its own line with the reason, because the failure this replaces was a
+        # brief reporting the art share WHERE THE SPLIT WAS ASKED FOR.
+        "artShareOfTheWeeksPoints=nothing-measured "
+        "why=the-log-carries-when-and-agent-only/no-art-line-among-the-agent-"
+        "names/points-unmeasured-per-%s" % BUDGET_REL,
         "landed=%s git-log-since-%s"
         % (l["n"] if l["n"] is not None else "nothing-measured",
            facts["window_since"]),
@@ -613,8 +1168,60 @@ def provenance(facts):
         # carries the frame's URL and the path has to reach the sender
         # somewhere. This line is that somewhere, and it is outside the message
         # because the register bans paths in anything he reads.
-        "attachAsTelegramImage=%s tools/report-frame.py"
+        # TWO READINGS, NEVER MERGED. `attachAsTelegramImage` is the NEWEST
+        # picture of its kind and the date that goes in its caption, which is
+        # Jafar's ruling of 2026-09-09; `frameFromReportFrame` is what
+        # tools/report-frame.py offers, which is a fixed Unity frame name and on
+        # 2026-09-09 was six days older than the newest picture in the tree.
+        # Printing both is how a reader sees them disagree. NOTHING READS EITHER
+        # KEY TODAY: the send path takes its attachment from a sidecar file
+        # beside a message in production/outbox/, and this brief is written to
+        # production/briefs/, so the sidecar named below has to be written by
+        # whatever carries the brief to the outbox. Queue 179's report names it.
+        "attachAsTelegramImage=%s dated=%s by=%s sidecarWanted=%s"
+        % (p["newest"] or "nothing-measured",
+           in_date_words(p["newestWhen"]).replace(" ", "-")
+           if p["newestWhen"] else "nothing-measured",
+           p["newestDated"] or "nothing-measured",
+           ("photo:%s" % p["newest"]) if p["newest"] else "none"),
+        "frameFromReportFrame=%s tools/report-frame.py"
         % (facts["frame"]["rel"] or "nothing-measured/withheld"),
+        # WHAT THE GAME DID, and the denominators under it. outcomeHits is how
+        # many of the table's keys were found in the window, NOT how many
+        # verdicts carried one.
+        "outcomeChosen=%s %s" % (o["hits"][0]["token"].replace("=", "..")
+                                 if o["hits"] else "nothing-measured",
+                                 o["hits"][0]["file"] if o["hits"]
+                                 else "/".join(VERDICT_DIRS)),
+        "outcomeChosenAt=%s chosenBy=%s"
+        % (datetime.datetime.fromtimestamp(
+            o["hits"][0]["when"], datetime.timezone.utc)
+            .strftime("%Y-%m-%dT%H:%M:%SZ") if o["hits"]
+           else "nothing-measured", o["chosenBy"]),
+        # TWO NUMERATORS, TWO DENOMINATORS, NEVER CROSSED: the keys found are
+        # DISTINCT keys over the table's size, and the hits are key-in-a-file
+        # pairs over the verdicts read. The first version of this line divided
+        # ten hits by seven keys, which is two populations under one slash.
+        "outcomeKeysFound=%d/%d-looked-for outcomeHitsAcrossVerdicts=%d/%d-read "
+        "verdictsDated=%d/%d-walked verdictsUndated=%d commentLinesSkipped=%d "
+        "contradicted=%d/%s"
+        % (len(set(h["token"] for h in o["hits"])), len(OUTCOMES),
+           len(o["hits"]), o["dated"], o["dated"], o["walked"],
+           o["undated"], o["commentLines"], len(o["contradicted"]),
+           o["contradicted"][0] if o["contradicted"] else "none"),
+        # THE LADDER: where the project stands, and the pair is rung-over-total
+        # on one line so neither half can be read without the other.
+        "ladderCurrentRung=%s/%d %s"
+        % (facts["ladder"]["current"]["rung"] if facts["ladder"]["current"]
+           else "nothing-measured", facts["ladder"]["total"], LADDER_REL),
+        "ladderStatuses=%s unknown=%d why=%s"
+        % ("/".join("%s..%d" % (k, v)
+                    for k, v in facts["ladder"]["counts"].items()),
+           facts["ladder"]["unknown"], facts["ladder"]["why"] or "none"),
+        # THE FINISHED STEPS, PROVED BY tools/map.py's OWN EVIDENCE READER.
+        "stepsProven=%d/%d stepsKeysFound=%d/%d stepsDoneInWindow=%d %s"
+        % (st["proven"], st["claimed"], st["keysFound"], st["keysAsked"],
+           len(st["inWindow"]), STEPS_REL),
     ]
     return out
 
@@ -651,6 +1258,47 @@ def run_once(root, today, dry_run=False, write_latest=False, quiet=False):
         say("morning-brief: REFUSED registerFindings=%d words=%d/%d "
             "briefWritten=0/1"
             % (len(res["findings"]), res["words"], res["cap"]))
+        return 1, text, facts
+
+    # THE HEADLINE GATE, RUN ON EVERY MORNING AND NOT ONLY IN THE SELFTEST.
+    # Jafar ruled the shape on 2026-09-06 and this program went on leading with
+    # a count until 2026-09-09 because the only thing that ever ran the rule was
+    # a test asserting it passed. A guard nothing calls is decoration, CLAUDE.md
+    # rule 6, so this refuses the brief rather than writing it.
+    if not facts["lead_ok"]:
+        lr = facts["lead_reading"]
+        say("morning-brief: REFUSED to write. The headline does not lead with "
+            "the game, ruled by Jafar 2026-09-06:")
+        say("    %s" % text.splitlines()[0])
+        say("    engineering word(s): %s" % (", ".join(lr["engineered"])
+                                             or "none"))
+        say("    counted artifact(s): %s" % (", ".join(lr["counted"])
+                                             or "none"))
+        say("    word(s) of his: %s" % (", ".join(lr["game"])
+                                        or "none, which is the finding"))
+        say("morning-brief: REFUSED leadOk=0 leadEngineered=%d leadCounted=%d "
+            "leadGameWords=%d/%d briefWritten=0/1"
+            % (len(lr["engineered"]), len(lr["counted"]), len(lr["game"]),
+               len(GAME_WORDS)))
+        return 1, text, facts
+
+    # THE SPLIT COVERAGE GATE, also on every morning. The standing order in the
+    # daily wake makes the split mandatory in EVERY brief and nothing read for
+    # coverage until 2026-09-09: the register read for the sentence's shape, and
+    # the one brief that went out by hand reported the art share instead, which
+    # is a different quantity in a different unit.
+    if not facts["split_ok"]:
+        sr = facts["split_reading"]
+        say("morning-brief: REFUSED to write. The BUDGET section does not "
+            "report the studio-versus-game split with its denominator:")
+        for part, good in sr["parts"].items():
+            say("    %-28s %s" % (part, "found" if good else "MISSING"))
+        say("    the denominator looked for: %s" % sr["denominator"])
+        for f in sr["registerFindings"]:
+            say("    %s" % f)
+        say("morning-brief: REFUSED splitReported=0/1 splitPartsFound=%d/%d "
+            "briefWritten=0/1"
+            % (sum(1 for v in sr["parts"].values() if v), len(sr["parts"])))
         return 1, text, facts
 
     p = brief_path(root, today)
@@ -698,26 +1346,55 @@ def run_once(root, today, dry_run=False, write_latest=False, quiet=False):
            facts["prev_brief"] or "none found, so the window is today only"))
     say("  sources read: %s"
         % ", ".join("%s<-%s" % (n, w) for n, w, ok in facts["sources"]))
-    s = facts["split"]
+    s, o, lr = facts["split"], facts["outcomes"], facts["lead_reading"]
+    lad = facts["ladder"]
+    # WHY THE QUOTE IS NOT IN THE MESSAGE, and the two reasons are different
+    # facts: the cap took it, or the game never said anything. A single
+    # `quoteInBrief=0` with no reason beside it cannot tell them apart.
+    quote_trimmed = "quote" in [d.split("..")[0] for d in facts["trimmed"]]
+    quote_in = 0 if quote_trimmed else facts["quote_ok"]
+    quote_why = ("trimmed-for-the-word-cap" if quote_trimmed
+                 else facts["quote_why"])
+    # WHOLE-RUN NUMBERS, ONE LINE, and the per-source numbers are on the
+    # provenance lines above. A reader greping one line across two moments is
+    # the fault this split obeys.
     say("morning-brief: %s sourcesRead=%d/%d words=%d/%d registerFindings=0 "
+        "leadOk=%d leadIs=%s leadCounted=%s "
+        "outcome=%s outcomeKeysFound=%d/%d ladderRung=%s/%d "
+        "quoteInBrief=%d/1 quoteWhy=%s trimmed=%s "
         "queueReady=%d/%d queueBlocked=%d/%d queueDone=%d cardsWaiting=%d/%d "
-        "splitStudio=%d/%d splitGame=%d/%d splitBasis=spawns "
+        "splitStudio=%d/%d splitGame=%d/%d splitBasis=spawns splitReported=1/1 "
+        "splitUnparsedRows=%d artShare=nothing-measured "
         "splitSource=%s splitWindow=%s..%s budgetAgeDays=%s "
-        "cardTitleUsed=%d/%d frame=%s briefWritten=%d/1 latestWritten=%d/1 "
-        "generatedAt=%s"
+        "cardTitleUsed=%d/%d attach=%s attachDated=%s frame=%s "
+        "briefChars=%d/%s-telegram-caption-cap "
+        "briefWritten=%d/1 latestWritten=%d/1 generatedAt=%s"
         % ("DRY-RUN" if dry_run else "WROTE",
            len(facts["sources"]), len(facts["sources"]),
            res["words"], res["cap"],
+           1 if facts["lead_ok"] else 0,
+           "an-outcome" if o["hits"] else "nothing-measured",
+           ",".join(lr["counted"]) or "none",
+           o["hits"][0]["token"].replace("=", "..") if o["hits"]
+           else "nothing-measured",
+           len(set(h["token"] for h in o["hits"])), len(OUTCOMES),
+           lad["current"]["rung"] if lad["current"] else "nothing-measured",
+           lad["total"],
+           quote_in, quote_why, ",".join(facts["trimmed"]) or "none",
            facts["queue"]["ready"], facts["queue"]["walked"],
            facts["queue"]["blocked"], facts["queue"]["walked"],
            facts["queue"]["done"],
            facts["cards"]["waiting"], facts["cards"]["scanned"],
-           s["studio"], s["total"], s["game"], s["total"],
+           s["studio"], s["total"], s["game"], s["total"], s["unparsed"],
            AGENT_LOG_REL, facts["window_since"], facts["window_until"],
            facts["budget"]["age_days"] if facts["budget"]["age_days"]
            is not None else "nothing-measured",
            facts.get("card_title_used", 0), 1 if facts["cards"]["waiting"] else 0,
+           facts["pictures"]["newest"] or "nothing-measured",
+           in_date_words(facts["pictures"]["newestWhen"]).replace(" ", "-")
+           if facts["pictures"]["newestWhen"] else "nothing-measured",
            facts["frame"]["rel"] or "withheld",
+           len(text), ob.CAPTION_CAP if ob is not None else "nothing-measured",
            0 if dry_run else 1, wrote_latest,
            datetime.datetime.now(datetime.timezone.utc)
            .strftime("%Y-%m-%dT%H:%M:%SZ")))
@@ -726,10 +1403,18 @@ def run_once(root, today, dry_run=False, write_latest=False, quiet=False):
 
 # ------------------------------------------------------------------ selftest
 
+# HOW MANY PLANTED TREES THIS RUN ACTUALLY BUILT. The closing line used to
+# carry a typed literal ("5 planted trees") that nothing updated when a fixture
+# was added, so the one number summarising the test's own coverage was the one
+# number in it nobody measured.
+_TREES_BUILT = [0]
+
+
 def _tree(files):
     import atexit
     import shutil
     import tempfile
+    _TREES_BUILT[0] += 1
     d = pathlib.Path(tempfile.mkdtemp(prefix="morning-brief-"))
     atexit.register(shutil.rmtree, str(d), True)
     for rel, text in files.items():
@@ -783,8 +1468,15 @@ def selftest():
             failed.append(name)
             print("  FAIL %s\n         got: %s" % (name, got))
 
-    today = datetime.date(2026, 9, 5)
-    print("morning-brief --selftest: ACCEPTING CASE FIRST, the live tree\n")
+    # THE LIVE TREE IS READ AT ITS REAL DATE, not at a pinned one. A pinned
+    # 2026-09-05 put the brief's window three days behind the newest verdict, so
+    # the accepting case for an OUTCOME headline could never see an outcome and
+    # the live tree silently tested the nothing-measured path instead. Every
+    # deterministic case below is a planted tree, which is where a fixed date
+    # belongs.
+    today = datetime.datetime.now(datetime.timezone.utc).date()
+    print("morning-brief --selftest: ACCEPTING CASE FIRST, the live tree at %s\n"
+          % today.isoformat())
     text, facts = compose(REPO, today)
     ok("the live checkout composes a brief with every source read (%d of %d)"
        % (len(facts["sources"]) - len(facts["failed"]), len(facts["sources"])),
@@ -821,28 +1513,99 @@ def selftest():
     # on the work list, and must name something of his (the town, a picture, or
     # a decision waiting). It cannot tell whether the sentence is any good.
     headline = text.splitlines()[0]
-    lead_ok, engineered, game_words = leads_with_the_game(headline)
+    lead_ok, lr = leads_with_the_game(headline)
     ok("the headline leads with the game, not the paperwork (%d engineering "
-       "word(s) of %d looked for, %d game word(s) of %d found)"
-       % (len(engineered), len(ENGINEERING_WORDS), len(game_words),
-          len(GAME_WORDS)),
-       lead_ok, (headline, engineered))
-    # AND THE OTHER OUTCOME, on the shape Jafar rejected on 2026-09-06. The
-    # string is quoted here rather than read from the old file, so repairing
-    # the file can never disarm the guard.
-    rejected_shape = ("HEADLINE: Eighty-three queue items are ready to start "
-                      "this morning, and eight blocked.")
-    bad_lead, bad_eng, _ = leads_with_the_game(rejected_shape)
-    ok("and the headline Jafar rejected is REFUSED by the same rule (%s)"
-       % "/".join(bad_eng), not bad_lead, rejected_shape)
+       "word(s) of %d looked for, %d counted artifact(s), %d game word(s) of "
+       "%d found)"
+       % (len(lr["engineered"]), len(ENGINEERING_WORDS), len(lr["counted"]),
+          len(lr["game"]), len(GAME_WORDS)),
+       lead_ok, (headline, lr))
+    # THE OUTCOME HALF, on the live tree, and it asserts the PROPERTY rather
+    # than today's sentence: the lead either names an outcome a verdict carries
+    # or says nothing was measured in those words, and either way it counts no
+    # studio artifact. A fixture pinned to today's crime run would break the
+    # moment the next run lands, which is the pinning instruments.md forbids.
+    lead_is_outcome = facts["outcomes"]["hits"] and (
+        facts["outcomes"]["hits"][0]["sentence"].lower() in headline.lower())
+    ok("the headline is an OUTCOME a verdict named (%s), or says nothing was "
+       "measured (%d key(s) of %d found in the window)"
+       % (facts["outcomes"]["hits"][0]["token"] if facts["outcomes"]["hits"]
+          else "nothing measured",
+          len(set(h["token"] for h in facts["outcomes"]["hits"])),
+          len(OUTCOMES)),
+       bool(lead_is_outcome)
+       or "Nothing measured about what changed for the game" in headline,
+       headline)
+    ok("and where the project stands comes from the ladder's one current rung "
+       "(rung %s of %d)"
+       % (facts["ladder"]["current"]["rung"] if facts["ladder"]["current"]
+          else "nothing measured", facts["ladder"]["total"]),
+       (facts["ladder"]["current"] is not None
+        and facts["ladder"]["current"]["name"].lower() in headline.lower())
+       or "nothing measured about where the ladder stands" in headline,
+       (facts["ladder"]["why"], headline))
 
-    # NO DIGIT IN THE PROSE, and the URLs are scrubbed first because the link
-    # floor REQUIRES them and a branch name carrying digits is not a count.
-    # This is the same scrub the register itself runs before the ban list.
+    # AND THE OTHER OUTCOME, TWICE, ON THE TWO SHAPES JAFAR REJECTED. Both
+    # strings are quoted here rather than read from a file, so repairing the
+    # file can never disarm the guard.
+    #
+    # THE SECOND ONE IS THE MEASUREMENT THAT OPENED QUEUE 179: this program
+    # really printed it on 2026-09-09, and the guard as it stood passed it,
+    # because its only readings were about vocabulary and that sentence is full
+    # of his words. The third reading is what refuses it.
+    for name, rejected in (
+            ("the queue-count headline of 2026-09-06",
+             "HEADLINE: Eighty-three queue items are ready to start this "
+             "morning, and eight blocked."),
+            ("the picture-count headline this tool printed on 2026-09-09",
+             "HEADLINE: Eighteen new pictures of the street since the previous "
+             "brief, and six decisions are waiting for you.")):
+        bad_lead, bad = leads_with_the_game(rejected)
+        ok("and %s is REFUSED by the same rule (engineered:%s counted:%s)"
+           % (name, "/".join(bad["engineered"]) or "none",
+              "/".join(bad["counted"]) or "none"),
+           not bad_lead, rejected)
+
+    # NO BARE COUNT IN THE PROSE, and the URLs are scrubbed first because the
+    # link floor REQUIRES them and a branch name carrying digits is not a count.
+    # THIS WAS "no digit at all" UNTIL 2026-09-09 and had to loosen by exactly
+    # one form: Jafar ruled that every image is "dated in its caption", and the
+    # register's own numeral scrub names "9 September" a named-month date rather
+    # than a quantity. So the assertion is now the register's own find_counts,
+    # plus the stronger half printed beside it: every digit that survives sits
+    # inside a date form and the forms are named.
     prose = pc.scrub_links(text)
-    ok("the message carries no `splitBasis=` and no digit outside a link",
-       "splitBasis" not in prose and not re.search(r"\d", prose),
-       re.findall(r"\S*\d\S*", prose)[:4])
+    counts = pc.find_counts(prose)
+    datescrub = prose
+    for label, pat in pc.NUMERAL_OK:
+        if "date" in label:
+            datescrub = re.sub(pat, " ", datescrub, flags=re.I)
+    ok("the message carries no `splitBasis=` and no bare count (%d found), and "
+       "every digit left in it is a date (%d outside one)"
+       % (len(counts), len(re.findall(r"\d", datescrub))),
+       "splitBasis" not in prose and not counts
+       and not re.search(r"\d", datescrub),
+       (counts, re.findall(r"\S*\d\S*", datescrub)[:4]))
+    # THE SPLIT COVERAGE GATE, ACCEPTING HALF: the live brief reports the split
+    # with its denominator in words.
+    sp_ok, sp = split_in_words(text, facts["split"])
+    ok("the BUDGET section reports the split with its denominator in words "
+       "(%s, basis spawns, denominator %s)"
+       % ("/".join(k for k, v in sp["parts"].items() if v) or "nothing",
+          sp["denominator"]),
+       sp_ok, sp)
+    # AND THE REJECTING HALF OF THE SAME GATE: the denominator taken out of the
+    # sentence, which the register's own split rule cannot see at all.
+    denom_phrase = ("Of %s %s since the previous brief, "
+                    % (in_words(facts["split"]["total"]),
+                       plural(facts["split"]["total"], "session", "sessions")))
+    no_denominator = text.replace(denom_phrase, "")
+    nd_ok, nd = split_in_words(no_denominator, facts["split"])
+    ok("and the same brief with the denominator removed is REFUSED, while the "
+       "register's own split rule still passes it (%d register finding(s) "
+       "there, so this gate is not a second copy of that one)"
+       % len(nd["registerFindings"]),
+       no_denominator != text and not nd_ok and not nd["registerFindings"], nd)
     text2, _ = compose(REPO, today)
     ok("two composes on one checkout are byte-identical (%d bytes)"
        % len(text.encode("utf-8")), text == text2,
@@ -862,8 +1625,15 @@ def selftest():
     # THE OTHER HALF OF THE SPLIT GUARD, so it can tell a regression from an
     # improvement rather than passing everything: the SAME brief with the
     # sentence removed must be refused, by the split rule and by name.
-    stripped = re.sub(r" [A-Za-z-]+ sessions? went to the studio.*?measured\.",
-                      "", text, flags=re.S)
+    # THE SENTENCE IS REMOVED BY ITS MEANING, NOT BY ITS WORDING: every sentence
+    # carrying "not points" goes, line by line so the section structure the
+    # register reads survives. The previous version matched the exact phrasing
+    # and went quiet the moment the phrasing changed, which is what it did on
+    # 2026-09-09 when the denominator entered the sentence.
+    stripped = "\n".join(
+        " ".join(s for s in re.split(r"(?<=\.) ", line)
+                 if "not points" not in s)
+        for line in text.splitlines())
     rs = pc.check(stripped, "brief",
                   datetime.datetime.combine(today, datetime.time(0, 0)))
     ok("the same brief with the split sentence removed is REFUSED by the "
@@ -889,14 +1659,22 @@ def selftest():
        code_s == 0 and "Nothing measured on the budget" in ts
        and "twelve percent" not in ts, (code_s, ts))
     ok("and the stale tree still carries the split sentence in words",
-       "sessions and not points until the rate is measured" in ts, ts)
-    # THE PROPERTY, NOT THE SENTENCE: the brief must say it could not look,
-    # and must NOT say nothing landed. Asserting both halves is what makes this
+       "not points until the rate is measured" in ts, ts)
+    # THE PROPERTY, NOT THE SENTENCE: the brief must say it could not look, and
+    # must NOT say nothing landed. Asserting both halves is what makes this
     # survive a rewording without going quiet: the wording moved on 2026-09-06
-    # and the old assertion caught it, which is the guard working.
-    ok("a tree with no history reports landed as nothing measured, not zero",
-       "nothing measured about what landed" in ts
-       and "nothing landed" not in ts, ts)
+    # and again on 2026-09-09 and this assertion caught it both times.
+    #
+    # WHERE IT MOVED TO, 2026-09-09: the count of what landed is no longer in
+    # the message at all. It was a count of commits standing beside the split,
+    # which is the same question ("how much work happened") answered twice from
+    # two variables, and Jafar ruled counts out of the lead. It lives on the
+    # provenance line, which is where a machine reads it.
+    prov = "\n".join(provenance(fs))
+    ok("a tree with no history reports landed as nothing measured on the "
+       "provenance line, not zero, and the message carries no count of it",
+       "landed=nothing-measured" in prov and fs["landed"]["n"] is None
+       and "landed" not in ts, (prov.splitlines(), ts))
 
     # A SOURCE THAT CANNOT BE READ: refuse, name it, write nothing.
     broken = _tree(_fixture_files(today.isoformat()))
@@ -915,6 +1693,158 @@ def selftest():
        code_n == 1 and any(n == "queue" for n, _ in fn["failed"]),
        fn["failed"])
 
+    # ------------------------------------------------ the outcome readers
+    # A PLANTED STREET THAT DID SOMETHING, ACCEPTING CASE FIRST. Synthetic to
+    # the last byte: a made-up status key would be rejected by the table, so the
+    # tokens here are real ones, but the FILE, the ladder and the epoch are all
+    # invented, which is what stops the live tree's next run from breaking this.
+    noon = int(datetime.datetime.combine(
+        today, datetime.time(6, 0)).replace(
+            tzinfo=datetime.timezone.utc).timestamp())
+    played = {
+        "production/ladder.md":
+            "# planted\n\n| rung | name | status | done looks like |\n"
+            "|---|---|---|---|\n"
+            "| 1 | A lamp that lights the wall | done | It lights it. |\n"
+            "| 2 | A door that opens | current | He walks through the door. |\n"
+            "| 3 | A face that moves | next | It moves. |\n",
+        "production/d1-probe/made-up-verdict.txt":
+            "# planted probe deadbeef @%d\n"
+            "# crimeStatus=COMMITTED on a comment line, which may not count\n"
+            "sceneStatus=WHOLE piecesEmitted=3/3\n"
+            "witnessStatus=REAL overheardStatus=HEARD "
+            "overheardTellText=She-saw-him-do-it-and-she-knows-his-face.\n"
+            % noon,
+    }
+    tree = _tree(_fixture_files(today.isoformat(), played))
+    code_p, tp, fp = run_once(tree, today, dry_run=True, quiet=True)
+    hits = fp["outcomes"]["hits"]
+    ok("a planted verdict dated today names an outcome and the brief LEADS with "
+       "it (%s, %d key(s) of %d, ranked %s)"
+       % (hits[0]["token"] if hits else "nothing measured",
+          len(set(h["token"] for h in hits)), len(OUTCOMES),
+          fp["outcomes"]["chosenBy"]),
+       code_p == 0 and hits and hits[0]["token"] == "overheardStatus=HEARD"
+       and hits[0]["sentence"].lower() in tp.splitlines()[0].lower(),
+       (code_p, tp))
+    ok("and the planted ladder's one current rung is where it says the project "
+       "stands (rung %s of %d)"
+       % (fp["ladder"]["current"]["rung"] if fp["ladder"]["current"]
+          else "nothing measured", fp["ladder"]["total"]),
+       fp["ladder"]["current"] is not None
+       and "a door that opens" in tp.splitlines()[0], tp.splitlines()[0])
+    ok("and the spoken line the planted game composed is quoted, undashed "
+       "(quoteInBrief=%d trimmed=%s)"
+       % (fp["quote_ok"], ",".join(fp["trimmed"]) or "none"),
+       "She saw him do it and she knows his face." in tp, tp)
+    # A COMMENT MAY NOT WRITE A KEY. The same planted file carries
+    # crimeStatus=COMMITTED on a hash line only, and the crime sentence must be
+    # nowhere in the brief: this is queue 064's rule, and the live tree is where
+    # it actually bites (grateRectStatus=MEASURED sits on a comment in
+    # ue-walk-verdict.txt while the live key says OFF-FRAME, which is the
+    # RECTANGLE PAIR's status and not the grate's; see the note above).
+    crime = dict(OUTCOMES)["crimeStatus=COMMITTED"]
+    ok("an outcome key on a COMMENT line is not an outcome (%d comment line(s) "
+       "skipped)" % fp["outcomes"]["commentLines"],
+       fp["outcomes"]["commentLines"] >= 2
+       and not any(h["token"] == "crimeStatus=COMMITTED" for h in hits)
+       and crime not in tp, [h["token"] for h in hits])
+    # THE SAME KEY WITH TWO VALUES IN ONE FILE IS NOT AN OUTCOME.
+    two = dict(played)
+    two["production/d1-probe/made-up-verdict.txt"] = (
+        "# planted probe deadbeef @%d\n"
+        "witnessStatus=REAL\nwitnessStatus=NOTHING-SEEN\n" % noon)
+    t2 = _tree(_fixture_files(today.isoformat(), two))
+    code_c, tc, fc = run_once(t2, today, dry_run=True, quiet=True)
+    ok("a key carrying two different values in one file is DROPPED and named "
+       "(%s)" % (fc["outcomes"]["contradicted"][0]
+                 if fc["outcomes"]["contradicted"] else "nothing measured"),
+       code_c == 0 and fc["outcomes"]["contradicted"]
+       and not fc["outcomes"]["hits"]
+       and "Nothing measured about what changed for the game" in tc,
+       (fc["outcomes"], tc))
+    # TWO CURRENT RUNGS IS THE FILE'S OWN CONTRACT BROKEN, and the honest answer
+    # is nothing measured rather than the first of the two.
+    broke = dict(played)
+    broke["production/ladder.md"] = broke["production/ladder.md"].replace(
+        "| 3 | A face that moves | next |", "| 3 | A face that moves | current |")
+    t3 = _tree(_fixture_files(today.isoformat(), broke))
+    code_l, tl, fl = run_once(t3, today, dry_run=True, quiet=True)
+    ok("a ladder with two current rows reads as nothing measured, names the "
+       "count, and the brief still writes (%s)" % fl["ladder"]["why"],
+       code_l == 0 and fl["ladder"]["current"] is None
+       and "nothing measured about where the ladder stands" in tl
+       and "2-of-3-rows-say-current" in fl["ladder"]["why"], (code_l, tl))
+    # THE TWO NEW GATES ACTUALLY REFUSING, because a gate whose refusal branch
+    # nothing ever runs is decoration (CLAUDE.md rule 6) and because the old
+    # headline rule's whole failure was that the only thing calling it was a
+    # test asserting it passed. THE CONDITION IS PLANTED, never loosened: the
+    # composer is wrapped for one call and the wrapper puts the exact headline
+    # Jafar rejected back into the message, or takes the denominator out of the
+    # split sentence. Both wrappers are removed immediately afterwards.
+    real_compose = globals()["compose"]
+
+    def _with(mangle):
+        def faked(root, t):
+            txt, f = real_compose(root, t)
+            txt = mangle(txt)
+            f["lead_ok"], f["lead_reading"] = \
+                leads_with_the_game(txt.splitlines()[0])
+            f["split_ok"], f["split_reading"] = split_in_words(txt, f["split"])
+            return txt, f
+        return faked
+
+    try:
+        globals()["compose"] = _with(
+            lambda t: "HEADLINE: Eighteen new pictures of the street since the "
+                      "previous brief, and six decisions are waiting for you."
+                      + t.split("\n", 1)[1])
+        code_h, _th, fh = run_once(tree, today, dry_run=True, quiet=True)
+        ok("run_once REFUSES the count headline and writes nothing (exit %d, "
+           "%d register finding(s), so it refused at the headline gate and not "
+           "before it)" % (code_h, len(fh.get("check", {}).get("findings", []))),
+           code_h == 1 and not fh["lead_ok"]
+           and not fh.get("check", {}).get("findings"), (code_h, fh["lead_ok"]))
+        globals()["compose"] = _with(
+            lambda t: re.sub(
+                r"\bOf [a-z\- ]+ sessions? since the previous brief, ", "",
+                t.replace("No sessions at all since the previous brief, so "
+                          "the studio", "The studio")))
+        code_d, _td, fd = run_once(tree, today, dry_run=True, quiet=True)
+        ok("run_once REFUSES a split sentence with no denominator, which the "
+           "register itself passes (exit %d, %d register finding(s))"
+           % (code_d, len(fd.get("check", {}).get("findings", []))),
+           code_d == 1 and not fd["split_ok"]
+           and not fd.get("check", {}).get("findings"),
+           (code_d, fd.get("split_reading")))
+    finally:
+        globals()["compose"] = real_compose
+    code_back, _tb, fb2 = run_once(tree, today, dry_run=True, quiet=True)
+    ok("and the unwrapped composer passes both gates again (exit %d, leadOk=%s "
+       "splitReported=%s)" % (code_back, fb2["lead_ok"], fb2["split_ok"]),
+       code_back == 0 and fb2["lead_ok"] and fb2["split_ok"], code_back)
+
+    # THE SERIES BEHIND DETAIL_MAX_WORDS, printed from the LIVE ladder so the
+    # bound can be re-read off real rows rather than defended from memory.
+    live_rungs = read_ladder(REPO)[0]["rows"]
+    series = [len(re.split(r"(?<=[.!?])\s+", r["done_looks_like"])[0].split())
+              for r in live_rungs]
+    ok("the live ladder's done-looks-like sentences measure %s word(s) against "
+       "the bound of %d, so the bound admits %d of %d and refuses %d"
+       % ("/".join(str(n) for n in series) or "nothing measured",
+          DETAIL_MAX_WORDS, sum(1 for n in series if n <= DETAIL_MAX_WORDS),
+          len(series), sum(1 for n in series if n > DETAIL_MAX_WORDS)),
+       bool(series) and any(n <= DETAIL_MAX_WORDS for n in series)
+       and any(n > DETAIL_MAX_WORDS for n in series), series)
+    # EVERY SENTENCE IN THE TABLE, AGAINST THE REGISTER'S OWN BAN LIST. A new
+    # row saying "the crime was committed" would redden the morning, because
+    # `commit` is on the run-internals list, and the brief would refuse itself.
+    bad_rows = [tok for tok, s in OUTCOMES
+                if [f for f in pc.check(s, "answer")["findings"]
+                    if f.rule != "linkfloor"]]
+    ok("all %d outcome sentence(s) survive the register's ban list (%d refused)"
+       % (len(OUTCOMES), len(bad_rows)), not bad_rows, bad_rows)
+
     # WORDS, both ends, because the whole message is built out of this.
     ok("counts read as words: %s / %s / %s / %s"
        % (in_words(0), in_words(1), in_words(21), in_words(115)),
@@ -922,9 +1852,15 @@ def selftest():
        == ("no", "one", "twenty-one", "one hundred and fifteen"),
        (in_words(0), in_words(21), in_words(115)))
 
-    print("\nmorning-brief --selftest: %s. %d passed, %d failed, over 1 live "
-          "tree and 5 planted tree(s)"
-          % ("PASS" if not failed else "FAILED", passed, len(failed)))
+    # THE CLOSING LINE IS SHAPED FOR ledger/verify.py's EXISTING READER, which
+    # greps `selftest: (\d+) passed, (\d+) failed` (see its decal-ink check).
+    # Nothing in verify.py or CI runs this selftest as of 2026-09-09, which is
+    # the rule-6 hole queue 179's report names; this line is so the wiring is a
+    # copy of a pattern already in the file rather than a new parser.
+    print("\nmorning-brief --selftest: %d passed, %d failed, over 1 live tree "
+          "and %d planted tree(s) verdict=%s"
+          % (passed, len(failed), _TREES_BUILT[0],
+             "PASS" if not failed else "FAILED"))
     for f in failed:
         print("  " + f)
     return 0 if not failed else 3

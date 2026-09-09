@@ -580,6 +580,17 @@ class Bot(object):
         self.out_passes = 0
         self.out_sent = 0
         self.out_refused = 0
+        # THE CARDS, queue 093. Cumulative over the whole run, each against the
+        # set it came from on the done line. `cards_already` is the skip count
+        # the receipts produced, which is the number that says the dedupe is
+        # working rather than that the queue is empty.
+        self.last_cards = 0.0
+        self.cards_passes = 0
+        self.cards_sent = 0
+        self.cards_already = 0
+        self.cards_skipped = 0
+        self.quiet_days_sent = 0
+        self.cards_note = "no-pass-yet"
         # RULED BY JAFAR 2026-09-08: "measure whether the bot's own loop
         # sweeps at all, with a per-pass counter in the published status.
         # Report the observed number rather than reasoning about whether it
@@ -903,6 +914,20 @@ class Bot(object):
                 "botSweepSecSinceLast=%s" % (since if since >= 0
                                              else "nothing-measured"),
                 "botSweepLastResult=%s" % self.sweep_note.replace(" ", "-"),
+                # THE CARDS HALF OF THE SAME QUESTION, and the same three
+                # states kept apart: no file means this process never started,
+                # botCardsPasses=0 with a fresh write means the loop has not
+                # reached the card pass, and a number says it sweeps.
+                "botCardsPasses=%d" % self.cards_passes,
+                "botCardsSent=%d" % self.cards_sent,
+                "botCardsAlreadySent=%d" % self.cards_already,
+                "botCardsSkipped=%d" % self.cards_skipped,
+                "botQuietDaysSent=%d" % self.quiet_days_sent,
+                "botCardsEverySec=%d" % self.CARDS_EVERY_SEC,
+                "botCardsSecSinceLast=%s"
+                % (int(time.time() - self.last_cards) if self.last_cards
+                   else "nothing-measured"),
+                "botCardsLastResult=%s" % self.cards_note.replace(" ", "-"),
                 "botUptimeSec=%d" % up,
                 "botSweepWrittenAt=%s"
                 % time.strftime("%Y-%m-%dT%H:%M:%S"),
@@ -911,6 +936,61 @@ class Bot(object):
                 fh.write("\n".join(lines) + "\n")
         except OSError:
             pass
+
+    #: HOW OFTEN THE LOOP SWEEPS THE DECISION CARDS, in seconds.
+    #:
+    #: IT IS THE OUTBOX SWEEP'S OWN RHYTHM, COPIED, AND I HAVE NO SERIES THAT
+    #: SETS IT FROM THE VALUE OF SENDING SOONER. What I do have is the rate the
+    #: input changes: over the 11 commits that have touched
+    #: production/decision-queue.md the gaps between them are, in seconds,
+    #: 842 9246 13023 14949 20234 46329 49283 56563 99453 171812 (median 33281,
+    #: about 9.2 hours; shortest 842, 14 minutes; 0 of 10 shorter than this
+    #: interval). So 120 seconds oversamples the fastest edit this file has
+    #: ever seen by seven times, and a card written at any instant reaches him
+    #: inside one pass.
+    #:
+    #: WHAT MAKES THAT SAFE IS THE DEDUPE AND NOT THE INTERVAL. A pass with
+    #: nothing new costs one file read plus one receipt stat per pushable card
+    #: and sends nothing; before the receipts existed this same loop would have
+    #: sent every waiting card every two minutes, which is why the sender had
+    #: no caller until the receipts did.
+    CARDS_EVERY_SEC = 120
+
+    def sweep_cards(self, every=None):
+        """Send the WAITING cards, at most every `CARDS_EVERY_SEC`.
+
+        ITS OWN TIMESTAMP, not the outbox's. Two pieces of work on one guard
+        would mean a quiet outbox silencing the cards, or the other way round,
+        and the two have nothing to do with each other.
+
+        WRAPPED FOR THE REASON `sweep_outbox` IS: a broken card pass must not
+        take the channel down, and a pass that RAISED is still a pass that
+        happened, so the counter moves and the note names the failure.
+        """
+        every = self.CARDS_EVERY_SEC if every is None else every
+        if time.time() - self.last_cards < every:
+            return
+        self.last_cards = time.time()
+        try:
+            res = cards_pass(self.creds, self.repo, OUT.say)
+        except Exception as e:                                # noqa: BLE001
+            OUT.say("cards: the pass could not run (%s). The channel keeps "
+                    "running." % type(e).__name__)
+            self.cards_passes += 1
+            self.cards_note = "raised/%s" % type(e).__name__
+            self.write_sweep_status()
+            return
+        self.cards_passes += 1
+        self.cards_sent += len(res["sent"])
+        self.cards_skipped += len(res["skipped"])
+        self.cards_already += len(res["already"])
+        if res["nothing"] == "sent":
+            self.quiet_days_sent += 1
+        self.cards_note = ("sent%d/already%d/skipped%d/of%d/nothing.%s"
+                           % (len(res["sent"]), len(res["already"]),
+                              len(res["skipped"]), res["waiting"],
+                              res["nothing"]))
+        self.write_sweep_status()
 
     def sweep_outbox(self, every=120):
         """Send anything the Producer left in the outbox, at most every two
@@ -1199,9 +1279,19 @@ class Bot(object):
                 # WRAPPED, because a raise in a finally would replace whatever
                 # the try was already doing, including the deliberate returns
                 # above it.
+                #
+                # AND THE CARDS SWEEP IS HERE, NOT SOMEWHERE ELSE, BECAUSE
+                # NOTHING CALLED IT AT ALL UNTIL 2026-09-09. `cards_pass` and
+                # the whole keyboard were built for queue 090 and no caller
+                # ever reached them: the only sender that ran was the text-only
+                # outbox sweep, whose `sender(text)` has no place to put a
+                # keyboard. That is rule 6, built is not running, and it is why
+                # Jafar's phone got cards as plain text with no buttons, or not
+                # at all. One line here is the whole difference.
                 try:
                     self.flush_inbox()
                     self.sweep_outbox()
+                    self.sweep_cards()
                 except Exception as e:                        # noqa: BLE001
                     OUT.say("the offline half could not run this pass (%s). "
                             "The bot keeps polling." % type(e).__name__)
@@ -1224,6 +1314,8 @@ class Bot(object):
                 "backlogFiled=%d/%d networkErrors=%d inboxFiled=%d "
                 "inboxPushed=%d/%d inboxPushFailures=%d inboxPending=%s "
                 "outboxPasses=%d outboxSent=%d outboxRefused=%d "
+                "cardsPasses=%d cardsSent=%d cardsAlreadySent=%d "
+                "cardsSkipped=%d quietDaysSent=%d "
                 "repliesReceipted=%d/%d"
                 % (int((time.time() - self.started) / 60), self.seen,
                    self.mine, self.seen, self.other, self.seen,
@@ -1234,6 +1326,8 @@ class Bot(object):
                    self.filed, self.pushed, self.filed, self.push_fails,
                    "unreadable" if waiting < 0 else waiting, self.out_passes,
                    self.out_sent, self.out_refused,
+                   self.cards_passes, self.cards_sent, self.cards_already,
+                   self.cards_skipped, self.quiet_days_sent,
                    self.receipted, self.replies))
 
 
@@ -1377,15 +1471,27 @@ def outbox_pass(creds, repo=None, say=None):
 
 
 def cards_pass(creds, repo=None, say=None):
-    """Send every pushable WAITING card, with one button per option.
+    """Send every pushable WAITING card he has not been sent, with one button
+    per option.
 
     THE CHOOSING, THE COUNTING AND THE STRINGS ARE IN `cards.send_cards`,
-    where the tests run; this supplies the wire and the file. A card whose
-    options do not fit the queue's own two-to-four rule is named here with
-    the reason rather than sent with a keyboard he cannot use.
+    where the tests run; this supplies the wire, the file and the receipt
+    store. A card whose options do not fit the queue's own two-to-four rule,
+    or which states no recommendation, default or deadline, is named here with
+    the reason rather than sent as a message he cannot act on.
+
+    THE RECEIPTS GO BACK THE SAME WAY A PRODUCER MESSAGE'S DO. `outbox_pass`
+    pushes its records at the end of a sweep and this does the same, for the
+    same reason: a receipt that stays on the PC is a send the studio cannot
+    see, and the dedupe it feeds is local, so a failed push costs nothing but
+    the studio's view of it.
     """
     repo = repo or REPO
     say = say or OUT.say
+    empty = {"waiting": 0, "pushable": [], "sent": [], "already": [],
+             "held": [], "skipped": [], "failed": [], "noid": [],
+             "records": [], "undated": 0, "nothing": "not-looked-at",
+             "day": "nothing-measured"}
     try:
         with open(os.path.join(repo, *cards.QUEUE_REL.split("/")), "r",
                   encoding="utf-8") as fh:
@@ -1394,7 +1500,7 @@ def cards_pass(creds, repo=None, say=None):
         say("NOT SENT: %s could not be read (%s), so 0 card(s) were sent and "
             "nothing is known about what is waiting."
             % (cards.QUEUE_REL, type(e).__name__))
-        return {"waiting": 0, "sent": [], "skipped": [], "failed": []}
+        return empty
 
     def sender(body, keyboard):
         try:
@@ -1402,7 +1508,15 @@ def cards_pass(creds, repo=None, say=None):
         except ApiError as e:
             raise outbox.SendFailed(str(e))
 
-    return cards.send_cards(text, sender, say=say)
+    res = cards.send_cards(text, sender, outbox.CardReceipts(repo), say=say)
+    if res["records"]:
+        push = inbox.push_pending(repo, say)
+        if not push["ok"]:
+            say("cards: %d receipt record(s) are written on this PC but NOT "
+                "pushed (%s). Nothing he was sent is forgotten: the receipts "
+                "are on this disk and the dedupe reads them from there."
+                % (len(res["records"]), push["detail"]))
+    return res
 
 
 def video_pass(creds, path, caption, repo=None, say=None, run_sha="unknown"):
@@ -2112,10 +2226,16 @@ def _selftest_cases(ok, bad, state):
     # inside the try AFTER it, so neither ever ran. Uptime climbed, the
     # supervisor reported it running, receipts piled up on disk, and nothing
     # moved.
-    ran = {"flush": 0, "sweep": 0}
+    ran = {"flush": 0, "sweep": 0, "cards": 0}
     bP = Captured()
     bP.flush_inbox = lambda every=60: ran.__setitem__("flush", ran["flush"] + 1)
     bP.sweep_outbox = lambda every=120: ran.__setitem__("sweep", ran["sweep"] + 1)
+    # AND THE CARDS, 2026-09-09. This row is the one that says the card sender
+    # has a caller at all: it had none from the day it was written (queue 090)
+    # until this line, which is rule 6 exactly, and a grep for "send-cards"
+    # found only the usage text and its own argument parser.
+    bP.sweep_cards = lambda every=None: ran.__setitem__("cards",
+                                                        ran["cards"] + 1)
 
     class _Enough(Exception):
         pass
@@ -2140,6 +2260,8 @@ def _selftest_cases(ok, bad, state):
 
     check("accept/a-failing-poll-still-flushes-and-sweeps",
           ran["flush"] == 1 and ran["sweep"] == 1, ran)
+    check("accept/the-loop-sweeps-the-cards-beside-the-outbox",
+          ran["cards"] == 1, ran)
     check("accept/and-the-poll-failure-was-real-not-a-vacuous-pass",
           bP.net_errors == 1, "netErrors=%d" % bP.net_errors)
 
@@ -2390,6 +2512,101 @@ def _selftest_cases(ok, bad, state):
           and "botSweepLastResult=raised/RuntimeError" in raised,
           raised.replace("\n", " ")[:150])
 
+    # ---- THE CARD PASS, END TO END, AGAINST THE FIXTURE REPOSITORY -------
+    # THE WIRING ROW, and the one that says the keyboard reaches a sender at
+    # all. `cards.py --selftest` proves the message and the dedupe arithmetic;
+    # this proves that `sweep_cards` reads the queue on disk, hands
+    # `cards.send_cards` a real `outbox.CardReceipts`, writes the receipt into
+    # production/outbound and counts the pass. `send` is swapped for a stand-in
+    # that returns what Telegram's own payload looks like, so nothing here
+    # touches the network; `inbox.push_pending` is stubbed because whether the
+    # records reach the branch is the transport's own suite, not this one.
+    with open(queue_rel, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write(cards.FIXTURE)
+    b9 = Captured()
+    b9.creds = creds
+    wired, pushes = [], []
+    real_send, real_push2 = send, inbox.push_pending
+    try:
+        globals()["send"] = lambda token, chat, text, markup=None: (
+            wired.append((text, markup)) or {"message_id": 900 + len(wired)})
+        inbox.push_pending = lambda repo, say=None, **k: (
+            pushes.append(repo) or {"ok": True, "pushed": [], "pending": [],
+                                    "commit": "c" * 40, "replaced": False,
+                                    "detail": "stubbed in the selftest",
+                                    "plain": ""})
+        b9.sweep_cards(every=0)
+        after_one = list(wired)
+        b9.sweep_cards(every=0)
+    finally:
+        globals()["send"] = real_send
+        inbox.push_pending = real_push2
+
+    check("accept/the-card-pass-sends-the-one-sendable-card-with-buttons",
+          len(after_one) == 1
+          and "How close should strangers stand?" in after_one[0][0]
+          and isinstance(after_one[0][1], dict)
+          and len(after_one[0][1]["inline_keyboard"]) == 3,
+          [t[:40] for t, _m in after_one])
+    check("accept/and-that-message-names-all-six-things-with-one-link",
+          all(w in after_one[0][0] for w in ("CLASS: DECISION",
+                                            "RECOMMENDATION B,",
+                                            "DEFAULT B if unruled",
+                                            "DEADLINE 2026-09-07,",
+                                            "The card: https://"))
+          and after_one[0][0].count("http") == 1,
+          after_one[0][0].replace("\n", " | ")[:200] if after_one else "SILENT")
+    card_receipts = [n for n in os.listdir(
+        os.path.join(b9.repo, *outbox.OUTBOUND_DIR.split("/")))
+        if n.startswith("card-") and n.endswith(".receipt.txt")]
+    check("accept/the-receipt-is-written-where-the-studio-reads-it",
+          len(card_receipts) == 1 and len(pushes) == 1, card_receipts)
+    check("accept/the-second-pass-sends-nothing-and-counts-the-skip",
+          len(wired) == 1 and b9.cards_passes == 2 and b9.cards_sent == 1
+          and b9.cards_already == 1
+          and "cardsPasses=2" in b9.done_line()
+          and "cardsSent=1" in b9.done_line()
+          and "cardsAlreadySent=1" in b9.done_line(), b9.done_line())
+    cards_file = os.path.join(b9.repo, *Bot.SWEEP_STATUS_REL.split("/"))
+    cards_status = open(cards_file, encoding="utf-8").read() \
+        if os.path.exists(cards_file) else ""
+    check("accept/the-card-counters-reach-the-file-the-supervisor-reads",
+          "botCardsPasses=2" in cards_status
+          and "botCardsSent=1" in cards_status
+          and "botCardsEverySec=%d" % Bot.CARDS_EVERY_SEC in cards_status
+          and "botCardsLastResult=" in cards_status,
+          cards_status.replace("\n", " ")[:200])
+    check("accept/a-bot-that-has-not-swept-the-cards-publishes-zero",
+          "botCardsPasses=0" in zero
+          and "botCardsLastResult=no-pass-yet" in zero,
+          zero.replace("\n", " ")[:200])
+    # AND THE EXCEPTION PATH, PLANTED: a card pass that raises is still a pass.
+    bA = Captured()
+    bA.creds = creds
+    real_cards_pass = cards_pass
+    try:
+        globals()["cards_pass"] = (lambda *a, **k: (_ for _ in ()).throw(
+            RuntimeError("planted")))
+        bA.sweep_cards(every=0)
+    finally:
+        globals()["cards_pass"] = real_cards_pass
+    raised_cards = open(cards_file, encoding="utf-8").read() \
+        if os.path.exists(cards_file) else ""
+    check("accept/a-card-pass-that-raised-still-counts-and-names-the-raise",
+          bA.cards_passes == 1
+          and "botCardsLastResult=raised/RuntimeError" in raised_cards,
+          raised_cards.replace("\n", " ")[:200])
+    # AND THE UNREADABLE QUEUE, which must report its denominator rather than
+    # a clean zero: a pass that could not read the file sent nothing and knows
+    # nothing about what is waiting.
+    said_cards = []
+    gone_repo = os.path.join(b9.repo, "no-such-checkout")
+    res_gone = cards_pass(creds, gone_repo, lambda s: said_cards.append(s))
+    check("accept/an-unreadable-queue-says-so-and-sends-nothing",
+          res_gone["waiting"] == 0 and res_gone["sent"] == []
+          and any("could not be read" in s for s in said_cards),
+          said_cards[:1])
+
     # ---- --flush-inbox, ON THE CASE IT MUST PASS --------------------------
     # A DIRECTOR RECORDED, 2026-09-08, that this flag shipped with no case of
     # its own, so the suite's count was consistent with the whole branch never
@@ -2520,7 +2737,14 @@ def main(argv):
         if creds is None:
             return 1
         res = cards_pass(creds)
-        return 1 if res["failed"] else 0
+        # A HELD CARD AND A CARD WITH NO MESSAGE ID ARE FAILURES OF THIS PASS
+        # TOO, and the CI step that runs this reads the exit code beside the
+        # stream: a green exit over a card that may not have arrived is the
+        # shape of evidence failure this project keeps paying for. A SKIPPED
+        # card is not counted here: a card the queue wrote without a default is
+        # a queue fault, it is named on its own line, and it must not make the
+        # step red for every other card that went.
+        return 1 if (res["failed"] or res["noid"] or res["held"]) else 0
     if "--send-clip" in args:
         creds = load_or_explain()
         if creds is None:

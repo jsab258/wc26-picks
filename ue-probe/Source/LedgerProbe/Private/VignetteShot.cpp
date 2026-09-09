@@ -272,6 +272,19 @@ namespace
 	// the street that is not showing one.
 	std::vector<LedgerSurface::QuadResult> GQuads;
 	std::vector<std::string> GQuadLines;
+	// THE CONTROL QUAD ACTORS THEMSELVES, KEPT so that a shot which is not
+	// the one they were placed for can hide them. They are an instrument, and
+	// vignette-spec-test measures one of them reaching column 1274 of
+	// cam_hook's 1280 wide frame, which is an instrument standing in the
+	// picture rung 1 is judged by. The RULE is LedgerSurface::
+	// ControlQuadsVisibleFor and lives in the header the test compiles; this
+	// is only its call site and its tally.
+	TArray<AStaticMeshActor*> GQuadActors;
+	int32 GQuadVisShot = -1;      // the shot index the visibility was last written for
+	int   GQuadShotsSeen = 0;     // shots that reached the write, over which the tally is taken
+	int   GQuadHidden = 0;        // of those, how many had the controls hidden
+	std::string GQuadHiddenIds;
+
 	std::string GQuadDone =
 		"controlQuadsStatus=NOT-REACHED controlQuads=nothing-measured"
 		" controlQuadsNote=the-control-pass-never-ran";
@@ -1306,6 +1319,10 @@ namespace
 			Out.Add(TEXT("# no control quad line: the control pass reached no quad."));
 		}
 		Out.Add(FString(UTF8_TO_TCHAR(GQuadDone.c_str())));
+		// AND WHETHER THE CONTROLS WERE IN THE FRAME OR NOT, per shot,
+		// formatted in the tested header.
+		Out.Add(FString(UTF8_TO_TCHAR(LedgerSurface::ControlQuadVisibilityLine(
+			GQuadShotsSeen, GQuadHidden, GQuadHiddenIds).c_str())));
 		if (GLightLines.empty())
 		{
 			Out.Add(TEXT("# no light was probed on this commit; the pass line below says why."));
@@ -2126,6 +2143,7 @@ namespace
 					// change to the frame the street is measured in.
 					Comp->SetCastShadow(false);
 				}
+				GQuadActors.Add(A);
 				A->SetActorScale3D(FVector((float)P.SizeM, (float)P.SizeM, 1.0f));
 				A->SetActorLocationAndRotation(
 					FVector(P.XCm, P.YCm, P.ZCm),
@@ -2232,6 +2250,34 @@ namespace
 					"NO-SUCH-CAMERA-OR-CONDITION", "none", "nothing-measured"));
 				++GShotIndex;
 				return true;
+			}
+			// THE CONTROLS ARE HIDDEN FOR EVERY SHOT BUT THEIR OWN, and the
+			// write happens ONCE PER SHOT rather than once per settle tick,
+			// because this phase is re-entered while the condition settles
+			// and a per-tick write is both a lie in the tally and a rebuild
+			// asked for four times. A run with no quads spawned counts
+			// nothing, so the verdict line reads nothing-measured rather
+			// than claiming a hide that had nothing to hide.
+			if (GQuadVisShot != GShotIndex && GQuadActors.Num() > 0)
+			{
+				GQuadVisShot = GShotIndex;
+				const Camera* QuadCam = ControlCamera();
+				const bool bShow = LedgerSurface::ControlQuadsVisibleFor(
+					S.CameraId, QuadCam != nullptr ? QuadCam->Id : std::string());
+				for (int32 QI = 0; QI < GQuadActors.Num(); ++QI)
+				{
+					if (GQuadActors[QI] != nullptr)
+					{
+						GQuadActors[QI]->SetActorHiddenInGame(!bShow);
+					}
+				}
+				++GQuadShotsSeen;
+				if (!bShow)
+				{
+					++GQuadHidden;
+					if (!GQuadHiddenIds.empty()) { GQuadHiddenIds += ";"; }
+					GQuadHiddenIds += S.Id;
+				}
 			}
 			ApplyCondition(*Cond);
 			PlaceCamera(GameWorld(), *C);

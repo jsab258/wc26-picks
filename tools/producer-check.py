@@ -23,12 +23,22 @@ the bottom rather than implying the absence of a finding is approval.
 
 THE LINK BAND, ruled by Jafar 2026-09-06 after a message with ten repository
 links passed this check: ONE link at least (constitution law 12), TWO at most,
-and the only destinations are the glance, the map and the gallery. A picture
-goes to him as a Telegram image, never as a link. Rules ruled after a message
-was written do not apply to it, and the mechanism is a FROZEN LIST OF NAMES
-(see LEGACY_LINK_RULES), never the date in a filename: the date at the front of
-a name is typed by the writer, so a date switch lets the specimen choose its
-own rulebook. The three already-sent messages are named; today's is not.
+and the only destinations are the published pages named in SITE_PAGES. A
+picture goes to him as a Telegram image, never as a link. Rules ruled after a
+message was written do not apply to it, and the mechanism is a FROZEN LIST OF
+NAMES (see LEGACY_LINK_RULES), never the date in a filename: the date at the
+front of a name is typed by the writer, so a date switch lets the specimen
+choose its own rulebook. The three already-sent messages are named; today's is
+not.
+
+THE ONE RULED WHOLE-URL EXCEPTION, 2026-09-09 (see RULED_LINKS). Jafar asked
+for one message carrying a link to research that no published page holds, which
+his own band of 2026-09-06 forbids. A later, specific instruction from the
+rule's own author governs its instance and repeals nothing, so exactly one URL
+is admitted BY WHOLE STRING, the entry names the record that admits it, and the
+rung that publishes the research DELETES the entry. Whole-string equality and
+not a prefix is the whole difference between an exception and a hole: a prefix
+match on a tree URL would admit every file under it, which is the repository.
 
 THE REGISTERS. UNPROMPTED and BRIEF get the shape, the cap, the ban list and
 the link floor. ANSWER gets the ban list and the link rules only, because
@@ -189,8 +199,9 @@ COUNTS_ALLOWED_IN = {"answer"}
 # sent as Telegram images, never as links; at most two links per message, and
 # never to a repo markdown file, only to the glance, map or gallery".
 #
-# SO THE ALLOWLIST IS THREE PAGES, NOT A HOST. It used to be a host list, and
-# that is exactly the hole: production/outbox/2026-09-05-the-console-run.
+# SO THE ALLOWLIST IS PUBLISHED PAGES, NOT A HOST, and how many there are is
+# read off SITE_PAGES rather than typed into prose. It used to be a host list,
+# and that is the hole: production/outbox/2026-09-05-the-console-run.
 # unprompted.md carried fifteen URLs, thirteen of them to github.com and eight
 # of those to repository markdown files, and this program printed SEND. That
 # pass is the measurement this rule was written from, taken 2026-09-06 before
@@ -204,11 +215,56 @@ SITE_ORIGIN = "https://jsab258.github.io/wc26-picks/"
 # glance itself. Adding a page here is the ONE place the allowlist grows.
 SITE_PAGES = (("", "the-glance"),
               ("map.html", "the-map"),
-              ("gallery.html", "the-gallery"))
+              ("gallery.html", "the-gallery"),
+              # THE FOURTH PAGE, added 2026-09-09, and it is not adjacent work.
+              # Jafar's item 2 of that morning (production/NOW.md): "The town
+              # atlas from art/atlas-01 goes in the gallery as a world page,
+              # not on the map." tools/publish-glance.py's PAGES already
+              # publishes world.html, as the gallery row's extraPages entry
+              # ("--world-out", "world.html"), so the publisher's list and this
+              # one were two copies of one idea left out of step by the same
+              # batch: a page he can open that the register would refuse to
+              # link. Ruled A5 of section 2.5 of game-design/decision-2026-09-
+              # 09-the-hook-comparison-the-ruled-link-and-the-stale-pages.md.
+              # Reversible in one line if he says the band stays at three.
+              ("world.html", "the-world"))
 # THE BAND, not a floor: one link at least (constitution law 12, evidence) and
 # two at most (Jafar, 2026-09-06). Both ends are his, neither is measured, and
 # both are cited rather than chosen.
 LINK_MIN, LINK_MAX = 1, 2
+
+# THE ONE RULED WHOLE-URL EXCEPTION TO THE DESTINATION BAND, and it is an
+# EXCEPTION AND NOT A HOLE. (url, label, rulingRecordPath), frozen, one member.
+#
+# WHY IT EXISTS. Jafar, 2026-09-09, item 4(c) of production/NOW.md, verbatim:
+# "One message, plain English, digesting the atlas-02 research: what was found,
+# what is missing, with the link." The research is five markdown files in the
+# repository and no published page carries it, so the only honest link is one
+# his own band of 2026-09-06 forbids ("never to a repo markdown file, only to
+# the glance, map or gallery"). His later instruction governs its instance and
+# repeals the band for nothing else, which is why the mechanism is one URL
+# matched by whole string rather than a widened rule.
+#
+# THE NEXT RUNG DELETES THE ENTRY. Ruled in section 2 (2.4 and 2.5) of
+# game-design/decision-2026-09-09-the-hook-comparison-the-ruled-link-and-the-
+# stale-pages.md and filed as production/queue/184: when the research is
+# published as a page, that page goes in SITE_PAGES and RULED_LINKS loses this
+# entry in the SAME commit, so the exception cannot outlive its reason.
+#
+# HOW IT IS KEPT HONEST. ruled_link() matches the WHOLE normalised string, so
+# the parent directory, a child file, blob instead of tree, another branch and
+# one extra character are all refused: the selftest runs those five. The
+# selftest also asserts the tuple holds exactly one member and that every
+# entry's ruling record exists in the tree and still carries the URL, which is
+# the guard against an entry outliving its ruling.
+#
+# THE URL IS ONE UNWRAPPED LITERAL ON PURPOSE, so a grep for the whole URL
+# finds the place that admits it.
+RULED_LINKS = (
+    ("https://github.com/jsab258/wc26-picks/tree/claude/game-dev-ai-automation-2h67ix/production/art/atlas-02/research",
+     "atlas-02-research",
+     "game-design/decision-2026-09-09-the-hook-comparison-the-ruled-link-and-the-stale-pages.md"),
+)
 
 # THE RETIRED DESTINATION LIST, kept because the link FLOOR is older than the
 # band and the three named messages satisfied the floor with the destinations
@@ -404,20 +460,54 @@ def links_in(text):
     return LINK_RE.findall(text)
 
 
+def site_destination_words(sep="/"):
+    """The published pages a link may point to, named from SITE_PAGES itself.
+
+    ONE IMPLEMENTATION. This list used to be typed into the findings and the
+    report as the words "the glance, the map or the gallery", which is a copy
+    that goes stale the moment the list grows, and it grew on 2026-09-09."""
+    return sep.join(lbl for _, lbl in SITE_PAGES)
+
+
+def norm_url(url):
+    """THE ONE NORMALISATION both destination tests use: drop the fragment,
+    strip the trailing slash. Two copies of this is how the site list and the
+    ruled exception come to disagree about whether a URL with an anchor on it
+    is the same URL, and a disagreement there is an admitted link in one test
+    and a refused one in the other."""
+    return url.split("#", 1)[0].rstrip("/")
+
+
 def site_page(url):
-    """Which of the three published pages this URL IS, or None.
+    """Which of the published pages in SITE_PAGES this URL IS, or None.
 
     Whole-URL matching, not host matching. `https://github.com/...blob/....md`
     and `https://jsab258.github.io/wc26-picks/map.html` differ only in the part
     a host check throws away, and throwing it away is what let ten repository
     links through on 2026-09-05."""
-    u = url.split("#", 1)[0].rstrip("/")
+    u = norm_url(url)
     base = SITE_ORIGIN.rstrip("/")
     if u != base and not u.startswith(base + "/"):
         return None
     rest = u[len(base):].lstrip("/")
     for name, label in SITE_PAGES:
         if rest == name.rstrip("/"):
+            return label
+    return None
+
+
+def ruled_link(url):
+    """Which frozen RULED_LINKS entry this URL IS, by its label, or None.
+
+    WHOLE-STRING EQUALITY after norm_url(), the same normalisation site_page()
+    uses. NO prefix match, NO host match, NO startswith: the admitted URL is a
+    directory tree, so a prefix match would admit every file under it and the
+    exception Jafar's instruction bought would be a hole in his own band. The
+    five near misses the selftest refuses are the parent directory, a child
+    file, blob instead of tree, another branch, and one extra character."""
+    u = norm_url(url)
+    for ruled, label, _record in RULED_LINKS:
+        if u == norm_url(ruled):
             return label
     return None
 
@@ -433,18 +523,33 @@ def link_ok(url, legacy_links=False):
     the list must get."""
     if site_page(url) is not None:
         return True
+    # THE RULED WHOLE-URL EXCEPTION, consulted after the site and before the
+    # retired host list, because it is narrower than either: one string.
+    if ruled_link(url) is not None:
+        return True
     if legacy_links:
         host = re.sub(r"^https?://", "", url).split("/")[0].lower()
         return host in LEGACY_LINK_HOSTS
     return False
 
 
-def link_rule_generation(legacy_links):
-    """Which destination list applied, in words, for the report."""
-    site = "-or-".join(lbl for _, lbl in SITE_PAGES)
+def link_rule_generation(legacy_links, ruled_used=()):
+    """Which destination list applied, in words, for the report.
+
+    `/plus-ruled-url` is appended ONLY when a ruled entry was actually MATCHED
+    in this message, never merely because the tuple exists. A report that said
+    it on every message would say nothing about the one message that used the
+    exception, and the exception being visible where it was used is the
+    condition it was granted under."""
+    site = site_destination_words("-or-")
     if legacy_links:
-        return "legacy-by-name/%s-or-%s" % (site, "-or-".join(LEGACY_LINK_HOSTS))
-    return "ruled-2026-09-06/%s-only" % site
+        gen = "legacy-by-name/%s-or-%s" % (site,
+                                           "-or-".join(LEGACY_LINK_HOSTS))
+    else:
+        gen = "ruled-2026-09-06/%s-only" % site
+    if ruled_used:
+        gen += "/plus-ruled-url"
+    return gen
 
 
 def count_words(text):
@@ -610,6 +715,12 @@ def check(text, kind="unprompted", now=None, legacy_links=False):
     # call site using today's list while the first used the dated one would
     # report a message as both compliant and not.
     good_links = [u for u in urls if link_ok(u, legacy_links)]
+    # THE RULED WHOLE-URL EXCEPTION, PER MESSAGE. `ruled_matched` is the URLs in
+    # THIS message that matched an entry on the frozen tuple (per message, never
+    # cumulative: the gate's own line carries the walk), read off the same
+    # ruled_link() every destination test above uses.
+    ruled_matched = [u for u in urls if ruled_link(u) is not None]
+    ruled_labels = sorted({ruled_link(u) for u in ruled_matched})
 
     # 1. THE WORD CAP.
     if "wordcap" in enforced and len(words) > word_cap:
@@ -651,12 +762,14 @@ def check(text, kind="unprompted", now=None, legacy_links=False):
             where = "; ".join(u for u in urls[:2]) or "no URL at all"
             found.append(Finding(
                 "linkfloor",
-                "no link to the glance, the map or the gallery (%s). %d "
-                "sentence(s) read "
+                "no link to any of the %d published page(s) (%s) and none to "
+                "the %d ruled whole-URL entry/entries either. What it carries "
+                "instead: %s. %d sentence(s) read "
                 "as claim-shaped, and the floor does NOT depend on that count: "
                 "law 12 requires the evidence behind any message that speaks. "
                 "First claim, if any: %s" % (
-                    where, len(claims),
+                    len(SITE_PAGES), site_destination_words(", "),
+                    len(RULED_LINKS), where, len(claims),
                     cap([claims[0][0]], keep=1, width=60) if claims
                     else "none recognised, which is not the same as none")))
     # ADVISORY, never a rejection: the ruled floor is one link in the message.
@@ -698,11 +811,16 @@ def check(text, kind="unprompted", now=None, legacy_links=False):
         if offsite:
             found.append(Finding(
                 "linkdest",
-                "%d of %d link(s) point somewhere other than the glance, the "
-                "map or the gallery. Ruled 2026-09-06: never to a repository "
+                "%d of %d link(s) point somewhere other than the %d published "
+                "page(s) (%s) or the %d ruled whole-URL entry/entries. Ruled "
+                "2026-09-06: never to a repository "
                 "markdown file, and a picture goes to him as a Telegram image "
-                "rather than as a link. Offending: %s"
-                % (len(offsite), len(urls),
+                "rather than as a link. A URL admitted by a ruling is matched "
+                "by whole string and never by prefix, so the parent directory "
+                "of a ruled URL and any file under it are both refused. "
+                "Offending: %s"
+                % (len(offsite), len(urls), len(SITE_PAGES),
+                   site_destination_words(", "), len(RULED_LINKS),
                    cap(offsite, keep=FINDINGS_SHOWN, width=60, sep=" | "))))
 
     # 4. THE SHAPE.
@@ -812,12 +930,28 @@ def check(text, kind="unprompted", now=None, legacy_links=False):
         "items": len(items), "urls": urls, "good_links": good_links,
         "link_min": LINK_MIN, "link_max": LINK_MAX,
         "offsite_links": [u for u in urls if not link_ok(u, legacy_links)],
-        "link_generation": link_rule_generation(legacy_links),
-        # WHICH of the three pages this message actually links, named. A
+        "link_generation": link_rule_generation(legacy_links, ruled_labels),
+        # WHICH of the published pages this message actually links, named. A
         # link accepted under the OLDER generation is not one of them, so it
         # contributes no label and is counted in `good_links` only.
         "site_labels": sorted({site_page(u) for u in good_links
                                if site_page(u) is not None}),
+        # THE THREE WAYS A URL CAN BE ADMITTED, COUNTED SEPARATELY, so the
+        # report's arithmetic closes: site + ruled + retired-host + offsite is
+        # every URL in the message. `good_links` is the first three together and
+        # on its own cannot tell a link to the gallery from a link admitted by
+        # the ruled exception.
+        "site_links": [u for u in urls if site_page(u) is not None],
+        "retired_host_links": [u for u in good_links
+                               if site_page(u) is None
+                               and ruled_link(u) is None],
+        # PER MESSAGE, not cumulative: how many of this message's URLs matched a
+        # frozen RULED_LINKS entry, which of them, and how many entries there
+        # were to match. The zero ships that denominator: 0 of 1 says the
+        # exception existed and this message did not use it.
+        "ruled_used": len(ruled_matched),
+        "ruled_labels": ruled_labels,
+        "ruled_of": len(RULED_LINKS),
         # THE LINK BAND'S TWO RULES DID NOT APPLY TO THIS FILE, because it is
         # named in LEGACY_LINK_RULES. Printed, never silent: a rule skipped in
         # silence is indistinguishable from a rule that passed.
@@ -910,13 +1044,30 @@ def report(r):
           "%d section(s) of %d found (%s)"
           % (r["sentences"], r["claims"], r["items"], len(r["sections_found"]),
              len(SECTIONS), "/".join(r["sections_found"]) or NOTHING))
-    print("  links: %d URL(s) of the ruled %d..%d, %d to the site (%s), %d "
-          "elsewhere. The only three destinations allowed are %s under %s; a "
-          "picture is sent as a Telegram image and never as a link"
-          % (len(r["urls"]), r["link_min"], r["link_max"], len(r["good_links"]),
+    # THE FOUR COUNTS ADD TO THE TOTAL, deliberately. This line used to print
+    # len(good_links) as "to the site", which was true while the site list was
+    # the only way in and became a false claim with a number on it the day a
+    # whole URL was admitted by ruling.
+    print("  links: %d URL(s) of the ruled %d..%d: %d to the site (%s), %d by "
+          "the ruled whole-URL exception, %d admitted by the retired host "
+          "list, %d elsewhere. The only %d destination(s) allowed are %s under "
+          "%s; a picture is sent as a Telegram image and never as a link"
+          % (len(r["urls"]), r["link_min"], r["link_max"],
+             len(r["site_links"]),
              "/".join(l for l in r["site_labels"] if l) or NOTHING,
-             len(r["offsite_links"]),
-             "/".join(lbl for _, lbl in SITE_PAGES), SITE_ORIGIN))
+             r["ruled_used"], len(r["retired_host_links"]),
+             len(r["offsite_links"]), len(SITE_PAGES),
+             site_destination_words("/"), SITE_ORIGIN))
+    # THE EXCEPTION IS NEVER SILENT, and its zero ships the denominator that
+    # makes it readable: 0 of 1 is a message that did not use an exception that
+    # exists, which is not the same reading as no exception existing at all.
+    # PER MESSAGE; the gate's linksRuledUsed line is the walk.
+    print("  ruled whole-URL exception: %d of this message's %d URL(s) matched "
+          "one of the %d frozen RULED_LINKS entry/entries (%s), by whole-string "
+          "equality and never by prefix. Each entry names the record that "
+          "admits it and the rung that deletes it"
+          % (r["ruled_used"], len(r["urls"]), r["ruled_of"],
+             "/".join(r["ruled_labels"]) or NOTHING))
     print("  destination list applied: %s (the list is dated because the "
           "floor is older than today's ruling)" % r["link_generation"])
     print("  claim-shaped means: not a question, the line does not begin with "
@@ -1125,6 +1276,34 @@ HIST_NOT_FIRST = AT_CAP.partition("\n")[0] + "\n" + HISTORICAL_LINE + "\n" \
 # TWO: the first is the annotation, the second is a line of the message.
 HIST_TWO = HISTORICAL_LINE + "\n" + HISTORICAL_SECOND + "\n" + AT_CAP
 
+# THE ACCEPTING FIXTURE FOR THE RULED WHOLE-URL EXCEPTION: the message Jafar's
+# item 4(c) of 2026-09-09 asked for, which is the real message this mechanism
+# was built to send and therefore the right fixture for it. 117 words of 120,
+# one URL, and that URL is the one entry on RULED_LINKS.
+#
+# A COPY, TAKEN 2026-09-09 from production/scratch/held/2026-09-09-atlas-02-
+# research-digest.unprompted.md.held and verified equal to it byte for byte
+# when it was taken. A COPY AND NOT A READ, on purpose: the file moves to the
+# outbox when this lands and the Producer may still edit its NEEDS YOU line
+# before it is sent, and an accepting fixture that reads a file somebody is
+# about to edit goes red for something that is not a fault. The LIVE file is
+# covered by the gate's live walk instead, which checks whatever is in the
+# outbox on every run and prints linksRuledUsed=N/M for it.
+RULED_DIGEST = """HEADLINE: Period research is in; the street needs a beer hatch.
+
+WHAT CHANGED: Pubs were rooms, not one space; a surviving snug means poor or stubborn. No under-fourteens in the bar, by law; all-day opening only since eighty-eight. Houses get newer up the hill; one in five lacks central heating. Dockers lost their guaranteed work in eighty-nine: same coat, new standing. Evening buses thinned; the last bus matters. Still missing, pending a machine that can reach the sources: a real pub's measurements, what a trawlerman or barmaid wore, prices, a last-bus time. Nothing built yet.
+[the research you asked for](https://github.com/jsab258/wc26-picks/tree/claude/game-dev-ai-automation-2h67ix/production/art/atlas-02/research)
+
+NEEDS YOU: nothing new.
+
+NEXT VISIBLE THING: Mickey's laid out; when, unknown.
+
+BUDGET: nothing bought for this.
+"""
+# Derived, never typed twice: the fixtures below are built from the entry.
+RULED_URL = RULED_LINKS[0][0]
+RULED_LABEL = RULED_LINKS[0][1]
+
 # The date the fixtures are checked against. Fixed, because a deadline fixture
 # that reads the wall clock passes in September and fails in October, and a
 # test whose result depends on the day it runs is not a test.
@@ -1310,6 +1489,121 @@ def selftest():
        and "split" not in REGISTERS["unprompted"][1],
        (REGISTERS["brief"][1], REGISTERS["unprompted"][1]))
 
+    # ACCEPTING, fifth: THE ONE RULED WHOLE-URL EXCEPTION, and the accepting
+    # case is the real message it was ruled for. The whole risk of this
+    # mechanism is building a hole instead of an exception, so the accepting
+    # reading comes first and the five near misses come straight after it in
+    # the same run: the difference between the rungs is one URL.
+    print("\n  THE RULED WHOLE-URL EXCEPTION, ACCEPTING CASE FIRST:\n")
+    r_ruled = check(RULED_DIGEST, "unprompted", FIXTURE_NOW)
+    ok("the digest Jafar asked for passes WITH the ruled URL (%d of %d "
+       "word(s), %d URL(s), %d to the site, ruledUsed=%d/%d, list applied %s)"
+       % (r_ruled["words"], CAP_UNPROMPTED, len(r_ruled["urls"]),
+          len(r_ruled["site_links"]), r_ruled["ruled_used"],
+          r_ruled["ruled_of"], r_ruled["link_generation"]),
+       not r_ruled["findings"] and r_ruled["ruled_used"] == 1
+       and r_ruled["ruled_labels"] == [RULED_LABEL]
+       and r_ruled["good_links"] == r_ruled["urls"]
+       and r_ruled["link_generation"].endswith("/plus-ruled-url"),
+       [str(f) for f in r_ruled["findings"]] or r_ruled["link_generation"])
+    # THE SAME NORMALISATION site_page USES, and it is the same function: an
+    # anchor or a trailing slash is the same URL, and nothing else is.
+    ok("the ruled URL is matched through norm_url, so a trailing slash and a "
+       "fragment are the same URL (%s/%s)"
+       % (ruled_link(RULED_URL + "/"), ruled_link(RULED_URL + "#readme")),
+       ruled_link(RULED_URL + "/") == RULED_LABEL
+       and ruled_link(RULED_URL + "#readme") == RULED_LABEL,
+       (ruled_link(RULED_URL + "/"), ruled_link(RULED_URL + "#readme")))
+    # AND A MESSAGE THAT USED NO EXCEPTION MUST NOT READ AS ONE THAT DID. The
+    # generation string is where a reader sees the exception was used, so it is
+    # silent when nothing matched: 0 of 1, said with its denominator.
+    ok("a message that matched no ruled entry does not say it used one "
+       "(ruledUsed=%d/%d, list applied %s)"
+       % (r["ruled_used"], r["ruled_of"], r["link_generation"]),
+       r["ruled_used"] == 0 and not r["ruled_labels"]
+       and "plus-ruled-url" not in r["link_generation"],
+       r["link_generation"])
+    # A5, THE FOURTH PUBLISHED PAGE, ruled the same morning (item 2). The
+    # register's list and the publisher's list are two copies of one idea, so
+    # this reads the PUBLISHER'S OWN SOURCE rather than trusting this file: a
+    # page the register allows and the publisher never writes is a 404 on his
+    # phone, and a page the publisher writes and the register refuses is a link
+    # the Producer cannot send. A missing publisher is red, not clean.
+    pub = REPO / "tools" / "publish-glance.py"
+    pub_src = pub.read_text(encoding="utf-8", errors="replace") \
+        if pub.is_file() else ""
+    ok("the world page is on the register's allowlist (%d destination(s): %s) "
+       "and tools/publish-glance.py publishes that exact name (%d "
+       "character(s) read)"
+       % (len(SITE_PAGES), site_destination_words("/"), len(pub_src)),
+       site_page(SITE_ORIGIN + "world.html") == "the-world"
+       and link_ok(SITE_ORIGIN + "world.html")
+       and '"world.html"' in pub_src,
+       "siteLabel=%s publisherNamesIt=%s"
+       % (site_page(SITE_ORIGIN + "world.html"), '"world.html"' in pub_src))
+
+    print("\n  AND THE FIVE NEAR MISSES, EACH REFUSED BY linkdest:\n")
+    # EACH DIFFERS FROM THE ADMITTED URL IN ONE THING: the directory, the file,
+    # tree versus blob, the branch, one character. Every one is DERIVED from
+    # the entry rather than typed, so they cannot drift away from it. Each
+    # fixture keeps a legal site link so the FLOOR is satisfied and only
+    # linkdest can fire, which is how BAD["linkdest"] is built too: a fixture
+    # that broke two rules at once would prove neither.
+    near_misses = {
+        "the parent directory": RULED_URL.rsplit("/", 1)[0],
+        "a child blob under it": RULED_URL.replace("/tree/", "/blob/")
+                                 + "/transport-timetables.md",
+        "blob instead of tree": RULED_URL.replace("/tree/", "/blob/"),
+        "the same path on main":
+            RULED_URL.replace("claude/game-dev-ai-automation-2h67ix", "main"),
+        "one character appended": RULED_URL + "x",
+    }
+    for name, url in near_misses.items():
+        near = RULED_DIGEST.replace(RULED_URL, url) \
+            + "\n[where things stand](%s)\n" % SITE_ORIGIN
+        rn = check(near, "unprompted", FIXTURE_NOW)
+        rules = {f.rule for f in rn["findings"]}
+        ok("%-23s is refused by linkdest and admitted by nothing "
+           "(ruledUsed=%d/%d, %d of %d link(s) offsite)"
+           % (name, rn["ruled_used"], rn["ruled_of"],
+              len(rn["offsite_links"]), len(rn["urls"])),
+           rules == {"linkdest"} and rn["ruled_used"] == 0
+           and ruled_link(url) is None and not link_ok(url)
+           and len(rn["offsite_links"]) == 1,
+           "found %s for %s" % (sorted(rules) or "nothing", url))
+    # THE REJECTING FIXTURE THAT EXISTS NOWHERE, which is the shape this
+    # project's instrument rules ask for: a synthetic key pinned to no real
+    # asset, so doing the work the tool prompts can never break the tool.
+    ok("a synthetic URL on the same host and branch is not admitted",
+       ruled_link(RULED_URL.replace("atlas-02", "atlas-99")) is None
+       and not link_ok(RULED_URL.replace("atlas-02", "atlas-99")),
+       RULED_URL.replace("atlas-02", "atlas-99"))
+    # AND THE OLD FIXTURE Jafar's band was written from STAYS REFUSED. The BAD
+    # loop below checks the message; this checks the URL itself, because the
+    # exception is a URL test and that is where a hole would be.
+    ok("the repository markdown URL the band was written from stays refused",
+       not link_ok("https://github.com/jsab258/wc26-picks/blob/main/q.md")
+       and ruled_link(
+           "https://github.com/jsab258/wc26-picks/blob/main/q.md") is None,
+       "blob/main/q.md")
+    # THE TUPLE ITSELF, ON EVERY RUN. One member, because an exception that can
+    # grow is a band being rewritten by whoever adds the next line; and the
+    # record that admits each member must EXIST and still carry the URL, which
+    # is the guard against an entry outliving its ruling.
+    ok("the frozen RULED_LINKS tuple holds exactly 1 entry (%d, labelled %s)"
+       % (len(RULED_LINKS), "/".join(lbl for _, lbl, _ in RULED_LINKS)
+          or NOTHING),
+       len(RULED_LINKS) == 1, [lbl for _, lbl, _ in RULED_LINKS])
+    for url, label, record in RULED_LINKS:
+        rec = REPO / record
+        body = rec.read_text(encoding="utf-8", errors="replace") \
+            if rec.is_file() else ""
+        ok("the ruling that admits %s exists in the tree and carries the whole "
+           "URL (%d character(s) read from %s)"
+           % (label, len(body), record.rsplit("/", 1)[-1]),
+           rec.is_file() and url in body,
+           "exists=%s urlInRecord=%s" % (rec.is_file(), url in body))
+
     print("\n  REJECTING FIXTURES, one per rule, all synthetic:\n")
     # THE SPLIT, REJECTING, four ways, because a guard that only knows
     # "absent" cannot tell a brief that calls the count POINTS from one that
@@ -1441,6 +1735,84 @@ def selftest():
        == g_live["historical_uncounted"],
        cap(["%s %s" % (rel, st) for rel, (st, _) in sorted(live_hist.items())],
            keep=3, width=80))
+
+    # THE RULED WHOLE-URL EXCEPTION THROUGH THE GATE, ACCEPTING: the digest
+    # under the exact name it will be sent as. The tree is synthetic only
+    # because the message is HELD out of the outbox while this lands, so a
+    # refusal cannot redden ledger/verify.py mid-build; the live reading is the
+    # next case and it is the one that moves when the resident moves the file.
+    ruled_name = ("production/outbox/"
+                  "2026-09-09-atlas-02-research-digest.unprompted.md")
+    # BOTH RULED TREES EXIST IN THIS FIXTURE, unlike the trees above, because
+    # these two runs are read through gate_report() and gate_report returns on
+    # a MISSING TREE before it prints any done line at all. A fixture with one
+    # tree missing would have tested the missing-tree branch while claiming to
+    # test the key. The suite found that, which is the reason the formatter is
+    # driven here rather than trusted.
+    ruled_tree = _gate_tree({"production/outbox/README.md": "# docs\n",
+                             "production/briefs/README.md": "# docs\n",
+                             ruled_name: RULED_DIGEST})
+    g_ruled = gate_run(ruled_tree, FIXTURE_NOW)
+    ok("the digest passes the gate under its own unprompted name and the "
+       "FILE'S OWN line names the exception it used (linksRuledUsed=%d/%d, in "
+       "%d of %d checked file(s))"
+       % (g_ruled["links_ruled_used"], g_ruled["links_ruled_of"],
+          len(g_ruled["links_ruled_files"]), g_ruled["checked"]),
+       not g_ruled["failed"] and g_ruled["checked"] == 1
+       and g_ruled["links_ruled_used"] == 1
+       and g_ruled["links_ruled_files"] == [ruled_name]
+       and any(("ruled-link:" + RULED_LABEL) in why
+               for _, st, why in g_ruled["results"] if st.startswith("pass")),
+       cap([why for _, _, why in g_ruled["results"]], keep=2, width=90))
+    # THE LIVE SERIES, PRINTED AND DELIBERATELY NOT BOUNDED. While the message
+    # is held the honest live reading is 0 of 1, which is exactly why the zero
+    # ships its denominator; when it lands in the outbox this becomes 1 of 1 and
+    # names the file. No bound is set on how many messages may carry the
+    # exception: this is the printer, and that bound would be a number nobody
+    # has measured. What IS asserted is that the denominator is the tuple and
+    # that every file listed contributed at least one match.
+    ok("the live walk prints its ruled-URL reading with its denominator "
+       "(linksRuledUsed=%d/%d across %d checked file(s), in %s)"
+       % (g_live["links_ruled_used"], g_live["links_ruled_of"],
+          g_live["checked"],
+          "/".join(g_live["links_ruled_files"]) or NOTHING),
+       g_live["links_ruled_of"] == len(RULED_LINKS)
+       and g_live["links_ruled_used"] >= len(g_live["links_ruled_files"]),
+       (g_live["links_ruled_used"], g_live["links_ruled_files"]))
+    # THE KEY ON BOTH DONE LINES, READ OFF THE PRINTER RATHER THAN TRUSTED.
+    # gate_report() is where the key is formatted, so the suite drives it and
+    # greps the line: an unrun formatter printing a plausible string is the
+    # silent-instrument failure this project has already paid for.
+    import contextlib
+    import io
+
+    def gate_done_line(g):
+        """(exit code, the done line) from the real printer."""
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            code = gate_report(g)
+        done = [ln.strip() for ln in buf.getvalue().splitlines()
+                if ln.startswith("producer-check --gate:")]
+        return code, (done[-1] if done else NOTHING)
+
+    code_pass, line_pass = gate_done_line(g_ruled)
+    ok("the PASS done line carries linksRuledUsed beside filesLegacyLinks, "
+       "exit %d: %s" % (code_pass, line_pass),
+       code_pass == GATE_EXIT_OK and "linksRuledUsed=1/1" in line_pass
+       and "filesLegacyLinks=" in line_pass, line_pass)
+    near_tree = _gate_tree({
+        "production/outbox/README.md": "# docs\n",
+        "production/briefs/README.md": "# docs\n",
+        "production/outbox/2026-09-09-near-miss.unprompted.md":
+            RULED_DIGEST.replace(RULED_URL, RULED_URL + "x")})
+    g_near = gate_run(near_tree, FIXTURE_NOW)
+    code_fail, line_fail = gate_done_line(g_near)
+    ok("the same digest with ONE CHARACTER appended to the URL is refused by "
+       "the gate, and the FAIL done line carries the reading as 0 of 1 rather "
+       "than as a bare zero, exit %d: %s" % (code_fail, line_fail),
+       code_fail == GATE_EXIT_FAIL and "linksRuledUsed=0/1" in line_fail
+       and len(g_near["failed"]) == 1
+       and "linkdest" in " ".join(w for _, w in g_near["failed"]), line_fail)
 
     # THE CASE QUEUE ITEM 077 WAS FILED FOR, and it is an ACCEPTING one. The
     # live message dated 2026-09-03 carries DEADLINE 2026-09-06; at a simulated
@@ -1833,6 +2205,15 @@ def gate(root, now=None, pre_register=PRE_REGISTER, trees=GATE_TREES,
          # destination list because their NAME is on LEGACY_LINK_RULES.
          # Cumulative over the walk, printed beside its denominator.
          "legacy_links": 0, "legacy_absent": [],
+         # OF THE URLS WALKED, how many matched a frozen RULED_LINKS entry, and
+         # how many entries there were to match. CUMULATIVE over the walk, and
+         # the denominator is the tuple's length because that is the number of
+         # whole URLs the studio has a ruling for. Printed on the done line as
+         # linksRuledUsed=N/M, pass or fail, so a report can never carry the
+         # exception in silence.
+         "links_ruled_used": 0, "links_ruled_of": len(RULED_LINKS),
+         # WHICH files used one, so the per-file lines are not the only record.
+         "links_ruled_files": [],
          # OF THE FILES NAMED ON THE FROZEN LEGACY LIST, how many were checked
          # with one leading HISTORICAL, line uncounted by the word cap.
          # Cumulative over the walk, printed beside its denominator, which is
@@ -1923,21 +2304,30 @@ def gate(root, now=None, pre_register=PRE_REGISTER, trees=GATE_TREES,
             hist = (", historicalUncounted=1line/%dwords"
                     % res["historical_words"]) if res["historical_uncounted"] \
                 else ""
+            # THE RULED EXCEPTION RIDES ON THE FILE'S OWN LINE TOO, pass or
+            # fail: a walk that admitted a whole URL by ruling must say which
+            # file did it where the file is named, not only in the footer.
+            r["links_ruled_used"] += res["ruled_used"]
+            if res["ruled_labels"]:
+                r["links_ruled_files"].append(rel)
+            ruled = (", ruled-link:" + "+".join(res["ruled_labels"])
+                     if res["ruled_labels"] else "")
             if res["findings"]:
                 r["failed"].append(
                     (rel, "%s: %s" % (kind,
                                       cap([str(f) for f in res["findings"]],
                                           keep=GATE_FINDINGS_SHOWN, width=90,
                                           sep=" | "))))
-                r["results"].append((rel, "fail", "%s, %d finding(s), %s%s"
+                r["results"].append((rel, "fail", "%s, %d finding(s), %s%s%s"
                                      % (kind, len(res["findings"]), as_of,
-                                        hist)))
+                                        hist, ruled)))
             else:
                 r["results"].append(
                     (rel, "pass-legacy-links" if legacy else "pass",
-                     "%s, %d of %s word(s), %s%s%s"
+                     "%s, %d of %s word(s), %s%s%s%s"
                      % (kind, res["words"],
                         res["cap"] if res["cap"] else "no-cap", as_of, hist,
+                        ruled,
                         ", the link band is not enforced on it: written "
                         "before it was ruled and named in LEGACY_LINK_RULES"
                         if legacy else "")))
@@ -1981,6 +2371,23 @@ def gate_report(r):
               "date in the name."
               % (r["legacy_links"], r["checked"], len(LEGACY_LINK_RULES),
                  r["checked"] - r["legacy_links"]))
+    if r["checked"]:
+        # THE RULED WHOLE-URL EXCEPTION ACROSS THE WALK, with its denominator,
+        # so a zero here reads as "the exception existed and no message used
+        # it" rather than as nothing at all. Cumulative over the walk; the
+        # denominator is the frozen tuple, which is how many whole URLs the
+        # studio has a ruling for. NO BOUND IS SET ON THIS NUMBER YET: this is
+        # the printer, and the series it prints is what a bound would be read
+        # off if the exception ever spreads past the one message it was for.
+        print("  ruled whole-URL exception: %d URL(s) across the walk matched "
+              "one of the %d frozen RULED_LINKS entry/entries, in %d file(s) "
+              "(%s). Whole-string equality, never a prefix, so admitting a URL "
+              "admits nothing under it. Each entry names the record that "
+              "admits it and the rung that deletes it."
+              % (r["links_ruled_used"], r["links_ruled_of"],
+                 len(r["links_ruled_files"]),
+                 cap(r["links_ruled_files"], keep=3, width=60, sep=", ")
+                 if r["links_ruled_files"] else NOTHING))
     if r["checked"]:
         # WHAT THE CAP DID NOT READ, with the only denominator under which the
         # exclusion can exist. Cumulative over the walk.
@@ -2040,11 +2447,16 @@ def gate_report(r):
                   "register(s) (%s). MECHANICAL ONLY: nothing here read "
                   "whether a claim is TRUE." % (r["checked"], len(REGISTERS),
                                                 ",".join(sorted(REGISTERS))))
+        # linksRuledUsed: CUMULATIVE URL matches across the walk over the
+        # number of frozen RULED_LINKS entries. On the done line because it is
+        # a whole-run number; the per-file lines carry ruled-link:<label>.
         print("\nproducer-check --gate: PASS filesChecked=%s "
-              "filesLegacyLinks=%d/%d historicalLinesUncounted=%d/%d "
+              "filesLegacyLinks=%d/%d linksRuledUsed=%d/%d "
+              "historicalLinesUncounted=%d/%d "
               "filesExempt=%d filesWalked=%d filesDatePinned=%d/%d"
               % (r["checked"] if r["checked"] else "0/" + NOTHING,
                  r["legacy_links"], r["checked"],
+                 r["links_ruled_used"], r["links_ruled_of"],
                  r["historical_uncounted"], r["historical_listed"],
                  r["exempt"], r["walked"], r["date_pinned"], r["checked"]))
         return GATE_EXIT_OK
@@ -2055,9 +2467,11 @@ def gate_report(r):
         print("    (+%d more not shown of %d)"
               % (len(r["failed"]) - 5, len(r["failed"])))
     print("\nproducer-check --gate: FAIL filesFailed=%d filesChecked=%d "
-          "filesLegacyLinks=%d/%d historicalLinesUncounted=%d/%d "
+          "filesLegacyLinks=%d/%d linksRuledUsed=%d/%d "
+          "historicalLinesUncounted=%d/%d "
           "filesExempt=%d filesWalked=%d filesDatePinned=%d/%d"
           % (len(r["failed"]), r["checked"], r["legacy_links"], r["checked"],
+             r["links_ruled_used"], r["links_ruled_of"],
              r["historical_uncounted"], r["historical_listed"],
              r["exempt"], r["walked"], r["date_pinned"], r["checked"]))
     return GATE_EXIT_FAIL

@@ -137,8 +137,26 @@ int main(int argc, char** argv)
 	      "every piece the header claims is under it");
 	Check(S.Pieces.size() > 500,
 	      "the street read back is a street and not a handful of pieces");
-	Check(S.Cameras.size() == 2 && S.Conditions.size() == 2 && S.Shots.size() == 4,
-	      "the two cameras, the two conditions and the four matched shots came through");
+	// THREE CAMERAS AND FIVE SHOTS, AND THE SPLIT IS NAMED RATHER THAN
+	// SUMMED: cam_A and cam_B by the two conditions are the FOUR MATCHED
+	// PAIRS the engine decision is judged on, and cam_hook is a fifth shot
+	// that is deliberately not part of that pairing (rung 1 of
+	// production/ladder.md, one condition only). A bare 5 here would read as
+	// the pairing having changed, so the four are counted separately.
+	{
+		int Matched = 0;
+		for (size_t I = 0; I < S.Shots.size(); ++I)
+		{
+			if (S.Shots[I].CameraId == "cam_A" || S.Shots[I].CameraId == "cam_B")
+			{
+				++Matched;
+			}
+		}
+		Check(S.Cameras.size() == 3 && S.Conditions.size() == 2
+		      && S.Shots.size() == 5 && Matched == 4,
+		      "three cameras, two conditions, and five shots of which the four "
+		      "judged pairs are still exactly four");
+	}
 
 	// ROLL, WHICH IS THE FIELD A READER LOSES WITHOUT CHANGING A COUNT.
 	int Rolled = 0, Pitched = 0, Yawed = 0;
@@ -1569,6 +1587,154 @@ int main(int argc, char** argv)
 			      "a control pass that made all three prints all three with denominators");
 			Check(NoSpacePastPrefix(Done, "controlQuadsStatus="),
 			      "and the done line is space-free past its first key");
+		}
+	}
+	// ---- cam_hook, RUNG 1 OF production/ladder.md ------------------------
+	//
+	// THE VIEWPOINT OF THE LOWER PANEL of the Hook concept sheet, checked
+	// against the panel's own MEASURED composition rather than against a
+	// number anybody liked the look of. The three panel numbers quoted below
+	// were read off the file at production/art/atlas-01/concepts/hook.png on
+	// branch origin/art/atlas-01, whose street panel is 1002 by 617 pixels:
+	// the horizon at row 348 (0.5640 of the height), the street axis
+	// vanishing at column 332 (0.3313 of the width), and the nearest ground
+	// at the bottom edge 4.15 m ahead. They are the reference, so a check
+	// against them is a check against a measurement.
+	//
+	// AND THE HALF NOBODY WOULD THINK TO ASK FOR: the three material control
+	// quads are placed 3.5 m in front of the FIRST shot's camera, which is
+	// cam_A and not this one, so nothing in their placement knows this
+	// camera exists. A frame with colour swatches standing in the road is
+	// not a frame anybody can judge a street by, so where they land in THIS
+	// camera's frame is measured here rather than discovered in the still.
+	{
+		const LedgerVignette::Camera* Hook = 0;
+		// AND THE CAMERA THE QUADS ARE PLACED FROM, looked up again here
+		// rather than borrowed from the block above, because it is the FIRST
+		// SHOT'S camera by definition and this block must keep saying so even
+		// if the shot order changes.
+		const LedgerVignette::Camera* QuadCam = 0;
+		for (size_t I = 0; I < S.Cameras.size(); ++I)
+		{
+			if (S.Cameras[I].Id == "cam_hook") { Hook = &S.Cameras[I]; }
+			if (!S.Shots.empty() && S.Cameras[I].Id == S.Shots[0].CameraId)
+			{
+				QuadCam = &S.Cameras[I];
+			}
+		}
+		if (Hook == 0 || QuadCam == 0)
+		{
+			std::printf("    cam_hook: nothing measured, the committed spec carries no "
+			            "camera of that id or no camera for its first shot\n");
+		}
+		else
+		{
+			std::printf("    cam_hook at x=%.2f z=%.2f groundY=%.4f (%s) eye=%.2f "
+			            "yaw=%.1f pitch=%.1f vfov=%.1f hfov=%.2f\n",
+			            Hook->X, Hook->Z, Hook->GroundY, Hook->GroundEdge.c_str(),
+			            Hook->EyeHeightM, Hook->YawDeg, Hook->PitchDeg,
+			            Hook->FovVerticalDeg,
+			            LedgerVignette::HorizontalFovDeg(Hook->FovVerticalDeg, 1280, 720));
+			// THE CAMERA STANDS IN THE CARRIAGEWAY, which is half of what
+			// "in the road near the left kerb" means and the half a position
+			// alone cannot say: the emitter resolved the ground under it.
+			Check(Hook->GroundFound && Hook->GroundEdge == "west_carriageway",
+			      "cam_hook stands on the west carriageway, as the panel's camera "
+			      "stands in the road and not on the pavement",
+			      Hook->GroundEdge);
+			Check(Hook->Z > -3.0 + 0.255 && Hook->Z < -0.5,
+			      "and it is between the west channel and the crown, which is the "
+			      "near-kerb half of the carriageway rather than the middle of it");
+			// THE HORIZON AND THE VANISHING POINT, against the panel's own
+			// rows and columns. The tolerance is one percent of the frame,
+			// which is 7 rows of 720, and both numbers are printed.
+			const LedgerSurface::ScreenAt Hor = LedgerSurface::ProjectFilePoint(
+				*Hook, Hook->X + 2000.0, Hook->GroundY + Hook->EyeHeightM, Hook->Z,
+				1280, 720);
+			const LedgerSurface::ScreenAt Van = LedgerSurface::ProjectFilePoint(
+				*Hook, Hook->X + 2000.0, Hook->GroundY, Hook->Z, 1280, 720);
+			const double HorFrac = Hor.Py / 720.0;
+			const double VanFrac = Van.Px / 1280.0;
+			std::printf("    cam_hook horizonRowFrac=%.4f panel=0.5640 "
+			            "vanishColFrac=%.4f panel=0.3313\n", HorFrac, VanFrac);
+			Check(Hor.bAhead && HorFrac > 0.5,
+			      "the horizon sits BELOW the middle of the frame, as the panel's "
+			      "does, which is what a camera tilted slightly up looks like");
+			Check(std::fabs(HorFrac - 0.5640) < 0.01,
+			      "and it lands within one percent of the frame height of the row "
+			      "measured off the panel");
+			Check(Van.bAhead && VanFrac < 0.5,
+			      "the street axis vanishes LEFT of centre, as the panel's does, "
+			      "which for a pinhole camera can only be a rotation");
+			// WHERE THE THREE CONTROL QUADS LAND IN THIS FRAME. Their centres
+			// and their two lateral extremes, because a centre just outside
+			// the edge with 0.35 m of quad beside it is still in the picture.
+			int CentresIn = 0, EdgesIn = 0, Ahead4 = 0;
+			for (int I = 0; I < LedgerSurface::ControlQuadCount(); ++I)
+			{
+				const LedgerSurface::QuadPlace P =
+					LedgerSurface::ControlQuadPlace(*QuadCam, I);
+				// The quad faces the camera it was placed from, so its own
+				// width runs along THAT camera's right vector and not along
+				// this one's.
+				const double CamAYaw = LedgerSurface::DegToRad(QuadCam->YawDeg);
+				const double Rx = -std::sin(CamAYaw), Rz = std::cos(CamAYaw);
+				const double Half = LedgerSurface::ControlQuadSizeM() * 0.5;
+				const LedgerSurface::ScreenAt C0 = LedgerSurface::ProjectFilePoint(
+					*Hook, P.XM, P.YM, P.ZM, 1280, 720);
+				const LedgerSurface::ScreenAt L = LedgerSurface::ProjectFilePoint(
+					*Hook, P.XM - Rx * Half, P.YM, P.ZM - Rz * Half, 1280, 720);
+				const LedgerSurface::ScreenAt R2 = LedgerSurface::ProjectFilePoint(
+					*Hook, P.XM + Rx * Half, P.YM, P.ZM + Rz * Half, 1280, 720);
+				const bool CIn = C0.bAhead && C0.Px >= 0 && C0.Px <= 1280
+				                 && C0.Py >= 0 && C0.Py <= 720;
+				const bool EIn = (L.bAhead && L.Px >= 0 && L.Px <= 1280
+				                  && L.Py >= 0 && L.Py <= 720)
+				                 || (R2.bAhead && R2.Px >= 0 && R2.Px <= 1280
+				                     && R2.Py >= 0 && R2.Py <= 720);
+				if (C0.bAhead && L.bAhead && R2.bAhead) { ++Ahead4; }
+				if (CIn) { ++CentresIn; }
+				if (EIn) { ++EdgesIn; }
+				std::printf("    quad %-6s seen from cam_hook: centre %.0f/%.0f px "
+				            "edges %.0f..%.0f px fwd %.2f m inFrameCentre=%s "
+				            "inFrameEitherEdge=%s\n",
+				            P.Id.c_str(), C0.Px, C0.Py, L.Px, R2.Px, C0.ForwardM,
+				            CIn ? "yes" : "no", EIn ? "yes" : "no");
+			}
+			std::printf("    cam_hook controlQuadsInFrame centres=%d/%d "
+			            "eitherEdge=%d/%d ahead=%d/%d\n",
+			            CentresIn, LedgerSurface::ControlQuadCount(),
+			            EdgesIn, LedgerSurface::ControlQuadCount(),
+			            Ahead4, LedgerSurface::ControlQuadCount());
+			// AND THE RULE THAT KEEPS THEM OUT OF THE JUDGED FRAME, both
+			// outcomes watched and the ACCEPTING one first: the camera the
+			// quads were placed from still sees them, and every other camera
+			// does not. The measurement above is why the rule exists, and it
+			// is printed whatever the rule says, so a future placement that
+			// stops intruding shows up as a reading rather than as silence.
+			Check(LedgerSurface::ControlQuadsVisibleFor(QuadCam->Id, QuadCam->Id),
+			      "the camera the controls were placed from still photographs them, "
+			      "which is the frame the material evidence is read from");
+			Check(!LedgerSurface::ControlQuadsVisibleFor(Hook->Id, QuadCam->Id),
+			      "and cam_hook does not, which is what stops an instrument standing "
+			      "in the picture rung 1 is judged by");
+			Check(!LedgerSurface::ControlQuadsVisibleFor("", QuadCam->Id)
+			      && !LedgerSurface::ControlQuadsVisibleFor(QuadCam->Id, ""),
+			      "an unnamed camera on either side hides them rather than guessing");
+			std::printf("    cam_hook controlQuadIntrusion=%s "
+			            "(this is WHY the rule above exists, and it is measured "
+			            "rather than assumed)\n",
+			            EdgesIn == 0 ? "none-reaches-the-frame"
+			                         : "at-least-one-quad-reaches-the-frame");
+			const std::string VLine =
+				LedgerSurface::ControlQuadVisibilityLine(5, 1, "vign_hook_day");
+			std::printf("    %s\n", VLine.c_str());
+			Check(VLine.find("controlQuadHidden=1/5") != std::string::npos
+			      && VLine.find("controlQuadHiddenOn=vign_hook_day") != std::string::npos,
+			      "the visibility line carries the count, its denominator and the ids");
+			Check(LedgerSurface::ControlQuadVisibilityLine(0, 0, "").find(
+			          "nothing-measured") != std::string::npos,
+			      "a run that took no shot says nothing measured rather than zero");
 		}
 	}
 	// THE SEARCH-PATH FORMATTER ON ITS OWN, both ways round the cap, because

@@ -90,6 +90,17 @@ promise.
 
 <!-- moved verbatim from CLAUDE.md lines 729-737 on 2026-09-01, task 013 -->
 
+**And the arming is only the first half (2026-09-09).** A trigger reports
+SUCCEEDED when the wake is DELIVERED, not when the work happened:
+`trig_013itgDeay6t41BHEmaYFbAj` fired at 04:09:00.554Z and finished at
+04:09:00.567Z, twelve and a half milliseconds, SUCCEEDED, and no brief existed,
+because the session was mid-turn and the injected turn was absorbed. So the
+second half is a durable record: `python3 tools/wake-queue.py arm --due <UTC>
+--instruction "..."` writes it under `production/wakes/` and the Stop hook
+`.claude/hooks/wake-drain.sh` drains it at the next turn boundary, blocking the
+stop until the work discharges it. Arm the trigger AND arm the record; the
+trigger is the nudge, the record is the obligation.
+
 ## 9. Do not block yourself
 
 Pushing a commit triggered a full 40-minute corpus fetch, three times, each one
