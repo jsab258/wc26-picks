@@ -104,6 +104,10 @@
 
 #include "Engine/Engine.h"
 #include "Engine/World.h"
+// THE SAME INCLUDE CrimeProbe.cpp USES FOR FCollisionQueryParams, copied from
+// the translation unit next door that already compiles on the runner rather
+// than guessed at, because this file's own compile is 17 to 33 minutes away.
+#include "CollisionQueryParams.h"
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/Actor.h"
@@ -169,17 +173,71 @@ namespace
 	// (GetComponentsBoundingBox, after scale and rotation), never from the
 	// spec file a second time.
 	const TCHAR* kGrateName = TEXT("prop_drainage_grate_01_0");
-	// THE PAVEMENT SIDE IS +Y. vignette-scene.json puts the east footway's
-	// camera at z=4.0 m and this piece at z=2.8 m, and SpawnPiece maps the
-	// file's z to the engine's Y with the same sign (the same fact the
-	// blocked-walk plant above relies on). 130 cm back puts the standpoint at
-	// z=4.10 m, on the footway, not in the road.
-	const double kGrateStandCm      = 130.0;
-	// A LITTLE BELOW WALKING EYE HEIGHT (cam_A stands at 1.60 m) so the piece
-	// fills a useful part of the frame rather than being six pixels at the
-	// end of a street. 125 cm above the piece's own placed top, at 130 cm
-	// back, is a 1.80 m standoff looking down 43.9 degrees.
-	const double kGrateEyeCm        = 125.0;
+
+	// ---- THE CANDIDATE STANDPOINTS, TRACED BEFORE ANY OF THEM SHOOTS -----
+	//
+	// WHY THERE IS A LIST AND NOT ONE STANDPOINT. Run 35 aimed from row 00
+	// below and printed grateShotStatus=AIMED, grateRectStatus=MEASURED and
+	// walkFramesWrote=7/7 over a frame in which the east kerb's pedestrian
+	// guard railing (E8, posts at x=10/12/14/16 m in the plane z=3.375 m, one
+	// of them at the grate's own x) stands between the camera and the piece,
+	// and nothing asked what was in the line. The camera arithmetic was right
+	// to two decimals; that was never the question.
+	// So every row is TRACED first (TraceGrateFrom below), the first one
+	// whose subject rays are all clear is taken, and if none is clear the
+	// shot is REFUSED with the blocker named rather than writing a picture of
+	// the obstruction.
+	//
+	// EVERY ROW IS AN OFFSET FROM THE PIECE'S OWN PLACED BOUNDS, never a
+	// world coordinate: Across is across the street (+Y is the footway side,
+	// the sign vignette-scene.json's east footway camera at z=4.0 m against
+	// this piece at z=2.8 m establishes, the same fact the blocked-walk plant
+	// above relies on), Along is up the channel, Eye is above the piece's own
+	// placed top face.
+	//
+	// THE ORDER IS DELIBERATE AND IT IS NOT A BOUND. Row 00 is run 35's exact
+	// geometry, so a clear line from it reproduces that framing unchanged;
+	// the rows after it deviate further and further, and the nearly-overhead
+	// one is last because the control rectangle MeasureGrateAim projects sits
+	// 80 cm toward the crown and a very steep or road-side standpoint can put
+	// it off frame, which that function already prints as
+	// grateRectStatus=OFF-FRAME. No threshold is read off a series here: the
+	// choice is "the first with a clear line", and every row's clear count
+	// and blockers are printed whether it was tried or not.
+	struct FGrateStand { double AcrossCm; double AlongCm; double EyeCm; };
+	const FGrateStand kGrateStands[] = {
+		{  130.0,    0.0, 125.0 },  // 00 run 35's own: 1.80 m standoff, down 43.9 deg
+		{   85.0,    0.0, 120.0 },  // 01 closer from the footway, steeper
+		{   45.0,    0.0, 125.0 },  // 02 closer still
+		{   60.0,  110.0, 125.0 },  // 03 oblique, up the channel
+		{   60.0, -110.0, 125.0 },  // 04 oblique, down the channel
+		{ -120.0,    0.0, 120.0 },  // 05 from the carriageway side
+		{  -70.0,    0.0, 115.0 },  // 06 from the carriageway, closer
+		{   15.0,    0.0, 130.0 },  // 07 nearly overhead, the last resort
+	};
+	const int32 kGrateStandCount =
+		(int32)(sizeof(kGrateStands) / sizeof(kGrateStands[0]));
+	// TEN RAYS PER STANDPOINT, and the count is named so the traced total has
+	// a denominator: five on the subject rectangle (the decision), four on
+	// the placed top face's corners and one to the placed bounds centre
+	// (context). TraceGrateFrom below is the only place that fills them.
+	const int32 kGrateRaysPerStand = 10;
+	// ONE CENTIMETRE, AND WHAT IT IS A CLEARANCE FROM. This piece's top face
+	// lies IN the pitched road plane, measured at 0.000 mm offset at three
+	// points (game-design/decision-2026-09-09-the-grate-rises-flush.md), so a
+	// ray ending exactly on the face ends inside a plane it shares with an
+	// opaque neighbour and can register that neighbour at its own endpoint.
+	// Any positive lift escapes that plane into open air; 10 mm is the
+	// clearance this project already declares for coplanar opaque pairs
+	// (vignette-scene.json standoff_m 0.01, "a clearance rather than a
+	// dimension"). It is not a bound and nothing is compared against it.
+	// CORRECTED 2026-09-09: the sentence this replaces said one centimetre
+	// stays inside the recess the carriageway's lip makes over this piece.
+	// THERE IS NO LIP AND NO RECESS. That reading came from run 35's
+	// deepestMm=65.01, which is the road CROWN 2.745 m away in z and not
+	// cover over this piece, an identification the flush ruling had already
+	// corrected hours earlier.
+	const double kGrateRayLiftCm    = 1.0;
 	// FRAMING, DERIVED AND NOT GUESSED. At 40 degrees vertical on 960x540 the
 	// horizontal field is 65.9 degrees, so the frame is 2.33 m wide where the
 	// grate is: a 0.3999 m piece is 17 percent of the frame width, about 165
@@ -197,6 +255,20 @@ namespace
 	// clear of the paint.
 	const double kGrateSubjOffsetCm = 7.0;
 	const double kGrateSubjHalfCm   = 11.0;
+	// NINE BY NINE OVER THAT SAME RECTANGLE, AND NINE IS NOT A ROUND NUMBER.
+	// The five voting rays are a SAMPLE of the subject rectangle with 110 mm
+	// between samples, and the occluder class that actually exists here is the
+	// east kerb's guard railing: infill bars 25 mm at 0.333 m spacing, posts
+	// 50 mm at 2.0 m spacing. From row 00 the railing plane sits at t=0.589 of
+	// the way to the target, so a 25 mm bar casts about a 42 mm shadow on the
+	// subject plane and a 50 mm post about 85 mm: both NARROWER THAN THE
+	// SAMPLE SPACING, so the vote can miss a bar lying across the picture.
+	// Nine samples across 22 cm are 27.5 mm apart, which resolves the 42 mm
+	// shadow. IT IS COUNTED AND IT DOES NOT VOTE: the selection is still the
+	// five subject rays and still the first clear row, and this is the printed
+	// series a future selection predicate would be set from (rule 2: ship the
+	// printer, read real runs, then set the bound, in that order).
+	const int32  kGrateSubjGridN    = 9;
 	// THE CONTROL, ON PLAIN CARRIAGEWAY IN THE SAME FRAME. 80 cm toward the
 	// crown from the piece's centre is z=2.00 m: past the channel course
 	// (2.745 to 3.0 m) and 45 cm clear of the double yellow's inner band
@@ -275,6 +347,29 @@ namespace
 		TEXT("grateShotStatus=NOT-REACHED grateShotReason=the-route-never-got-past-the-blocked-walk");
 	FString GGrateRectLine    = TEXT("grateRectStatus=NOT-REACHED");
 	FString GGrateRestoreLine = TEXT("grateViewRestoreStatus=NOT-REACHED");
+	// ONE FLAG DECIDES WHETHER FRAMES 05 AND 06 HAPPEN AT ALL, set true only
+	// by the one path in AimAtGrate that found a clear line and took the
+	// view; every other path leaves it false and names its reason here, and
+	// the reason is printed against BOTH frames that were not taken.
+	bool    bGrateShootable = false;
+	FString GGrateSkipWhy   = TEXT("the-route-never-reached-the-grate-phases/nothing-measured");
+	// ONE LINE PER STANDPOINT TRIED, in the order tried, each carrying its own
+	// clear counts and the named blocker of every ray that was stopped. Empty
+	// means no standpoint was traced, which prints the words nothing measured
+	// rather than an empty series.
+	TArray<FString> GGrateCandLines;
+	// A CUMULATIVE COUNT OF RAYS ACTUALLY CAST, over the standpoints actually
+	// tried. Its denominator is kGrateStandCount*kGrateRaysPerStand, and it
+	// reads short of that on purpose whenever the search stopped early at a
+	// clear standpoint.
+	int32 GGrateRaysTraced = 0;
+	// A SECOND CUMULATIVE COUNT, FOR THE COVERAGE GRID ONLY, AND IT IS KEPT
+	// APART ON PURPOSE. The grid casts kGrateSubjGridN squared rays per
+	// standpoint tried and the vote casts kGrateRaysPerStand; one total over
+	// both would let either number borrow the other's denominator, so this one
+	// is counted, printed and named separately (grateSubjGridRaysTraced) and
+	// its denominator is kGrateStandCount*kGrateSubjGridN*kGrateSubjGridN.
+	int32 GGrateGridRaysTraced = 0;
 
 	// ---- the shot-in-flight, one at a time, reused across all five -----
 	bool    GShotInFlight        = false;
@@ -559,6 +654,208 @@ namespace
 		GLastSeqCaptureTime = Now;
 	}
 
+	// ---- THE GRATE: WHAT IS IN THE WAY, TRACED BEFORE ANYTHING SHOOTS ---
+	//
+	// COPIED FROM CrimeProbe.cpp, NOT INVENTED. That file's BlockerName and
+	// TraceBlocked pair is how run 32 proved one crime was seen and one was
+	// not: actorOccluded=no/actorBlocker=none against
+	// actorOccluded=yes/actorBlocker=west_south_bay2. A second mechanism for
+	// the same question is how two answers start disagreeing, so this is the
+	// same channel (ECC_Visibility), the same bTraceComplex=false, the same
+	// "ignore the target, because the question is what is BETWEEN", and the
+	// same named fallback when the hit actor is not a street piece: a
+	// packaged build answers GetName() with StaticMeshActor_NNN, because
+	// SpawnPiece calls SetActorLabel under WITH_EDITOR only, and
+	// LedgerVignetteShot::StreetPieceNameOf is the reverse lookup that turns
+	// it back into a name a reader can act on.
+	FString GrateBlockerNameOf(const AActor* Hit)
+	{
+		if (Hit == nullptr) { return TEXT("none"); }
+		const FString Named = LedgerVignetteShot::StreetPieceNameOf(Hit);
+		const FString Raw = Named.IsEmpty()
+			? (FString(TEXT("unnamed/")) + Hit->GetName()) : Named;
+		// NO SPACES IN A key=value VALUE, the same guard WalkSha applies to
+		// the commit: every reader of this file splits on whitespace.
+		return Raw.Replace(TEXT(" "), TEXT("~"));
+	}
+
+	// ONE LINE TRACE, FAIL-CLOSED. The grate itself is ignored (the question
+	// is what stands BETWEEN, and the target is solid by construction); the
+	// PAWN IS NOT IGNORED, because the view target here is a spawned camera
+	// metres away from the pawn, so a body standing in the line would be
+	// photographed exactly like any other obstruction and must read as one.
+	// A missing world returns BLOCKED with a named reason rather than false,
+	// because "there was no world to ask" must never read as "the line was
+	// clear".
+	bool GrateLineBlocked(UWorld* World, const FVector& From, const FVector& To,
+	                      FString& OutBlocker)
+	{
+		OutBlocker = TEXT("none");
+		if (World == nullptr)
+		{
+			OutBlocker = TEXT("nothing-measured/no-world-to-trace-in");
+			return true;
+		}
+		FCollisionQueryParams Params;
+		Params.bTraceComplex = false;
+		if (GGrateActor != nullptr) { Params.AddIgnoredActor(GGrateActor); }
+		FHitResult Hit;
+		if (!World->LineTraceSingleByChannel(Hit, From, To, ECC_Visibility, Params))
+		{
+			return false;
+		}
+		OutBlocker = GrateBlockerNameOf(Hit.GetActor());
+		return true;
+	}
+
+	// TEN RAYS FROM ONE STANDPOINT, AND WHICH FIVE OF THEM DECIDE.
+	//
+	// s0 to s4 are the SUBJECT RECTANGLE's own centre and four corners, the
+	// same rectangle MeasureGrateAim projects and tools/grate-zfight.py
+	// reads, so the decision is made on the pixels the verdict actually
+	// names. f0 to f3 are the placed top face's four corners and b is the
+	// placed bounds centre; both are CONTEXT and neither votes, because this
+	// piece is set into the road and a placed piece's own edge can honestly
+	// sit under the slab that covers it (run 35: buried=40.0pct by
+	// ground_east_carriageway) while the rectangle being photographed is
+	// wide open. b is inside the piece's own solid by definition, so with the
+	// piece ignored it reports whatever shares that volume.
+	struct FGrateRays
+	{
+		int32   SubjClear     = 0;
+		int32   FaceClear     = 0;
+		bool    bCentreClear  = false;
+		bool    bHaveSubjBlkr = false;
+		FString SubjBlocker   = TEXT("none");
+		FString BlockedRays   = TEXT("");
+	};
+
+	FGrateRays TraceGrateFrom(UWorld* World, const FVector& From, const FBox& Box)
+	{
+		FGrateRays R;
+		const FVector C  = Box.GetCenter();
+		const double  Zc = (double)Box.Max.Z + kGrateRayLiftCm;
+		const double  Sy = (double)C.Y + kGrateSubjOffsetCm;
+		const double  H  = kGrateSubjHalfCm;
+		const FVector Targets[kGrateRaysPerStand] = {
+			FVector((float)C.X,       (float)Sy,       (float)Zc),
+			FVector((float)(C.X - H), (float)(Sy - H), (float)Zc),
+			FVector((float)(C.X + H), (float)(Sy - H), (float)Zc),
+			FVector((float)(C.X + H), (float)(Sy + H), (float)Zc),
+			FVector((float)(C.X - H), (float)(Sy + H), (float)Zc),
+			FVector((float)Box.Min.X, (float)Box.Min.Y, (float)Zc),
+			FVector((float)Box.Max.X, (float)Box.Min.Y, (float)Zc),
+			FVector((float)Box.Max.X, (float)Box.Max.Y, (float)Zc),
+			FVector((float)Box.Min.X, (float)Box.Max.Y, (float)Zc),
+			FVector((float)C.X,       (float)C.Y,       (float)C.Z),
+		};
+		const TCHAR* Labels[kGrateRaysPerStand] = {
+			TEXT("s0"), TEXT("s1"), TEXT("s2"), TEXT("s3"), TEXT("s4"),
+			TEXT("f0"), TEXT("f1"), TEXT("f2"), TEXT("f3"), TEXT("b")
+		};
+		for (int32 I = 0; I < kGrateRaysPerStand; ++I)
+		{
+			FString Blocker;
+			const bool bBlocked = GrateLineBlocked(World, From, Targets[I], Blocker);
+			++GGrateRaysTraced;
+			if (bBlocked)
+			{
+				if (!R.BlockedRays.IsEmpty()) { R.BlockedRays += TEXT(";"); }
+				R.BlockedRays += FString::Printf(TEXT("%s..%s"), Labels[I], *Blocker);
+				if (I < 5 && !R.bHaveSubjBlkr)
+				{
+					R.bHaveSubjBlkr = true;
+					R.SubjBlocker = Blocker;
+				}
+			}
+			else if (I < 5) { ++R.SubjClear; }
+			else if (I < 9) { ++R.FaceClear; }
+			else            { R.bCentreClear = true; }
+		}
+		if (R.BlockedRays.IsEmpty()) { R.BlockedRays = TEXT("none"); }
+		return R;
+	}
+
+	// ---- THE COVERAGE COUNT: 81 CELLS OVER THE SAME SUBJECT RECTANGLE ----
+	//
+	// WHAT THIS IS FOR AND WHAT IT IS NOT FOR. The vote above is five rays 110
+	// mm apart; this is kGrateSubjGridN squared rays 27.5 mm apart over the
+	// SAME rectangle, so the two answers can be compared on the chosen row and
+	// the question "is the vote sampled or measured" gets a number instead of
+	// an argument. It is COUNTED AND NOT VOTED: nothing here is read by the
+	// selection, no status word turns on it, and the cells are counted in
+	// their own total (GGrateGridRaysTraced) so neither count borrows the
+	// other's denominator.
+	//
+	// Cells is COUNTED IN THE LOOP rather than written as 81, so the
+	// denominator printed is the number of cells actually examined and can
+	// never be larger than the set walked. The first blocked cell is the first
+	// in scan order, which is along the channel (I, world X) inside across the
+	// street (J, world Y), and both are printed with the blocker so the reader
+	// can tell a bar across the middle from a corner clipped by a post.
+	struct FGrateGrid
+	{
+		int32   Clear   = 0;            // cells with a clear line to the lifted face
+		int32   Cells   = 0;            // cells actually walked, the denominator
+		int32   FirstI  = -1;           // first blocked cell, along the channel
+		int32   FirstJ  = -1;           // first blocked cell, across the street
+		FString Blocker = TEXT("none"); // what stopped that first blocked cell
+	};
+
+	// THE SPACING, DERIVED FROM THE RECTANGLE AND WRITTEN ONCE: nine samples
+	// inclusive of both edges of a 22 cm square are 2.75 cm apart. The loop
+	// below steps by this and the candidate line prints this, so the number a
+	// reader sees is the number the rays were cast on and not a second copy
+	// of 2.75 that could drift from it.
+	double GrateSubjGridSpacingCm()
+	{
+		return (kGrateSubjGridN > 1)
+			? (kGrateSubjHalfCm * 2.0 / (double)(kGrateSubjGridN - 1)) : 0.0;
+	}
+
+	FGrateGrid GridCoverageFrom(UWorld* World, const FVector& From, const FBox& Box)
+	{
+		FGrateGrid G;
+		const FVector C  = Box.GetCenter();
+		const double  Zc = (double)Box.Max.Z + kGrateRayLiftCm;
+		const double  Sy = (double)C.Y + kGrateSubjOffsetCm;
+		const double  H  = kGrateSubjHalfCm;
+		const double  Step = GrateSubjGridSpacingCm();
+		for (int32 J = 0; J < kGrateSubjGridN; ++J)
+		{
+			for (int32 I = 0; I < kGrateSubjGridN; ++I)
+			{
+				const FVector T((float)(C.X - H + Step * (double)I),
+				                (float)(Sy  - H + Step * (double)J),
+				                (float)Zc);
+				FString Blocker;
+				const bool bBlocked = GrateLineBlocked(World, From, T, Blocker);
+				++GGrateGridRaysTraced;
+				++G.Cells;
+				if (!bBlocked) { ++G.Clear; }
+				else if (G.FirstI < 0)
+				{
+					G.FirstI  = I;
+					G.FirstJ  = J;
+					G.Blocker = Blocker;
+				}
+			}
+		}
+		return G;
+	}
+
+	// ONE ANGLE DIFFERENCE, WRAPPED ONCE, IN ONE PLACE. Both the pitch and the
+	// yaw difference below need the same wrap and a second copy is where two
+	// readings of the same idea start disagreeing. A result near plus or minus
+	// 180 in yaw means the control point is BEHIND the camera, which this
+	// reports honestly as a very large off-axis angle rather than hiding it.
+	double WrapDeg180(double D)
+	{
+		while (D >  180.0) { D -= 360.0; }
+		while (D < -180.0) { D += 360.0; }
+		return D;
+	}
+
 	// ---- THE GRATE: AIM, READ THE AIM BACK, THEN PHOTOGRAPH IT TWICE ----
 	//
 	// THE CAMERA IS A SPAWNED ACameraActor AND A SetViewTarget, WHICH IS THE
@@ -570,11 +867,23 @@ namespace
 	// same two candidates and the same decode-and-measure as the other five.
 	void AimAtGrate()
 	{
+		const int32 RayBudget = kGrateStandCount * kGrateRaysPerStand;
+		// THE COVERAGE GRID'S OWN BUDGET, AND IT IS A DIFFERENT DENOMINATOR
+		// FROM RayBudget. 81 cells per standpoint tried against ten voting rays
+		// per standpoint tried: two counts of two different things, printed
+		// under two names, neither one divisible by the other's total.
+		const int32 GridBudget = kGrateStandCount * kGrateSubjGridN * kGrateSubjGridN;
 		UWorld* World = GameWorld();
 		if (World == nullptr)
 		{
-			GGrateLine = TEXT("grateShotStatus=NO-WORLD ")
-			             TEXT("grateShotReason=the-game-world-vanished-between-ticks");
+			GGrateLine = FString::Printf(
+				TEXT("grateShotStatus=NO-WORLD ")
+				TEXT("grateShotReason=the-game-world-vanished-between-ticks ")
+				TEXT("grateOccluded=nothing-measured grateBlocker=nothing-measured ")
+				TEXT("grateCandidatesTried=0/%d grateRaysTraced=0/%d ")
+				TEXT("grateSubjGridRaysTraced=0/%d"),
+				kGrateStandCount, RayBudget, GridBudget);
+			GGrateSkipWhy = TEXT("no-world-to-trace-in-or-shoot-from/nothing-measured");
 			return;
 		}
 		GGrateActor = LedgerVignetteShot::FindStreetPiece(kGrateName);
@@ -582,7 +891,13 @@ namespace
 		{
 			GGrateLine = FString::Printf(
 				TEXT("grateShotStatus=NOTHING-MEASURED grateShotName=%s ")
-				TEXT("grateShotReason=name-not-among-the-pieces-BuildScene-spawned"), kGrateName);
+				TEXT("grateShotReason=name-not-among-the-pieces-BuildScene-spawned ")
+				TEXT("grateOccluded=nothing-measured grateBlocker=nothing-measured ")
+				TEXT("grateCandidatesTried=0/%d grateRaysTraced=0/%d ")
+				TEXT("grateSubjGridRaysTraced=0/%d"),
+				kGrateName, kGrateStandCount, RayBudget, GridBudget);
+			GGrateSkipWhy = FString::Printf(
+				TEXT("no-piece-named-%s-to-trace-to/nothing-measured"), kGrateName);
 			return;
 		}
 		// THE ENGINE'S OWN BOUNDS, AFTER SCALE AND ROTATION, NOT THE FILE'S
@@ -590,14 +905,148 @@ namespace
 		const FBox   Box  = GGrateActor->GetComponentsBoundingBox();
 		const FVector C   = Box.GetCenter();
 		const double TopZ = (double)Box.Max.Z;
-		const FVector CamLoc((float)C.X,
-		                     (float)(C.Y + kGrateStandCm),
-		                     (float)(TopZ + kGrateEyeCm));
 		const FVector AimAt((float)C.X, (float)C.Y, (float)TopZ);
-		// THE ROTATION IS DERIVED FROM THE TWO POINTS, never a pitch guessed
-		// and hoped to land: whatever the placed piece's top turns out to be,
-		// this points at it.
-		const FRotator CamRot = (AimAt - CamLoc).Rotation();
+		// THE CONTROL POINT, READ OFF THE SAME ARITHMETIC MeasureGrateAim USES
+		// AND NOT A SECOND COPY OF IT: the centre of the control rectangle, 80
+		// cm toward the crown at the placed top face's height. This file
+		// measures the ANGLE to it per candidate and prints it; whether its
+		// rectangle lands inside the frame is still MeasureGrateAim's own
+		// answer, on the chosen standpoint only, as grateRectStatus.
+		const FVector CtrlPt((float)C.X, (float)(C.Y - kGrateCtrlAcrossCm), (float)TopZ);
+		// THE TWO HALF-FIELDS THE ANGLES ARE PRINTED AGAINST, derived from the
+		// camera this phase actually sets up (kGrateVFovDeg on kGrateShotW by
+		// kGrateShotH through the one converter in VignetteSpec.h) rather than
+		// typed as numbers beside it. NOTHING IS COMPARED AGAINST THEM HERE:
+		// they travel on the same line as the angle so a reader of one row has
+		// the pair in hand and never has to remember a field from elsewhere.
+		const double HalfVDeg = kGrateVFovDeg * 0.5;
+		const double HalfHDeg = LedgerVignette::HorizontalFovDeg(
+			kGrateVFovDeg, kGrateShotW, kGrateShotH) * 0.5;
+
+		// TRACE, THEN CHOOSE, THEN SHOOT, AND IN THAT ORDER BECAUSE RUN 35
+		// SHOT FIRST. Every standpoint in kGrateStands is traced to the ten
+		// points TraceGrateFrom names; the FIRST whose five subject rays are
+		// all clear is taken and the search stops there, so a clear row 00
+		// costs ten traces and reproduces run 35's framing exactly. Every row
+		// tried prints its own line (grateCand= below), clear counts and the
+		// named blocker of every ray that was stopped, so a refusal is
+		// diagnosable without another run.
+		int32      Chosen = -1, Tried = 0;
+		FVector    CamLoc = FVector::ZeroVector;
+		FRotator   CamRot = FRotator::ZeroRotator;
+		FGrateRays Rays;
+		FString    FirstBlocker = TEXT("none");
+		for (int32 I = 0; I < kGrateStandCount; ++I)
+		{
+			const FVector Stand((float)(C.X + kGrateStands[I].AlongCm),
+			                    (float)(C.Y + kGrateStands[I].AcrossCm),
+			                    (float)(TopZ + kGrateStands[I].EyeCm));
+			// THE ROTATION IS DERIVED FROM THE TWO POINTS, never a pitch
+			// guessed and hoped to land: whatever the placed piece's top
+			// turns out to be, this points at it.
+			const FRotator StandRot = (AimAt - Stand).Rotation();
+			const FGrateRays R = TraceGrateFrom(World, Stand, Box);
+			++Tried;
+			const bool bClear = (R.SubjClear == 5);
+			// THE FRAMING ANGLES, MEASURED AND NOT ARGUED, AND THEY DECIDE
+			// NOTHING. Same two points, two rotations: the camera axis is the
+			// one this row would be aimed along, and the other is the line to
+			// the control rectangle's centre. The difference is reported per
+			// axis because the frame has two half-fields, and it is the angle
+			// to the centre of that rectangle, NOT a test of whether the
+			// rectangle is in frame. The series exists so the selection
+			// predicate can be set from real runs instead of trigonometry.
+			const FRotator CtrlRot  = (CtrlPt - Stand).Rotation();
+			const double   OffPitch = WrapDeg180((double)CtrlRot.Pitch - (double)StandRot.Pitch);
+			const double   OffYaw   = WrapDeg180((double)CtrlRot.Yaw   - (double)StandRot.Yaw);
+			// THE DENSE COUNT, CAST AFTER THE VOTE AND READ BY NOTHING. Its
+			// rays go to GGrateGridRaysTraced, never to GGrateRaysTraced, and
+			// bClear above is already decided before this line runs.
+			const FGrateGrid Grid = GridCoverageFrom(World, Stand, Box);
+			const FString GridFirstCell = (Grid.FirstI < 0)
+				? FString(TEXT("none"))
+				: FString::Printf(TEXT("%02d/%02d"), Grid.FirstI, Grid.FirstJ);
+			// ROW 00 IS THE ONE RUN 35 USED, so its blocker is the one named
+			// on a refusal: it answers "what was in that photograph".
+			if (I == 0) { FirstBlocker = R.SubjBlocker; }
+			GGrateCandLines.Add(FString::Printf(
+				TEXT("grateCand=%02d grateCandOffsetAcrossAlongEyeCm=%.1f/%.1f/%.1f ")
+				TEXT("grateCandAtXYZcm=%.1f/%.1f/%.1f grateCandPitchDeg=%.1f ")
+				TEXT("grateCandStandoffCm=%.1f grateCandSubjectRaysClear=%d/5 ")
+				TEXT("grateCandFaceRaysClear=%d/4 grateCandCentreRayClear=%s ")
+				TEXT("grateCandOccluded=%s grateCandBlocker=%s grateCandBlockedRays=%s ")
+				TEXT("grateCandCtrlOffPitchDeg=%.1f grateCandCtrlOffYawDeg=%.1f ")
+				TEXT("grateCandHalfVDeg=%.1f grateCandHalfHDeg=%.1f ")
+				TEXT("grateCandFramingStat=angle-to-the-control-rectangles-CENTRE-from-the-")
+				TEXT("camera-axis/not-a-rect-in-frame-test/printed-so-the-selection-rule-can-")
+				TEXT("be-set-from-a-series ")
+				TEXT("grateCandSubjGridClear=%d/%d grateCandSubjGridSpacingCm=%.2f ")
+				TEXT("grateCandSubjGridFirstBlockedCellAlongAcross=%s ")
+				TEXT("grateCandSubjGridFirstBlocker=%s ")
+				TEXT("grateCandSubjGridStat=counted-over-the-cells-walked/not-voted-on/")
+				TEXT("the-selection-is-still-grateCandSubjectRaysClear-and-first-clear-wins ")
+				TEXT("grateCandChosen=%s"),
+				I, kGrateStands[I].AcrossCm, kGrateStands[I].AlongCm, kGrateStands[I].EyeCm,
+				Stand.X, Stand.Y, Stand.Z, StandRot.Pitch,
+				FVector::Dist(Stand, AimAt), R.SubjClear, R.FaceClear,
+				R.bCentreClear ? TEXT("yes") : TEXT("no"),
+				bClear ? TEXT("no") : TEXT("yes"), *R.SubjBlocker, *R.BlockedRays,
+				OffPitch, OffYaw, HalfVDeg, HalfHDeg,
+				Grid.Clear, Grid.Cells, GrateSubjGridSpacingCm(),
+				*GridFirstCell, *Grid.Blocker,
+				bClear ? TEXT("yes") : TEXT("no")));
+			if (bClear)
+			{
+				Chosen = I;
+				CamLoc = Stand;
+				CamRot = StandRot;
+				Rays   = R;
+				break;
+			}
+		}
+
+		// A SHOT WHOSE SUBJECT IS OCCLUDED REFUSES AND NAMES THE BLOCKER.
+		// Run 35's frame 05 has the guard railing's post and mid rail across
+		// the subject rectangle, filed under every green key this probe owns,
+		// and the only thing that stops that recurring is this branch: no camera is spawned, no
+		// view target is taken, and frames 05 and 06 are not written.
+		if (Chosen < 0)
+		{
+			GGrateLine = FString::Printf(
+				TEXT("grateShotStatus=REFUSED-OCCLUDED grateShotName=%s ")
+				TEXT("grateOccluded=yes grateBlocker=%s ")
+				TEXT("grateBlockerFrom=cand00/first-blocked-subject-ray ")
+				TEXT("grateBoundsCentreXYZcm=%.1f/%.1f/%.1f grateBoundsTopZcm=%.2f ")
+				TEXT("grateBoundsSizeXYZcm=%.1f/%.1f/%.1f ")
+				TEXT("grateCandidatesTried=%d/%d grateCandidatesBlocked=%d/%d ")
+				TEXT("grateRaysTraced=%d/%d grateFramesNotTaken=2/2 ")
+				TEXT("grateSubjGridRaysTraced=%d/%d ")
+				TEXT("grateSubjGridRaysStat=cumulative-over-the-standpoints-actually-tried/")
+				TEXT("81-cells-each/counted-apart-from-grateRaysTraced-so-neither-borrows-the-")
+				TEXT("others-denominator ")
+				TEXT("grateRayLiftCm=%.1f ")
+				TEXT("grateRayLiftStat=clearance-above-the-placed-top-face/not-a-bound/")
+				TEXT("the-face-is-coplanar-with-the-road-plane-at-0.000mm ")
+				TEXT("grateShotReason=no-standpoint-had-a-clear-line-to-the-subject-rectangle/")
+				TEXT("a-photograph-of-the-obstruction-is-not-a-photograph-of-the-piece ")
+				TEXT("grateOccludedStat=decided-on-the-five-subject-rectangle-rays-per-standpoint/")
+				TEXT("face-corners-and-bounds-centre-are-context-and-do-not-vote"),
+				kGrateName, *FirstBlocker,
+				C.X, C.Y, C.Z, TopZ,
+				Box.GetSize().X, Box.GetSize().Y, Box.GetSize().Z,
+				Tried, kGrateStandCount, Tried, Tried,
+				GGrateRaysTraced, RayBudget,
+				GGrateGridRaysTraced, GridBudget,
+				kGrateRayLiftCm);
+			GGrateRectLine = FString::Printf(
+				TEXT("grateRectStatus=NOTHING-MEASURED ")
+				TEXT("grateRectReason=the-shot-was-refused-so-no-camera-was-aimed-and-no-rectangle-")
+				TEXT("exists-to-read/blocker=%s"), *FirstBlocker);
+			GGrateSkipWhy = FString::Printf(
+				TEXT("subject-occluded/blocker=%s/standpoints-tried=%d-of-%d/no-clear-line"),
+				*FirstBlocker, Tried, kGrateStandCount);
+			return;
+		}
 
 		if (GGrateCam == nullptr)
 		{
@@ -613,7 +1062,9 @@ namespace
 		if (GGrateCam == nullptr)
 		{
 			GGrateLine = TEXT("grateShotStatus=SPAWN-FAILED ")
-			             TEXT("grateShotReason=the-world-refused-to-spawn-a-camera-actor");
+			             TEXT("grateShotReason=the-world-refused-to-spawn-a-camera-actor ")
+			             TEXT("grateOccluded=no grateBlocker=none");
+			GGrateSkipWhy = TEXT("the-world-refused-to-spawn-a-camera-actor/nothing-measured");
 			return;
 		}
 		if (UCameraComponent* CC = GGrateCam->GetCameraComponent())
@@ -632,20 +1083,47 @@ namespace
 		if (PC == nullptr)
 		{
 			GGrateLine = TEXT("grateShotStatus=NO-CONTROLLER ")
-			             TEXT("grateShotReason=no-first-player-controller-to-take-the-view");
+			             TEXT("grateShotReason=no-first-player-controller-to-take-the-view ")
+			             TEXT("grateOccluded=no grateBlocker=none");
+			GGrateSkipWhy = TEXT("no-first-player-controller-to-take-the-view/nothing-measured");
 			return;
 		}
 		// CAPTURED, NOT ASSUMED, so the restore below puts back what was
 		// actually there rather than what this file believes was there.
 		GViewBefore = PC->GetViewTarget();
 		PC->SetViewTarget(GGrateCam);
+		// THE ONLY PATH THAT SHOOTS. grateOccluded=no and grateBlocker=none
+		// here are the accepting case of the same pair CrimeProbe prints, read
+		// off the standpoint this camera is actually standing on.
+		bGrateShootable = true;
 		GGrateLine = FString::Printf(
 			TEXT("grateShotStatus=AIMED grateShotName=%s ")
+			TEXT("grateOccluded=no grateBlocker=none grateSubjectRaysClear=%d/5 ")
+			TEXT("grateFaceRaysClear=%d/4 grateCentreRayClear=%s grateBlockedRays=%s ")
+			TEXT("grateCandChosen=%02d grateCandidatesTried=%d/%d grateCandidatesBlocked=%d/%d ")
+			TEXT("grateRaysTraced=%d/%d ")
+			TEXT("grateOccludedStat=decided-on-the-five-subject-rectangle-rays-of-the-chosen-")
+			TEXT("standpoint/face-corners-and-bounds-centre-are-context-and-do-not-vote ")
+			TEXT("grateRaysStat=cumulative-over-the-standpoints-actually-tried/ten-each/")
+			TEXT("the-search-stops-at-the-first-clear-one ")
+			TEXT("grateSubjGridRaysTraced=%d/%d ")
+			TEXT("grateSubjGridRaysStat=cumulative-over-the-standpoints-actually-tried/")
+			TEXT("81-cells-each/counted-apart-from-grateRaysTraced-so-neither-borrows-the-")
+			TEXT("others-denominator ")
+			TEXT("grateRayLiftCm=%.1f ")
+			TEXT("grateRayLiftStat=clearance-above-the-placed-top-face/not-a-bound/")
+			TEXT("the-face-is-coplanar-with-the-road-plane-at-0.000mm ")
 			TEXT("grateBoundsCentreXYZcm=%.1f/%.1f/%.1f grateBoundsTopZcm=%.2f ")
 			TEXT("grateBoundsSizeXYZcm=%.1f/%.1f/%.1f ")
 			TEXT("grateCamAskedXYZcm=%.1f/%.1f/%.1f grateCamAskedPitchYaw=%.1f/%.1f ")
 			TEXT("grateCamStandoffCm=%.1f grateCamVFovDeg=%.1f grateCamHFovDeg=%.1f"),
-			kGrateName, C.X, C.Y, C.Z, TopZ,
+			kGrateName,
+			Rays.SubjClear, Rays.FaceClear, Rays.bCentreClear ? TEXT("yes") : TEXT("no"),
+			*Rays.BlockedRays, Chosen, Tried, kGrateStandCount, Tried - 1, Tried,
+			GGrateRaysTraced, RayBudget,
+			GGrateGridRaysTraced, GridBudget,
+			kGrateRayLiftCm,
+			C.X, C.Y, C.Z, TopZ,
 			Box.GetSize().X, Box.GetSize().Y, Box.GetSize().Z,
 			CamLoc.X, CamLoc.Y, CamLoc.Z, CamRot.Pitch, CamRot.Yaw,
 			FVector::Dist(CamLoc, AimAt), kGrateVFovDeg,
@@ -850,6 +1328,18 @@ namespace
 		Out.Add(TEXT("#   named on the grateRect line. THE CONTROL IS THE DENOMINATOR: no bound is"));
 		Out.Add(TEXT("#   set here, and this file decides nothing about the tie. It supplies the"));
 		Out.Add(TEXT("#   two frames and the two rectangles as FRACTIONS of the frame."));
+		Out.Add(TEXT("# AND IT TRACES BEFORE IT SHOOTS, since run 35. That run printed"));
+		Out.Add(TEXT("#   grateShotStatus=AIMED, grateRectStatus=MEASURED and walkFramesWrote=7/7"));
+		Out.Add(TEXT("#   over a frame in which the east kerb's pedestrian guard railing (E8,"));
+		Out.Add(TEXT("#   posts at x=10/12/14/16 m in the plane z=3.375 m, one of them at the"));
+		Out.Add(TEXT("#   grate's own x) stands between the camera and the piece, and nothing"));
+		Out.Add(TEXT("#   asked what was in the line. The camera arithmetic was right. Each"));
+		Out.Add(TEXT("#   standpoint in the table is now line-traced to ten points first (five on"));
+		Out.Add(TEXT("#   the subject rectangle, which decide; four top-face corners and the"));
+		Out.Add(TEXT("#   bounds centre, which are context), the first with five clear subject"));
+		Out.Add(TEXT("#   rays is taken, and grateOccluded / grateBlocker are the same pair"));
+		Out.Add(TEXT("#   CrimeProbe prints. With no clear standpoint the shot is REFUSED with"));
+		Out.Add(TEXT("#   the blocker named and frames 05 and 06 are NOT written."));
 		Out.Add(TEXT("# THE CLIP: this file writes two kinds of frame. ue-walk_NN_*.png is the"));
 		Out.Add(TEXT("#   evidence, seven named milestones (five route, two grate), untouched by"));
 		Out.Add(TEXT("#   the clip. ue-walkseq_NNN.png"));
@@ -950,6 +1440,22 @@ namespace
 		// the route never reached it, so an absent picture never reads as a
 		// picture with nothing in it.
 		Out.Add(GGrateLine);
+		// THE SERIES, ONE LINE PER STANDPOINT ACTUALLY TRIED, IN THE ORDER
+		// TRIED. No bound is read off it: the chosen row is simply the first
+		// with five clear subject rays, and a row that was never reached
+		// prints nothing rather than a zero, which is why the count of rows
+		// is printed on the grate line above against kGrateStandCount.
+		if (GGrateCandLines.Num() == 0)
+		{
+			Out.Add(FString::Printf(
+				TEXT("grateCandStatus=NOTHING-MEASURED grateCandidatesTried=0/%d ")
+				TEXT("grateCandReason=no-standpoint-was-traced-on-this-commit/nothing-measured"),
+				kGrateStandCount));
+		}
+		else
+		{
+			for (const FString& CandLine : GGrateCandLines) { Out.Add(CandLine); }
+		}
 		Out.Add(GGrateRectLine);
 		Out.Add(GGrateRestoreLine);
 
@@ -1125,6 +1631,27 @@ namespace
 		{
 			WriteBreadcrumb(TEXT("blocked-walk-done"));
 			AimAtGrate();
+			// THE REFUSAL PATH, AND IT SKIPS BOTH GRATE FRAMES. Nothing was
+			// spawned and no view target was taken on any path that leaves
+			// bGrateShootable false, so jumping straight to Done cannot leave
+			// the view on a probe camera; the two frames that were not taken
+			// say why in the same place every other frame reports, so an
+			// absent picture never reads as a picture with nothing in it.
+			if (!bGrateShootable)
+			{
+				const std::string Why(TCHAR_TO_UTF8(*GGrateSkipWhy));
+				GShotLines.push_back(
+					"walkShot=grate_a shotStatus=NOT-TAKEN shotNote=" + Why);
+				GShotLines.push_back(
+					"walkShot=grate_b shotStatus=NOT-TAKEN shotNote=" + Why);
+				GGrateRestoreLine = TEXT("grateViewRestoreStatus=NOT-NEEDED ")
+				                    TEXT("grateViewRestoreReason=no-view-target-was-taken-because-")
+				                    TEXT("the-shot-was-refused/nothing-to-restore");
+				WriteBreadcrumb(TEXT("grate-refused"));
+				GPhase = EWalkPhase::Done;
+				GPhaseStart = Now;
+				return true;
+			}
 			GPhase = EWalkPhase::SettleAfterAim;
 			GPhaseStart = Now;
 			return true;

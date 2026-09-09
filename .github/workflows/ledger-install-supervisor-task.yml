@@ -32,6 +32,17 @@ name: LEDGER install supervisor scheduled task
 # push that touches its own files rather than waiting for a deliberate
 # sentinel flip - the project law that expensive jobs are opt-in does not
 # name this one.
+#
+# FIRINGS RECORDED HERE WHEN THE REASON WAS A SEND RATHER THAN A CHANGE, so
+# that a push touching this file is never mistaken for work on the workflow.
+# 2026-09-09, about 06:45 local: the morning brief Jafar asked for at 06:00 sat
+# in production/outbox/ and no receipt had come back since 2026-09-07T11:19:36Z.
+# This push fires the --send-outbox step, which is the sender he himself called
+# "already proven to deliver" when he ordered it re-enabled on 2026-09-08.
+# THIS IS USING THE CHANNEL, NOT WORKING ON IT: his ruling of the same day, "no
+# further channel work this week", stands, and nothing here investigates or
+# repairs anything. If the brief still does not arrive, that is the supervisor
+# staleness already recorded as a finding and it stays a finding.
 on:
   workflow_dispatch:
   push:
