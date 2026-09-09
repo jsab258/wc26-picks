@@ -1,4 +1,4 @@
-# LEDGER one decision-cards pass - 3cf3731 @1788943349
+# LEDGER one decision-cards pass - de326cf @1788944044
 # Line 1 names the commit this was run on. This step SENDS: it runs
 # tools/runner/telegram-bot.py --send-cards once, which is the same
 # pass the bot's own loop makes every 120s. One message per WAITING
@@ -6,13 +6,15 @@
 # unchanged card is never sent twice. Streamed, so a timeout still
 # leaves everything it learned.
 cardsPython=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\python.exe
-cardsStatus=EXITED cardsWaitedSec=3 cardsExitCode=0
-cardsStream=cards-raw.txt cardsLines=7
-10:42:29    card sent: "Is Mickey's a free house or a tied house?" cardId=85bff034 options=2
-10:42:29    card sent: "How big is Mickey's on Quay Street?" cardId=341aa761 options=2
-10:42:30    card sent: "The gully grate is under the road. Raise it flush, or cut the ground?" cardId=4f99f11e options=2
-10:42:30    card sent: "Which bay is Mickey's?" cardId=ead0341a options=2
-10:42:30    card sent: "How close should strangers stand?" cardId=c37b5b24 options=3
-10:42:30    card sent: "The pages cannot be published until the studio's branch may deploy" cardId=803a6f77 options=2
-10:42:30  cards-sent: cardsSent=6/6 waiting skipped=0/6 failed=0/6 waitingTotal=6 file=production/decision-queue.md
+cardsStatus=EXITED cardsWaitedSec=6 cardsExitCode=0
+cardsStream=cards-raw.txt cardsLines=9
+10:54:05    card sent: "How close should strangers stand?" cardId=c37b5b24 fingerprint=9e6aebf7 options=3 chars=701 messageId=49 capsThatBit=0/7 added=2026-08-04 deadline=2026-09-07 deadlineFrom=default-line receipt=production/outbound/card-c37b5b24-9e6aebf7.receipt.txt
+10:54:05    card sent: "Is Mickey's a free house or a tied house?" cardId=85bff034 fingerprint=db75c4cc options=2 chars=941 messageId=50 capsThatBit=0/6 added=2026-09-08 deadline=2026-09-11 deadlineFrom=default-line receipt=production/outbound/card-85bff034-db75c4cc.receipt.txt
+10:54:05    card sent: "How big is Mickey's on Quay Street?" cardId=341aa761 fingerprint=689e9259 options=2 chars=801 messageId=51 capsThatBit=0/6 added=2026-09-08 deadline=2026-09-11 deadlineFrom=default-line receipt=production/outbound/card-341aa761-689e9259.receipt.txt
+10:54:05    card sent: "Which bay is Mickey's?" cardId=ead0341a fingerprint=bda6895e options=2 chars=957 messageId=52 capsThatBit=0/6 added=2026-09-08 deadline=2026-09-11 deadlineFrom=default-line receipt=production/outbound/card-ead0341a-bda6895e.receipt.txt
+10:54:05    card sent: "When does the last bus leave Meridian?" cardId=1b007ac5 fingerprint=7fcf2382 options=3 chars=966 messageId=53 capsThatBit=0/7 added=2026-09-09 deadline=2026-09-11 deadlineFrom=default-line receipt=production/outbound/card-1b007ac5-7fcf2382.receipt.txt
+10:54:06    card sent: "Is this the visual ladder?" cardId=6dce3ac8 fingerprint=337bc819 options=3 chars=1175 messageId=54 capsThatBit=0/7 added=2026-09-09 deadline=2026-09-11 deadlineFrom=default-line receipt=production/outbound/card-6dce3ac8-337bc819.receipt.txt
+10:54:06    card sent: "The gully grate is under the road. Raise it flush, or cut the ground?" cardId=4f99f11e fingerprint=685f8c7d options=2 chars=1345 messageId=55 capsThatBit=0/6 added=2026-09-09 deadline=2026-09-11 deadlineFrom=default-line receipt=production/outbound/card-4f99f11e-685f8c7d.receipt.txt
+10:54:06  cards-sent: cardsSent=7/7 waiting cardsAlreadySent=0/7 cardsPushable=7/7 skipped=0/7 heldNoReceipt=0/7 failed=0/7 noMessageId=0/7 waitingTotal=7 undatedCards=0/7 order=oldestAddedFirst nothingNeedsYou=not-needed/7-pushable-card(s) dayUtc=2026-09-09 file=production/decision-queue.md
+10:54:09    inbox: pushed 9 file(s) as 4e1c0b6 to pc-inbox
 cardsStream=cards-raw.txt.err cardsLines=0

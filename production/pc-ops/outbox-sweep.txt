@@ -1,4 +1,4 @@
-# LEDGER one outbox sweep - 3cf3731 @1788943346
+# LEDGER one outbox sweep - de326cf @1788944041
 # Line 1 names the commit this was run on. This step SENDS: it runs
 # tools/runner/telegram-bot.py --send-outbox once, which is the same
 # pass the bot's own loop makes. Streamed, so a timeout still leaves
@@ -6,6 +6,6 @@
 sweepPython=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\python.exe
 sweepStatus=EXITED sweepWaitedSec=3 sweepExitCode=0
 sweepStream=sweep-raw.txt sweepLines=2
-10:42:26  outbox done: outboxFiles=15 sent=0 captionedSent=0 captionedClipsSent=0 refused=0 unsent=0 alreadySent=15 held=0 sendFailed=0 receiptRefused=0 recordsWritten=0 latencySamples=0/0 outboundLatencySecAtWorst=nothing-measured
-10:42:26  nothing measured: all 15 file(s) in production/outbox already carry a receipt, so no message was checked or sent this pass.
+10:54:01  outbox done: outboxFiles=17 sent=0 captionedSent=0 captionedClipsSent=0 refused=0 unsent=0 alreadySent=17 held=0 sendFailed=0 receiptRefused=0 recordsWritten=0 latencySamples=0/0 outboundLatencySecAtWorst=nothing-measured
+10:54:01  nothing measured: all 17 file(s) in production/outbox already carry a receipt, so no message was checked or sent this pass.
 sweepStream=sweep-raw.txt.err sweepLines=0
