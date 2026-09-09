@@ -25,8 +25,17 @@ propUassetsOnDisk=16, and sixteen .uasset files are committed under
 ue-probe/Content/Ledger/Props/. The grate resolves at 0.0474 mm worst against its
 spec box.
 
-WHAT IS STILL OPEN, and it is the thing Jafar's accepting case actually asks for:
-COLLISION, and the honest state is weaker than run 3's number suggested.
+RUN 4 ANSWERED THE COLLISION QUESTION AND THE ANSWER WAS YES ALL ALONG.
+propCollisionPrims=15/15, propCollisionVia=not-needed/already-had-1=15,
+propCollidable=15/15, and the grate itself RESOLVED with simplePrims=1,
+bodySetup=present and 0.0474 mm worst against its spec box. The glTF import had
+put a primitive on every mesh; nothing needed adding. What is still open is
+PLACEMENT: the walk build has never placed one prop mesh (propsAsMesh=0/23) and
+the grate sits 13.4 mm under the channel slab that spans it, so no frame can
+show it yet. Queue 161 and 162 carry those.
+
+WHAT RUN 3 SAID AND WHY IT WAS WORSE THAN NOTHING, kept because a deleted number
+cannot be audited. The paragraph below was written before run 4 landed.
 propCollisionPrims=0/15 was not a measurement: the legacy library refuses by
 returning -1 rather than raising, the importer believed it, and a refusal became
 a measured absence. Nothing read whether any of the fifteen has collision. A

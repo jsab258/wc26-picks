@@ -638,6 +638,1179 @@ namespace LedgerVignette
 		return std::string(Buf);
 	}
 
+	// ---- THE MESH ROUTE'S SEGMENT: THE TALLY, THE MATHS AND THE STRING ---
+	//
+	// WHY ALL OF IT IS HERE AND NONE OF IT IS IN VignetteShot.cpp, amendment
+	// A5 of the ruling of 2026-09-08, queue 161. This segment used to be
+	// tallied and formatted in the .cpp, which this container cannot compile,
+	// so it shipped UNRUN and carried three faults through three landed runs:
+	// a count of MESHES under a key whose name said Prims, a zero printed
+	// over a zero denominator with no words beside it, and ONE number
+	// standing for two opposite facts. The 25 August standing rule is that
+	// the tally, the arithmetic and the string live where the tests run. The
+	// .cpp now supplies membership and live state only: one collision
+	// reading per placed prop, and the engine's own bounds readback per
+	// piece.
+
+	// N OVER M, OR THE WORDS. One rule in one place decides what a zero
+	// denominator prints, because 0 of 0 and 0 of 9 are the same number and
+	// opposite facts, and a caller that has to remember the rule forgets it.
+	inline std::string OverOrWords(int N, int M)
+	{
+		char B[48];
+		if (M <= 0) { std::snprintf(B, sizeof(B), "nothing-measured/%d", M); }
+		else { std::snprintf(B, sizeof(B), "%d/%d", N, M); }
+		return std::string(B);
+	}
+
+	// MINUS ZERO IS A PRINTING ARTEFACT AND NOT A MEASUREMENT.
+	inline double NoNegZero(double V)
+	{
+		// ROUNDED AT THE FOUR DECIMALS THE VALUE IS PRINTED TO, and ONLY the
+		// sign of a printed zero can change: a cover top that lands on the
+		// road crown arrives from the corner arithmetic at -7e-17 and prints
+		// -0.0000, which reads as a sign somebody should look into. Every
+		// value that does not round to zero at four decimals is returned
+		// exactly as it came in, so nothing as large as a tenth of a
+		// millimetre moves here.
+		const double R = std::floor(std::fabs(V) * 10000.0 + 0.5) / 10000.0;
+		if (R == 0.0) { return 0.0; }
+		return V;
+	}
+
+	// A CAPPED LIST VALUE, ONE WHITESPACE-FREE TOKEN, AND THE CAP ANNOUNCES
+	// ITSELF. Total is the size of the WHOLE population the shown items came
+	// from, which is NOT Items.size() when the caller bounded its own memory
+	// at collection time: the remainder can only be announced from a number
+	// the caller knows and this function cannot see.
+	//
+	// THE OTHER COPY OF THIS IDEA is LedgerSurface::PathListValue, which
+	// joins on a comma because a slash is inside every path it prints, and
+	// which cannot call this one: SurfaceBind.h includes this header, so the
+	// dependency only runs one way. Named here rather than left to be
+	// discovered, because a second copy is the site nobody looks at when the
+	// first is fixed. Merging the two edits a file outside queue 161.
+	inline std::string CappedList(const std::vector<std::string>& Items, size_t Cap,
+	                             int Total, const char* Sep, const char* WhenEmpty)
+	{
+		std::string Out;
+		size_t Shown = 0;
+		for (size_t I = 0; I < Items.size() && Shown < Cap; ++I, ++Shown)
+		{
+			if (Shown > 0) { Out += Sep; }
+			Out += NoSpaces(Items[I]);
+		}
+		const int Held = Total - (int)Shown;
+		if (Held > 0)
+		{
+			// THE SEPARATOR ONLY WHERE THERE IS SOMETHING TO SEPARATE. A cap
+			// that bit with nothing shown printed a leading semicolon once,
+			// which reads as an item whose name is empty.
+			char Tail[64];
+			std::snprintf(Tail, sizeof(Tail), "%s(+%d~more~not~shown)",
+			              Shown > 0 ? Sep : "", Held);
+			Out += Tail;
+		}
+		if (Out.empty()) { Out = WhenEmpty; }
+		return Out;
+	}
+
+	// EVERY CAP ANNOUNCES ITSELF, INCLUDING THE ONES THAT SHOULD BE
+	// IMPOSSIBLE. snprintf returns what it WOULD have written, so a chunk
+	// that overran its buffer says so rather than ending mid-key and reading
+	// as a missing measurement. The container test prints the whole segment's
+	// length on every run, which is the series these buffers were sized from.
+	inline void AppendChunk(std::string& Out, const char* Buf, int Wrote, int Cap, int Chunk)
+	{
+		Out += Buf;
+		if (Wrote >= 0 && Wrote < Cap) { return; }
+		char T[112];
+		std::snprintf(T, sizeof(T), " propSegmentTruncated=chunk%d/wanted=%d/buffer=%d",
+		              Chunk, Wrote, Cap);
+		Out += T;
+	}
+
+	// ---- HALF ONE: WHAT A PLACED PROP'S ASSET SAYS ABOUT COLLISION ------
+	//
+	// THREE-VALUED ON PURPOSE, AND THE THIRD VALUE IS THE POINT. A count of
+	// simple primitives reads 0 for two opposite facts: an asset with no
+	// body setup under it, where nothing answered the question at all, and an
+	// asset whose body setup holds zero simple elements, which a
+	// complex-as-simple trace flag makes perfectly solid against a capsule.
+	// The first is UNKNOWN and is NEVER NO. A negative count is a refusal
+	// and is also UNKNOWN: the importer printed propCollisionPrims=0/15 over
+	// fifteen refusals once, and the zero was the lie, not the minus one.
+	//
+	// THE IMPORTER CALLS THE NO-BODY-SETUP CASE NO, over a different
+	// population and at a different time. tools/ue/import_prop_meshes.py
+	// collidable_word reads a SAVED asset in an editor, where an absent body
+	// setup is a finished fact about a file on disk. This reads an asset
+	// LOADED AT RUNTIME in a cooked build, where a null body setup is also
+	// what a reader gets when nothing has built one yet. Two populations,
+	// two answers, ruled UNKNOWN here on 2026-09-08 and written down so the
+	// divergence reads as a decision rather than as a bug.
+	enum EPropCollisionRead
+	{
+		PropCollision_Unknown = 0,  // nothing answered: no body setup, or a refused count
+		PropCollision_No      = 1,  // a body setup holding nothing a trace can hit
+		PropCollision_Yes     = 2   // a simple primitive, or complex-as-simple over geometry
+	};
+
+	// THE CLASSIFIER, TAKING ONLY WHAT AN ENGINE CAN ANSWER ABOUT ONE ASSET,
+	// so the rule is run by g++ here and the .cpp does nothing but ask.
+	// SimpleElements below zero means the engine refused the count.
+	// bHasGeometry is whether the mesh has any extent at all, which is the
+	// same thing the importer reads as boundsUu-nonzero: a complex-as-simple
+	// flag over an empty mesh is a flag pointing at nothing.
+	inline EPropCollisionRead ReadPropCollision(bool bHasBodySetup, int SimpleElements,
+	                                           bool bComplexAsSimple, bool bHasGeometry)
+	{
+		if (!bHasBodySetup) { return PropCollision_Unknown; }
+		if (SimpleElements > 0) { return PropCollision_Yes; }
+		if (bComplexAsSimple && bHasGeometry) { return PropCollision_Yes; }
+		if (SimpleElements < 0) { return PropCollision_Unknown; }
+		return PropCollision_No;
+	}
+
+	inline const char* PropCollisionWord(EPropCollisionRead R)
+	{
+		if (R == PropCollision_Yes) { return "YES"; }
+		if (R == PropCollision_No) { return "NO"; }
+		return "UNKNOWN";
+	}
+
+	// THE RUN'S TALLY. CUMULATIVE over the placed prop meshes of one run,
+	// and Placed() is its own denominator: the readings taken, never the 23
+	// the file asked for, because a denominator larger than the set examined
+	// turns a clean result into a false claim with a number on it.
+	struct PropCollisionTally
+	{
+		int Yes, No, Unknown;
+		// THE NAMES OF BOTH NON-YES BUCKETS, capped by Add at four each. A
+		// count cannot be fixed and a name can, and the two buckets are
+		// different jobs: a NO is an asset to give collision to, an UNKNOWN
+		// is a reading to chase. Only YES needs no names, because a list of
+		// everything that worked is the line itself.
+		std::vector<std::string> NoOn, UnknownOn;
+		PropCollisionTally() : Yes(0), No(0), Unknown(0) {}
+		void Add(const std::string& PieceName, EPropCollisionRead R)
+		{
+			if (R == PropCollision_Yes) { ++Yes; return; }
+			if (R == PropCollision_Unknown)
+			{
+				++Unknown;
+				if (UnknownOn.size() < 4) { UnknownOn.push_back(NoSpaces(PieceName)); }
+				return;
+			}
+			++No;
+			if (NoOn.size() < 4) { NoOn.push_back(NoSpaces(PieceName)); }
+		}
+		int Placed() const { return Yes + No + Unknown; }
+	};
+
+	// ---- HALF TWO: WHETHER ANYTHING OCCUPIES THE FOOTPRINT ABOVE IT -----
+	//
+	// THE PLACEMENT RULE IN .claude/rules/instruments.md, BOTH HALVES. A
+	// placement metric is distance to the datum AND whether the datum exists
+	// under the footprint. propCentreWorstMm is the first half and it is
+	// BLIND TO BURIAL: a piece sitting 0.00 mm from where the file put it is
+	// perfectly placed and may still be inside the road. Amendment A6 of the
+	// same ruling, queue 162, asks the second half of the drainage grate by
+	// name, because the street spec as written puts its top under the
+	// channel slab that spans it.
+	//
+	// WHAT COUNTS AS BURIED, A PREDICATE AND NOT A THRESHOLD. A cell of the
+	// prop's own footprint is BURIED when some other placed piece's bounds
+	// STRADDLE the prop's top there, MinY <= top < MaxY, so the prop's top
+	// surface is inside that piece. It is OVERHUNG when nothing straddles
+	// but something sits entirely above the top, which is an awning and not
+	// a burial. It is OPEN when neither. Three buckets, exact at the printed
+	// grid resolution, and no bound anywhere: the run prints the series and
+	// a bound, if one is ever wanted, is read off the series afterwards.
+	//
+	// THE PERCENTAGE AND THE DEPTH ARE ONE READING AND NEITHER IS A READING
+	// ALONE. Five of the live file's twenty-three props read a few buried
+	// cells at 0.00 mm depth, which is two world AABBs touching at a face;
+	// the grate reads every cell of its footprint at tens of millimetres. A
+	// percentage cannot tell those apart, so the pair travels as one value
+	// and the piece that is that deep over it is captured AT THE SAME CELL.
+	//
+	// WHAT THIS CANNOT SEE, SAID PLAINLY AND PRINTED ON THE LINE. World
+	// AABBs, not triangles:
+	//   A sparse mesh whose box swallows a neighbour reads as covering it,
+	//   which is why every reading here ships the covering piece's NAME for a
+	//   human to judge.
+	//   A PITCHED SLAB'S AABB TOP IS ITS HIGH EDGE, not its height above this
+	//   prop, so the DEPTH overstates by TWO terms that ADD when the prop
+	//   sits past the slab's centre line, and this prop does: the cross-fall
+	//   over the slab's OWN FULL WIDTH, plus the prop's distance beyond that
+	//   centre line. At 1.432096 degrees the full-width term is 68.6 mm for
+	//   the 2.746 m carriageway and 6.4 mm for the 0.255 m channel. CORRECTED
+	//   2026-09-09, ruling section 4: this comment read "34 mm", which is the
+	//   HALF width and was read as the whole overstatement, and a reader who
+	//   subtracts 34 from the grate's 85.00 mm concludes 51 mm of cover and is
+	//   wrong by 3.4 times.
+	//   THE DECOMPOSITION AT THIS PROP, ruled as 34.32 mm of half-width
+	//   cross-fall plus 35.78 mm of distance past the slab's centre line,
+	//   70.10 mm. ReadCoverProfile below now prints that figure instead of
+	//   arguing it, off the file's own pitches, and on the committed street it
+	//   reads localAtFootprintCentre=15.00mm@z2.800000/aabbWorstMinusThis=
+	//   70.00mm, with localDeepestAtFootprintEdge=20.00mm and
+	//   localDeepestAtCellCentre=19.75mm. The ruling's 19.90, 14.90 and 35.78
+	//   anchor the slab's top face at the piece's own z; the pitch shifts that
+	//   face 3.75 mm in z, which is 0.09 mm of y, and that 0.09 mm is the whole
+	//   of the difference in every one of those three. The printed series is
+	//   the authority, which is what A8 ordered it for.
+	//   AND THE RULED FIGURE IS TWO POINTS. 85.00 mm is the carriageway's AABB
+	//   depth at the grate's western cells and 15.00 mm is the channel's real
+	//   cover at the centre line, so that subtraction crosses both a point and
+	//   a covering piece. The profile prints it because a reader subtracting
+	//   this comment's millimetres from 85.00 is computing exactly it, and
+	//   prints TWO-POINTS beside it. The strict same-point overstatement, one
+	//   cell and one cover, is 65.25 mm at iz=0.
+	//   The buried or not answer is unaffected by any of this, the
+	//   millimetres are a ceiling, and the stat key says so. The reading that
+	//   has neither limit is a downward trace at the cell, which is the
+	//   engine's to do and queue 163's sweep.
+	//   An AABB question is not an occlusion question at all, and only a
+	//   frame answers that one.
+	struct PlacedBox
+	{
+		std::string Name, Edge, Region;
+		bool   bProp;       // a mesh-kind piece: the population the burial half measures
+		bool   bFromAsset;  // it got a LOADED prop asset rather than the box stand-in
+		double MinX, MaxX, MinY, MaxY, MinZ, MaxZ;   // the file's frame, metres
+		PlacedBox() : bProp(false), bFromAsset(false),
+		              MinX(0), MaxX(0), MinY(0), MaxY(0), MinZ(0), MaxZ(0) {}
+		bool SpansXZ(double X, double Z) const
+		{
+			return X >= MinX && X <= MaxX && Z >= MinZ && Z <= MaxZ;
+		}
+		bool OverlapsXZ(const PlacedBox& O) const
+		{
+			return !(O.MaxX <= MinX || O.MinX >= MaxX || O.MaxZ <= MinZ || O.MinZ >= MaxZ);
+		}
+	};
+
+	// THE SAME STRUCT FROM THE FILE, WHICH IS A FIXTURE AND NEVER A READING.
+	// The run fills PlacedBox from the engine's own GetActorBounds, because
+	// where a piece IS is the only thing worth measuring. This makes one from
+	// a piece row so the container can exercise the arithmetic against the
+	// committed street with no engine present, and the difference between the
+	// two is exactly what propCentreWorstMm reports.
+	inline PlacedBox SpecBoxBounds(const Piece& P)
+	{
+		PlacedBox B;
+		B.Name = P.Name; B.Edge = P.Edge; B.Region = P.Region;
+		B.bProp = (P.Shape == "mesh");
+		const double HX = P.SX * 0.5, HY = P.SY * 0.5, HZ = P.SZ * 0.5;
+		// THE EIGHT CORNERS, TURNED THE WAY THE FILE'S OWN FRAME SAYS: pitch
+		// about +x with positive tipping the +z end down, yaw about +y taking
+		// +x toward +z, roll about +z. The file's counts.multi_rotation is 0
+		// and the reader prints it every run, so no piece carries two of
+		// these at once and the composition order below is unexercised; it is
+		// written out rather than skipped because the day that count stops
+		// being zero this must not quietly pick an order.
+		const double CP = std::cos(P.PitchDeg * 3.14159265358979323846 / 180.0);
+		const double SP = std::sin(P.PitchDeg * 3.14159265358979323846 / 180.0);
+		const double CY = std::cos(P.YawDeg * 3.14159265358979323846 / 180.0);
+		const double SY = std::sin(P.YawDeg * 3.14159265358979323846 / 180.0);
+		const double CR = std::cos(P.RollDeg * 3.14159265358979323846 / 180.0);
+		const double SR = std::sin(P.RollDeg * 3.14159265358979323846 / 180.0);
+		bool bFirst = true;
+		for (int I = 0; I < 8; ++I)
+		{
+			double X = (I & 1) ? HX : -HX;
+			double Y = (I & 2) ? HY : -HY;
+			double Z = (I & 4) ? HZ : -HZ;
+			double T;
+			T = Y * CP - Z * SP;  Z = Y * SP + Z * CP;  Y = T;   // pitch about +x
+			T = X * CY - Z * SY;  Z = X * SY + Z * CY;  X = T;   // yaw about +y
+			T = X * CR - Y * SR;  Y = X * SR + Y * CR;  X = T;   // roll about +z
+			X += P.X; Y += P.Y; Z += P.Z;
+			if (bFirst)
+			{
+				B.MinX = B.MaxX = X; B.MinY = B.MaxY = Y; B.MinZ = B.MaxZ = Z;
+				bFirst = false;
+				continue;
+			}
+			if (X < B.MinX) { B.MinX = X; }
+			if (X > B.MaxX) { B.MaxX = X; }
+			if (Y < B.MinY) { B.MinY = Y; }
+			if (Y > B.MaxY) { B.MaxY = Y; }
+			if (Z < B.MinZ) { B.MinZ = Z; }
+			if (Z > B.MaxZ) { B.MaxZ = Z; }
+		}
+		return B;
+	}
+
+	// THE GRID'S SIDE, AND IT IS A SAMPLER WITH A RESOLUTION AND SAYS SO ON
+	// THE LINE: a gap in the cover narrower than one cell cannot be seen
+	// here at all. 20 over a 0.4 m grate is a 20 mm cell.
+	inline int BurialGridSide() { return 20; }
+
+	struct BurialRead
+	{
+		std::string Name, Edge, Region;
+		bool   bFromAsset;
+		double TopM;              // the prop's OWN placed world-bounds top
+		int    Cells, Buried, Overhung, Open;
+		double DeepestMm;         // AT WORST over the buried cells of this prop
+		double DeepestCoverTopM;  // the cover's top AT THE SAME CELL as DeepestMm
+		std::string DeepestBy;    // and the piece, same cell, same instant
+		double HeadroomMm;        // SMALLEST gap to anything above, over cells that are not buried; -1 is nothing above any
+		std::string HeadroomBy;
+		std::vector<std::string> ByCover;  // one entry per covering piece, deepest first
+		int    CoverCount;        // how many pieces straddle this prop's top anywhere
+		BurialRead() : bFromAsset(false), TopM(0), Cells(0), Buried(0), Overhung(0),
+		               Open(0), DeepestMm(0), DeepestCoverTopM(0), DeepestBy("none"),
+		               HeadroomMm(-1), HeadroomBy("none"), CoverCount(0) {}
+		double BuriedPct() const
+		{
+			return Cells <= 0 ? 0.0 : 100.0 * (double)Buried / (double)Cells;
+		}
+		double OverhungPct() const
+		{
+			return Cells <= 0 ? 0.0 : 100.0 * (double)Overhung / (double)Cells;
+		}
+		double OpenPct() const
+		{
+			return Cells <= 0 ? 0.0 : 100.0 * (double)Open / (double)Cells;
+		}
+		bool FullyBuried() const { return Cells > 0 && Buried == Cells; }
+	};
+
+	// ONE CELL OF ONE PROP'S FOOTPRINT, AND THE ONE PLACE THE STRADDLE
+	// PREDICATE LIVES.
+	//
+	// ONE IMPLEMENTATION PER IDEA, split out 2026-09-09 for A8. The tally
+	// below and the per-cell cover profile further down both read a cell
+	// through this function, because a second copy of a predicate is the site
+	// nobody fixes: a summary key and a depth series that disagreed about
+	// what buried MEANS would be worse than no series at all.
+	struct BurialCellRead
+	{
+		double X, Z;            // the cell's centre, the file's own frame, metres
+		bool   bStraddled;      // some other piece's bounds contain the prop's top HERE
+		bool   bAbove;          // nothing straddles and something sits entirely over
+		double CoverTopM;       // the HIGHEST straddling piece's top, at this cell
+		double DepthMm;         // how far the prop's top is inside it, at this cell
+		std::string By;         // and that piece's name, same cell, same instant
+		double LowAboveM;       // the LOWEST thing entirely above, when nothing straddles
+		std::string AboveBy;
+		// EVERY straddling piece at this cell with its depth here, which is
+		// what the per-cover maxima are folded from. Not just the highest:
+		// two slabs can straddle one cell and the reader needs both names.
+		std::vector<std::pair<std::string, double> > Straddlers;
+		BurialCellRead() : X(0), Z(0), bStraddled(false), bAbove(false),
+		                   CoverTopM(0), DepthMm(0), By("none"),
+		                   LowAboveM(0), AboveBy("none") {}
+	};
+
+	// THE CANDIDATES, NARROWED ONCE PER PROP: anything whose bounds reach
+	// above the prop's top and over its footprint at all. A handful of boxes
+	// per cell instead of 593.
+	inline void BurialCandidates(const std::vector<PlacedBox>& All, size_t Which,
+	                             std::vector<size_t>& Out)
+	{
+		const PlacedBox& P = All[Which];
+		Out.clear();
+		for (size_t I = 0; I < All.size(); ++I)
+		{
+			if (I == Which) { continue; }
+			if (All[I].MaxY <= P.MaxY) { continue; }       // nothing of it is above the top
+			if (!P.OverlapsXZ(All[I])) { continue; }       // nor over the footprint
+			Out.push_back(I);
+		}
+	}
+
+	// THE SAMPLER'S OWN GEOMETRY, written once so the series and the tally
+	// sample the SAME cell centres. IX and IZ are zero based over
+	// BurialGridSide().
+	inline double BurialCellX(const PlacedBox& P, int IX)
+	{
+		return P.MinX + (IX + 0.5) * (P.MaxX - P.MinX) / (double)BurialGridSide();
+	}
+	inline double BurialCellZ(const PlacedBox& P, int IZ)
+	{
+		return P.MinZ + (IZ + 0.5) * (P.MaxZ - P.MinZ) / (double)BurialGridSide();
+	}
+
+	inline BurialCellRead ReadBurialCell(const std::vector<PlacedBox>& All,
+	                                     const std::vector<size_t>& Cand,
+	                                     const PlacedBox& P, double CX, double CZ)
+	{
+		BurialCellRead Cell;
+		Cell.X = CX; Cell.Z = CZ;
+		for (size_t K = 0; K < Cand.size(); ++K)
+		{
+			const PlacedBox& C = All[Cand[K]];
+			if (!C.SpansXZ(CX, CZ)) { continue; }
+			if (C.MinY <= P.MaxY)
+			{
+				const double D = (C.MaxY - P.MaxY) * 1000.0;
+				if (!Cell.bStraddled || C.MaxY > Cell.CoverTopM)
+				{
+					Cell.bStraddled = true;
+					Cell.CoverTopM = C.MaxY;
+					Cell.DepthMm = D;
+					Cell.By = NoSpaces(C.Name);
+				}
+				Cell.Straddlers.push_back(std::make_pair(NoSpaces(C.Name), D));
+			}
+			else if (!Cell.bAbove || C.MinY < Cell.LowAboveM)
+			{
+				Cell.bAbove = true;
+				Cell.LowAboveM = C.MinY;
+				Cell.AboveBy = NoSpaces(C.Name);
+			}
+		}
+		return Cell;
+	}
+
+	// ONE PROP, EVERY CELL OF ITS OWN FOOTPRINT, AGAINST EVERY OTHER PLACED
+	// PIECE.
+	inline BurialRead ReadOneBurial(const std::vector<PlacedBox>& All, size_t Which)
+	{
+		const PlacedBox& P = All[Which];
+		BurialRead R;
+		R.Name = NoSpaces(P.Name); R.Edge = NoSpaces(P.Edge); R.Region = NoSpaces(P.Region);
+		R.bFromAsset = P.bFromAsset;
+		R.TopM = P.MaxY;
+		std::vector<size_t> Cand;
+		BurialCandidates(All, Which, Cand);
+		std::map<std::string, double> PerCover;
+		const int Side = BurialGridSide();
+		for (int IX = 0; IX < Side; ++IX)
+		{
+			for (int IZ = 0; IZ < Side; ++IZ)
+			{
+				const BurialCellRead Cell = ReadBurialCell(All, Cand, P,
+					BurialCellX(P, IX), BurialCellZ(P, IZ));
+				++R.Cells;
+				for (size_t K = 0; K < Cell.Straddlers.size(); ++K)
+				{
+					std::map<std::string, double>::iterator It =
+						PerCover.find(Cell.Straddlers[K].first);
+					if (It == PerCover.end())
+					{
+						PerCover[Cell.Straddlers[K].first] = Cell.Straddlers[K].second;
+					}
+					else if (Cell.Straddlers[K].second > It->second)
+					{
+						It->second = Cell.Straddlers[K].second;
+					}
+				}
+				if (Cell.bStraddled)
+				{
+					++R.Buried;
+					// AT WORST, AND THE COVER'S NAME AND HEIGHT COME FROM THE
+					// SAME CELL: a numerator's denominator is captured at the
+					// instant the numerator peaks.
+					if (Cell.DepthMm > R.DeepestMm || R.DeepestBy == "none")
+					{
+						R.DeepestMm = Cell.DepthMm;
+						R.DeepestCoverTopM = Cell.CoverTopM;
+						R.DeepestBy = Cell.By;
+					}
+				}
+				else if (Cell.bAbove)
+				{
+					++R.Overhung;
+					const double H = (Cell.LowAboveM - P.MaxY) * 1000.0;
+					if (R.HeadroomMm < 0.0 || H < R.HeadroomMm)
+					{
+						R.HeadroomMm = H;
+						R.HeadroomBy = Cell.AboveBy;
+					}
+				}
+				else { ++R.Open; }
+			}
+		}
+		// THE COVERS, DEEPEST FIRST. A selection pass rather than a sort with
+		// a comparator, because the list is at most a handful and this stays
+		// readable in a header that has to be obvious.
+		R.CoverCount = (int)PerCover.size();
+		std::vector<std::pair<double, std::string> > Cov;
+		for (std::map<std::string, double>::const_iterator It = PerCover.begin();
+		     It != PerCover.end(); ++It)
+		{
+			Cov.push_back(std::make_pair(It->second, It->first));
+		}
+		while (!Cov.empty())
+		{
+			size_t Best = 0;
+			for (size_t I = 1; I < Cov.size(); ++I)
+			{
+				if (Cov[I].first > Cov[Best].first) { Best = I; }
+			}
+			char B[160];
+			std::snprintf(B, sizeof(B), "%s=%.2fmm", Cov[Best].second.c_str(), Cov[Best].first);
+			R.ByCover.push_back(std::string(B));
+			Cov.erase(Cov.begin() + Best);
+		}
+		return R;
+	}
+
+	inline std::vector<BurialRead> ReadBurials(const std::vector<PlacedBox>& All)
+	{
+		std::vector<BurialRead> Out;
+		for (size_t I = 0; I < All.size(); ++I)
+		{
+			if (!All[I].bProp) { continue; }
+			Out.push_back(ReadOneBurial(All, I));
+		}
+		return Out;
+	}
+
+	// THE ORDERING RULE, ONCE, HERE: WORSE IS A LARGER BURIED FRACTION, AND
+	// A DEEPER BURIAL BREAKS THE TIE. Cross-multiplied rather than divided so
+	// two props with different cell counts still compare, and written once
+	// because a second copy of an ordering is how a summary and the series
+	// under it come to disagree about which row is the worst one.
+	inline bool WorseBurial(const BurialRead& A, const BurialRead& B)
+	{
+		if (A.Buried * B.Cells != B.Buried * A.Cells)
+		{
+			return A.Buried * B.Cells > B.Buried * A.Cells;
+		}
+		return A.DeepestMm > B.DeepestMm;
+	}
+
+	// WORST FIRST. A selection pass rather than std::sort with a comparator
+	// object, because the population is tens of props and this has to be
+	// obvious to read.
+	inline std::vector<BurialRead> SortedBurials(const std::vector<BurialRead>& In)
+	{
+		std::vector<BurialRead> R = In;
+		for (size_t I = 0; I < R.size(); ++I)
+		{
+			size_t Best = I;
+			for (size_t J = I + 1; J < R.size(); ++J)
+			{
+				if (WorseBurial(R[J], R[Best])) { Best = J; }
+			}
+			if (Best != I) { std::swap(R[I], R[Best]); }
+		}
+		return R;
+	}
+
+	// THE PIECE JAFAR'S ITEM 2 IS ABOUT, BY NAME. A6 asks for this one
+	// against the channel it drains, so the segment carries a row for it
+	// whether or not it is the worst prop in the run: a worst-case key
+	// answers "did it ever" and can never answer "what about that one".
+	// The live committed street is the accepting fixture for the name, and
+	// the container test goes red if no piece is called this, so a rename
+	// cannot quietly turn this row into a permanent not-placed.
+	inline const char* BurialSubjectName() { return "prop_drainage_grate_01_0"; }
+
+	inline int BurialIndexOf(const std::vector<BurialRead>& R, const char* Name)
+	{
+		for (size_t I = 0; I < R.size(); ++I) { if (R[I].Name == Name) { return (int)I; } }
+		return -1;
+	}
+
+	// ONE PROP'S WHOLE READING AS ONE WHITESPACE-FREE TOKEN. Used for the
+	// named subject; the run's own worst case gets the shorter pair below.
+	//
+	// WHY THE COLLISION WORD RIDES THIS ROW AND NOT ONLY THE TALLY. Jafar's
+	// item 2 is one sentence with two halves, the grate as a real mesh WITH
+	// COLLISION and in a walk clip, and a tally of 23 answers the first half
+	// for the population and neither half for that piece. CollisionWord is
+	// what this prop's own asset reported, or no-asset-to-read when the piece
+	// is standing in as a box and there was nothing to ask.
+	inline std::string BurialRowValue(const BurialRead& R,
+	                                 const std::string& CollisionWord)
+	{
+		char B[420];
+		char Head[64];
+		if (R.HeadroomMm < 0.0) { std::snprintf(Head, sizeof(Head), "none"); }
+		else { std::snprintf(Head, sizeof(Head), "%.2fmm/by=%s", R.HeadroomMm, R.HeadroomBy.c_str()); }
+		std::snprintf(B, sizeof(B),
+			"%s/via=%s/collision=%s/topM=%.4f/buried=%.1fpct/overhung=%.1fpct"
+			"/open=%.1fpct/deepestMm=%.2f/coverTopM=%.4f/by=%s/cells=%d/headroom=%s",
+			R.Name.c_str(), R.bFromAsset ? "loaded-asset" : "box-stand-in",
+			NoSpaces(CollisionWord).c_str(),
+			NoNegZero(R.TopM), R.BuriedPct(), R.OverhungPct(), R.OpenPct(),
+			R.DeepestMm, NoNegZero(R.DeepestCoverTopM), R.DeepestBy.c_str(), R.Cells,
+			Head);
+		return std::string(B);
+	}
+
+	// ---- THE HALF AN AABB DEPTH CANNOT ANSWER: THE COVER'S TOP FACE HERE --
+	//
+	// WHY THIS EXISTS, A8 and section 4 of the ruling of 2026-09-09. The
+	// burial half above reads world AABBs, which is all a cooked run can ask a
+	// placed actor for, and a pitched slab's AABB top is its HIGH EDGE: over
+	// the drainage grate it prints 85.00 mm of cover where the road surface is
+	// about 15 mm above the grate's top. Two numbers were then argued from
+	// prose, 18.7 mm against 19.90 mm, neither of them a named statistic and
+	// neither of them read off a printed series. That is rule 2's own failure
+	// and this is the printer rule 2 asks for FIRST. No bound is set here and
+	// none may be read off one run of it.
+	//
+	// IT IS A FILE READING AND SAYS SO IN ITS OWN VALUE. The pitches live in
+	// the spec file and nowhere in a placed actor's bounds, so this is
+	// arithmetic over Piece rows and NOT over the run's measured placement. It
+	// is therefore printed by the container test and never appended to a
+	// verdict line beside the engine's numbers: two populations under one key
+	// on one line is exactly the confusion A9 had to write a sentence to undo.
+	// The independent confirmation is queue 163's downward sweep, which is
+	// ground truth and needs a run.
+	//
+	// WHAT IT STILL CANNOT SEE, AND THE REFUSAL IS COUNTED RATHER THAN READ
+	// AS CLEAR SKY. It answers for PITCH ONLY. A yawed or rolled cover is
+	// refused BY NAME and counted on the cell, because a refusal that printed
+	// as "nothing above" would make this instrument the thing it was built to
+	// correct. The committed street carries 44 yawed and 9 rolled pieces, so
+	// that counter is not decorative. It is also still a box reading, not
+	// triangles, and an occlusion question is still only answered by a frame.
+	//
+	// ONE INTERVAL CLIP, USED THREE TIMES. Keeps the t where
+	// Lo <= A*t + B <= Hi, narrowing [T0,T1] and answering whether anything
+	// is left. Written once because three copies of a clip with the sign of A
+	// handled differently is how a slab ends up solid on one side only.
+	inline bool ClipRange(double A, double B, double Lo, double Hi,
+	                      double& T0, double& T1)
+	{
+		if (A == 0.0) { return B >= Lo && B <= Hi; }
+		double Ta = (Lo - B) / A, Tb = (Hi - B) / A;
+		if (Ta > Tb) { const double S = Ta; Ta = Tb; Tb = S; }
+		if (Ta > T0) { T0 = Ta; }
+		if (Tb < T1) { T1 = Tb; }
+		return T0 <= T1;
+	}
+
+	// A VERTICAL LINE THROUGH ONE POINT, AND THE PIECE'S SOLID ALONG IT. The
+	// world-vertical line is carried into the piece's own frame and clipped
+	// against its three local slabs, so the answer is the solid and not a
+	// pair of faces: at the grate's east footprint edge the vertical line
+	// leaves the channel through its END face while the top face overhead is
+	// still there, and a two-face reading called that no cover. It printed
+	// 0.00 mm under a slab 10 mm above the grate, which is this instrument's
+	// own failure mode and was caught by reading its first series.
+	//
+	// Pitch is about +x with positive tipping the +z end down, the same
+	// convention SpecBoxBounds turns the corners by. t IS the world y, so the
+	// clipped range comes straight back as the span.
+	inline bool PitchedSpanAtXZ(const Piece& P, double X, double Z,
+	                            double& OutLoY, double& OutHiY, std::string& OutWhy)
+	{
+		OutWhy = "none";
+		if (P.YawDeg != 0.0 || P.RollDeg != 0.0)
+		{
+			OutWhy = "yawed-or-rolled/pitch-arithmetic-cannot-answer-for-this-piece";
+			return false;
+		}
+		const double HX = P.SX * 0.5, HY = P.SY * 0.5, HZ = P.SZ * 0.5;
+		if (X < P.X - HX || X > P.X + HX)
+		{
+			OutWhy = "outside-this-pieces-own-x-extent";
+			return false;
+		}
+		const double CP = std::cos(P.PitchDeg * 3.14159265358979323846 / 180.0);
+		const double SP = std::sin(P.PitchDeg * 3.14159265358979323846 / 180.0);
+		const double DZ = Z - P.Z;
+		// The inverse pitch, applied to the line: local y and z are linear in
+		// the world y the line runs along.
+		const double AY = CP,  BY = DZ * SP - P.Y * CP;
+		const double AZ = -SP, BZ = DZ * CP + P.Y * SP;
+		double T0 = -1.0e9, T1 = 1.0e9;
+		if (!ClipRange(AY, BY, -HY, HY, T0, T1) || !ClipRange(AZ, BZ, -HZ, HZ, T0, T1))
+		{
+			OutWhy = "the-solid-does-not-reach-this-point";
+			return false;
+		}
+		OutLoY = T0;
+		OutHiY = T1;
+		return true;
+	}
+
+	// ONE SAMPLE OF THE PROFILE, CARRYING BOTH READINGS OF THE SAME POINT so
+	// that a reader is never handed one of them alone. Where says WHICH sample
+	// this is, because a cell centre and a footprint edge are two different
+	// statistics and mixing them is the whole of the 18.7 against 19.90
+	// argument.
+	struct CoverCell
+	{
+		std::string Where;     // cell-centre, footprint-edge or footprint-centre
+		int    Index;          // the cell index along z, or -1 at an edge or centre
+		double X, Z;           // the sample point, the file's own frame, metres
+		double PropTopM;       // the subject's own top, repeated so a row reads alone
+		bool   bAabb;          // an AABB straddles the subject's top here
+		double AabbTopM, AabbDepthMm;
+		std::string AabbBy;
+		bool   bLocal;         // a pitch-aware solid straddles it here
+		double LocalTopM, LocalDepthMm;
+		std::string LocalBy;
+		// THE SECOND HALF OF THE LOCAL READING, because a bare 0.00 mm cannot
+		// tell open sky from a solid sitting just above with air underneath,
+		// and at this grate's east footprint edge it is the second: the
+		// channel's pitched end face is overhead there with 8 mm of daylight
+		// under it, which the AABB calls 16.37 mm of burial.
+		bool   bLocalAbove;
+		double LocalAboveLowM, LocalAboveHeadroomMm;
+		std::string LocalAboveBy;
+		int    Refused;        // candidate pieces the pitch arithmetic refused, here
+		std::string RefusedWhy;
+		CoverCell() : Where("nothing-measured"), Index(-1), X(0), Z(0), PropTopM(0),
+		              bAabb(false), AabbTopM(0), AabbDepthMm(0), AabbBy("none"),
+		              bLocal(false), LocalTopM(0), LocalDepthMm(0), LocalBy("none"),
+		              bLocalAbove(false), LocalAboveLowM(0), LocalAboveHeadroomMm(0),
+		              LocalAboveBy("none"),
+		              Refused(0), RefusedWhy("none") {}
+		// The overstatement at THIS point, which is the one number A9 is
+		// about. Only meaningful where both readings exist, and the caller is
+		// told which by bAabb and bLocal.
+		double OverstatementMm() const { return AabbDepthMm - LocalDepthMm; }
+	};
+
+	// THE SERIES ACROSS ONE PROP'S FOOTPRINT, ALONG Z, AT ITS MIDDLE X
+	// COLUMN. Z is the axis the street's cross-fall varies on, which is the
+	// axis placement and cover actually vary on here; x is 42 m of unchanging
+	// extrusion and a second axis would print 400 rows to say so.
+	//
+	// THE SAMPLE POINTS ARE THE TALLY'S OWN CELL CENTRES, through
+	// BurialCellZ, plus the two footprint EDGES the tally never samples. That
+	// pair is the measurement: a cell-centre extreme and a footprint extreme
+	// are different statistics over the same plane.
+	inline std::vector<CoverCell> ReadCoverProfile(const std::vector<Piece>& Pieces,
+	                                              const std::string& SubjectName,
+	                                              std::string& OutWhyNot)
+	{
+		std::vector<CoverCell> Out;
+		OutWhyNot = "none";
+		size_t Which = 0;
+		bool bFound = false;
+		for (size_t I = 0; I < Pieces.size(); ++I)
+		{
+			if (NoSpaces(Pieces[I].Name) == NoSpaces(SubjectName)) { Which = I; bFound = true; break; }
+		}
+		if (!bFound)
+		{
+			OutWhyNot = "no-row-named-" + NoSpaces(SubjectName);
+			return Out;
+		}
+		std::vector<PlacedBox> All;
+		for (size_t I = 0; I < Pieces.size(); ++I) { All.push_back(SpecBoxBounds(Pieces[I])); }
+		const PlacedBox& P = All[Which];
+		std::vector<size_t> Cand;
+		BurialCandidates(All, Which, Cand);
+		const int Side = BurialGridSide();
+		const double CX = BurialCellX(P, Side / 2);
+		// SIDE CELL CENTRES, THE TWO FOOTPRINT EDGES THE CELL GRID NEVER
+		// SAMPLES, AND THE FOOTPRINT'S OWN CENTRE LINE. Three named
+		// populations of one plane, because the whole of the 18.7 against
+		// 19.90 argument was two of them read under one name, and the centre
+		// line is the point the ruling's 70.10 mm of overstatement is taken at.
+		for (int Step = 0; Step < Side + 3; ++Step)
+		{
+			CoverCell C;
+			C.PropTopM = P.MaxY;
+			C.X = CX;
+			if (Step < Side)
+			{
+				C.Where = "cell-centre";
+				C.Index = Step;
+				C.Z = BurialCellZ(P, Step);
+			}
+			else if (Step < Side + 2)
+			{
+				C.Where = "footprint-edge";
+				C.Index = -1;
+				C.Z = (Step == Side) ? P.MinZ : P.MaxZ;
+			}
+			else
+			{
+				C.Where = "footprint-centre";
+				C.Index = -1;
+				C.Z = (P.MinZ + P.MaxZ) * 0.5;
+			}
+			// HALF ONE, THE SAME PREDICATE THE TALLY USES, through the same
+			// function, so this column and propBurialWorst cannot disagree.
+			const BurialCellRead Cell = ReadBurialCell(All, Cand, P, C.X, C.Z);
+			C.bAabb = Cell.bStraddled;
+			C.AabbTopM = Cell.CoverTopM;
+			C.AabbDepthMm = Cell.bStraddled ? Cell.DepthMm : 0.0;
+			C.AabbBy = Cell.bStraddled ? Cell.By : "none";
+			// HALF TWO, THE PITCHED SOLID AT THE SAME POINT AT THE SAME
+			// INSTANT. Straddle means the same thing as above: the solid's
+			// bottom at or below the subject's top and its top above it.
+			for (size_t K = 0; K < Cand.size(); ++K)
+			{
+				double Lo = 0.0, Hi = 0.0;
+				std::string Why;
+				if (!PitchedSpanAtXZ(Pieces[Cand[K]], C.X, C.Z, Lo, Hi, Why))
+				{
+					if (Why.find("yawed-or-rolled") != std::string::npos)
+					{
+						++C.Refused;
+						if (C.RefusedWhy == "none")
+						{
+							C.RefusedWhy = NoSpaces(Pieces[Cand[K]].Name) + "/" + Why;
+						}
+					}
+					continue;
+				}
+				if (Hi <= P.MaxY) { continue; }      // all of it is below the top
+				if (Lo > P.MaxY)
+				{
+					// ENTIRELY ABOVE: an overhang and not a burial, the same
+					// distinction the tally draws, kept here so a zero in the
+					// depth column is never ambiguous.
+					if (!C.bLocalAbove || Lo < C.LocalAboveLowM)
+					{
+						C.bLocalAbove = true;
+						C.LocalAboveLowM = Lo;
+						C.LocalAboveHeadroomMm = (Lo - P.MaxY) * 1000.0;
+						C.LocalAboveBy = NoSpaces(Pieces[Cand[K]].Name);
+					}
+					continue;
+				}
+				if (!C.bLocal || Hi > C.LocalTopM)
+				{
+					C.bLocal = true;
+					C.LocalTopM = Hi;
+					C.LocalDepthMm = (Hi - P.MaxY) * 1000.0;
+					C.LocalBy = NoSpaces(Pieces[Cand[K]].Name);
+				}
+			}
+			Out.push_back(C);
+		}
+		return Out;
+	}
+
+	// THE PROFILE AS ONE WHITESPACE-FREE TOKEN, WITH EVERY NUMBER NAMED FOR
+	// THE STATISTIC IT IS AND EVERY ZERO CARRYING ITS DENOMINATOR. Printed by
+	// the container test; see the note above for why it is not on a verdict
+	// line. A profile that sampled nothing says the words.
+	inline std::string CoverProfileValue(const std::vector<CoverCell>& Cells,
+	                                    const std::string& WhyNot)
+	{
+		int Centres = 0, Edges = 0, LocalOn = 0, LocalOverhung = 0, AabbOn = 0, Refused = 0;
+		int WorstCentre = -1, WorstEdge = -1, WorstAabb = -1, Middle = -1;
+		for (size_t I = 0; I < Cells.size(); ++I)
+		{
+			const bool bCentre = Cells[I].Where == "cell-centre";
+			if (Cells[I].Where == "footprint-centre") { Middle = (int)I; }
+			if (bCentre) { ++Centres; }
+			else if (Cells[I].Where == "footprint-edge") { ++Edges; }
+			if (Cells[I].Refused > 0) { ++Refused; }
+			if (Cells[I].bLocal)
+			{
+				++LocalOn;
+				if (bCentre && (WorstCentre < 0
+				    || Cells[I].LocalDepthMm > Cells[(size_t)WorstCentre].LocalDepthMm))
+				{
+					WorstCentre = (int)I;
+				}
+				if (Cells[I].Where == "footprint-edge" && (WorstEdge < 0
+				    || Cells[I].LocalDepthMm > Cells[(size_t)WorstEdge].LocalDepthMm))
+				{
+					WorstEdge = (int)I;
+				}
+			}
+			if (!Cells[I].bLocal && Cells[I].bLocalAbove) { ++LocalOverhung; }
+			if (Cells[I].bAabb)
+			{
+				++AabbOn;
+				if (WorstAabb < 0 || Cells[I].AabbDepthMm > Cells[(size_t)WorstAabb].AabbDepthMm)
+				{
+					WorstAabb = (int)I;
+				}
+			}
+		}
+		if (Cells.empty())
+		{
+			return "nothing-measured/0-points-sampled/why=" + NoSpaces(WhyNot);
+		}
+		// THE THREE NUMERIC PARTS ARE FIXED-SHAPE AND THE ASSEMBLY IS A
+		// std::string, so no cap exists here to announce. The buffers below
+		// hold one reading each: a name, a depth, a z and a population.
+		char Centre[220], Edge[220], Aabb[260];
+		if (WorstCentre < 0)
+		{
+			std::snprintf(Centre, sizeof(Centre), "no-local-cover/over=%d-cell-centres", Centres);
+		}
+		else
+		{
+			std::snprintf(Centre, sizeof(Centre), "%.2fmm@z%.6f/by=%s/over=%d-cell-centres",
+			              Cells[(size_t)WorstCentre].LocalDepthMm,
+			              Cells[(size_t)WorstCentre].Z,
+			              Cells[(size_t)WorstCentre].LocalBy.c_str(), Centres);
+		}
+		if (WorstEdge < 0)
+		{
+			std::snprintf(Edge, sizeof(Edge), "no-local-cover/over=%d-footprint-edges", Edges);
+		}
+		else
+		{
+			std::snprintf(Edge, sizeof(Edge), "%.2fmm@z%.6f/by=%s/over=%d-footprint-edges",
+			              Cells[(size_t)WorstEdge].LocalDepthMm, Cells[(size_t)WorstEdge].Z,
+			              Cells[(size_t)WorstEdge].LocalBy.c_str(), Edges);
+		}
+		if (WorstAabb < 0)
+		{
+			std::snprintf(Aabb, sizeof(Aabb), "no-aabb-cover/over=%d-points", (int)Cells.size());
+		}
+		else
+		{
+			std::snprintf(Aabb, sizeof(Aabb),
+			              "%.2fmm@z%.6f/by=%s/overstatementAtThatPoint=%.2fmm",
+			              Cells[(size_t)WorstAabb].AabbDepthMm, Cells[(size_t)WorstAabb].Z,
+			              Cells[(size_t)WorstAabb].AabbBy.c_str(),
+			              Cells[(size_t)WorstAabb].bLocal
+			                  ? Cells[(size_t)WorstAabb].OverstatementMm()
+			                  : Cells[(size_t)WorstAabb].AabbDepthMm);
+		}
+		std::string Out;
+		Out += "localDeepestAtCellCentre="; Out += Centre;
+		Out += "/localDeepestAtFootprintEdge="; Out += Edge;
+		Out += "/aabbDeepest="; Out += Aabb;
+		// THE FOOTPRINT CENTRE, AND THE ONE FIGURE THAT IS TWO POINTS AND SAYS
+		// SO. The ruling of 2026-09-09 computes the overstatement as the worst
+		// AABB depth anywhere over the footprint minus the real cover at the
+		// centre line, which are two different points and two different
+		// covering pieces. It is printed because a reader who subtracts a
+		// comment's millimetres from 85.00 is computing exactly this, and it is
+		// named so that nobody mistakes it for the same-point figure above.
+		char Mid[260];
+		if (Middle < 0)
+		{
+			std::snprintf(Mid, sizeof(Mid), "nothing-measured/no-footprint-centre-sampled");
+		}
+		else if (!Cells[(size_t)Middle].bLocal)
+		{
+			std::snprintf(Mid, sizeof(Mid), "no-local-cover@z%.6f",
+			              Cells[(size_t)Middle].Z);
+		}
+		else
+		{
+			std::snprintf(Mid, sizeof(Mid),
+			              "%.2fmm@z%.6f/by=%s/aabbWorstMinusThis=%.2fmm"
+			              "/TWO-POINTS-and-says-so/the-figure-the-ruling-of-2026-09-09-decomposes",
+			              Cells[(size_t)Middle].LocalDepthMm, Cells[(size_t)Middle].Z,
+			              Cells[(size_t)Middle].LocalBy.c_str(),
+			              WorstAabb < 0 ? 0.0
+			                  : Cells[(size_t)WorstAabb].AabbDepthMm
+			                    - Cells[(size_t)Middle].LocalDepthMm);
+		}
+		Out += "/localAtFootprintCentre="; Out += Mid;
+		Out += "/localCoverAt=" + OverOrWords(LocalOn, (int)Cells.size());
+		Out += "/localOverhungNotBuriedAt=" + OverOrWords(LocalOverhung, (int)Cells.size());
+		Out += "/aabbCoverAt=" + OverOrWords(AabbOn, (int)Cells.size());
+		Out += "/refusedForYawOrRollAt=" + OverOrWords(Refused, (int)Cells.size());
+		Out += "/stat=deepest-cover-over-a-props-own-top-AT-WORST-per-population";
+		Out += "-named-beside-each/local-is-the-pitched-top-face-from-the-SPEC-FILE";
+		Out += "-and-aabb-is-what-a-cooked-run-can-ask-a-placed-actor";
+		Out += "-so-the-two-are-never-subtracted-except-at-one-point-and-it-says-which";
+		return Out;
+	}
+
+	// WHAT THE .cpp HANDS OVER: membership, order and live state, and not one
+	// piece of arithmetic or formatting.
+	struct PropSegmentIn
+	{
+		int MeshPiecesInFile;    // the denominator off the FILE, before any spawning
+		int PlacedAsMesh;        // prop pieces that got a LOADED asset
+		int PlacedAsBox;         // prop pieces that fell back to the box stand-in
+		std::vector<std::string> FellBackOn;   // capped at collection; PlacedAsBox is the total
+		std::string PackageDir, NamePrefix;
+		double CentreWorstMm;    // AT WORST over the placed prop meshes
+		std::string CentreWorstOn;
+		double SizeWorstMm;      // AT WORST over the axis-aligned placed prop meshes
+		std::string SizeWorstOn;
+		int    SizeComparable;
+		PropCollisionTally Collision;
+		std::vector<BurialRead> Burials;
+		// THE NAMED SUBJECT'S OWN COLLISION WORD, one of YES, NO, UNKNOWN, or
+		// no-asset-to-read when that piece stood in as a box and there was no
+		// asset to ask. Set by the .cpp at the instant it asked.
+		std::string SubjectCollision;
+		bool   bInteractive;     // which path built the street, NOT a measurement of anything
+		PropSegmentIn() : MeshPiecesInFile(0), PlacedAsMesh(0), PlacedAsBox(0),
+		                  CentreWorstMm(0), CentreWorstOn("nothing-measured"),
+		                  SizeWorstMm(0), SizeWorstOn("nothing-measured"),
+		                  SizeComparable(0), SubjectCollision("nothing-measured"),
+		                  bInteractive(false) {}
+	};
+
+	// THE WHOLE SEGMENT, APPENDED TO THE SCENE LINE. WHOLE-RUN NUMBERS ONLY:
+	// this rides the run's one scene line, which the vignette, walk and
+	// crime verdicts all print, so nothing per-shot and nothing per-camera
+	// may appear here. Built with std::string rather than into a fixed
+	// buffer, because the buffer it replaces was sized by hand and a cap
+	// that cannot bite needs no announcement.
+	inline std::string PropMeshSegment(const PropSegmentIn& In)
+	{
+		const int Placed = In.Collision.Placed();
+		int Fully = 0, AnyBuried = 0;
+		std::vector<std::string> BuriedRows;
+		// THE SERIES, WORST FIRST, by the one ordering rule above, so the
+		// summary key and the named rows under it cannot disagree about which
+		// prop is the worst one.
+		const std::vector<BurialRead> Sorted = SortedBurials(In.Burials);
+		for (size_t I = 0; I < Sorted.size(); ++I)
+		{
+			if (Sorted[I].FullyBuried()) { ++Fully; }
+			if (Sorted[I].Buried <= 0) { continue; }
+			++AnyBuried;
+			if (BuriedRows.size() < 3)
+			{
+				char B[200];
+				std::snprintf(B, sizeof(B), "%s/%.1fpct@%.2fmm/by=%s",
+				              Sorted[I].Name.c_str(), Sorted[I].BuriedPct(),
+				              Sorted[I].DeepestMm, Sorted[I].DeepestBy.c_str());
+				BuriedRows.push_back(std::string(B));
+			}
+		}
+		std::string WorstValue = "nothing-measured/of=0";
+		if (!Sorted.empty())
+		{
+			// AT WORST, WITH ITS DENOMINATOR AND ITS NAMES FROM THE SAME
+			// PROP AND THE SAME CELL. of=N is how many props this is the
+			// worst OF, which is the reading's own denominator.
+			char B[200];
+			std::snprintf(B, sizeof(B), "%.1fpct@%.2fmm/on=%s/by=%s/of=%d",
+			              Sorted[0].BuriedPct(), Sorted[0].DeepestMm,
+			              Sorted[0].Name.c_str(), Sorted[0].DeepestBy.c_str(),
+			              (int)Sorted.size());
+			WorstValue = B;
+		}
+		// THE PER-EDGE BREAKDOWN, WHICH IS THE AXIS PLACEMENT VARIES ON.
+		// Not per camera: a camera cannot move a piece. One entry per edge
+		// that placed a prop, carrying how many of its props read any buried
+		// cell at all over how many it placed, so an edge with none is
+		// visibly an edge that was looked at.
+		std::vector<std::string> EdgeRows;
+		std::vector<std::string> EdgeNames;
+		for (size_t I = 0; I < Sorted.size(); ++I)
+		{
+			bool bSeen = false;
+			for (size_t J = 0; J < EdgeNames.size(); ++J)
+			{
+				if (EdgeNames[J] == Sorted[I].Edge) { bSeen = true; break; }
+			}
+			if (!bSeen) { EdgeNames.push_back(Sorted[I].Edge); }
+		}
+		for (size_t J = 0; J < EdgeNames.size(); ++J)
+		{
+			int Props = 0, Hit = 0;
+			for (size_t I = 0; I < Sorted.size(); ++I)
+			{
+				if (Sorted[I].Edge != EdgeNames[J]) { continue; }
+				++Props;
+				if (Sorted[I].Buried > 0) { ++Hit; }
+			}
+			char B[200];
+			std::snprintf(B, sizeof(B), "%s=%d/%d", EdgeNames[J].c_str(), Hit, Props);
+			EdgeRows.push_back(std::string(B));
+		}
+		// THE NAMED SUBJECT, WHICH IS THE ONE A6 ASKED FOR.
+		const int Subject = BurialIndexOf(Sorted, BurialSubjectName());
+		std::string SubjectValue, SubjectBy;
+		if (Subject < 0)
+		{
+			SubjectValue = std::string("not-placed/asked=") + BurialSubjectName()
+			             + "/over=" + OverOrWords((int)Sorted.size(), In.MeshPiecesInFile);
+			SubjectBy = "nothing-measured/0";
+		}
+		else
+		{
+			SubjectValue = BurialRowValue(Sorted[(size_t)Subject], In.SubjectCollision);
+			SubjectBy = CappedList(Sorted[(size_t)Subject].ByCover, 3,
+			                       Sorted[(size_t)Subject].CoverCount, ";", "none");
+		}
+
+		std::string Out;
+		// SIZED FROM A PRINTED SERIES AND NOT FROM A GUESS, which is rule 2.
+		// On the committed street the three chunks measure 472, 396 and 1168
+		// characters (vignette-spec-test prints the whole segment's length on
+		// every run, and the third chunk is the one with the two capped lists
+		// and the subject row in it). 2000 leaves the worst chunk 40 percent
+		// of headroom, and AppendChunk announces it if that is ever wrong.
+		char B[2000];
+		int W = std::snprintf(B, sizeof(B),
+			"propsAsMesh=%s propsAsBox=%s propFallbackWhy=%s"
+			" propPackageDir=%s propNamePattern=%s<asset>"
+			" propScale=1/never-scaled/dims-policy"
+			" propCentreWorstMm=%.2f/on=%s/of=%d"
+			" propCentreStat=distance-from-the-files-own-xyz-to-the-placed-meshes-world-bounds-centre-at-worst"
+			" propSizeWorstMm=%.2f/on=%s propSizeComparable=%s"
+			" propSizeStat=axis-aligned-pieces-only/a-yawed-world-aabb-is-legitimately-bigger",
+			OverOrWords(In.PlacedAsMesh, In.MeshPiecesInFile).c_str(),
+			OverOrWords(In.PlacedAsBox, In.MeshPiecesInFile).c_str(),
+			CappedList(In.FellBackOn, 4, In.PlacedAsBox, ";", "none").c_str(),
+			NoSpaces(In.PackageDir).c_str(), NoSpaces(In.NamePrefix).c_str(),
+			In.CentreWorstMm, NoSpaces(In.CentreWorstOn).c_str(), In.PlacedAsMesh,
+			In.SizeWorstMm, NoSpaces(In.SizeWorstOn).c_str(),
+			OverOrWords(In.SizeComparable, In.PlacedAsMesh).c_str());
+		AppendChunk(Out, B, W, (int)sizeof(B), 1);
+		W = std::snprintf(B, sizeof(B),
+			" propPlacedWithCollision=%s propPlacedCollisionUnread=%s"
+			" propPlacedCollisionNoOn=%s propPlacedCollisionUnknownOn=%s"
+			// THE RULED DIVERGENCE, ON THE LINE WHERE THE NUMBERS MEET, A9 of
+			// the ruling of 2026-09-09. A reader holding this verdict and an
+			// importer log saw UNKNOWN here and NO there for one asset and
+			// could not tell a decision from a contradiction. Two populations
+			// at two times, ruled 2026-09-08 and written at the enum above:
+			// the two tallies are never added, never differenced, and never
+			// printed as a pair without their populations beside them.
+			" propPlacedCollisionStat=placed-prop-mesh-components-whose-asset-reports-collision"
+			"/over-placed-prop-meshes/PROXY-only-a-sweep-answers-whether-a-capsule-is-stopped"
+			"/a-missing-body-setup-reads-UNKNOWN-here-and-NO-in-import_prop_meshes.py"
+			"/ruled-2026-09-08/two-populations-at-two-times/never-added-never-differenced"
+			" propCollisionAsked=%s",
+			OverOrWords(In.Collision.Yes, Placed).c_str(),
+			OverOrWords(In.Collision.Unknown, Placed).c_str(),
+			CappedList(In.Collision.NoOn, 4, In.Collision.No, ";", "none").c_str(),
+			CappedList(In.Collision.UnknownOn, 4, In.Collision.Unknown, ";", "none").c_str(),
+			// NOT A MEASUREMENT AND SAYS SO IN ITS OWN VALUE. This used to be
+			// propCollisionEnabled, which read as a verdict on collision and
+			// could not fail: it restates the bool that set it two hundred
+			// lines earlier, which is two numbers from one variable. Kept
+			// because a reader needs to know which path built the street the
+			// other numbers were taken on, renamed so it cannot be mistaken
+			// for a reading, and refuted in the ruling of 2026-09-08.
+			In.bInteractive ? "QueryOnly/the-walk-path/NOT-A-MEASUREMENT-restates-bInteractive"
+			                : "NoCollision/the-timed-automation/NOT-A-MEASUREMENT-restates-bInteractive");
+		AppendChunk(Out, B, W, (int)sizeof(B), 2);
+		W = std::snprintf(B, sizeof(B),
+			" propFootprintsRead=%s"
+			" propFootprintGrid=%dx%d/%d-cells-per-prop/a-gap-narrower-than-one-cell-is-invisible-here"
+			" propFullyBuried=%s propAnyBuried=%s"
+			" propBurialWorst=%s"
+			" propBurialStat=fraction-of-a-props-own-footprint-whose-top-is-inside-another-placed-pieces-bounds"
+			"/at-worst-by-fraction-then-depth/pct-and-mm-and-cover-name-captured-at-the-same-cell"
+			"/depth-is-an-AABB-depth-and-OVERSTATES-a-pitched-slab-by-its-cross-fall-across-its-own-width"
+			" propBuriedOn=%s propBuriedByEdge=%s"
+			" propBurialSubject=%s propBurialSubjectBy=%s",
+			OverOrWords((int)Sorted.size(), In.MeshPiecesInFile).c_str(),
+			BurialGridSide(), BurialGridSide(),
+			BurialGridSide() * BurialGridSide(),
+			OverOrWords(Fully, (int)Sorted.size()).c_str(),
+			OverOrWords(AnyBuried, (int)Sorted.size()).c_str(),
+			WorstValue.c_str(),
+			CappedList(BuriedRows, 3, AnyBuried, ";", "none").c_str(),
+			CappedList(EdgeRows, 6, (int)EdgeRows.size(), ";", "nothing-measured").c_str(),
+			SubjectValue.c_str(), SubjectBy.c_str());
+		AppendChunk(Out, B, W, (int)sizeof(B), 3);
+		// ONE IDENTITY, PRINTED ONLY WHEN IT BREAKS. Every placed prop mesh
+		// is asked exactly once, so the readings taken and the meshes placed
+		// are the same number; they come from two different counters in the
+		// .cpp and a key that appears at all means one of them is wrong. A
+		// silent disagreement here is what makes a denominator a lie.
+		if (Placed != In.PlacedAsMesh)
+		{
+			char M[128];
+			std::snprintf(M, sizeof(M),
+			              " propCollisionReadingsMismatch=readings=%d/meshesPlaced=%d",
+			              Placed, In.PlacedAsMesh);
+			Out += M;
+		}
+		return Out;
+	}
+
 	// ONE LINE PER SHOT, AND THE FRAME TIME IS A MEDIAN AND SAYS SO.
 	//
 	// `frameMedianMs` is the MEDIAN of `Timed` game-thread frame deltas

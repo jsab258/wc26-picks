@@ -980,3 +980,179 @@ and not a resident's, so it is filed here rather than acted on.
 
 WHAT WOULD SETTLE IT: how many director rulings in game-design/ rest on a number
 that only a builder ever ran. Nobody has counted, and the count is the argument.
+
+--------------------------------------------------------------------------
+2026-09-08  RUN 4: THE MESHES HAD COLLISION ALL ALONG. RUN 3'S ZERO WAS NOT
+            JUST UNMEASURED, IT POINTED THE WRONG WAY.
+--------------------------------------------------------------------------
+MEASURED, run 4 on a870a10:
+
+    propCollisionPrims=15/15 propCollisionPrimsUnread=0/15
+    propCollisionRead=agg-geom-elems=15
+    propCollisionVia=not-needed/already-had-1=15
+    propCollidable=15/15 propCollidableWhy=YES/simple-prims=1=15
+    propCollisionFlagSet=0/15
+    propAcceptingCase=piece=prop_drainage_grate_01_0/asset=drainage_grate_01/
+      RESOLVED/saved=yes/simplePrims=1/collidable=YES/simple-prims=1/
+      bodySetup=present/traceFlag=CTF_USE_DEFAULT/sourceParts=1/
+      materialSlots=1/worstOrderedMm=0.0474/worstSortedMm=0.0474
+
+READ `not-needed/already-had-1` TWICE. THE IMPORTER ADDED NOTHING. Every one of
+the fifteen already carried a simple collision primitive when it was loaded back,
+put there by the glTF import itself. No box was added, no trace flag was set
+(propCollisionFlagSet=0/15), and the four add routes built last night were never
+needed for these assets.
+
+SO RUN 3's propCollisionPrims=0/15 WAS WORSE THAN A BLIND ZERO. A blind zero says
+nothing. That one said something false in a specific direction: fifteen meshes
+without collision, when the truth was fifteen meshes WITH it. A whole night's
+work was aimed at adding a thing that was already there, and the only reason the
+aim was corrected is that the instrument was rebuilt before the next run rather
+than after it.
+
+WHY THE OLD READER COULD NOT SEE IT, now answered by name rather than guessed:
+propSubsystems=StaticMeshEditorSubsystem=returned-None;EditorActorSubsystem=present;
+AssetEditorSubsystem=present;LevelEditorSubsystem=present. THREE OF FOUR
+SUBSYSTEMS ARE PRESENT in this commandlet, so "a commandlet has no editor
+subsystems" was the wrong explanation and would have sent the next session down
+the wrong road. It is that ONE module. And the legacy fallback refused by
+returning -1 rather than raising, which the old code believed. The route that
+worked is the one that never asks a subsystem at all: read the count off the
+asset's own body setup aggregate geometry.
+
+TWO MORE THINGS RUN 4 SETTLED WITHOUT BEING ASKED.
+propImportPreexistingDeleted=15/16. Run 3 left fifteen assets on disk; without
+the pre-delete added last night, run 4 would have found them in `before`, seen
+nothing appear, and reported nothing-appeared over a perfect re-import. The first
+run that imported anything would have made every later run lie, exactly as its
+docstring predicted.
+propPipelineOpts=InterchangeGenericMeshPipeline=9-of-86 names collision,
+combine_static_meshes and force_collision_primitive_generation among others, with
+NOTHING-SET-THIS-RUN. So the import pipeline does expose collision control, the
+names are now read, and the working route was not risked to find that out.
+
+WHAT IS STILL NOT DONE, and it is placement rather than import: the walk build
+has never placed one prop mesh (propsAsMesh=0/23, propStandIns=23/23), and the
+grate is specified 13.4 mm under a channel slab that spans it. The asset half of
+Jafar's item 2 is finished and measured. The clip half is blocked on geometry.
+
+--------------------------------------------------------------------------
+2026-09-08  A SPEC'S OPENING SENTENCE PUT THE CRIME ON A STREET CANON DOES
+            NOT HAVE, WHILE ITS OWN 24 ROWS SAID THE RIGHT ONE.
+--------------------------------------------------------------------------
+FOUND BY A BUILDER WORKING ON SOMETHING ELSE, and it named the line rather than
+changing it, which is the correct move for a canon-level word.
+production/specs/dialogue-crime-witness-v1.md line 14 read "a half-brick through
+a shop window on the Parade". Canon, ruled 2026-09-08 option C, says the built
+street is QUAY STREET in the Hook (canon.md lines 13, 15 and 24). The same spec's
+own Location section and all 24 dialogue rows already said Quay Street.
+
+CORRECTED BY THE RESIDENT, one word, because canon outranks every document and a
+contradiction with it is a gate failure rather than a style note. Not scope creep:
+leaving a spec's FIRST descriptive sentence naming a street that does not exist is
+how a later session invents a second location and then reconciles two.
+
+THE SHAPE, worth more than the word: the drift lived in the SUMMARY PARAGRAPH
+while the DATA was right. Every checker in this project reads the rows. Nobody
+reads the sentence above them, and the sentence is what a person reads first.
+
+--------------------------------------------------------------------------
+2026-09-08  dialogue-verify's CLEAN RESULT HAS A DENOMINATOR OF 24 TEXTS AND
+            ZERO CLAUSES, AND THE CLAUSES ARE THE NEW HALF.
+--------------------------------------------------------------------------
+tools/dialogue-verify.py scores ln["text"] only. Twelve `clause` values landed on
+the witness_summary rows tonight, and the tool reports "clean - 0 finding(s) over
+24 line(s), 276 pair(s) compared" without having read one of them. THE RESULT IS
+TRUE AND ITS DENOMINATOR IS THE WRONG SET, which is rule 3b pointed at a gate
+rather than at a zero: a clean run over the half that did not change.
+
+WHAT WAS DONE INSTEAD, so the gap is a gap and not a hole: the builder ran the
+tool's own scorer over the twelve clauses by hand and recorded the numbers in the
+spec's acceptance list. 0 rung-name findings over 12 clauses, 0 of 66 clause pairs
+at or over the 0.60 repetition bound with a worst of 0.32 (cw-ws-r3-01 against
+cw-ws-r3-03), 12 of 12 lowercase-initial, 0 of 12 with an interior or trailing
+stop, 0 of 12 saying "player". A hand-run number is evidence for the person who
+ran it and for nobody afterwards, which is the same objection this studio made to
+a one-shot cross-engine harness earlier tonight, so it is filed rather than
+counted.
+
+--------------------------------------------------------------------------
+2026-09-09  ONE PROP OF TWENTY-THREE IS FULLY BURIED AND IT IS THE ONE JAFAR
+            NAMED. TEN OF TWENTY-THREE HAVE SOMETHING OVER THEM.
+--------------------------------------------------------------------------
+A director read it off the spec file with arithmetic; a builder then built the
+instrument, corrected the arithmetic twice, and found a bigger cover than the one
+that had been named.
+
+    propFullyBuried=1/23 propAnyBuried=10/23
+    propBurialWorst=100.0pct@85.00mm/on=prop_drainage_grate_01_0
+      /by=ground_east_carriageway/of=23
+    propBuriedByEdge=east_channel=1/1;west_footway=4/11;east_footway=3/5;
+      east_plot=2/5;west_carriageway=0/1
+    propFootprintsRead=23/23
+    propFootprintGrid=20x20/400-cells-per-prop
+      /a-gap-narrower-than-one-cell-is-invisible-here
+
+THE CORRECTION TO THE CORRECTION. The ruling said 13.4 mm under the channel. The
+same unpitched arithmetic gives 13.234 mm, a 0.2 mm slip and not a misread row.
+Taking the 1.432096 degree cross-fall at the grate's centre line gives 14.91 mm,
+where the ruling had guessed the fall was worth one or two millimetres. AND THE
+CHANNEL IS NOT THE DEEPEST COVER: ground_east_carriageway straddles the grate's
+top over the western 36 percent of its footprint at 16.4 to 18.7 mm, because the
+channel slab is 0.255 m wide against the grate's 0.3999 m and the two overlap by
+0.5 mm in z with no gap between them. The grate is under the ROAD as well as
+under the channel.
+
+WHAT THE INSTRUMENT ADMITS ABOUT ITSELF, in its own values rather than in a
+comment, which is the half that makes it usable. deepestMm is an AABB depth and
+OVERSTATES a pitched slab by its cross-fall across its own width: 34 mm for the
+2.75 m carriageway, 3 mm for the 0.26 m channel. That is why 85.00 mm prints
+where the local truth is 17 to 19 mm. The buried-or-not answer is unaffected and
+the millimetres are a ceiling. And the 20 mm cell bit for real: the channel ends
+at z=2.9963 and the grate at 2.9999, so a 3.6 mm strip, 0.9 percent of the
+footprint at the bottom of a 10 mm recess, is uncovered and invisible to the grid.
+
+THE OTHER NINE ARE THE FINDING NOBODY WENT LOOKING FOR. propAnyBuried=10/23 says
+a third of the street's props have another placed piece over part of them. Two
+awnings read 5 percent at 0.00 mm, which is two boxes touching a fascia and is
+nothing. prop_oil_barrel_0 at 45 percent under a crowd control barrier and
+prop_pallet_0 at 33 percent are not obviously nothing. NOBODY HAS LOOKED AT THEM
+and this entry does not claim they are faults.
+
+WHY NOTHING CAUGHT ANY OF IT FOR THREE RUNS. propCentreWorstMm measures the
+distance from a piece's placed centre to the point the file named, and the grate
+sits 0.00 mm from where the file put it. .claude/rules/instruments.md has said
+since 25 August that a placement metric ships in two halves, distance to the datum
+AND whether the datum exists under the footprint, after eight blocks hung over
+open sea at foot-gap 0.00 exactly. THIS IS THE SAME FAULT WITH THE SIGN REVERSED:
+not a piece over nothing, a piece under something. The rule was written and the
+second half was never built for props.
+
+--------------------------------------------------------------------------
+2026-09-09  I WROTE A BUILDER'S REPORT INTO A QUEUE ITEM AS FACT AND A
+            DIRECTOR REFUTED IT BY OPENING THE FILE.
+--------------------------------------------------------------------------
+A builder declared, while landing something else, that its selftest "now prints
+`whole scene line: tokens carrying no key=value: 1 (nothing-to-light)` every run
+rather than asserting, because the existing row pins that exact string". The
+resident put that sentence into production/queue/166 as the item's own
+description of the current state.
+
+REFUTED BY READING: ue-probe/tests/vignette-spec-test.cpp line 313 is a Check
+that ASSERTS "flatsLit=0/0 nothing-to-light" and pins it, and the token walk at
+291 to 307 covers the SHOT line only and has never read the scene line. Checked
+by the resident afterwards with one grep, which is the grep that should have come
+first.
+
+RULE 1, AND ON THE EXACT SHAPE IT WARNS ABOUT. "Your own comments and docs are
+not evidence: read the code." A subagent's report is the same class of artifact
+as a comment: it is a claim about a file, written by something that is not the
+file. Every number in that builder's report was checked before it was quoted
+tonight. This sentence was not, because it was prose about a guard rather than a
+count, and prose slid through the check that numbers get.
+
+WHAT IT COST AND WHAT IT WOULD HAVE COST: the item was slightly wrong for about
+twenty minutes and is corrected in place with the refutation kept beside it. Had
+it not been caught, a later session would have read queue 166 as "the fault is
+visible while it waits" when in fact the guard PINS the bug and nothing warns.
+The guard that pins the bug is the worse state and the item now says so.

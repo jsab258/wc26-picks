@@ -668,11 +668,20 @@ namespace LedgerCrime
 	// OutVariants is the modulus and is the COUNT FOUND IN THE BANK, never a
 	// typed 3: a bank that grows a fourth variant moves the pick, and a bank
 	// missing the cell refuses with the reason rather than picking nothing.
+	//
+	// TWO STRINGS COME BACK, NOT ONE, queue 157. OutText is what the witness
+	// SAYS, a finished first-person sentence. OutClause is what the mill FILES
+	// as the Rumor.Summary, third person and lowercase, because both consumers
+	// of a Summary splice it rather than speaking it whole. A row that carries
+	// no clause leaves OutClause EMPTY and still answers true: `overheard` rows
+	// have none by design, and the caller that files a memory is the one that
+	// must refuse by name. See ClauseShape below for why.
 	inline bool BankPick(const std::string& Text, const std::string& Context, int IdRung,
 	                     int InSeed, std::string& OutId, std::string& OutText,
-	                     std::string& OutSpeaker, int& OutVariants, std::string& OutWhyNot)
+	                     std::string& OutClause, std::string& OutSpeaker,
+	                     int& OutVariants, std::string& OutWhyNot)
 	{
-		OutId.clear(); OutText.clear(); OutSpeaker.clear();
+		OutId.clear(); OutText.clear(); OutClause.clear(); OutSpeaker.clear();
 		OutVariants = 0;
 		OutWhyNot = "none";
 		std::vector<std::pair<std::string::size_type, std::string::size_type> > Objects;
@@ -707,6 +716,11 @@ namespace LedgerCrime
 			OutWhyNot = "picked-line-has-no-text";
 			return false;
 		}
+		// OPTIONAL HERE AND REQUIRED BY THE CALLER THAT FILES A MEMORY.
+		// JsonField leaves OutClause untouched when the key is absent, so the
+		// clear at the top of this function is what makes "absent" readable as
+		// empty rather than as the previous pick's clause.
+		JsonField(Text, Objects[Pick].first, Objects[Pick].second, "clause", OutClause);
 		JsonField(Text, Objects[Pick].first, Objects[Pick].second, "speaker", OutSpeaker);
 		return true;
 	}
@@ -768,6 +782,47 @@ namespace LedgerCrime
 		return "sentence-not-clause/interior-full-stop";
 	}
 
+	// WHAT SHAPE A BANK ROW'S `clause` IS IN, and why the bank carries two
+	// strings per row rather than one. QUEUE 157. `text` is what the witness
+	// SAYS: a finished first-person sentence. `clause` is what the mill FILES
+	// as the Rumor.Summary, and BOTH consumers of a Summary splice it rather
+	// than speaking it whole: Gossip.h 586 after "I heard from X that ", and
+	// StreetVoice's templates into the middle of a sentence. One string cannot
+	// be both, and the measurement that proved it is in the repository:
+	// production/d1-probe/ue-crime-memory-n2.md line 6 shipped reading "I heard
+	// from the shopkeeper that He looked straight at me before he ran."
+	//
+	// THE FIX WAS WRITING, NOT LOWERCASING, and that is the whole reason this
+	// reading is not a gate. Lowercasing that sentence gives "he looked
+	// straight at me before he ran", which passes every rule below with the
+	// witness's own "me" sitting inside somebody else's memory. NO SHAPE CHECK
+	// HERE CAN SEE PERSON. crime-probe-test.cpp prints all twelve spliced forms
+	// in both frames for a reader to judge, and that printout is the deliverable
+	// rather than the pass count.
+	//
+	// A READING AND NOT A GATE, like SummaryShape, which it delegates to so the
+	// lowercase-and-interior-stop rule has one implementation. Two readings are
+	// added: a missing field, and a trailing full stop, which StreetVoice.Trim
+	// would strip at run time while leaving the bank wrong for Gossip.h and for
+	// every other reader. A clause opening on a proper noun reads as
+	// sentence-not-clause here even though Cap leaves it alone by design: the
+	// twelve are written lowercase-initial so this reading stays one-valued.
+	// ORDER IS LOAD-BEARING AND IS NOT THE ORDER THE FAULTS WERE WRITTEN IN.
+	// SummaryShape answers first, so a finished sentence reads as the sentence
+	// it is rather than as the trailing stop it also has; the trailing-stop
+	// reading is then the one fault left for a string that is otherwise a
+	// clause. Written the other way round, the bank's own old sentence reported
+	// only "trailing-full-stop", which was measured here on 2026-09-08 and is
+	// the reason this comment exists.
+	inline std::string ClauseShape(const std::string& Clause)
+	{
+		if (Clause.empty()) { return "missing/no-clause-on-the-row"; }
+		const std::string Shape = SummaryShape(Clause);
+		if (Shape != "clause") { return Shape; }
+		if (Clause[Clause.size() - 1] == '.') { return "not-a-clause/trailing-full-stop"; }
+		return "clause";
+	}
+
 	// THE SENTINEL CrimeProbe.cpp FILES AS A SUMMARY WHEN THE BANK COULD NOT BE
 	// READ, in one place so the producer and the check cannot drift apart.
 	//
@@ -783,6 +838,88 @@ namespace LedgerCrime
 	{
 		const std::string Prefix = UnreadableSummaryPrefix();
 		return Summary.size() >= Prefix.size() && Summary.compare(0, Prefix.size(), Prefix) == 0;
+	}
+
+	// WHAT A WITNESS FILES, DECIDED AND WORDED IN ONE PLACE, queue 157. The
+	// caller hands over the picked row's id and its clause and gets back the
+	// string that goes into the mill as the Rumor.Summary.
+	//
+	// WHY IT IS HERE AND NOT AT THE CALL SITE. The call site is
+	// CrimeProbe.cpp, an Unreal translation unit that no compiler in this
+	// container reads, so a refusal written there would ship unrun and a
+	// refusal that silently returned the sentence would be invisible until a
+	// memory file was read by a human. The decision and its wording live in the
+	// tested layer; the .cpp supplies only the row.
+	//
+	// THE REFUSAL NEVER FALLS BACK TO THE SENTENCE. Filing the sentence is the
+	// defect: it put "I heard from the shopkeeper that He looked straight at me
+	// before he ran." into a committed memory file. A missing clause is a data
+	// fault and it is loud, reusing the sentinel the composer already refuses on
+	// by name, so the beat says nothing wrong out loud and the verdict carries
+	// the row id.
+	inline std::string SummaryToFile(const std::string& RowId, const std::string& Clause,
+	                                 std::string& OutWhyNot)
+	{
+		if (!Clause.empty()) { OutWhyNot = "none"; return Clause; }
+		OutWhyNot = "row-" + NoSpaces(RowId.empty() ? std::string("unnamed") : RowId)
+		          + "-has-no-clause-to-splice";
+		return std::string(UnreadableSummaryPrefix()) + OutWhyNot;
+	}
+
+	// ---- THE PAIRING CONTRACT, WHICH IS BY INDEX --------------------------
+	//
+	// WHAT THE RULE IS. BankPick takes variant VariantIndex(seed, n) in both
+	// contexts at one seed, so variant k of `overheard` answers variant k of
+	// `witness_summary` at the same rung. The ids are numbered in file order
+	// from 01, so an aligned pair's trailing numbers agree.
+	//
+	// WHAT THIS CANNOT SEE, AND IT IS EXACTLY THE FAULT THAT SHIPPED. On 8
+	// September all three rung-2 replies answered the wrong summary: the reply
+	// about a limp and a cap answered the summary about a donkey jacket. THE
+	// IDS WERE ALIGNED THROUGHOUT and the TEXTS were rotated, so nothing in
+	// this file could have caught it and nothing in this file can. That is why
+	// crime-probe-test.cpp prints the twelve pairs, reply beside summary at the
+	// same index, for a human to read: A6 of the ruling of 2026-09-09. This
+	// function catches the OTHER fault, the mechanical one: a bank that grows a
+	// variant in one context and not the other moves one pick and not the
+	// other, and then the ids stop agreeing.
+	// THE INDEX OUT OF AN ID, AND THE DASH IS REQUIRED. Without it the first
+	// run of this function read "cw-ov-r2" as index 2, which is the RUNG, and
+	// called a pair misaligned for a reason that was not there. Caught by its
+	// own rejecting row before anything used it.
+	inline bool IdTailNumber(const std::string& Id, int& Out)
+	{
+		std::string::size_type E = Id.size();
+		while (E > 0 && Id[E - 1] >= '0' && Id[E - 1] <= '9') { --E; }
+		if (E == Id.size()) { return false; }         // no digits at all
+		if (E == 0 || Id[E - 1] != '-') { return false; }  // digits, but not an -NN index
+		Out = std::atoi(Id.c_str() + E);
+		return true;
+	}
+
+	inline std::string PairIdShape(const std::string& SummaryId, const std::string& ReplyId)
+	{
+		int A = 0, B = 0;
+		if (!IdTailNumber(SummaryId, A) || !IdTailNumber(ReplyId, B))
+		{
+			return "unreadable/ids=" + NoSpaces(SummaryId.empty() ? std::string("none") : SummaryId)
+			     + ".." + NoSpaces(ReplyId.empty() ? std::string("none") : ReplyId)
+			     + "/no-trailing-number-on-one-of-them";
+		}
+		char Buf[64];
+		std::snprintf(Buf, sizeof(Buf), "/ids=%02d..%02d", A, B);
+		return std::string(A == B ? "aligned" : "MISALIGNED") + Buf;
+	}
+
+	// THE LIMIT, PRINTED ONCE BESIDE THE COUNT RATHER THAN TWELVE TIMES BESIDE
+	// THE WORD, which is this file's own convention: overheardSummaryShape
+	// carries the word and overheardSummaryShapeRule carries the rule.
+	inline const char* PairIdStat()
+	{
+		return "id-suffixes-at-one-seed-and-one-rung/a-bank-that-grows-a-variant-in-"
+		       "one-context-and-not-the-other-goes-MISALIGNED-here/CANNOT-SEE-whether-"
+		       "the-reply-answers-the-mark-the-summary-gave-which-is-what-the-twelve-"
+		       "printed-pairs-above-are-for";
 	}
 
 	// ONE EXCHANGE, AND HOW EACH OF ITS TWO BEATS GOT ITS WORDS.
@@ -1167,31 +1304,95 @@ namespace LedgerCrime
 		Expect(R, VariantIndex(43, 0) == 0, "variant-index-refuses-zero-modulus");
 
 		// 4. The bank scanner, on a synthetic bank: the accepting case first,
-		//    then a cell that exists nowhere.
+		//    then a cell that exists nowhere. a-1 and a-2 carry a clause, a-3
+		//    DELIBERATELY does not, and the overheard row has none by design,
+		//    so both sides of the clause reading have a fixture here. The
+		//    accepting fixture for the real rows is the committed bank, read by
+		//    crime-probe-test.cpp (this project's rule for a tool that checks
+		//    the project itself).
 		const std::string Fixture =
 			"{\"bank\":\"x\",\"lines\":[\n"
 			"{\"id\":\"a-1\",\"context\":\"witness_summary\",\"idRung\":3,\"speaker\":\"w1\","
-			"\"text\":\"one, with a comma\"},\n"
+			"\"text\":\"one, with a comma\",\"clause\":\"one was spliceable\"},\n"
 			"{\"id\":\"a-2\",\"context\":\"witness_summary\",\"idRung\":3,\"speaker\":\"w1\","
-			"\"text\":\"two\"},\n"
+			"\"text\":\"two\",\"clause\":\"two was spliceable too\"},\n"
 			"{\"id\":\"a-3\",\"context\":\"witness_summary\",\"idRung\":3,\"speaker\":\"w1\","
 			"\"text\":\"three\"},\n"
 			"{\"id\":\"b-1\",\"context\":\"overheard\",\"idRung\":1,\"speaker\":\"n2\","
 			"\"text\":\"reply\"}]}";
-		std::string Id, Txt, Spk, Why;
+		std::string Id, Txt, Cls, Spk, Why;
 		int Variants = 0;
-		Expect(R, BankPick(Fixture, "witness_summary", 3, 43, Id, Txt, Spk, Variants, Why),
+		Expect(R, BankPick(Fixture, "witness_summary", 3, 43, Id, Txt, Cls, Spk, Variants, Why),
 		       "bank-pick-accepts");
 		Expect(R, Variants == 3, "bank-pick-counts-three-variants");
 		Expect(R, Id == "a-2", "bank-pick-takes-the-seed-s-variant");
 		Expect(R, Txt == "one, with a comma" || Id != "a-1", "bank-pick-text-matches-id");
 		Expect(R, Spk == "w1", "bank-pick-reads-speaker");
-		Expect(R, !BankPick(Fixture, "overheard", 3, 43, Id, Txt, Spk, Variants, Why),
+		Expect(R, Txt == "two", "bank-pick-reads-the-spoken-sentence");
+		Expect(R, Cls == "two was spliceable too", "bank-pick-reads-the-clause-beside-it");
+		Expect(R, Cls != Txt, "bank-pick-answers-two-different-strings");
+		Expect(R, ClauseShape(Cls) == "clause", "clause-shape-accepts-a-written-clause");
+		// THE ROW WITH NO CLAUSE. The reader still picks it and still answers
+		// the sentence: it is the CALLER that must refuse, because filing the
+		// sentence is the defect queue 157 exists to remove.
+		Expect(R, BankPick(Fixture, "witness_summary", 3, 2, Id, Txt, Cls, Spk, Variants, Why),
+		       "bank-pick-still-picks-a-row-that-has-no-clause");
+		Expect(R, Id == "a-3" && Txt == "three", "bank-pick-seed-2-takes-the-third-variant");
+		Expect(R, Cls.empty(), "bank-pick-leaves-the-clause-empty-rather-than-the-last-pick-s");
+		Expect(R, ClauseShape(Cls) == "missing/no-clause-on-the-row",
+		       "clause-shape-names-a-missing-clause");
+		// THE THREE SHAPES A WRONG CLAUSE COMES IN, on the bank's own defect
+		// first: cw-ws-r3-02's sentence, which is what used to be filed.
+		Expect(R, ClauseShape("He looked straight at me before he ran. Couldn't tell you "
+		                      "his name, but I've got his face now.")
+		       == "sentence-not-clause/upper-first-and-interior-full-stop",
+		       "clause-shape-names-the-sentence-the-bank-used-to-file");
+		Expect(R, ClauseShape("he looked straight at me before he ran.")
+		       == "not-a-clause/trailing-full-stop",
+		       "clause-shape-catches-a-trailing-stop-Trim-would-have-hidden");
+		Expect(R, ClauseShape("Novak put the window in") == "sentence-not-clause/upper-first-character",
+		       "clause-shape-reads-a-proper-noun-opening-as-not-a-clause");
+		// AND THE PERSON FAULT NO SHAPE CHECK CAN SEE, pinned as a reading and
+		// not as a pass: the lowercased sentence is a clause by every rule here
+		// and is still first person inside a third party's memory.
+		Expect(R, ClauseShape("he looked straight at me before he ran") == "clause",
+		       "clause-shape-cannot-see-person-and-says-so-here");
+		Expect(R, !BankPick(Fixture, "overheard", 3, 43, Id, Txt, Cls, Spk, Variants, Why),
 		       "bank-pick-refuses-a-missing-cell");
 		Expect(R, Variants == 0, "bank-pick-missing-cell-counts-zero");
 		Expect(R, Why == "no-line-at-overheard-rung-3", "bank-pick-names-the-missing-cell");
-		Expect(R, !BankPick("{}", "witness_summary", 3, 43, Id, Txt, Spk, Variants, Why),
+		Expect(R, !BankPick("{}", "witness_summary", 3, 43, Id, Txt, Cls, Spk, Variants, Why),
 		       "bank-pick-refuses-a-bankless-file");
+
+		// 4b. THE PAIRING CONTRACT, BOTH OUTCOMES, ACCEPTING FIRST. A6 of the
+		//     ruling of 2026-09-09. The accepting pair is the shape every row
+		//     of the committed bank is in; the MISALIGNED pair is synthetic and
+		//     exists nowhere, so fixing the bank can never turn this red.
+		Expect(R, PairIdShape("cw-ws-r2-01", "cw-ov-r2-01") == "aligned/ids=01..01",
+		       "pair-ids-accepts-the-shape-the-committed-bank-is-in");
+		Expect(R, PairIdShape("cw-ws-r4-03", "cw-ov-r4-03") == "aligned/ids=03..03",
+		       "pair-ids-accepts-the-third-variant-too");
+		Expect(R, PairIdShape("cw-ws-r2-01", "cw-ov-r2-03") == "MISALIGNED/ids=01..03",
+		       "pair-ids-fires-on-a-pair-whose-indices-differ");
+		Expect(R, PairIdShape("cw-ws-r2-01", "cw-ov-r2") == "unreadable/ids=cw-ws-r2-01.."
+		       "cw-ov-r2/no-trailing-number-on-one-of-them",
+		       "pair-ids-reads-an-unindexed-id-as-unreadable-and-NOT-as-its-rung");
+		Expect(R, PairIdShape("cw-ws-r2-01", "cw-ov-r2-b") == "unreadable/ids=cw-ws-r2-01.."
+		       "cw-ov-r2-b/no-trailing-number-on-one-of-them",
+		       "pair-ids-refuses-an-id-with-no-index-rather-than-reading-it-as-aligned");
+		Expect(R, PairIdShape("", "") == "unreadable/ids=none..none"
+		       "/no-trailing-number-on-one-of-them",
+		       "pair-ids-with-nothing-picked-names-both-sides-none");
+		int Tail = -1;
+		Expect(R, IdTailNumber("cw-ws-r2-02", Tail) && Tail == 2, "id-tail-reads-the-index");
+		Expect(R, !IdTailNumber("cw-ws-r2-", Tail), "id-tail-refuses-a-missing-index");
+		Expect(R, !IdTailNumber("cw-ws-r2", Tail),
+		       "id-tail-refuses-a-rung-number-that-is-not-an-index");
+		Expect(R, std::string(PairIdStat()).find("CANNOT-SEE-whether-the-reply-answers-"
+		       "the-mark") != std::string::npos,
+		       "pair-id-stat-says-what-it-cannot-see-in-its-own-words");
+		Expect(R, std::string(PairIdStat()).find(' ') == std::string::npos,
+		       "pair-id-stat-carries-no-space-so-a-reader-cannot-truncate-it");
 
 		// 5. The value rules every reader of these lines depends on.
 		Expect(R, NoSpaces("a b") == "a-b", "no-spaces-in-a-value");
@@ -1285,13 +1486,13 @@ namespace LedgerCrime
 		Expect(R, F2(C.CarriedConfidence) == "0.45", "composed-accepting-case-carried-0.45");
 		Expect(R, SummaryShape(Clause) == "clause", "composed-a-clause-reads-as-a-clause");
 
-		// THE SHAPE THE BANK ACTUALLY CARRIES, pinned with the sentence it
-		// composes into. The bank's witness_summary rows are finished
-		// first-person sentences, not the lowercase clause StreetVoice.cs 768
-		// documents, and splicing one produces the string below. It is a
-		// measurement rather than a complaint, it is on the verdict as
-		// overheardSummaryShape, and the queue item that fixes the bank is
-		// named in the report for this change.
+		// THE SHAPE THE BANK USED TO FILE, KEPT AS THE REGRESSION IT NOW IS.
+		// Every witness_summary row's `text` is still a finished first-person
+		// sentence, because that is what the witness says out loud; what the
+		// mill FILES is the row's `clause` as of queue 157. This pair pins what
+		// splicing the SENTENCE produces, so the day something files a sentence
+		// again the string below is what a reader will see on the verdict under
+		// overheardSummaryShape. A measurement, not a complaint.
 		LedgerCore::RumorPtr AsBanked = std::make_shared<LedgerCore::Rumor>(
 			LedgerCore::Fact("player", "broke_a_window", "east_parade_glass0"));
 		AsBanked->Summary = BankSentence;

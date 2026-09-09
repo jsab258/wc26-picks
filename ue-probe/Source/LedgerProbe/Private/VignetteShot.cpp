@@ -471,18 +471,42 @@ namespace
 		return M;
 	}
 
-	// HOW MANY SIMPLE COLLISION PRIMITIVES THE LOADED MESH ACTUALLY HAS.
-	// The importer adds a box to every prop; a mesh that arrives without one
-	// places, renders and photographs clean and lets a walking Character
-	// through it, so the count is read off the asset at spawn rather than
-	// assumed from the import step's own verdict. Negative means the engine
-	// would not answer, which is a different fact from zero.
-	int PropCollisionPrims(UStaticMesh* M)
+	// WHAT THE LOADED ASSET SAYS ABOUT COLLISION. ASKED HERE, DECIDED IN THE
+	// TESTED HEADER, amendment A5 of the ruling of 2026-09-08 (queue 161).
+	//
+	// WHAT THIS REPLACES AND WHY. PropCollisionPrims returned a COUNT of
+	// aggregate elements, and a count reads 0 for two opposite facts: an
+	// asset with no body setup under it, where nothing answered the question,
+	// and an asset whose body setup holds zero simple elements, which a
+	// complex-as-simple trace flag makes perfectly solid against a capsule.
+	// The tally on the verdict then called both of them no collision. The
+	// rule is now LedgerVignette::ReadPropCollision, which g++ runs in the
+	// container over every case including the two nothing here can plant, and
+	// this function does nothing but ask the engine the four questions it can
+	// answer.
+	//
+	// THE IMPORTER READS THE SAME FOUR THINGS OFF A SAVED ASSET IN AN EDITOR
+	// (tools/ue/import_prop_meshes.py collidable_word) and calls the
+	// no-body-setup case NO rather than UNKNOWN. Different population, and
+	// ruled UNKNOWN on this side because a null body setup at runtime is also
+	// what a reader gets when nothing has built one yet. Written down in the
+	// header beside the rule so the divergence reads as a decision.
+	LedgerVignette::EPropCollisionRead PropCollisionOf(UStaticMesh* M)
 	{
-		if (M == nullptr) { return -1; }
+		if (M == nullptr) { return LedgerVignette::PropCollision_Unknown; }
 		UBodySetup* BS = M->GetBodySetup();
-		if (BS == nullptr) { return 0; }
-		return BS->AggGeom.GetElementCount();
+		const bool bHasBody = (BS != nullptr);
+		const int Elements = bHasBody ? BS->AggGeom.GetElementCount() : 0;
+		const bool bComplexAsSimple =
+			bHasBody && BS->CollisionTraceFlag == CTF_UseComplexAsSimple;
+		// GEOMETRY UNDER THE FLAG, because complex-as-simple over an empty
+		// mesh stops nothing. Read off the mesh's OWN bounds, which is the
+		// same question the importer asks as boundsUu-nonzero and the same
+		// call the pivot correction above already makes on this pointer.
+		const FVector Extent = M->GetBounds().BoxExtent;
+		const bool bGeometry = (Extent.X > 0.0 || Extent.Y > 0.0 || Extent.Z > 0.0);
+		return LedgerVignette::ReadPropCollision(bHasBody, Elements, bComplexAsSimple,
+		                                         bGeometry);
 	}
 
 	AStaticMeshActor* SpawnPiece(UWorld* World, UStaticMesh* Mesh, const Piece& P,
@@ -599,7 +623,21 @@ namespace
 		// piece count: 0/23 means every prop is real, 23/23 means the import
 		// step never ran.
 		int Meshes = 0, StandIns = 0;
-		int MeshCollided = 0, MeshCollisionUnread = 0;
+		// THE COLLISION TALLY AND ITS NAMES, KEPT BY THE TESTED HEADER. Its
+		// denominator is Placed(), the readings actually taken, never the 23
+		// the file asked for: a denominator larger than the set examined
+		// turns a clean result into a false claim with a number on it.
+		LedgerVignette::PropCollisionTally CollisionTally;
+		// WHICH PROP NAMES GOT A REAL ASSET, so the burial reading below can
+		// say whether a row's bounds came from the loaded mesh or from the
+		// box stand-in. At most one entry per mesh piece.
+		std::vector<std::string> FromAssetNames;
+		// AND THE NAMED SUBJECT'S OWN READING, CAPTURED AT THE INSTANT IT WAS
+		// ASKED. A6's subject is one piece, and the run's tally of twenty-three
+		// cannot answer a question about one of them. The default says there
+		// was no asset to ask rather than printing a word that would read as
+		// a measurement of the box stand-in.
+		std::string SubjectCollision = "no-asset-to-read";
 		// PLACEMENT, MEASURED AGAINST THE BOX IT REPLACED, AT WORST over the
 		// placed meshes with the piece it was worst ON captured at the same
 		// instant. Two halves, because they answer different questions and
@@ -778,12 +816,18 @@ namespace
 						}
 
 						// COLLISION, READ OFF THE ASSET RATHER THAN TRUSTED
-						// FROM THE IMPORT STEP'S OWN VERDICT. A negative
-						// answer means the engine would not say, which is a
-						// different fact from none.
-						const int Prims = PropCollisionPrims(PropMesh);
-						if (Prims > 0) { ++MeshCollided; }
-						else if (Prims < 0) { ++MeshCollisionUnread; }
+						// FROM THE IMPORT STEP'S OWN VERDICT, AND
+						// THREE-VALUED: YES, NO, or UNKNOWN for an asset that
+						// answered nothing. The tally and the string are the
+						// tested header's.
+						const LedgerVignette::EPropCollisionRead Read =
+							PropCollisionOf(PropMesh);
+						CollisionTally.Add(P.Name, Read);
+						FromAssetNames.push_back(P.Name);
+						if (P.Name == LedgerVignette::BurialSubjectName())
+						{
+							SubjectCollision = LedgerVignette::PropCollisionWord(Read);
+						}
 
 						++Meshes; ++Props;
 					}
@@ -902,54 +946,69 @@ namespace
 		// Appended rather than folded into SceneLine because SceneLine is the
 		// tested header's shared shape and both engines read it; these keys
 		// are this engine's mesh route and nothing in Unity has them.
+		//
+		// NOT ONE NUMBER AND NOT ONE CHARACTER OF THIS STRING IS DECIDED
+		// HERE, amendment A5 of the ruling of 2026-09-08. The tally, the
+		// arithmetic and the formatting are LedgerVignette::PropMeshSegment,
+		// which g++ compiles and RUNS in the container before any dispatch;
+		// this block supplies membership, order and live state. The version
+		// this replaces built its own string in this file, which nothing here
+		// can compile, and shipped three faults in one eight-line stretch for
+		// three landed runs.
 		{
-			std::string Why;
-			for (size_t K = 0; K < FellBack.size(); ++K)
+			// THE PLACED BOUNDS OF EVERY PIECE, READ BACK OFF THE ENGINE AND
+			// NEVER RECOMPUTED FROM THE FILE. This is the half of the
+			// placement metric propCentreWorstMm cannot see: a piece sits
+			// 0.00 mm from where the file put it and is still inside the
+			// road. GByName holds exactly the actors this BuildScene spawned,
+			// so the population is the street's own pieces and nothing the
+			// crime probe added to its separate map.
+			std::vector<LedgerVignette::PlacedBox> Placed;
+			Placed.reserve(GSpec.Pieces.size());
+			for (size_t I = 0; I < GSpec.Pieces.size(); ++I)
 			{
-				if (K) { Why += ";"; }
-				Why += FellBack[K];
+				const Piece& P = GSpec.Pieces[I];
+				AStaticMeshActor** Found =
+					GByName.Find(FString(UTF8_TO_TCHAR(P.Name.c_str())));
+				if (Found == nullptr || *Found == nullptr) { continue; }
+				FVector WOrg(0, 0, 0), WExt(0, 0, 0);
+				(*Found)->GetActorBounds(false, WOrg, WExt);
+				LedgerVignette::PlacedBox B;
+				B.Name = P.Name; B.Edge = P.Edge; B.Region = P.Region;
+				B.bProp = (P.Shape == "mesh");
+				for (size_t K = 0; K < FromAssetNames.size(); ++K)
+				{
+					if (FromAssetNames[K] == P.Name) { B.bFromAsset = true; break; }
+				}
+				// BACK INTO THE FILE'S FRAME AND INTO METRES, which is the
+				// only frame the tested header knows and the frame every
+				// number in vignette-pieces.json is in: (X,Y,Z) uu is
+				// (x,z,y) m, so the engine's Z is the file's y and 1 uu is
+				// 1 cm. Inverting the one conversion this file does at spawn,
+				// rather than carrying a second convention into the header.
+				B.MinX = (WOrg.X - WExt.X) / 100.0; B.MaxX = (WOrg.X + WExt.X) / 100.0;
+				B.MinY = (WOrg.Z - WExt.Z) / 100.0; B.MaxY = (WOrg.Z + WExt.Z) / 100.0;
+				B.MinZ = (WOrg.Y - WExt.Y) / 100.0; B.MaxZ = (WOrg.Y + WExt.Y) / 100.0;
+				Placed.push_back(B);
 			}
-			if (StandIns > (int)FellBack.size())
-			{
-				char More[64];
-				std::snprintf(More, sizeof(More), ";(+%d~more~not~shown)",
-				              StandIns - (int)FellBack.size());
-				Why += More;
-			}
-			if (Why.empty()) { Why = "none"; }
-			// SIZED FROM THE RENDERED WORST CASE, NOT GUESSED: the fixed
-			// text alone is 531 characters and four named fallbacks add
-			// about 290, so 700 truncated and said nothing about it.
-			char MBuf[1100];
-			const int MWrote = std::snprintf(MBuf, sizeof(MBuf),
-				" propsAsMesh=%d/%d propsAsBox=%d/%d propFallbackWhy=%s"
-				" propPackageDir=%s propNamePattern=%s<asset>"
-				" propScale=1/never-scaled/dims-policy"
-				" propCentreWorstMm=%.2f/on=%s/of=%d"
-				" propCentreStat=distance-from-the-files-own-xyz-to-the-placed-meshes-world-bounds-centre-at-worst"
-				" propSizeWorstMm=%.2f/on=%s propSizeComparable=%d/%d"
-				" propSizeStat=axis-aligned-pieces-only/a-yawed-world-aabb-is-legitimately-bigger"
-				" propCollisionPrims=%d/%d propCollisionUnread=%d"
-				" propCollisionEnabled=%s",
-				Meshes, ShapeCount(GSpec.Pieces, "mesh"),
-				StandIns, ShapeCount(GSpec.Pieces, "mesh"), NoSpaces(Why).c_str(),
-				TCHAR_TO_UTF8(kPropPackageDir), TCHAR_TO_UTF8(kPropNamePrefix),
-				WorstCentreMm, WorstCentreOn.c_str(), Meshes,
-				WorstSizeMm, WorstSizeOn.c_str(), SizeComparable, Meshes,
-				MeshCollided, Meshes, MeshCollisionUnread,
-				bInteractive ? "QueryOnly/the-walk-path" : "NoCollision/the-timed-automation");
-			GSceneLine += MBuf;
-			// EVERY CAP ANNOUNCES ITSELF. snprintf returns what it WOULD have
-			// written, so a segment that did not fit says so instead of
-			// ending mid-key and reading as a missing measurement.
-			if (MWrote < 0 || MWrote >= (int)sizeof(MBuf))
-			{
-				char TBuf[96];
-				std::snprintf(TBuf, sizeof(TBuf),
-					" propSegmentTruncated=yes/wanted=%d/buffer=%d",
-					MWrote, (int)sizeof(MBuf));
-				GSceneLine += TBuf;
-			}
+			LedgerVignette::PropSegmentIn Seg;
+			Seg.MeshPiecesInFile = ShapeCount(GSpec.Pieces, "mesh");
+			Seg.PlacedAsMesh = Meshes;
+			Seg.PlacedAsBox = StandIns;
+			Seg.FellBackOn = FellBack;
+			Seg.PackageDir = TCHAR_TO_UTF8(kPropPackageDir);
+			Seg.NamePrefix = TCHAR_TO_UTF8(kPropNamePrefix);
+			Seg.CentreWorstMm = WorstCentreMm;
+			Seg.CentreWorstOn = WorstCentreOn;
+			Seg.SizeWorstMm = WorstSizeMm;
+			Seg.SizeWorstOn = WorstSizeOn;
+			Seg.SizeComparable = SizeComparable;
+			Seg.Collision = CollisionTally;
+			Seg.SubjectCollision = SubjectCollision;
+			Seg.Burials = LedgerVignette::ReadBurials(Placed);
+			Seg.bInteractive = bInteractive;
+			GSceneLine += " ";
+			GSceneLine += LedgerVignette::PropMeshSegment(Seg);
 		}
 		// THE SPAWNS THAT ARE NOT PIECES, READ BACK RATHER THAN ASSUMED. A
 		// null here is why a frame would be black, and it is a different

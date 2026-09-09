@@ -10,8 +10,8 @@ and a reviewer can check without reading the C++.
 
 ## What
 24 memory-conditioned lines for the first crime-and-witness vignette in
-the packaged Unreal build: a half-brick through a shop window on the
-Parade, witnessed by an archetype called w1 (the shopkeeper) at one of
+the packaged Unreal build: a half-brick through a shop window on Quay
+Street, witnessed by an archetype called w1 (the shopkeeper) at one of
 four identification rungs the perception code assigns from real geometry,
 later told to a second archetype called n2 (the lad in the yard) who
 replies. These two lines are the first consequence in LEDGER a player can
@@ -20,11 +20,29 @@ overhear. English of a British port town, 1988 to 1992.
 ## Structure
 Two contexts, four identification rungs, three variants per cell, 24
 lines in total.
-- `witness_summary`: what w1 files as her memory of the crime, in her own
-  words, at the rung she actually achieved. This exact text is used twice
-  at runtime: as the "heard" memory line (`Gossip.cs` 394) and as her half
-  of the overheard exchange, so it has to read naturally both as a private
-  record and as a thing said aloud to someone standing next to her.
+- `witness_summary`: what w1 has of the crime at the rung she actually
+  achieved, as TWO STRINGS, because the runtime needs two and one string
+  cannot be both. Corrected 2026-09-08 (queue 157): this section used to
+  say the text "is used twice at runtime" as though verbatim, and it is
+  SPLICED in both of those roles.
+  - `text` is what she SAYS: a finished first-person sentence, spoken
+    whole. It is her half of the overheard exchange when composition
+    refuses, and it is the row the verdict names as `bankSummaryText`.
+  - `clause` is what the mill FILES as the `Rumor.Summary`: third
+    person, lowercase first letter, no interior and no trailing full
+    stop, because BOTH consumers splice it. `Gossip.h` 586 writes "I
+    heard from " + name + " that " + summary into the heard memory, and
+    `StreetVoice`'s templates drop it into the middle of a sentence
+    ("You hear all sorts. {What}, apparently."). `StreetVoice.cs` 752 to
+    771 states that contract.
+  The incident, so no future reader merges them again: filing the
+  sentence shipped "I heard from the shopkeeper that He looked straight
+  at me before he ran." to `production/d1-probe/ue-crime-memory-n2.md`
+  line 6, and composed "You hear all sorts. He looked straight at me
+  before he ran. Couldn't tell you his name, but I've got his face now,
+  apparently." The clause is WRITTEN, never derived from the sentence:
+  lowercasing that sentence leaves the witness's own "me" inside
+  somebody else's memory, which is a fault no shape check can see.
 - `overheard`: n2's reply, spoken after hers when the two are together
   (`GossipDirector.cs`, `SayAfter` beats at `i * 2.1` seconds), at the
   SAME idRung as the summary it answers.
@@ -95,10 +113,12 @@ rename either archetype to a day-life-ring name (Sam, Ada, June, and so
 on) without a canon ruling naming them explicitly for this vignette.
 
 ## Location
-One window, on Quay Street: the ruling's own phrase for it, and the same
-word the pub-regular-v1 bank already uses for the district
-(`content/dialogue/pub-regular-v1.json`, lines pr-030 and pr-044). No
-street name below district level is minted by this bank.
+One window, on Quay Street, BECAUSE CANON NAMES IT: canon.md lines 13, 15 and
+24, ruled 2026-09-08 option C, the built street is Quay Street and it is in the
+Hook. The earlier version of this section cited pub-regular-v1 as though a
+sibling bank were the authority. It is not, and the citation is struck: canon
+outranks every document, and a bank agreeing with canon is agreement, not
+evidence. No street name below district level is minted by this bank.
 
 ## Selection
 Deterministic from `seed = Day * 31 + Hour` (`GossipDirector.cs` line
@@ -135,6 +155,20 @@ to index is the runtime's job, not this document's.
    outrun its summary) is verified by a human reader against the four
    one-sentence ceilings in this spec; no tool in this pipeline reads
    meaning, so this acceptance step is a reading, not a run.
+5. `tools/dialogue-verify.py` READS `text` AND NOT `clause` (it scores
+   `ln["text"]` only), so its clean result has a denominator of 24
+   texts and zero clauses. Measured by hand with the tool's own scorer
+   on 2026-09-08, and reported rather than assumed: 0 rung-name
+   findings over 12 clauses examined, 0 of 66 clause pairs at or over
+   the 0.60 repetition bound (worst 0.32, cw-ws-r3-01 against
+   cw-ws-r3-03), 12 of 12 lowercase-initial, 0 of 12 carrying an
+   interior or trailing full stop, 0 of 12 containing the word
+   "player". Teaching the tool to score the clause field is queue work,
+   not this spec's.
+6. The twelve clauses spliced into BOTH runtime frames are printed by
+   `ue-probe/tests/crime-probe-test.cpp` for a reader to judge person
+   agreement, because no mechanical check in this pipeline can see
+   person. The printout is the artifact for that step, not the count.
 
 ## Integration contract (station 4)
 `content/dialogue/crime-witness-v1.json` at the repo root, found at
@@ -142,8 +176,15 @@ runtime the same way `vignette-pieces.json` is (`VignetteShot.cpp` 320 to
 324, the same four candidate paths). Schema: `bank`, `license`, `era`,
 `register`, `rungs`, `contexts`, `idRungs`, `speakers` (archetype id to
 display label), `location`, and `lines[]`, each with `id`, `context`,
-`idRung`, `rung`, `speaker`, `text`. An untagged license fails the
-license gate, same as every other bank.
+`idRung`, `rung`, `speaker`, `text`, plus `clause` on every
+`witness_summary` row and on no `overheard` row: an overheard reply is
+spoken whole and is never filed as anybody's summary, so there is
+nothing for a splice to get wrong. A `witness_summary` row with no
+`clause` REFUSES by name (`LedgerCrime::SummaryToFile` files the
+bank-unreadable sentinel carrying the row id, and the composer already
+refuses on that prefix) and never falls back to the sentence, because
+falling back to the sentence is the defect. An untagged license fails
+the license gate, same as every other bank.
 
 ## What a future reader must not change without a ruling
 - The idRung-to-address-rung mapping: 1 to 3 are `stranger`, 4 is
@@ -168,13 +209,37 @@ license gate, same as every other bank.
   built-cards mismatch is unresolved; `w1` and `n2` are placements the
   crime probe made from geometry, not people the day-life ring has met.
 
-## The 24 lines, for a reviewer who wants to check the discipline without opening the JSON
-witness_summary: cw-ws-r1-01, cw-ws-r1-02, cw-ws-r1-03 (a shape only);
-cw-ws-r2-01, cw-ws-r2-02, cw-ws-r2-03 (one mark, on a "him"); cw-ws-r3-01,
-cw-ws-r3-02, cw-ws-r3-03 (a face she would know again, no name); cw-ws-r4-01,
-cw-ws-r4-02, cw-ws-r4-03 (Novak, the new owner up at Mickey's, named).
-overheard: cw-ov-r1-01, cw-ov-r1-02, cw-ov-r1-03 (reacts to a shape only);
-cw-ov-r2-01, cw-ov-r2-02, cw-ov-r2-03 (repeats or deflates the one mark);
-cw-ov-r3-01, cw-ov-r3-02, cw-ov-r3-03 (values a face she'd know, adds no
-name); cw-ov-r4-01, cw-ov-r4-02, cw-ov-r4-03 (uses Novak's name, reacts to
-the consequence of it being known).
+## The 24 lines, AS INDEX PAIRS, for a reviewer checking the discipline without opening the JSON
+
+LISTED AS PAIRS AND NOT AS TWO BUNDLES, ruled 2026-09-09, because the bundle
+shape is what let a pairing fault pass a human reading: at rung 2 the reply at
+index k answered the summary at a different index, and three lines listed in two
+groups of three read as correct while three lines listed as pairs do not. THE
+PICK IS BY INDEX. Variant k of `overheard` answers variant k of
+`witness_summary`, at the same rung, and a reviewer who cannot read the pair on
+one line cannot check that.
+
+    rung 1, a shape only
+      01  cw-ws-r1-01  <->  cw-ov-r1-01
+      02  cw-ws-r1-02  <->  cw-ov-r1-02
+      03  cw-ws-r1-03  <->  cw-ov-r1-03
+    rung 2, one mark on a "him"
+      01  cw-ws-r2-01  <->  cw-ov-r2-01
+      02  cw-ws-r2-02  <->  cw-ov-r2-02
+      03  cw-ws-r2-03  <->  cw-ov-r2-03
+    rung 3, a face she would know again, no name
+      01  cw-ws-r3-01  <->  cw-ov-r3-01
+      02  cw-ws-r3-02  <->  cw-ov-r3-02
+      03  cw-ws-r3-03  <->  cw-ov-r3-03
+    rung 4, Novak, the new owner up at Mickey's, named
+      01  cw-ws-r4-01  <->  cw-ov-r4-01
+      02  cw-ws-r4-02  <->  cw-ov-r4-02
+      03  cw-ws-r4-03  <->  cw-ov-r4-03
+
+RUNG 2 TURNS ON A DISTINCTION THIS SPEC DID NOT STATE, added in the same pass.
+An OCCLUDING garment, a cap pulled down or a collar up, is permitted freely and
+is part of why the rung tops out where it does: it is the reason she cannot say
+more. An IDENTIFYING mark, a limp, a jacket, a build, is permitted EXACTLY ONCE.
+That is what makes cw-ws-r2-02 correct rather than tolerated, its cap being
+occlusion and its limp being the one mark, and it is what made cw-ws-r2-01's
+clause wrong at two marks before it was cut.

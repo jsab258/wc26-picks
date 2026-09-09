@@ -157,7 +157,10 @@ namespace
 	LedgerCrime::SelftestResult GSelftest;
 	std::string GBankText;
 	std::vector<std::string> GBankTried;
-	std::string GSummaryText = "none", GReplyText = "none";
+	// TWO STRINGS OFF ONE ROW, queue 157: the sentence she SAYS and the clause
+	// the mill FILES. Both are on the verdict's bank line, because a reader who
+	// can see only one cannot tell which one got spliced.
+	std::string GSummaryText = "none", GReplyText = "none", GSummaryClause = "none";
 	int GAchievedRung = 0;
 
 	// THE RUMOUR THE MILL ACTUALLY CARRIED, queue 147. GossipMill::Tick hands
@@ -1095,12 +1098,25 @@ namespace
 		         + " watchSecondsW1B=" + LedgerCrime::F2(GSeconds[1][0])
 		         + " watchSecondsN2B=" + LedgerCrime::F2(GSeconds[1][1])
 		         + " watchStat=accumulated-while-InSight-to-the-actor-held/Perception.cs-65"));
+		// THE ROW'S TWO STRINGS, SIDE BY SIDE AND AT THE SAME MOMENT, queue 157.
+		// bankSummaryText is what she SAYS; bankSummaryClause is what the mill
+		// FILED and therefore what both splices carried. A reader holding only
+		// one of them cannot tell which was spliced, which is how the sentence
+		// reached a committed memory file unnoticed. The shape says
+		// nothing-measured when no witness_summary was picked at all, so a
+		// never-ran run cannot read as a missing clause.
+		const std::string ClauseShapeValue = (GSummaryClause == "none")
+			? std::string("nothing-measured/no-witness-summary-was-picked")
+			: LedgerCrime::ClauseShape(GSummaryClause);
 		Out.Add(Un("bankTried=" + LedgerCrime::Int((int)GBankTried.size())
 		         + " bankFrom=" + GOverheard.BankPath
 		         + " bankSummaryText=" + LedgerCrime::NoSpaces(GSummaryText)
+		         + " bankSummaryClause=" + LedgerCrime::NoSpaces(GSummaryClause)
+		         + " bankSummaryClauseShape=" + LedgerCrime::NoSpaces(ClauseShapeValue)
 		         + " bankReplyText=" + LedgerCrime::NoSpaces(GReplyText)
 		         + " bankTextNote=spaces-become-dashes-in-a-value/the-bank-file-holds-the-prose"
-		           "/these-two-are-the-BANK-rows-at-the-rung/what-was-said-is-on-the-overheardTellText-line"));
+		           "/these-are-the-BANK-rows-at-the-rung/the-clause-is-what-the-mill-filed"
+		           "/the-sentence-is-what-she-said/what-was-said-is-on-the-overheardTellText-line"));
 		Out.Add(FString::Printf(TEXT("crimeTicks=%d crimeSeconds=%.2f crimeFinishReason=%s"),
 		                        GTicks, FPlatformTime::Seconds() - GRunStart, *GFinishReason));
 
@@ -1166,11 +1182,13 @@ namespace
 			LedgerCrime::Resolve(R, D);
 			if (!R.bFiled) { continue; }
 
-			// THE RUNG SHE ACTUALLY REACHED DECIDES THE WORDS. The summary is
-			// what Witness files and what the heard memory repeats, so it is
-			// in her mouth at her rung and never above it.
+			// THE RUNG SHE ACTUALLY REACHED DECIDES THE WORDS, both of them.
+			// The row's sentence is what she says out loud; the row's clause is
+			// what Witness files and what the heard memory repeats. Neither may
+			// claim more than the rung she reached, and the bank's spec holds
+			// both to the same ceiling.
 			if (R.O.Rung > GAchievedRung) { GAchievedRung = R.O.Rung; }
-			std::string Id, Text, Speaker, Why;
+			std::string Id, Text, Clause, Speaker, Why;
 			int Variants = 0;
 			const int Seed = LedgerCrime::Seed(GNow);
 			// THE SENTINEL LIVES IN THE HEADER, where the test that refuses to
@@ -1179,10 +1197,25 @@ namespace
 			// diagnostic.
 			std::string Summary = LedgerCrime::UnreadableSummaryPrefix() + GOverheard.WhyNot;
 			if (LedgerCrime::BankPick(GBankText, "witness_summary", R.O.Rung, Seed,
-			                          Id, Text, Speaker, Variants, Why))
+			                          Id, Text, Clause, Speaker, Variants, Why))
 			{
-				Summary = Text;
+				// TWO STRINGS, TWO JOBS, queue 157. The SENTENCE is what she
+				// says out loud and is the fallback the composer speaks when it
+				// refuses. The CLAUSE is what the mill files as the Summary,
+				// because both consumers splice it: Gossip.h 586 after "I heard
+				// from the shopkeeper that ", and StreetVoice's templates into
+				// the middle of a sentence. Filing the sentence is what shipped
+				// "I heard from the shopkeeper that He looked straight at me
+				// before he ran." in production/d1-probe/ue-crime-memory-n2.md.
 				GSummaryText = Text;
+				GSummaryClause = Clause.empty() ? std::string("none") : Clause;
+				// THE DECISION AND ITS WORDING ARE IN THE HEADER, where g++ runs
+				// them: a row with no clause refuses by name through the
+				// sentinel the composer already refuses on, and never falls back
+				// to the sentence.
+				std::string WhyClause;
+				Summary = LedgerCrime::SummaryToFile(Id, Clause, WhyClause);
+				if (WhyClause != "none") { GOverheard.WhyNot = WhyClause; }
 				GOverheard.SummaryId = Id;
 				GOverheard.Variants = Variants;
 				GOverheard.VariantPicked = LedgerCrime::VariantIndex(Seed, Variants);
@@ -1439,11 +1472,15 @@ namespace
 			RunGossipRound(2, GRound2);
 			// THE REPLY, AT THE RUNG SHE REACHED AND NEVER ABOVE IT.
 			{
-				std::string Id, Text, Speaker, Why;
+				// NO CLAUSE ON AN OVERHEARD ROW, BY DESIGN: n2's reply is
+				// spoken whole and never filed as anybody's Summary, so there
+				// is nothing for a splice to get wrong. Clause comes back empty
+				// here and nothing reads it.
+				std::string Id, Text, Clause, Speaker, Why;
 				int Variants = 0;
 				const int Seed = LedgerCrime::Seed(GNow);
 				if (LedgerCrime::BankPick(GBankText, "overheard", GAchievedRung, Seed,
-				                          Id, Text, Speaker, Variants, Why))
+				                          Id, Text, Clause, Speaker, Variants, Why))
 				{
 					GReplyText = Text;
 					GOverheard.ReplyId = Id;

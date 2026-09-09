@@ -70,6 +70,25 @@ static void KeysOf(const std::string& Line, std::vector<std::string>& Out)
 	}
 }
 
+// EVERY TOKEN IS A KEY WITH A VALUE, AND NO VALUE CARRIES WHITESPACE. The
+// rule that matters for this project's readers, which all split on space: a
+// value may hold several equals signs (propCentreWorstMm=0.00/on=x/of=0 does,
+// and so does every row-shaped value in the prop segment), but a value that
+// holds a SPACE is silently truncated by every one of them.
+static bool EveryTokenIsKeyValue(const std::string& Line)
+{
+	std::istringstream In(Line);
+	std::string Tok;
+	int Tokens = 0;
+	while (In >> Tok)
+	{
+		++Tokens;
+		const size_t At = Tok.find('=');
+		if (At == std::string::npos || At == 0 || At + 1 >= Tok.size()) { return false; }
+	}
+	return Tokens > 0;
+}
+
 static bool NoSpacePastPrefix(const std::string& Line, const char* From)
 {
 	const size_t At = Line.find(From);
@@ -306,6 +325,699 @@ int main(int argc, char** argv)
 	Check(DonePart.find("shotsWrote=2/4") != std::string::npos
 	      && DonePart.find("captureStatus=PARTIAL") != std::string::npos,
 	      "and a partial capture carries every count over its denominator", DonePart);
+
+	// ---- THE MESH ROUTE'S SEGMENT, BOTH HALVES, BOTH DIRECTIONS ---------
+	//
+	// WHY THESE ROWS EXIST, amendments A5 and A6 of the ruling of
+	// 2026-09-08, queue 161 and 162. The street side's collision reading and
+	// its string were built in VignetteShot.cpp, which this container cannot
+	// compile, so they shipped UNRUN and three faults rode in them for three
+	// landed runs. Everything they assert now runs here with g++ before any
+	// dispatch.
+	//
+	// ACCEPTING CASE FIRST, EVERY TIME, and the planted cases second. The
+	// live committed street is the accepting fixture for the burial half; the
+	// rejecting and the planted fixtures are built in this file, because a
+	// repository with a prop sunk in the road on purpose is not one anybody
+	// wants, and because a guard pinned to a real asset's current fault goes
+	// RED THE DAY THE ASSET IS FIXED. So the live street's burial numbers are
+	// PRINTED here as a series and never asserted as a verdict; the verdicts
+	// are asserted on boxes this file makes and nobody can repair.
+	{
+		using namespace LedgerVignette;
+
+		// A. THE CLASSIFIER. Accepting case first: an asset with a body setup
+		// and one simple primitive is the case the importer was built to
+		// produce and the one a capsule is stopped by.
+		Check(ReadPropCollision(true, 1, false, true) == PropCollision_Yes,
+		      "ACCEPTING CASE - a body setup with a simple primitive reads YES");
+		Check(ReadPropCollision(true, 6, false, true) == PropCollision_Yes,
+		      "and so does one with six of them");
+		// THE FAULT A5 WAS RAISED FOR. A mesh collidable by a
+		// complex-as-simple trace flag holds ZERO aggregate elements and
+		// stops a capsule perfectly. The count said 0 and the old key called
+		// that no collision.
+		Check(ReadPropCollision(true, 0, true, true) == PropCollision_Yes,
+		      "a body setup with ZERO primitives and complex-as-simple over real "
+		      "geometry reads YES");
+		Check(ReadPropCollision(true, 0, true, true) != PropCollision_No,
+		      "and the same reading is NOT NO, which is what a count of primitives "
+		      "called it for three runs");
+		// AND THE OTHER HALF OF A5. No body setup is a question nobody
+		// answered, not an answer of no.
+		Check(ReadPropCollision(false, 0, false, true) == PropCollision_Unknown,
+		      "no body setup reads UNKNOWN");
+		Check(ReadPropCollision(false, 0, false, true) != PropCollision_No,
+		      "and NOT NO, whatever the primitive count beside it says");
+		Check(ReadPropCollision(false, 3, true, true) == PropCollision_Unknown,
+		      "no body setup is still UNKNOWN even when the other three inputs "
+		      "would each have said yes, because there is nothing for them to be "
+		      "true of");
+		// THE REAL NO, WHICH IS THE CASE THE WHOLE THREE-VALUED READING
+		// EXISTS TO LEAVE ROOM FOR. A guard that can only say YES and
+		// UNKNOWN is a ratchet.
+		Check(ReadPropCollision(true, 0, false, true) == PropCollision_No,
+		      "a body setup holding nothing, with no complex-as-simple flag, reads NO");
+		Check(ReadPropCollision(true, 0, true, false) == PropCollision_No,
+		      "and complex-as-simple over a mesh with NO EXTENT reads NO, because a "
+		      "flag pointing at nothing stops nothing");
+		// A REFUSED COUNT IS NOT A ZERO. The importer printed
+		// propCollisionPrims=0/15 over fifteen refusals and the zero was the
+		// lie, not the minus one.
+		Check(ReadPropCollision(true, -1, false, true) == PropCollision_Unknown,
+		      "a refused primitive count reads UNKNOWN and never NO");
+		Check(std::string(PropCollisionWord(PropCollision_Yes)) == "YES"
+		      && std::string(PropCollisionWord(PropCollision_No)) == "NO"
+		      && std::string(PropCollisionWord(PropCollision_Unknown)) == "UNKNOWN",
+		      "and the three words are the three words");
+
+		// B. THE TALLY AND THE STRING. A run with one of each.
+		PropSegmentIn In;
+		In.MeshPiecesInFile = ShapeCount(S.Pieces, "mesh");
+		In.PackageDir = "/Game/Ledger/Props";
+		In.NamePrefix = "SM_";
+		In.PlacedAsMesh = 3;
+		In.PlacedAsBox = In.MeshPiecesInFile - 3;
+		In.FellBackOn.push_back("prop_pallet_0=no-uasset-for-pallet");
+		In.CentreWorstMm = 0.47; In.CentreWorstOn = "prop_drainage_grate_01_0";
+		In.SizeWorstMm = 44.02; In.SizeWorstOn = "prop_wooden_crate_01_0";
+		In.SizeComparable = 3;
+		In.bInteractive = true;
+		In.Collision.Add("prop_drainage_grate_01_0", PropCollision_Yes);
+		In.Collision.Add("prop_pavement_sign_0", PropCollision_No);
+		In.Collision.Add("prop_skip_0", PropCollision_Unknown);
+		const std::string Seg3 = PropMeshSegment(In);
+		std::printf("    %s\n", Seg3.c_str());
+		Check(Seg3.find("propPlacedWithCollision=1/3") != std::string::npos,
+		      "the placed-with-collision count ships the readings TAKEN as its "
+		      "denominator, not the 23 the file asked for", Seg3);
+		Check(Seg3.find("propPlacedCollisionUnread=1/3") != std::string::npos,
+		      "the unread count ships the same denominator, on the same line, at "
+		      "the same instant", Seg3);
+		Check(Seg3.find("propPlacedCollisionNoOn=prop_pavement_sign_0") != std::string::npos,
+		      "and the piece that read NO is NAMED, because a count cannot be fixed "
+		      "and a name can", Seg3);
+		Check(Seg3.find("propPlacedCollisionStat=placed-prop-mesh-components-whose-asset-"
+		                "reports-collision/over-placed-prop-meshes/PROXY-only-a-sweep-"
+		                "answers-whether-a-capsule-is-stopped") != std::string::npos,
+		      "the stat names the population AND carries PROXY, because only a sweep "
+		      "answers whether a capsule is stopped and this reads an asset", Seg3);
+		// A9 OF THE RULING OF 2026-09-09: THE DIVERGENCE ON THE LINE WHERE THE
+		// NUMBERS MEET. The importer calls a missing body setup NO over saved
+		// assets; this side calls it UNKNOWN over assets loaded at runtime,
+		// ruled 2026-09-08. A reader holding both files saw two words for one
+		// case and could not tell a decision from a bug, so the decision rides
+		// the value and not a header comment twelve hundred lines away.
+		Check(Seg3.find("/a-missing-body-setup-reads-UNKNOWN-here-and-NO-in-"
+		                "import_prop_meshes.py/ruled-2026-09-08/two-populations-at-"
+		                "two-times/never-added-never-differenced") != std::string::npos,
+		      "the stat names the RULED DIVERGENCE with the importer, in its own "
+		      "value, where a reader meets the number", Seg3);
+		Check(Seg3.find("propPlacedCollisionStat=") != std::string::npos
+		      && Seg3.find("UNKNOWN-here-and-NO-in-import_prop_meshes.py")
+		         > Seg3.find("propPlacedCollisionStat="),
+		      "and it rides propPlacedCollisionStat rather than a second key, so the "
+		      "two tallies are never printed as a pair without their populations",
+		      Seg3);
+		// THE RENAME, WHICH IS HALF OF A5. The old key counted MESHES under a
+		// name that said PRIMS and collided with a key of the same name that
+		// tools/ue/import_prop_meshes.py emits over a different population.
+		// A SYNTHETIC REJECTING FIXTURE: these two strings now exist nowhere
+		// in this segment, so doing the work this tool prompts cannot break it.
+		Check(Seg3.find("propCollisionPrims") == std::string::npos,
+		      "REJECTING CASE - the old propCollisionPrims name is gone from the "
+		      "street side, so it cannot collide with the importer's key of the "
+		      "same name over a different population", Seg3);
+		Check(Seg3.find("propCollisionEnabled") == std::string::npos,
+		      "REJECTING CASE - propCollisionEnabled is gone too: it restated the "
+		      "bool that set it and could not fail", Seg3);
+		Check(Seg3.find("propCollisionAsked=QueryOnly/the-walk-path/NOT-A-MEASUREMENT-"
+		                "restates-bInteractive") != std::string::npos,
+		      "what is left of it says in its own value that it is not a measurement, "
+		      "and still tells a reader which path built the street", Seg3);
+		// THE ZERO DENOMINATOR, WHICH IS THE OTHER HALF OF A5. The last
+		// landed walk run printed propCollisionPrims=0/0 with
+		// propCollisionUnread=0 beside it.
+		PropSegmentIn None;
+		None.MeshPiecesInFile = ShapeCount(S.Pieces, "mesh");
+		None.PackageDir = "/Game/Ledger/Props";
+		None.NamePrefix = "SM_";
+		None.PlacedAsBox = None.MeshPiecesInFile;
+		const std::string SegNone = PropMeshSegment(None);
+		std::printf("    %s\n", SegNone.c_str());
+		Check(SegNone.find("propPlacedWithCollision=nothing-measured/0") != std::string::npos,
+		      "a run that placed no prop mesh PRINTS THE WORDS nothing measured "
+		      "rather than a zero over a zero", SegNone);
+		Check(SegNone.find("propPlacedCollisionUnread=nothing-measured/0") != std::string::npos,
+		      "and so does the unread count, which used to print a bare 0 with no "
+		      "denominator at all", SegNone);
+		Check(SegNone.find("propPlacedWithCollision=0/0") == std::string::npos,
+		      "REJECTING CASE - 0/0 cannot appear on that key, because a clean "
+		      "result and a result that examined nothing must not read alike",
+		      SegNone);
+		// THE CAP ON THE NAMED LIST, BOTH WAYS ROUND.
+		PropSegmentIn Many = In;
+		Many.Collision = PropCollisionTally();
+		for (int I = 0; I < 5; ++I)
+		{
+			char N[64];
+			std::snprintf(N, sizeof(N), "prop_synthetic_%d", I);
+			Many.Collision.Add(N, PropCollision_No);
+		}
+		const std::string SegMany = PropMeshSegment(Many);
+		Check(SegMany.find("propPlacedCollisionNoOn=prop_synthetic_0;prop_synthetic_1;"
+		                   "prop_synthetic_2;prop_synthetic_3;(+1~more~not~shown)")
+		      != std::string::npos,
+		      "a cap that BITES announces itself and says how many it withheld",
+		      SegMany);
+		Check(Seg3.find("propPlacedCollisionNoOn=prop_pavement_sign_0 ") != std::string::npos,
+		      "and the same cap, NOT biting on one name, says nothing at all about a "
+		      "cap", Seg3);
+		// THE IDENTITY BETWEEN TWO COUNTERS IN TWO DIFFERENT FILES, both ways
+		// round. Every placed prop mesh is asked exactly once, so the
+		// readings taken and the meshes placed are one number; they are kept
+		// by two counters in VignetteShot.cpp and a silent disagreement
+		// between them is what makes a denominator a lie.
+		Check(Seg3.find("propCollisionReadingsMismatch") == std::string::npos,
+		      "ACCEPTING CASE - three readings over three placed meshes prints no "
+		      "mismatch key at all", Seg3);
+		Check(Seg3.find("propPlacedCollisionUnknownOn=prop_skip_0") != std::string::npos,
+		      "the piece that read UNKNOWN is named too, in its own key, because a "
+		      "NO is an asset to fix and an UNKNOWN is a reading to chase", Seg3);
+		Check(SegNone.find("propPlacedCollisionUnknownOn=none") != std::string::npos,
+		      "and a run with no readings at all says none there rather than naming "
+		      "a piece nobody asked about", SegNone);
+		PropSegmentIn Off = In;
+		Off.PlacedAsMesh = 4;
+		Check(PropMeshSegment(Off).find(
+		          "propCollisionReadingsMismatch=readings=3/meshesPlaced=4")
+		      != std::string::npos,
+		      "PLANTED CASE - one reading short of the meshes placed says so, with "
+		      "both numbers, rather than printing a denominator nobody asked",
+		      PropMeshSegment(Off));
+
+		// C. THE BURIAL HALF, PLANTED FIRST BECAUSE THE VERDICTS LIVE HERE.
+		// A LADDER OF TWO RUNGS, ONE CONTRIBUTOR TOGGLED, SAME VANTAGE, SAME
+		// RUN: the identical prop read under an open sky and then under a
+		// slab. The difference between the rungs is the reading.
+		std::vector<PlacedBox> Lad;
+		PlacedBox Prop;
+		Prop.Name = "prop_planted_0"; Prop.Edge = "planted_edge"; Prop.Region = "x00_06";
+		Prop.bProp = true; Prop.bFromAsset = true;
+		Prop.MinX = 1.8; Prop.MaxX = 2.2; Prop.MinY = -0.10; Prop.MaxY = -0.085;
+		Prop.MinZ = 2.6; Prop.MaxZ = 3.0;
+		Lad.push_back(Prop);
+		std::vector<BurialRead> Rung1 = ReadBurials(Lad);
+		Check(Rung1.size() == 1 && Rung1[0].Cells == BurialGridSide() * BurialGridSide(),
+		      "ACCEPTING CASE - a prop with nothing over it is still EXAMINED, and "
+		      "says how many cells it examined");
+		Check(Rung1.size() == 1 && Rung1[0].Buried == 0 && Rung1[0].Open == Rung1[0].Cells,
+		      "and it reads every cell OPEN, which is what a correctly placed prop "
+		      "on an open street must read");
+		// RUNG 2: one slab added, nothing else changed, and it STRADDLES the
+		// prop's top the way ground_east_channel straddles the grate's.
+		PlacedBox Slab;
+		Slab.Name = "planted_slab"; Slab.Edge = "planted_edge"; Slab.Region = "x00_06";
+		Slab.MinX = 0.0; Slab.MaxX = 42.0; Slab.MinY = -0.37; Slab.MaxY = -0.0718;
+		Slab.MinZ = 2.6; Slab.MaxZ = 3.0;
+		Lad.push_back(Slab);
+		std::vector<BurialRead> Rung2 = ReadBurials(Lad);
+		std::printf("    ladder: rung1 buried=%d/%d open=%d  rung2 buried=%d/%d "
+		            "deepestMm=%.2f by=%s\n",
+		            Rung1[0].Buried, Rung1[0].Cells, Rung1[0].Open,
+		            Rung2[0].Buried, Rung2[0].Cells, Rung2[0].DeepestMm,
+		            Rung2[0].DeepestBy.c_str());
+		Check(Rung2.size() == 1 && Rung2[0].Buried == Rung2[0].Cells
+		      && Rung2[0].FullyBuried(),
+		      "PLANTED CASE - the same prop under a slab that straddles its top "
+		      "reads every cell BURIED");
+		Check(Rung2.size() == 1 && Rung2[0].DeepestBy == "planted_slab"
+		      && Rung2[0].DeepestMm > 13.0 && Rung2[0].DeepestMm < 13.5,
+		      "the covering piece is NAMED and the depth is the millimetres it "
+		      "would have to rise to clear it");
+		Check(Rung1[0].Buried != Rung2[0].Buried,
+		      "and the two rungs DIFFER, which is the only thing a ladder measures: "
+		      "a rung that reads the same under both is measuring neither");
+		// THE PREDICATE IS STRADDLE AND NOT ANYTHING-ABOVE, which is the
+		// difference between a buried grate and a prop under an awning.
+		std::vector<PlacedBox> Awn;
+		Awn.push_back(Prop);
+		PlacedBox Over = Slab;
+		Over.Name = "planted_awning";
+		Over.MinY = -0.0800; Over.MaxY = 2.95;
+		Awn.push_back(Over);
+		std::vector<BurialRead> Hung = ReadBurials(Awn);
+		std::printf("    overhead: buried=%d/%d overhung=%d open=%d headroomMm=%.2f by=%s\n",
+		            Hung[0].Buried, Hung[0].Cells, Hung[0].Overhung, Hung[0].Open,
+		            Hung[0].HeadroomMm, Hung[0].HeadroomBy.c_str());
+		Check(Hung[0].Buried == 0 && Hung[0].Overhung == Hung[0].Cells,
+		      "PLANTED CASE - a piece entirely ABOVE the prop's top reads OVERHUNG "
+		      "and not buried, so an awning cannot print as a burial");
+		Check(Hung[0].HeadroomMm > 4.9 && Hung[0].HeadroomMm < 5.1
+		      && Hung[0].HeadroomBy == "planted_awning",
+		      "and the gap to it is measured in millimetres with the piece named, "
+		      "because five millimetres of daylight is the whole difference");
+		// AND THE THREE BUCKETS ARE A PARTITION, which is the arithmetic a
+		// reader of three percentages is entitled to assume.
+		bool bPartition = true;
+		for (size_t I = 0; I < Hung.size(); ++I)
+		{
+			if (Hung[I].Buried + Hung[I].Overhung + Hung[I].Open != Hung[I].Cells)
+			{
+				bPartition = false;
+			}
+		}
+		Check(bPartition,
+		      "buried plus overhung plus open is every cell examined and not one more");
+
+		// D. THE LIVE STREET, WHICH IS THE ACCEPTING FIXTURE, PRINTED AND
+		// NOT JUDGED. These are the numbers the next walk run will print,
+		// taken here off the FILE rather than off the engine's placement, so
+		// the two can be compared when the run lands. No assertion below
+		// says the street is correct: a guard that goes red when the street
+		// spec is FIXED is a ratchet, and A6 is a measurement order, not a
+		// bound.
+		std::vector<PlacedBox> Live;
+		for (size_t I = 0; I < S.Pieces.size(); ++I)
+		{
+			Live.push_back(SpecBoxBounds(S.Pieces[I]));
+		}
+		// WORST FIRST, THROUGH THE HEADER'S OWN SORTER, so this printed series
+		// and the propBuriedOn key under it are in one order and not two.
+		const std::vector<BurialRead> LiveReads = SortedBurials(ReadBurials(Live));
+		// A8 OF THE RULING OF 2026-09-09, FIRST PART: EVERY BURIED PROP, NOT
+		// THE WORST THREE AND NOT THE WORST SIX. propAnyBuried=10/23 was the
+		// line nobody had read: the verdict key names three and announces
+		// seven held, which is honest about the cap and silent about the
+		// seven, and a header comment accounting for five of them as AABBs
+		// touching at 0.00 mm is an analysis and not evidence. THERE IS NO CAP
+		// ON THIS PRINTOUT, which is why nothing here announces one; the
+		// verdict line's cap of three stays where it is because that line has
+		// a buffer, and a reader who wants all ten has this series. The cell
+		// count rides each row because 5.0 percent of 400 cells is 20 cells
+		// and a percentage alone cannot say that.
+		std::printf("    burial series, %d prop(s) read of %d mesh piece(s) in the file, "
+		            "EVERY buried prop, no cap:\n",
+		            (int)LiveReads.size(), ShapeCount(S.Pieces, "mesh"));
+		int Shown = 0;
+		for (size_t I = 0; I < LiveReads.size(); ++I)
+		{
+			if (LiveReads[I].Buried <= 0) { continue; }
+			std::printf("      %-28s edge=%-16s buried=%5.1f%%/%3d-of-%d-cells "
+			            "overhung=%5.1f%% open=%5.1f%% deepestMm=%8.2f by=%s\n",
+			            LiveReads[I].Name.c_str(), LiveReads[I].Edge.c_str(),
+			            LiveReads[I].BuriedPct(), LiveReads[I].Buried, LiveReads[I].Cells,
+			            LiveReads[I].OverhungPct(), LiveReads[I].OpenPct(),
+			            LiveReads[I].DeepestMm, LiveReads[I].DeepestBy.c_str());
+			++Shown;
+		}
+		// THE ZERO'S DENOMINATOR, ON THE SAME LINE AS THE ZERO. A clean street
+		// and a street nobody examined print different words here.
+		std::printf("      buriedProps=%d/%d examined, %d read no buried cell at all%s\n",
+		            Shown, (int)LiveReads.size(), (int)LiveReads.size() - Shown,
+		            LiveReads.empty() ? " (nothing measured: no prop was examined)" : "");
+		if (Shown == 0 && !LiveReads.empty())
+		{
+			std::printf("      no prop read a buried cell, over %d prop(s) examined\n",
+			            (int)LiveReads.size());
+		}
+		Check((int)LiveReads.size() == ShapeCount(S.Pieces, "mesh"),
+		      "ACCEPTING CASE - every mesh piece in the committed street got a "
+		      "footprint reading, and the denominator is the file's own count");
+		bool bOrdered = true;
+		for (size_t I = 1; I < LiveReads.size(); ++I)
+		{
+			if (WorseBurial(LiveReads[I], LiveReads[I - 1])) { bOrdered = false; }
+		}
+		Check(bOrdered,
+		      "the series comes back worst first, by the one ordering rule the "
+		      "summary key uses, so a reader cannot be shown a worst that is not "
+		      "the top of the list");
+		Check(WorseBurial(Rung2[0], Rung1[0]) && !WorseBurial(Rung1[0], Rung2[0]),
+		      "and that rule is antisymmetric on the planted pair: the buried rung "
+		      "is worse than the open one and the open one is not worse than it");
+		const int Subject = BurialIndexOf(LiveReads, BurialSubjectName());
+		Check(Subject >= 0,
+		      "the piece A6 names by hand is still in the committed street under that "
+		      "name, so a rename goes red here rather than printing not-placed for ever",
+		      BurialSubjectName());
+		if (Subject >= 0)
+		{
+			const BurialRead& G = LiveReads[(size_t)Subject];
+			// no-asset-to-read is what the run prints for this piece TODAY,
+			// because propsAsMesh=0/23: the fixture says the same rather than
+			// inventing a word the run could not have produced.
+			const std::string Row = BurialRowValue(G, "no-asset-to-read");
+			std::printf("    A6 subject, from the FILE (the run prints the same read "
+			            "off the ENGINE): %s\n", Row.c_str());
+			std::printf("    A6 covers, deepest first: %s\n",
+			            CappedList(G.ByCover, 4, G.CoverCount, ";", "none").c_str());
+			Check(G.Buried + G.Overhung + G.Open == G.Cells,
+			      "and its three buckets partition its footprint");
+			Check(Row.find(' ') == std::string::npos && Row.find('\t') == std::string::npos,
+			      "the subject row is one whitespace-free token, so a reader that "
+			      "splits on space cannot truncate it", Row);
+			Check(Row.find("/collision=no-asset-to-read/") != std::string::npos,
+			      "and it carries the piece's OWN collision word beside its burial, "
+			      "because Jafar's item 2 is one sentence with two halves and a "
+			      "tally of 23 answers neither of them for one piece", Row);
+			Check(BurialRowValue(G, "YES").find("/collision=YES/") != std::string::npos,
+			      "PLANTED CASE - the same row with the asset reading YES says YES "
+			      "there, so that field can move while the burial stands still");
+		}
+
+		// D2. A8, SECOND PART: THE PER-CELL DEPTH SERIES ACROSS THE SUBJECT'S
+		// FOOTPRINT, WITH EACH CELL'S Z BESIDE IT, AND BOTH READINGS OF EVERY
+		// POINT.
+		//
+		// WHAT IT SETTLES. Two numbers were argued in prose for the
+		// carriageway's cover over this grate, 18.7 mm and 19.90 mm, and
+		// neither was a named statistic: one is a SAMPLED CELL CENTRE and the
+		// other is the FOOTPRINT EDGE, on one plane, and a series shows that
+		// where two paragraphs could not. Rule 2 in its own order: the printer
+		// first, the real run second, a bound only after and only if one is
+		// ever wanted. NOTHING HERE IS A BOUND and nothing below asserts a
+		// live millimetre.
+		//
+		// THE PLANTED PAIR CARRIES THE VERDICTS, as everywhere else in this
+		// section, because a guard pinned to the street's current fault goes
+		// red the day the street is fixed.
+		{
+			// ACCEPTING CASE FIRST: the pitch arithmetic on a slab whose
+			// answer can be done by hand. A 45 degree slab 0.2 m thick
+			// through its own centre: the top face is at HY*cos45 above the
+			// centre minus the z it has fallen, which is 0.141421 at z=0, and
+			// the vertical cut through it is 0.2/cos45 = 0.282843 thick.
+			Piece Flat;
+			Flat.Name = "planted_pitched_slab"; Flat.Shape = "box";
+			Flat.X = 0; Flat.Y = 0; Flat.Z = 0;
+			Flat.SX = 2; Flat.SY = 0.2; Flat.SZ = 2; Flat.PitchDeg = 45;
+			double Lo = 0, Hi = 0;
+			std::string SpanWhy;
+			const bool bSpan = PitchedSpanAtXZ(Flat, 0.0, 0.0, Lo, Hi, SpanWhy);
+			std::printf("    A8 pitch span, 45deg slab at its centre: ok=%d loY=%.6f "
+			            "hiY=%.6f thickness=%.6f why=%s\n",
+			            bSpan ? 1 : 0, Lo, Hi, Hi - Lo, SpanWhy.c_str());
+			Check(bSpan && Hi > 0.14142 && Hi < 0.14143 && Lo < -0.14142 && Lo > -0.14143,
+			      "ACCEPTING CASE - the pitched top face at a point is the face and "
+			      "not the bounding box: 0.141421 where the AABB top is 0.777817");
+			Check(bSpan && (Hi - Lo) > 0.28284 && (Hi - Lo) < 0.28285,
+			      "and the vertical cut through a 45 degree slab 0.200 m thick is "
+			      "0.282843 m, which is the arithmetic being checked and not a name");
+			// THE TWO REFUSALS, BOTH BY NAME, because a refusal that read as
+			// clear sky would make this instrument the thing it corrects.
+			Piece Yawed = Flat;
+			Yawed.Name = "planted_yawed_slab"; Yawed.PitchDeg = 0; Yawed.YawDeg = 30;
+			Check(!PitchedSpanAtXZ(Yawed, 0.0, 0.0, Lo, Hi, SpanWhy)
+			      && SpanWhy.find("yawed-or-rolled") != std::string::npos,
+			      "REJECTING CASE - a yawed cover is refused BY NAME rather than "
+			      "answered wrongly, and the street carries 44 of them", SpanWhy);
+			Check(!PitchedSpanAtXZ(Flat, 0.0, 1.9, Lo, Hi, SpanWhy)
+			      && SpanWhy.find("the-solid-does-not-reach-this-point") != std::string::npos,
+			      "REJECTING CASE - a point past the slab's own turned extent is not "
+			      "covered by it, and the reason says so rather than a zero", SpanWhy);
+
+			// A PLANTED STREET OF TWO PIECES, WHICH IS THE LADDER FOR THIS
+			// READING: one prop, one cross-falling slab over it, and the three
+			// statistics of one plane printed together. The numbers are
+			// arithmetic off these two rows and nothing can repair them.
+			std::vector<Piece> Plant;
+			Piece PProp;
+			PProp.Name = "prop_planted_grate_0"; PProp.Shape = "mesh";
+			PProp.Edge = "planted_edge"; PProp.Region = "x00_06";
+			PProp.X = 0; PProp.Y = -0.1; PProp.Z = 0;
+			PProp.SX = 0.4; PProp.SY = 0.02; PProp.SZ = 0.4;
+			Piece PSlab;
+			PSlab.Name = "planted_cross_fall"; PSlab.Shape = "box";
+			PSlab.Edge = "planted_edge"; PSlab.Region = "x00_06";
+			PSlab.X = 0; PSlab.Y = -0.2; PSlab.Z = 0;
+			PSlab.SX = 10; PSlab.SY = 0.3; PSlab.SZ = 1.0;
+			PSlab.PitchDeg = 1.432096;
+			Plant.push_back(PProp);
+			Plant.push_back(PSlab);
+			std::string PlantWhy;
+			const std::vector<CoverCell> PlantProf =
+				ReadCoverProfile(Plant, "prop_planted_grate_0", PlantWhy);
+			std::printf("    A8 planted profile: %s\n",
+			            CoverProfileValue(PlantProf, PlantWhy).c_str());
+			// EACH STATISTIC COUNTED UNDER ITS OWN NAME, which is the whole
+			// point of the three Where values: a loop that lumped the edges
+			// and the centre line together would be the 18.7 against 19.90
+			// mistake committed inside the test that was written to settle it.
+			int PlantCentres = 0, PlantEdges = 0, PlantMiddles = 0;
+			double PlantWorstCentre = -1, PlantWorstEdge = -1, PlantAabb = -1;
+			for (size_t I = 0; I < PlantProf.size(); ++I)
+			{
+				if (PlantProf[I].Where == "cell-centre")
+				{
+					++PlantCentres;
+					if (PlantProf[I].bLocal && PlantProf[I].LocalDepthMm > PlantWorstCentre)
+					{
+						PlantWorstCentre = PlantProf[I].LocalDepthMm;
+					}
+				}
+				else if (PlantProf[I].Where == "footprint-edge")
+				{
+					++PlantEdges;
+					if (PlantProf[I].bLocal && PlantProf[I].LocalDepthMm > PlantWorstEdge)
+					{
+						PlantWorstEdge = PlantProf[I].LocalDepthMm;
+					}
+				}
+				else { ++PlantMiddles; }
+				if (PlantProf[I].bAabb && PlantProf[I].AabbDepthMm > PlantAabb)
+				{
+					PlantAabb = PlantProf[I].AabbDepthMm;
+				}
+			}
+			Check(PlantCentres == BurialGridSide() && PlantEdges == 2 && PlantMiddles == 1,
+			      "PLANTED CASE - the profile samples the tally's own cell centres "
+			      "AND the two footprint edges the tally never samples AND the "
+			      "footprint centre line, and says which each point is");
+			Check(PlantWorstEdge > 45.0 && PlantWorstEdge < 45.1,
+			      "the deepest cover over the footprint is 45.05 mm at its edge, "
+			      "which is arithmetic off the planted rows");
+			Check(PlantWorstCentre > 44.7 && PlantWorstCentre < 44.9,
+			      "and the deepest over SAMPLED CELL CENTRES is 44.80 mm, a quarter "
+			      "of a millimetre shallower: one plane, two statistics, which is "
+			      "the whole of the 18.7 against 19.90 argument");
+			Check(PlantWorstEdge > PlantWorstCentre,
+			      "the edge reading is the deeper of the two and a reader is shown "
+			      "both rather than one under a name that fits either");
+			Check(PlantAabb > 52.4 && PlantAabb < 52.5 && PlantAabb > PlantWorstEdge,
+			      "PLANTED CASE - and the AABB reading of the same slab is 52.46 mm, "
+			      "which OVERSTATES the deepest real cover, because an AABB top is "
+			      "the slab's high edge");
+			// THE TWO-POINT FIGURE, PLANTED TOO, because it is the one the
+			// ruling's 70.10 mm is and the one a reader computes by hand off a
+			// comment. 52.45 mm of AABB depth at the worst cell less 40.05 mm
+			// of real cover at the centre line is 12.40 mm here.
+			const std::string PlantValue = CoverProfileValue(PlantProf, PlantWhy);
+			Check(PlantValue.find("/aabbWorstMinusThis=12.40mm/TWO-POINTS-and-says-so")
+			      != std::string::npos,
+			      "PLANTED CASE - the two-point overstatement is printed AND carries "
+			      "the words TWO-POINTS, so it cannot be read as the same-point "
+			      "figure beside it", PlantValue);
+			// THE THIRD BUCKET OF THE LOCAL COLUMN, PLANTED: the same slab
+			// lifted clear leaves the prop OVERHUNG and not buried, so a zero
+			// in the depth column can never mean two things.
+			std::vector<Piece> Lift;
+			Lift.push_back(PProp);
+			Piece PHigh = PSlab;
+			PHigh.Name = "planted_lifted_slab";
+			// ITS UNDERSIDE NOW CLEARS THE PROP'S TOP. The span's floor at the
+			// +z footprint edge is -0.015050, which is 74.95 mm of daylight
+			// over a top at -0.090, and that is the number asserted below:
+			// arithmetic off these two planted rows and nothing else.
+			PHigh.Y = 0.14;
+			Lift.push_back(PHigh);
+			std::string LiftWhy;
+			const std::vector<CoverCell> LiftProf =
+				ReadCoverProfile(Lift, "prop_planted_grate_0", LiftWhy);
+			int LiftBuried = 0, LiftOverhung = 0;
+			double LiftHeadroom = -1;
+			for (size_t I = 0; I < LiftProf.size(); ++I)
+			{
+				if (LiftProf[I].bLocal) { ++LiftBuried; }
+				else if (LiftProf[I].bLocalAbove)
+				{
+					++LiftOverhung;
+					if (LiftHeadroom < 0 || LiftProf[I].LocalAboveHeadroomMm < LiftHeadroom)
+					{
+						LiftHeadroom = LiftProf[I].LocalAboveHeadroomMm;
+					}
+				}
+			}
+			std::printf("    A8 planted lifted slab: buriedAt=%d/%d overhungAt=%d/%d "
+			            "leastHeadroomMm=%.2f\n", LiftBuried, (int)LiftProf.size(),
+			            LiftOverhung, (int)LiftProf.size(), LiftHeadroom);
+			Check(LiftBuried == 0 && LiftOverhung == (int)LiftProf.size()
+			      && LiftHeadroom > 74.8 && LiftHeadroom < 75.1,
+			      "PLANTED CASE - lift the same slab clear and every point reads "
+			      "OVERHUNG with 74.95 mm of daylight rather than a 0.00 mm that "
+			      "could mean open sky");
+
+			// THE LIVE STREET, PRINTED AND NEVER JUDGED. This is the series
+			// A8 ordered and the one any future bound would be read off.
+			std::string ProfWhy;
+			const std::vector<CoverCell> Prof =
+				ReadCoverProfile(S.Pieces, BurialSubjectName(), ProfWhy);
+			std::printf("    A8 cover profile of %s, %d point(s), NO CAP, "
+			            "pitch-aware local top beside the AABB depth at the same "
+			            "point:\n", BurialSubjectName(), (int)Prof.size());
+			if (Prof.empty())
+			{
+				std::printf("      nothing measured: %s\n", ProfWhy.c_str());
+			}
+			for (size_t I = 0; I < Prof.size(); ++I)
+			{
+				char Idx[24];
+				if (Prof[I].Index >= 0) { std::snprintf(Idx, sizeof(Idx), "iz=%-2d", Prof[I].Index); }
+				else { std::snprintf(Idx, sizeof(Idx), "at   "); }
+				// THE LOCAL COLUMN SAYS WHICH OF THREE IT IS, never a bare
+				// zero: buried to a depth, overhung with daylight under it,
+				// or nothing overhead at all.
+				char Local[96];
+				if (Prof[I].bLocal)
+				{
+					std::snprintf(Local, sizeof(Local), "buried%8.2fmm/by=%s",
+					              Prof[I].LocalDepthMm, Prof[I].LocalBy.c_str());
+				}
+				else if (Prof[I].bLocalAbove)
+				{
+					std::snprintf(Local, sizeof(Local), "overhung+%7.2fmm/by=%s",
+					              Prof[I].LocalAboveHeadroomMm, Prof[I].LocalAboveBy.c_str());
+				}
+				else
+				{
+					std::snprintf(Local, sizeof(Local), "nothing-overhead");
+				}
+				std::printf("      %s %-14s z=%.6f x=%.4f top=%.6f "
+				            "aabb=%8.2fmm/by=%-24s local=%-46s over=%8.2fmm\n",
+				            Idx, Prof[I].Where.c_str(), Prof[I].Z, Prof[I].X, Prof[I].PropTopM,
+				            Prof[I].bAabb ? Prof[I].AabbDepthMm : 0.0,
+				            Prof[I].bAabb ? Prof[I].AabbBy.c_str() : "none",
+				            Local,
+				            (Prof[I].bAabb && Prof[I].bLocal) ? Prof[I].OverstatementMm() : 0.0);
+			}
+			const std::string ProfValue = CoverProfileValue(Prof, ProfWhy);
+			std::printf("    A8 cover profile value: %s\n", ProfValue.c_str());
+			Check(ProfValue.find(' ') == std::string::npos
+			      && ProfValue.find('\t') == std::string::npos,
+			      "the profile's whole reading is one whitespace-free token, so a "
+			      "reader that splits on space cannot truncate it", ProfValue);
+			// THE SYNTHETIC REJECTING FIXTURE, which is this project's rule for
+			// a tool that checks the project itself: a name that exists in no
+			// street, so doing the work the tool prompts can never break it.
+			std::string GoneWhy;
+			const std::vector<CoverCell> Gone =
+				ReadCoverProfile(S.Pieces, "prop_synthetic_nowhere_0", GoneWhy);
+			const std::string GoneValue = CoverProfileValue(Gone, GoneWhy);
+			std::printf("    A8 cover profile, synthetic subject: %s\n", GoneValue.c_str());
+			Check(Gone.empty() && GoneValue.find("nothing-measured/0-points-sampled") == 0
+			      && GoneValue.find("prop_synthetic_nowhere_0") != std::string::npos,
+			      "REJECTING CASE - a subject that is in no street prints the words "
+			      "nothing measured with the name it was asked for, and never a zero "
+			      "that reads as no cover", GoneValue);
+		}
+
+		// E. THE WHOLE SEGMENT AS A READER SEES IT: concatenated onto the
+		// scene line, which is what GSceneLine is, so a key repeated across
+		// the two halves would be returned by whichever one a grep reached
+		// first.
+		PropSegmentIn LiveIn;
+		LiveIn.MeshPiecesInFile = ShapeCount(S.Pieces, "mesh");
+		LiveIn.PackageDir = "/Game/Ledger/Props";
+		LiveIn.NamePrefix = "SM_";
+		LiveIn.PlacedAsBox = LiveIn.MeshPiecesInFile;
+		LiveIn.Burials = LiveReads;
+		LiveIn.bInteractive = true;
+		const std::string LiveSeg = PropMeshSegment(LiveIn);
+		const std::string Whole = Scene + " " + LiveSeg;
+		std::printf("    %s\n", LiveSeg.c_str());
+		std::printf("    segment: chars=%d wholeSceneLineChars=%d\n",
+		            (int)LiveSeg.size(), (int)Whole.size());
+		Check(LiveSeg.find("propSegmentTruncated") == std::string::npos,
+		      "no chunk of the segment overran its buffer, and a chunk that did "
+		      "would have said so in its own key", LiveSeg);
+		Check(EveryTokenIsKeyValue(LiveSeg),
+		      "every token of the segment is a key with a non-empty value and no "
+		      "whitespace inside it, which is what every reader in this project "
+		      "splits on", LiveSeg);
+		// AND THE LINE THE RUN ACTUALLY PRINTS, WHICH IS THIS SEGMENT
+		// CONCATENATED ONTO SceneLine. NOT asserted, because SceneLine has
+		// one token of its own that carries no equals: the zero case of
+		// flatsLit prints "flatsLit=0/0 nothing-to-light", so a grep for
+		// flatsLit gets the zero WITHOUT the words beside it and a
+		// whitespace-splitting reader gets a stray token. That is a fault in
+		// a key amendments A5 and A6 do not own, and the count is printed
+		// here rather than fixed or hidden.
+		{
+			std::istringstream WIn(Whole);
+			std::string WTok;
+			int Loose = 0;
+			std::string LooseNames;
+			while (WIn >> WTok)
+			{
+				if (WTok.find('=') != std::string::npos && WTok.find('=') != 0) { continue; }
+				++Loose;
+				if (Loose <= 3)
+				{
+					if (!LooseNames.empty()) { LooseNames += ","; }
+					LooseNames += WTok;
+				}
+			}
+			std::printf("    whole scene line: tokens carrying no key=value: %d (%s)\n",
+			            Loose, Loose == 0 ? "none" : LooseNames.c_str());
+		}
+		{
+			std::vector<std::string> K;
+			KeysOf(Whole, K);
+			std::string Dup;
+			for (size_t I = 0; I < K.size(); ++I)
+			{
+				for (size_t J = I + 1; J < K.size(); ++J)
+				{
+					if (K[I] == K[J]) { Dup = K[I]; }
+				}
+			}
+			std::printf("    keys on the whole scene line: %d, duplicated: %s\n",
+			            (int)K.size(), Dup.empty() ? "none" : Dup.c_str());
+			Check(Dup.empty(),
+			      "no key appears twice once the segment is appended to the scene "
+			      "line, because both halves end up on ONE line and every reader "
+			      "here greps", Dup);
+		}
+		Check(LiveSeg.find("propFootprintsRead=23/23") != std::string::npos,
+		      "the burial half ships the count it examined over the count the file "
+		      "asked for", LiveSeg);
+		Check(LiveSeg.find("propFootprintGrid=20x20/400-cells-per-prop/a-gap-narrower-"
+		                   "than-one-cell-is-invisible-here") != std::string::npos,
+		      "and it says what its own sampler cannot see, rather than leaving the "
+		      "resolution to be assumed", LiveSeg);
+		Check(LiveSeg.find("propBuriedByEdge=") != std::string::npos
+		      && LiveSeg.find("east_channel=") != std::string::npos,
+		      "the breakdown is per EDGE, which is an axis placement varies on, and "
+		      "names the edges the props sit on", LiveSeg);
+		// AND THE NEVER-RAN CASE FOR THE BURIAL HALF TOO.
+		PropSegmentIn NoProps;
+		NoProps.MeshPiecesInFile = 0;
+		NoProps.PackageDir = "/Game/Ledger/Props";
+		NoProps.NamePrefix = "SM_";
+		const std::string SegEmpty = PropMeshSegment(NoProps);
+		std::printf("    %s\n", SegEmpty.c_str());
+		Check(SegEmpty.find("propFootprintsRead=nothing-measured/0") != std::string::npos,
+		      "a run that examined no footprint at all PRINTS THE WORDS nothing "
+		      "measured", SegEmpty);
+		Check(SegEmpty.find("propFullyBuried=nothing-measured/0") != std::string::npos,
+		      "and the count of buried props says the words too, because 0 buried of "
+		      "0 examined is not a clean street", SegEmpty);
+		Check(SegEmpty.find("propBurialWorst=nothing-measured/of=0") != std::string::npos
+		      && SegEmpty.find(std::string("propBurialSubject=not-placed/asked=")
+		                       + BurialSubjectName()) != std::string::npos,
+		      "and the named subject says NOT PLACED rather than printing a clean "
+		      "row for a piece nobody spawned", SegEmpty);
+	}
 
 	// ---- THE REJECTING FIXTURES, WHICH HAVE TO BE PLANTED --------------
 	//

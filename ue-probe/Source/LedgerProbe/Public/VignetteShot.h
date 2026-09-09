@@ -47,9 +47,27 @@ class AActor;
 // WHAT THE SCENE LINE NOW SAYS ABOUT IT: propsAsMesh=N/23 and propsAsBox=N/23
 // with propFallbackWhy beside them, propCentreWorstMm for how far the worst
 // placed mesh's world bounds centre is from the point the file named, and
-// propCollisionPrims for the count the walk clip lives on. propStandIns is
-// now the FALLBACK count and not the mesh-kind count, so 0/23 means every
-// prop in the frame is a real mesh.
+// propPlacedWithCollision for what the placed meshes' own assets say about
+// collision. propStandIns is now the FALLBACK count and not the mesh-kind
+// count, so 0/23 means every prop in the frame is a real mesh.
+//
+// RENAMED AND WIDENED BY AMENDMENTS A5 AND A6 OF THE RULING OF 2026-09-08,
+// and the sentence this replaces was false in two ways. It called
+// propCollisionPrims "the count the walk clip lives on": it was a count of
+// MESHES under a name that said primitives, it read 0 both for an asset with
+// no body setup and for one a complex-as-simple flag makes solid, and it is
+// a PROXY for the clip rather than the thing, because only a sweep answers
+// whether a capsule is stopped. The three keys that replace it are
+// propPlacedWithCollision, propPlacedCollisionUnread and
+// propPlacedCollisionStat, which carries PROXY in its own value. The key
+// still called propCollisionPrims anywhere is the importer's, over a
+// different population (saved assets, not placed components).
+//
+// AND THE OTHER HALF OF A PLACEMENT READING, which propCentreWorstMm is
+// blind to: propFullyBuried, propBurialWorst, propBuriedByEdge and
+// propBurialSubject say whether anything occupies the footprint above a
+// prop's own placed top. A piece can sit 0.00 mm from where the file put it
+// and be inside the road.
 namespace LedgerVignetteShot
 {
 	// Arms the capture on the core ticker and returns immediately. The
