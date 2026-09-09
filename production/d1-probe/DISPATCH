@@ -613,3 +613,35 @@ BuildScene time in a cooked build; those are different words on purpose.
 Five UE 5.8 API uses in VignetteShot.cpp have never been compiled by any
 container and this is their first compile. If it fails there, that is the cost of
 the reading and not a regression.
+run 34 - 2026-09-09 - THE GRATE IS FLUSH BY ARITHMETIC AND NOTHING HAS EVER SEEN
+IT AT THE SURFACE. PRODUCING THE FIRST PLACED READING IS THIS RUN'S WHOLE JOB.
+Run 33's entry says a walk clip of this grate is not Jafar's item 2 and that no
+frame can show it. THAT DESCRIBED THE STREET BEFORE THIS COMMIT AND MUST NOT BE
+READ AS DESCRIBING THIS ONE. The set_in emitter now means flush: the grate's top
+face lies IN the running surface, offset 0.000 mm at all three points a plane
+needs, y_m -0.077502 and pitch_deg 1.432096, both derived from the scene file's
+own crossfall and dish depth rather than typed in. propFullyBuried falls 1/23 to
+0/23 and the per-cell series goes from 20 of 20 cell centres buried to 13 of 20
+reading nothing-overhead.
+EVERY ONE OF THOSE NUMBERS IS ARITHMETIC ON A FILE. No placed reading of a flush
+grate exists anywhere, and this run makes the first one.
+READ, in this order: propsAsMesh and propPlacedWithCollision, which were 22/23
+and 22/22; then propBurialSubject, whose via= word says whether the reading came
+from the loaded asset or a box stand-in; then propFullyBuried; then
+propCentreWorstMm, which was 0.47 on this piece and is the pivot-correction
+residual. propSizeComparable WILL DROP BY ONE and that is not a regression: the
+size half is gated on pitch being zero and this piece now has a pitch, which its
+own stat string already says.
+TWO CONDITIONS THE CLIP CARRIES, NAMED HERE SO THEY ARE NAMED WHEREVER IT GOES.
+First, the double yellow line crosses 100.0 mm of the grate's 399.9, exactly
+25.0 percent, standing 12 mm proud with its underside 5.6 um above the grate's
+top face. It lies on the piece the way paint lies on metal: it does not
+intersect. A real British double yellow goes round ironwork, and this street's
+bands do not break at the crossover either, which is the same gap at a second
+site. Second, the grate's top face is now EXACTLY COINCIDENT with the carriageway
+and channel top faces over about 0.16 square metres of rendered solid, and no
+number in this repository can say whether that ties in the depth test. If this
+run does not print a reading that settles it, the tie is reported UNRESOLVED with
+its rung named, and nobody squints at a frame and calls it decided.
+THE CLIP MAY BE OFFERED AS ITEM 2 CARRYING BOTH CONDITIONS. Offering it silently
+is the only version of that which is a fault.
