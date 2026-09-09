@@ -1242,17 +1242,31 @@ jobs:
             "launchVerdictCandidates=$($vCands.Count) launchVerdictFound=$(if ($vf) { 'yes' } else { 'no' }) " +
             "launchExitCodeIsNotTheVerdict=true")
 
-          # THE FIVE FRAMES, COLLECTED BY NAME PREFIX, NEVER BY DIRECTORY.
+          # THE FRAMES, COLLECTED BY NAME PREFIX, NEVER BY DIRECTORY.
+          #
+          # THE DENOMINATOR IS NO LONGER A SECOND COPY OF THE SHOT COUNT.
+          # It was hard-coded at 5 while the probe grew to 7 milestones, so
+          # run 35 published walkFramesCollected=7/5, a numerator larger than
+          # its own denominator. This step cannot know how many the probe
+          # ASKED for; the probe prints that itself as walkFramesRequested,
+          # which is the one source. So this line reports only what this step
+          # can see: how many of the files it FOUND it actually copied, with
+          # the found count as the denominator and the probe's own line as
+          # the authority on how many were wanted.
           $copied = 0
-          $askedFrames = 5
+          $found = 0
           foreach ($d in $frameDirs) {
             if (-not $d -or -not (Test-Path $d)) { continue }
             foreach ($f in (Get-ChildItem $d -Filter "ue-walk_*.png" -ErrorAction SilentlyContinue)) {
+              $found++
               $dest = Join-Path "production/d1-probe" $f.Name
               if (-not (Test-Path $dest)) { Copy-Item $f.FullName $dest -Force; $copied++ }
             }
           }
-          Add-Content $out "walkFramesCollected=$copied/$askedFrames walkFramesCollectedFromDirs=$($frameDirs.Count)"
+          $collectedValue = if ($found -gt 0) { "$copied/$found" } else { "nothing-measured/0-frame-files-found" }
+          Add-Content $out ("walkFramesCollected=$collectedValue " +
+            "walkFramesCollectedStat=copied-over-files-this-step-FOUND/never-over-how-many-the-probe-asked-for/see-walkFramesRequested-on-the-probes-own-line " +
+            "walkFramesCollectedFromDirs=$($frameDirs.Count)")
 
           # THE TRANSCRIPT GOES IN THE BUILD LOG, NOT THE VERDICT. Error
           # lines come from the WHOLE log, never a tail alone, because run

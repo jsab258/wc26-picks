@@ -13,11 +13,22 @@ THE INSTRUMENT, AS RULED. A rectangle over the grate is compared against a
 SAME-AREA CONTROL RECTANGLE on plain carriageway IN THE SAME FRAME, on two
 statistics: speckle density (isolated pixels that disagree with their
 neighbours, which is what a depth tie looks like standing still) and
-frame-to-frame flicker density (pixels that change between two frames of a
-camera that did not move, which is what a depth tie looks like under any
-temporal jitter the renderer applies). THE CONTROL IS THE DENOMINATOR: no new
-bound is set here. If subject and control read alike there is no tie. If the
-subject speckles and the control does not, there is.
+frame-to-frame flicker density (pixels that change between two frames). THE
+CONTROL IS THE DENOMINATOR: no new bound is set here. If subject and control
+read alike there is no tie. If the subject speckles and the control does not,
+there is.
+
+WHAT THE FLICKER HALF CANNOT SEE, AND IT NOW SAYS SO IN ITS OWN KEYS. Run 35's
+pair came from a camera that did not move, over static geometry, and a
+depth-test tie in that situation is DETERMINISTIC: it resolves the same way in
+both frames and reproduces identically, so the flicker density is structurally
+zero whatever the depth test did. zfightFlickerFired=no over such a pair is
+therefore not a measurement of anything, and the flicker keys below carry that
+sentence so a structural zero is never read as a clean result, which is
+CLAUDE.md rule 3b applied to a guard rather than to a count. A pair that CAN
+differ (a moved or dithered camera, two sub-pixel offsets) is the larger fix
+and belongs in the probe that takes the frames; this change only stops the
+tool reporting a zero it cannot earn. Nothing in the arithmetic moved.
 
 WHERE THE TWO RECTANGLES COME FROM. WalkProbe.cpp aims one camera at the piece
 from the pavement side, photographs it TWICE without moving (ue-walk_05_grate_a
@@ -228,9 +239,24 @@ def measure(frames, subj_frac, ctrl_frac):
     out.append("zfightFlickerSubject=%s" % series(sub_fl, fl_examined))
     out.append("zfightFlickerControl=%s" % series(ctl_fl, fl_examined))
     out.append("zfightFlickerExcess=%s" % excess_series(sub_fl, ctl_fl, fl_examined))
+    # WHAT THE THREE FLICKER DENSITIES ABOVE ARE A STATISTIC OF, AND WHAT THEY
+    # CANNOT SEE. Said beside the emit, as instrument code is required to.
+    out.append("zfightFlickerStat=pixels-changing-between-two-frames/"
+               "cumulative-over-every-pair-given/"
+               "A-PAIR-FROM-A-CAMERA-THAT-DID-NOT-MOVE-OVER-STATIC-GEOMETRY-CANNOT-SHOW-"
+               "A-FLICKER-BECAUSE-A-DEPTH-TEST-TIE-IS-DETERMINISTIC-AND-RESOLVES-THE-SAME-"
+               "WAY-TWICE/so-a-zero-here-is-structural-and-rules-nothing-out")
 
     sp_fired, sp_why = first_cut(sub_sp, ctl_sp, sp_examined)
     fl_fired, fl_why = first_cut(sub_fl, ctl_fl, fl_examined)
+    # WORDING, NOT ARITHMETIC. first_cut above is untouched, no bound moved and
+    # no bound was added: this only stops "excess=0px-under-floor=8px" reading
+    # as evidence that there is no tie, when over a static pair it is what a
+    # STABLE tie looks like too. The nothing-measured case keeps its own words
+    # and gets no suffix, because one frame and a blind pair are different
+    # facts.
+    if fl_examined > 0 and not fl_fired:
+        fl_why += "/a-static-pair-cannot-show-a-flicker-whatever-the-depth-test-did"
     if sp_examined <= 0:
         status = "NOTHING-MEASURED"
     elif sp_fired or fl_fired:
@@ -245,6 +271,12 @@ def measure(frames, subj_frac, ctrl_frac):
                % (DECIDE_AT, FIRST_CUT_RATIO, FIRST_CUT_FLOOR_PX))
     if fl_examined <= 0:
         out.append("zfightFlickerNote=nothing-measured/one-frame-cannot-make-a-pair")
+    else:
+        out.append("zfightFlickerNote=a-stable-tie-is-invisible-to-this-half/"
+                   "when-the-pair-comes-from-a-camera-that-did-not-move-over-static-"
+                   "geometry-a-deterministic-depth-tie-resolves-the-same-way-twice/"
+                   "so-a-flicker-of-zero-is-structural-and-is-not-a-no-tie/"
+                   "ue-walk_05_grate_a-and-ue-walk_06_grate_b-are-exactly-that-pair")
     out.append("zfightStatus=%s" % status)
     return out, status
 

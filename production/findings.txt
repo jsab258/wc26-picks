@@ -1347,3 +1347,111 @@ all measured from placed bounds with via=loaded-asset. What is still true is tha
 NOBODY HAS SEEN IT. Jafar's item 2 asked for the grate in a walk clip, and the
 studio has a verified piece, a camera pointed at the right coordinates, and two
 photographs of a barrier.
+
+--------------------------------------------------------------------------
+2026-09-09  A VERDICT PUBLISHED walkFramesCollected=7/5, A NUMERATOR LARGER
+            THAN ITS OWN DENOMINATOR, AND THE DENOMINATOR WAS INVENTED.
+--------------------------------------------------------------------------
+FOUND BY A BUILDER OUTSIDE ITS OWN SCOPE and named rather than touched, which is
+the correct move. .github/workflows/ledger-probe-unreal.yml line 1247 read
+`$askedFrames = 5`. The walk probe grew from five milestones to seven when the
+grate shots were added, so run 35 published walkFramesCollected=7/5.
+
+THE FAULT IS NOT THE STALE FIVE. It is that the step invented a denominator for a
+quantity it cannot observe. A PowerShell step that copies files by name prefix
+knows how many it FOUND and how many it COPIED; it has no way to know how many the
+probe ASKED for, and the probe already prints that itself as walkFramesRequested.
+So the workflow held a second copy of a number owned somewhere else, and a second
+copy goes stale silently, which is the whole reason this project keeps one source
+per number.
+
+WHAT IT WOULD HAVE COST NEXT: after the occlusion fix, a REFUSED shot writes five
+frames instead of seven, so the same line would read 5/5 and look perfect at the
+exact moment two frames were deliberately not taken. A wrong denominator that
+reads clean on the failure case is worse than one that reads 7/5 and looks odd.
+
+FIXED BY DELETING THE COPY rather than by updating it to seven. The line now
+reports copied over files this step FOUND, says so in its own stat value, prints
+nothing-measured with a zero-found reason, and points at walkFramesRequested as
+the authority on how many were wanted.
+
+THE STANDING SHAPE, and it is the same one three times tonight: a number written
+in two places is one number that will disagree with itself. The grate's y was
+prescribed in a ruling and derived by an emitter; the collision key was named on
+two sides over two populations; and a frame count was declared in a workflow and
+requested by a probe. In every case the fix was to delete the copy, not to
+reconcile the two.
+
+--------------------------------------------------------------------------
+2026-09-09  THE MORNING BRIEF'S TRIGGER FIRED, REPORTED SUCCEEDED, AND NO
+            BRIEF WAS WRITTEN.
+--------------------------------------------------------------------------
+MEASURED, off the trigger service rather than recalled: trig_01Lb3XS3RcsAEDTgTfXpwmma,
+run_once_at 2026-09-09T04:00:00Z, last_fired_at 2026-09-09T04:00:57Z,
+last_run.status ROUTINE_RUN_STATUS_SUCCEEDED, ended_reason run_once_fired. By every
+reading the service has, the wake worked.
+
+THE TURN NEVER ARRIVED. The session was mid-turn on a builder's landing when the
+wake fired, and the prompt was absorbed rather than queued: ReadNotifications
+returned "No queued notifications" fourteen minutes later. Nothing was written,
+nothing was sent, and the fault was found only because the resident checked the
+clock against a trigger it had armed itself.
+
+THIS IS .claude/rules/ci.md's SECOND BULLET, ON A SURFACE THAT RULE WAS NOT
+WRITTEN FOR: "Verify a job's EFFECTS, not its exit code. Jobs have reported
+success while deleting content, pushing nothing, and truncating their own logs."
+A trigger is a job. SUCCEEDED here means the wake was DELIVERED, not that the
+work happened, and those are different facts wearing one word, which is the same
+shape as "the build carried the commit" against "the build measured anything".
+
+WHY IT MATTERS MORE THAN ONE LATE BRIEF. CLAUDE.md rule 8 says a promise to come
+back requires arming something, and the studio has been treating an armed trigger
+as the discharge of that promise. It is not: it is the first half. The second half
+is a check that the thing the trigger was for actually happened, and nothing in
+this project performs it. Every future "arm the resume" carries this hole until
+something closes it.
+
+WHAT WAS DONE: the brief was written immediately on discovery, about fifteen
+minutes late, through the Producer as the ruling requires, and it says nothing
+about having been on time.
+
+--------------------------------------------------------------------------
+2026-09-09  CORRECTION: I NAMED THE WRONG OCCLUDER AND CALLED THE GRATE VOID.
+            A DIRECTOR OPENED THE FRAMES AND REFUTED BOTH.
+--------------------------------------------------------------------------
+The entry above says run 35 photographed prop_crowd_control_barrier_0 and that
+there is no grate in the frame. BOTH HALVES ARE WRONG, and the entry stays as
+written because a deleted claim cannot be audited.
+
+WRONG ON THE PIECE. production/specs/vignette-scene.json's E8_guard_railing puts
+a pedestrian guard rail on the EAST side, three 2.000 m panels from x=10.0, and
+production/specs/vignette-feet.json lines 356 to 375 name rail_post0 at x=10.0,
+rail_post1 at x=12.0, rail_post2 at 14.0 and rail_post3 at 16.0, all at z=3.375
+on the east footway. Run 35 put the camera at Y=410.0 and the grate at Y=280.0,
+so the railing plane at Y=337.5 lies between them and rail_post1 stands at
+x=12.0, THE GRATE'S OWN X. prop_crowd_control_barrier_0 is on the WEST side at
+x=22.5 m, ten metres up the street and across it, and cannot be in that frame at
+all.
+
+WRONG ON THE VOID. The flat pale field I cropped and called white void IS THE
+PIECE. It sits exactly where the arithmetic put it, at the printed rectangle,
+near frame centre, crossed by one railing post with the mid rail along its upper
+edge. It renders as a near-white patch with almost no texture.
+
+SO THE HONEST SENTENCE IS TWO FAULTS AND NOT ONE: a railing in the line, which
+the occlusion trace addresses, and a near-white render, which it does not and
+which no instrument here measures.
+
+HOW I GOT IT WRONG, because the method matters more than the instance. I cropped
+the subject rectangle and enlarged it, which was right, and then IDENTIFIED THE
+BLOCKER BY EYE from a dark bar's shape rather than by reading which pieces the
+scene file puts near x=12. Rule 4 says a picture is strong evidence that
+something is wrong and weak evidence of what, and I used it for both. The
+correcting director did the thing I skipped: it opened a SECOND frame,
+ue-walk_02_after_clear.png, saw the railing along the kerb, and then went to the
+feet file for the post positions.
+
+WHAT SURVIVES UNCHANGED: the z-fight reading from run 35 is still void, now for
+two reasons rather than one, because a flat near-white patch is not a surface a
+speckle statistic can read either. And the occlusion trace is still the right
+fix, because something IS in the line; only its name was wrong.

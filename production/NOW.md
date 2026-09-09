@@ -9,17 +9,22 @@ session would otherwise duplicate, abandon, or wait for forever.
 Keep it current or delete it. A stale NOW is worse than none, because it
 looks like a live state.
 
-## 2026-09-09 03:30Z: EVERY KEY IS GREEN AND THE PHOTOGRAPH IS OF A BARRIER
+## 2026-09-09 03:30Z: EVERY KEY IS GREEN AND A RAILING STANDS IN THE LINE
 
 RUN 35 aimed a camera at the grate and wrote two frames. grateShotStatus=AIMED,
 grateRectStatus=MEASURED, grateViewRestoreStatus=RESTORED, walkFramesWrote=7/7,
 and a director had checked the camera arithmetic before the run and found it
 right to two decimals. THE PICTURE IS OF A CROWD CONTROL BARRIER IN FRONT OF A
 WHITE VOID. Cropping the exact subject rectangle the verdict names and enlarging
-it shows a post and a rail and no grate at all. prop_crowd_control_barrier_0
-stands between the camera and the piece and nothing tested for it, while the
-crime probe next door decides witness sightlines with real line traces and names
-its blockers.
+it shows the guard railing's post and mid rail crossing the subject rectangle,
+and the piece itself as a near-white patch with almost no texture. CORRECTED
+2026-09-09 by a director who opened the frames: the resident named the wrong
+occluder and called the pale patch void. The east kerb's pedestrian guard railing
+E8 has posts at x=10, 12, 14 and 16 m in the plane z=3.375, one of them at the
+grate's own x, and it stands between the camera and the piece; the crowd control
+barrier is on the WEST side at x=22.5 m and cannot be in that frame. So there are
+TWO faults and not one: a railing in the line, which this change addresses, and a
+near-white render, which it does not.
 
 THE Z-FIGHT READING FROM THAT RUN IS VOID AND MUST NOT BE QUOTED. It measured
 speckle on a barrier post against asphalt. Every denominator in it is honest,
