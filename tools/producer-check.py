@@ -47,6 +47,16 @@ answered with the number. Every register PRINTS the rules it did not enforce,
 by name: a skipped check that prints nothing is indistinguishable from a
 passing one.
 
+WHAT THE BRIEF REGISTER STOPPED REQUIRING ON 2026-09-09, and where the number
+went. The BUDGET section and the studio-versus-game split are RETIRED FROM THE
+BRIEF, because Jafar's director test of that morning forbids in the daily
+message the unit and the vocabulary his own 2026-09-05 order requires of the
+split, so no brief could pass both. The split is OWED BY THE SUNDAY SUMMARY,
+which has no register in this file yet; the rule, its five-part detector and its
+four rejecting fixtures are kept whole and tested, and every register prints
+`split` under NOT ENFORCED. The reasoning, which ruling supersedes which, and
+the four moves that re-attach the rule are at SECTIONS_RETIRED_IN_BRIEF.
+
 EXIT CODES, distinct per outcome. 0 the message may be sent. 1 it may not, and
 every finding is named. 2 there was no message to read (missing file, empty
 stdin), which is not a pass. 3 the selftest failed. 4 tools/capsay.py could not
@@ -95,23 +105,79 @@ CAP_BRIEF = 150
 MIN_DEADLINE_HOURS = 24
 MIN_OPTIONS, MAX_OPTIONS = 2, 4
 
+# EVERY SECTION LABEL THIS PARSER KNOWS, in the ruled order. Membership here is
+# the parser's VOCABULARY and the order rule, not the required list: which of
+# them a register DEMANDS is SECTIONS_REQUIRED below, because BUDGET is required
+# in an unprompted message and retired from the brief.
 SECTIONS = ["HEADLINE", "WHAT CHANGED", "NEEDS YOU", "NEXT VISIBLE THING",
             "BUDGET"]
+
+# ------------- THE BUDGET SECTION AND THE STUDIO-VERSUS-GAME SPLIT, RETIRED
+# ------------- FROM THE BRIEF REGISTER 2026-09-09. THE NUMBER MOVED; IT WAS
+# ------------- NOT DROPPED, AND WHERE IT IS OWED IS NAMED BELOW.
+#
+# TWO OF JAFAR'S OWN RULINGS COLLIDED, and this block is the resolution.
+#
+#   2026-09-05, game-design/decision-2026-09-05-ruling-standing-order-refill-
+#   and-the-wake-half.md, section 6: EVERY BRIEF reports the studio-versus-game
+#   split, in words, COUNTED IN SESSIONS, and not points until the rate is
+#   measured.
+#
+#   2026-09-09, game-design/decision-2026-09-09-the-regime-change-lands-three-
+#   doors-the-sky-and-the-caption.md and production/NOW.md ruling 2: the Producer
+#   applies THE DIRECTOR TEST to the daily message itself, in his words, "no
+#   numbers with units, no coordinates, no file names, no studio vocabulary",
+#   and the register "stays as a FORMAT CHECK AFTER the Producer writes, not as a
+#   gate that shapes what is written".
+#
+# "Sessions" IS a number with a unit and "the studio versus the game" IS studio
+# vocabulary, so NO BRIEF COULD SATISFY BOTH RULINGS AT ONCE. On 2026-09-09 this
+# program refused the first message written under the new regime with exactly
+# two findings, `shape: missing section(s): BUDGET` and `split`, on a message
+# that obeyed the newer ruling as written.
+#
+# WHICH SUPERSEDES WHICH, AND WHY: the newer one, for the DAILY MESSAGE only.
+# Same author, same channel, later instruction, and it is specifically about
+# what that reader may be shown. What it replaces is the split's PLACE, not the
+# number: the 2026-09-05 order is not withdrawn and has never been withdrawn.
+#
+# WHERE THE NUMBER IS OWED NOW: THE SUNDAY SUMMARY, which the same 2026-09-09
+# ruling names as the place the studio reports to itself ("reports the notable
+# ones in the Sunday summary"), where studio vocabulary and a count in sessions
+# are appropriate because the audience is a studio report and not a man with a
+# phone and twenty seconds.
+#
+# THERE IS NO SUNDAY OR WEEKLY REGISTER IN THIS FILE TODAY. REGISTERS below
+# holds three kinds and KIND_SUFFIX three suffixes; the selftest asserts both
+# counts so this sentence cannot rot into a false claim. WHOEVER BUILDS THAT
+# REGISTER PICKS THE SPLIT UP, in four moves and no rebuilding: add the kind to
+# REGISTERS with "split" in its enforced list, give it a SECTIONS_REQUIRED row
+# that includes BUDGET, add its filename suffix to KIND_SUFFIX, and point the
+# four BAD_BRIEF fixtures at it. The five-part detector is kept whole and is
+# driven directly by the selftest on every run (see split_parts and SPLIT_PARTS),
+# so it cannot rot while it waits.
+SECTIONS_RETIRED_IN_BRIEF = ("BUDGET",)
+# Printed wherever the retirement is mentioned. No spaces: it crosses key=value
+# channels, and every reader of those splits on whitespace.
+SPLIT_OWED_BY = "the-Sunday-summary/which-has-no-register-in-this-file-yet"
+SPLIT_RETIRED_ON = datetime.date(2026, 9, 9)
 
 # The rules, by name, so a register can say which of them it enforces and the
 # report can print the ones it did not.
 RULES = ["wordcap", "shape", "options", "deadline", "nextvisible",
          "banned", "linkfloor", "linkcap", "linkdest", "split"]
-# THE SPLIT IS THE BRIEF'S ALONE. Jafar's standing order of 2026-09-05 says
-# EVERY BRIEF reports the studio versus game split; it says nothing about an
-# unprompted message or an answer, and a rule applied where it was not ruled is
-# a rule somebody switches off. Named in `not_enforced` in the other two
-# registers rather than silently absent.
-RULES_BRIEF_ONLY = ("split",)
+# `split` IS ENFORCED IN NO REGISTER TODAY: retired from the brief by the ruling
+# block above, and never applied to an unprompted message or an answer, which
+# Jafar's 2026-09-05 order says nothing about. IT STAYS IN RULES ON PURPOSE, so
+# every register NAMES it under NOT ENFORCED and the done line carries
+# rulesEnforced=9/10 beside rulesNotEnforced=split. A retired rule deleted from
+# this list would read exactly like a rule that passed, and the ruling would be
+# lost rather than moved.
+RULES_NO_REGISTER = ("split",)
 REGISTERS = {
     "unprompted": (CAP_UNPROMPTED,
-                   [r for r in RULES if r not in RULES_BRIEF_ONLY]),
-    "brief": (CAP_BRIEF, RULES),
+                   [r for r in RULES if r not in RULES_NO_REGISTER]),
+    "brief": (CAP_BRIEF, [r for r in RULES if r not in RULES_NO_REGISTER]),
     # ANSWER: his question sets the length, so the cap and the shape are not
     # enforced and are NAMED as not enforced. The ban list and the link floor
     # still bind, minus counts: a question asking how many is answered with
@@ -122,6 +188,26 @@ REGISTERS = {
     # long answer escapes.
     "answer": (None, ["banned", "linkfloor", "linkcap", "linkdest"]),
 }
+
+# WHICH SECTIONS THE `shape` RULE DEMANDS, PER REGISTER. BUDGET is retired from
+# the BRIEF and from nothing else: it is still a known label in every register,
+# so a brief that carries a money line is parsed and order-checked exactly as
+# before and the section is PERMITTED, just no longer required. The unprompted
+# register is untouched and still requires all five.
+SECTIONS_REQUIRED = {
+    "unprompted": list(SECTIONS),
+    "brief": [s for s in SECTIONS if s not in SECTIONS_RETIRED_IN_BRIEF],
+    # The answer register does not enforce `shape` at all and names it under NOT
+    # ENFORCED. The row exists so required_sections() never has to guess a kind.
+    "answer": list(SECTIONS),
+}
+
+
+def required_sections(kind):
+    """The sections `shape` demands in this register, in the ruled order."""
+    return SECTIONS_REQUIRED.get(kind, list(SECTIONS))
+
+
 # THE THREE MESSAGES WRITTEN BEFORE THE LINK BAND WAS RULED, BY NAME.
 #
 # Jafar ruled the band on 2026-09-06. Three messages were already written and
@@ -632,12 +718,19 @@ TIME_FORMS = re.compile(
 
 
 # ------------------------------------------------------- the split sentence
-# REQUIRED IN EVERY BRIEF, ruled by Jafar 2026-09-05 ("every brief reports the
-# STUDIO VERSUS GAME split") and given its unit by the director ruling of the
-# same day, section 6: the split is COUNTED IN SESSIONS and says so, because
-# production/budget.md line 87 rules the turns-to-points conversion UNMEASURED
-# and queue 076 is the rate that would fix it. A split in a unit nobody has
-# measured is one number twice.
+# RULED BY JAFAR 2026-09-05 ("every brief reports the STUDIO VERSUS GAME split")
+# and given its unit by the director ruling of the same day, section 6: the
+# split is COUNTED IN SESSIONS and says so, because production/budget.md line 87
+# rules the turns-to-points conversion UNMEASURED and queue 076 is the rate that
+# would fix it. A split in a unit nobody has measured is one number twice.
+#
+# NO LONGER REQUIRED IN THE BRIEF, 2026-09-09. The daily message is graded
+# against Jafar's director test, which forbids the unit and the vocabulary this
+# sentence is made of, so the number MOVED to the Sunday summary rather than
+# being dropped. The two rulings, which supersedes which, and the four moves that
+# re-attach this rule are written out at SECTIONS_RETIRED_IN_BRIEF above. This
+# detector is kept whole and tested on every selftest run, and the rule name
+# stays in RULES so every register prints it under NOT ENFORCED.
 #
 # WHY IT IS FIVE PARTS AND NOT ONE REGEX OVER A SENTENCE: a brief that names
 # the studio and the game but calls the count points is exactly the failure the
@@ -656,6 +749,25 @@ SPLIT_PARTS = (
     ("what makes it points later, 'measured'",
      re.compile(r"\bmeasured\b", re.I)),
 )
+
+
+def split_parts(budget_body):
+    """(howManyFound, whichAreMissing) of the five ruled parts in a BUDGET body.
+
+    THE MEASUREMENT LIVES HERE, IN THE TESTED LAYER, and not inside check(),
+    because no register enforces this rule today: driven only through check() it
+    would ship UNRUN, and an unrun detector that a future Sunday register trusts
+    is the silent-instrument failure. The selftest drives this function directly
+    over the four synthetic briefs on every run.
+
+    FIVE NAMED PARTS AND NOT ONE REGEX OVER A SENTENCE: a brief that names the
+    studio and the game but calls the count POINTS is exactly the failure the
+    2026-09-05 ruling refuses, and one pattern over the whole sentence would
+    report that brief as passing. Each part is named in the finding, so a writer
+    is told WHICH half is missing rather than that "the split sentence" is wrong.
+    """
+    missing = [name for name, rx in SPLIT_PARTS if not rx.search(budget_body)]
+    return len(SPLIT_PARTS) - len(missing), missing
 
 
 def split_sections(text):
@@ -829,10 +941,13 @@ def check(text, kind="unprompted", now=None, legacy_links=False):
                    site_destination_words(", "), len(RULED_LINKS),
                    cap(offsite, keep=FINDINGS_SHOWN, width=60, sep=" | "))))
 
-    # 4. THE SHAPE.
+    # 4. THE SHAPE. REQUIRED sections are per register (SECTIONS_REQUIRED);
+    # the ORDER is checked against every known label, so a section that is
+    # permitted but not required still has to sit where it was ruled to sit.
     bodies, order = split_sections(text)
+    wanted_sections = required_sections(kind)
     if "shape" in enforced:
-        missing = [s for s in SECTIONS if s not in bodies]
+        missing = [s for s in wanted_sections if s not in bodies]
         if missing:
             found.append(Finding("shape", "missing section(s): %s"
                                  % cap(missing, keep=5, sep=", ")))
@@ -901,15 +1016,16 @@ def check(text, kind="unprompted", now=None, legacy_links=False):
                                  % (cap([body], keep=1, width=60) if body
                                     else "the section is empty")))
 
-    # 7. THE STUDIO VERSUS GAME SPLIT, in the BUDGET section, in words. Brief
-    # register only. Every zero here ships its denominator: the finding names
-    # how many of the five required parts were found and which are missing.
-    split_found, split_missing = 0, [name for name, _ in SPLIT_PARTS]
+    # 7. THE STUDIO VERSUS GAME SPLIT, in the BUDGET section, in words.
+    # ENFORCED IN NO REGISTER SINCE 2026-09-09: retired from the brief by the
+    # ruling block at SECTIONS_RETIRED_IN_BRIEF, never applied to the other two.
+    # `split_found` is None when nothing measured it, NOT 0: a zero here would
+    # read as five parts looked for and none found, which is a different fact
+    # from a rule that did not run. report() prints the words accordingly.
+    split_found, split_missing = None, [name for name, _ in SPLIT_PARTS]
     if "split" in enforced:
         budget_body = " ".join(bodies.get("BUDGET", [])).strip()
-        split_missing = [name for name, rx in SPLIT_PARTS
-                         if not rx.search(budget_body)]
-        split_found = len(SPLIT_PARTS) - len(split_missing)
+        split_found, split_missing = split_parts(budget_body)
         if split_missing:
             found.append(Finding(
                 "split",
@@ -932,7 +1048,16 @@ def check(text, kind="unprompted", now=None, legacy_links=False):
         "sentences": len(sents), "claims": len(claims),
         "unlinked_claims": len(unlinked_claims),
         "unlinked_examples": [c[0] for c in unlinked_claims],
+        # THREE SECTION READINGS, NAMED, because one count cannot carry them:
+        # what the message has (of every known label), what THIS register
+        # demands, and which labels it retired and therefore did not demand.
         "sections_found": [s for s in SECTIONS if s in bodies],
+        "sections_required": list(wanted_sections),
+        "sections_required_found": [s for s in wanted_sections if s in bodies],
+        "sections_retired": [s for s in SECTIONS if s not in wanted_sections],
+        "sections_retired_present": [s for s in SECTIONS
+                                     if s not in wanted_sections
+                                     and s in bodies],
         "items": len(items), "urls": urls, "good_links": good_links,
         "link_min": LINK_MIN, "link_max": LINK_MAX,
         "offsite_links": [u for u in urls if not link_ok(u, legacy_links)],
@@ -1046,10 +1171,29 @@ def report(r):
             print("  historical annotation: 0 line(s) excluded of the 1 this "
                   "file is eligible for; its first line does not begin %s, so "
                   "every word above is counted" % HISTORICAL_PREFIX)
+    # THE DENOMINATOR IS THIS REGISTER'S REQUIRED LIST, not every label this
+    # parser knows: since 2026-09-09 those differ for the brief, and "4 of 5"
+    # against the vocabulary would report a complete brief as short one section.
     print("  examined: %d sentence(s), %d claim-shaped, %d NEEDS YOU item(s), "
-          "%d section(s) of %d found (%s)"
-          % (r["sentences"], r["claims"], r["items"], len(r["sections_found"]),
-             len(SECTIONS), "/".join(r["sections_found"]) or NOTHING))
+          "%d of the %d section(s) this register requires, %d label(s) present "
+          "in all (%s)"
+          % (r["sentences"], r["claims"], r["items"],
+             len(r["sections_required_found"]), len(r["sections_required"]),
+             len(r["sections_found"]),
+             "/".join(r["sections_found"]) or NOTHING))
+    # THE RETIREMENT ANNOUNCES ITSELF ON EVERY RUN, with the section's own state
+    # beside it, because a requirement that vanished in silence reads exactly
+    # like a requirement that was met.
+    if r["sections_retired"]:
+        print("  retired from this register on %s and therefore NOT required, "
+              "still permitted and still order-checked: %s. The "
+              "studio-versus-game split that lived in BUDGET is owed by %s"
+              % (SPLIT_RETIRED_ON.isoformat(),
+                 "/".join("%s=%s" % (s, "present"
+                                     if s in r["sections_retired_present"]
+                                     else "absent")
+                          for s in r["sections_retired"]),
+                 SPLIT_OWED_BY))
     # THE FOUR COUNTS ADD TO THE TOTAL, deliberately. This line used to print
     # len(good_links) as "to the site", which was true while the site list was
     # the only way in and became a false claim with a number on it the day a
@@ -1088,6 +1232,16 @@ def report(r):
               "and not points until the rate is measured"
               % (r["split_found"], r["split_of"],
                  ", ".join(n for n, _ in SPLIT_PARTS)))
+    else:
+        # NOT "0 of 5". Nothing measured it, and the words say so, or a reader
+        # would take a retired rule for a rule this message failed clean.
+        print("  studio-versus-game split: %s, the rule is enforced in no "
+              "register since %s (retired from the brief by Jafar's director "
+              "test of that day, never applied to the other two). His order of "
+              "2026-09-05 stands and the number is owed by %s; the %d-part "
+              "detector is kept and is driven by the selftest on every run"
+              % (NOTHING.replace("-", " "), SPLIT_RETIRED_ON.isoformat(),
+                 SPLIT_OWED_BY, r["split_of"]))
     if "deadline" in r["enforced"]:
         # TWO CALLERS, TWO CLOCKS, so neither may leave its instant implicit.
         # This path is the SINGLE-FILE check and its clock is the wall clock:
@@ -1128,8 +1282,14 @@ def report(r):
         print("  MECHANICAL ONLY: nothing here read whether a claim is TRUE, "
               "whether the link shows what the sentence says, or whether the "
               "recommendation is any good. That is the director's read.")
-        print("\nproducer-check: SEND register=%s rulesEnforced=%d/%d"
-              % (r["kind"], len(r["enforced"]), len(RULES)))
+        # THE PAIR ON ONE LINE: how many rules ran, out of how many exist, AND
+        # which ones did not. rulesEnforced=9/10 on its own sends the reader
+        # looking for the tenth; the names have no spaces so every reader that
+        # splits on whitespace keeps them whole.
+        print("\nproducer-check: SEND register=%s rulesEnforced=%d/%d "
+              "rulesNotEnforced=%s"
+              % (r["kind"], len(r["enforced"]), len(RULES),
+                 "/".join(r["not_enforced"]) or "none"))
         return 0
     shown = {}
     for f in r["findings"]:
@@ -1139,8 +1299,10 @@ def report(r):
     for rule in sorted(shown):
         print("    %-18s %s" % (rule, cap(shown[rule], keep=FINDINGS_SHOWN,
                                           width=110, sep=" | ")))
-    print("\nproducer-check: DO NOT SEND register=%s rulesEnforced=%d/%d"
-          % (r["kind"], len(r["enforced"]), len(RULES)))
+    print("\nproducer-check: DO NOT SEND register=%s rulesEnforced=%d/%d "
+          "rulesNotEnforced=%s"
+          % (r["kind"], len(r["enforced"]), len(RULES),
+             "/".join(r["not_enforced"]) or "none"))
     return 1
 
 
@@ -1255,6 +1417,29 @@ BAD_BRIEF = {
                            "studio and two to the game, counted in sessions "
                            "and not points until the rate is measured."),
 }
+
+# WHAT THE BRIEF REGISTER MUST STILL REFUSE AFTER THE RETIREMENT OF 2026-09-09.
+# Two things left the brief's list; these are the proof that the rest did not
+# leave with them, which is the whole difference between a retirement and a hole.
+# (label, the exact rule name it must trip, and nothing else), each differing
+# from GOOD_BRIEF in ONE thing. SYNTHETIC, like every rejecting fixture here.
+BAD_BRIEF_SURVIVING = (
+    # The four sections that were NEVER retired are still demanded, so the shape
+    # rule cannot have been switched off along with BUDGET.
+    ("a brief with no HEADLINE section", "shape",
+     GOOD_BRIEF.replace("HEADLINE: the town has textures",
+                        "The town has textures")),
+    # The brief's own cap, which is 150 and not the unprompted 120.
+    ("a brief past the brief register's own cap", "wordcap",
+     GOOD_BRIEF.replace("Everything else waited on that.",
+                        "Everything else waited on that. "
+                        + ("and " * (CAP_BRIEF + 10
+                                     - len(count_words(GOOD_BRIEF)))))),
+    # The ban list, which binds in every register.
+    ("a brief carrying a file path", "banned:file path",
+     GOOD_BRIEF.replace("the grey street now paints properly",
+                        "production/queue/062-uv-chain.md is the blocker")),
+)
 
 # THE HISTORICAL ANNOTATION FIXTURES, ruled 2026-09-06. SYNTHETIC to the last
 # word: pinning a rejecting fixture to one of the two real annotated messages
@@ -1479,21 +1664,97 @@ def selftest():
     ok("an empty NEEDS YOU is accepted rather than forcing an invented item",
        not re_["findings"], [str(f) for f in re_["findings"]])
 
-    # ACCEPTING, fourth: THE BRIEF REGISTER AND ITS SPLIT SENTENCE, which is
-    # the register Jafar's morning brief is written to and the one
-    # tools/morning-brief.py composes against. Accepting case FIRST: a brief
-    # carrying the split in words passes with no finding at all.
+    # ACCEPTING, fourth: THE BRIEF REGISTER AND THE RETIREMENT OF 2026-09-09.
+    # A brief that still carries a BUDGET section with the split sentence in it
+    # passes: the retirement removed a REQUIREMENT and forbade nothing, so every
+    # brief written under the old rule stays green. The accepting case that
+    # matters is the live tree's own briefs, today's real message among them, and
+    # it is asserted off the live gate walk further down.
     rb = check(GOOD_BRIEF, "brief", FIXTURE_NOW)
-    ok("a brief carrying the split sentence passes (%d of %d part(s) found, "
-       "%d word(s) of %d)" % (rb["split_found"], rb["split_of"], rb["words"],
-                              rb["cap"]),
-       not rb["findings"] and rb["split_found"] == rb["split_of"],
-       [str(f) for f in rb["findings"]])
-    ok("and `split` is enforced in the brief register and named as NOT "
-       "enforced in the unprompted one",
-       "split" in REGISTERS["brief"][1]
-       and "split" not in REGISTERS["unprompted"][1],
-       (REGISTERS["brief"][1], REGISTERS["unprompted"][1]))
+    ok("a brief STILL carrying the BUDGET section and the split sentence passes "
+       "(%d word(s) of %d, %d of the %d section(s) the brief register requires)"
+       % (rb["words"], rb["cap"], len(rb["sections_required_found"]),
+          len(rb["sections_required"])),
+       not rb["findings"], [str(f) for f in rb["findings"]])
+
+    # THE LADDER FOR THE RETIREMENT: ONE TEXT, TWO REGISTERS, ONE RUN, and the
+    # only thing that changes between the rungs is which register grades it. The
+    # difference between the rungs IS the scope of the retirement, which is the
+    # whole claim being made: the brief no longer requires BUDGET, and nothing
+    # else was weakened. A rung taken in another run would be another photograph.
+    no_budget = GOOD_BRIEF.replace(BRIEF_SPLIT + "\n", "")
+    rb_nb = check(no_budget, "brief", FIXTURE_NOW)
+    ru_nb = check(no_budget, "unprompted", FIXTURE_NOW)
+    ok("a brief with NO BUDGET section at all passes the brief register, which "
+       "is the message Jafar's director test produces (%d of %d required "
+       "section(s): %s; retired here: %s)"
+       % (len(rb_nb["sections_required_found"]),
+          len(rb_nb["sections_required"]),
+          "/".join(rb_nb["sections_required_found"]) or NOTHING,
+          "/".join(rb_nb["sections_retired"]) or "none"),
+       not rb_nb["findings"] and rb_nb["sections_retired"] == ["BUDGET"]
+       and not rb_nb["sections_retired_present"],
+       [str(f) for f in rb_nb["findings"]])
+    ok("and the SAME text is still refused by `shape` in the UNPROMPTED "
+       "register, which still requires all %d section(s): nothing but the brief "
+       "was weakened" % len(SECTIONS),
+       {f.rule for f in ru_nb["findings"]} == {"shape"}
+       and ru_nb["sections_required"] == list(SECTIONS),
+       [str(f) for f in ru_nb["findings"]])
+    # THE RETIREMENT ITSELF, PINNED, and pinned in the direction that a future
+    # session would have to read the ruling block to reverse. It is NOT pinned
+    # the other way: nothing here asserts that no register may ever enforce
+    # `split` again, because the Sunday summary is where the number is owed and
+    # a test that reddened when that work was done would be a test against the
+    # ruling.
+    ok("BUDGET is retired from the brief register and from nothing else "
+       "(required in %s; not required in %s) and is still a label the parser "
+       "knows, so an old brief's money line is parsed and order-checked as "
+       "before (section_label reads %s)"
+       % ("/".join(k for k in sorted(SECTIONS_REQUIRED)
+                   if "BUDGET" in SECTIONS_REQUIRED[k]),
+          "/".join(k for k in sorted(SECTIONS_REQUIRED)
+                   if "BUDGET" not in SECTIONS_REQUIRED[k]),
+          section_label("BUDGET: nothing bought.")),
+       "BUDGET" not in SECTIONS_REQUIRED["brief"]
+       and "BUDGET" in SECTIONS_REQUIRED["unprompted"]
+       and section_label("BUDGET: nothing bought.") == "BUDGET",
+       (SECTIONS_REQUIRED, section_label("BUDGET: nothing bought.")))
+    enforcing = sorted(k for k in REGISTERS if "split" in REGISTERS[k][1])
+    ok("`split` is enforced by %d of the %d register(s) (%s) and is named under "
+       "NOT ENFORCED by every one of them, so a retired rule cannot read as a "
+       "rule that passed. The number is owed by %s"
+       % (len(enforcing), len(REGISTERS), "/".join(enforcing) or "none",
+          SPLIT_OWED_BY),
+       "split" not in REGISTERS["brief"][1]
+       and all("split" in check(GOOD_BRIEF, k, FIXTURE_NOW)["not_enforced"]
+               for k in REGISTERS if "split" not in REGISTERS[k][1]),
+       (enforcing, sorted(REGISTERS)))
+    # THE INVARIANT THAT SURVIVES THE MOVE, and it is an invariant rather than a
+    # snapshot on purpose: a register that enforces `split` must also REQUIRE the
+    # BUDGET section, because the rule reads that section's body and nothing
+    # else. Vacuously true today with nothing enforcing it, which is why the
+    # denominator is printed and the words say so rather than printing a clean 0.
+    mismatched = [k for k in enforcing
+                  if "BUDGET" not in SECTIONS_REQUIRED.get(k, SECTIONS)]
+    ok("every register that enforces `split` also requires the BUDGET section "
+       "it reads (%s)"
+       % ("%d of %d checked" % (len(enforcing) - len(mismatched), len(enforcing))
+          if enforcing else NOTHING.replace("-", " ")
+          + ": no register enforces it today"),
+       not mismatched, mismatched)
+    # THE DETECTOR, WHICH IS THE HALF THAT MUST NOT ROT WHILE IT WAITS. Driven
+    # DIRECTLY, because no register calls it today: through check() alone these
+    # four fixtures would prove nothing, and an unrun detector that the Sunday
+    # register later trusts is the silent-instrument failure. Each fixture
+    # differs from GOOD_BRIEF in ONE part of the sentence.
+    found_good, missing_good = split_parts(
+        " ".join(split_sections(GOOD_BRIEF)[0].get("BUDGET", [])))
+    ok("the kept split detector still finds all %d part(s) in the good brief's "
+       "BUDGET body (%d found, %s missing)"
+       % (len(SPLIT_PARTS), found_good, "/".join(missing_good) or "none"),
+       found_good == len(SPLIT_PARTS) and not missing_good,
+       (found_good, missing_good))
 
     # ACCEPTING, fifth: THE ONE RULED WHOLE-URL EXCEPTION, and the accepting
     # case is the real message it was ruled for. The whole risk of this
@@ -1611,17 +1872,45 @@ def selftest():
            "exists=%s urlInRecord=%s" % (rec.is_file(), url in body))
 
     print("\n  REJECTING FIXTURES, one per rule, all synthetic:\n")
-    # THE SPLIT, REJECTING, four ways, because a guard that only knows
-    # "absent" cannot tell a brief that calls the count POINTS from one that
-    # says sessions, which is the exact failure the ruling of 2026-09-05
-    # refuses. Each fixture differs from GOOD_BRIEF in ONE part.
+    # THE SPLIT, REJECTING, FOUR WAYS, AND THE PAIRED READING THE RETIREMENT
+    # NEEDS. Each fixture differs from GOOD_BRIEF in ONE part of the sentence,
+    # and each is read twice in the same run: the DETECTOR still refuses it (so
+    # the guard the Sunday summary inherits is alive, and still tells a brief
+    # that calls the count POINTS from one that says sessions, which is the exact
+    # failure the 2026-09-05 ruling refuses) and the BRIEF REGISTER no longer
+    # does (so the retirement is real and not a comment). One of these two going
+    # quiet is the whole risk of this move.
     for want, text in BAD_BRIEF.items():
+        budget_body = " ".join(split_sections(text)[0].get("BUDGET", []))
+        found_n, missing = split_parts(budget_body)
         rr = check(text, "brief", FIXTURE_NOW)
         rules = {f.rule for f in rr["findings"]}
-        ok("%-46s is refused by the split rule" % want,
-           "split" in rules and rules == {"split"},
-           "found %s; missing %s" % (sorted(rules) or "nothing",
-                                     rr["split_missing"]))
+        ok("%-46s is refused by the kept detector (%d of %d part(s), missing "
+           "%s) and is NOT refused by the brief register any more (%s)"
+           % (want, found_n, len(SPLIT_PARTS),
+              cap(missing, keep=5, sep=", "),
+              "/".join(sorted(rules)) or "no finding"),
+           bool(missing) and found_n < len(SPLIT_PARTS) and not rules
+           and rr["split_found"] is None,
+           "detectorMissing=%s registerFindings=%s splitFound=%s"
+           % (missing, sorted(rules) or "nothing", rr["split_found"]))
+
+    # AND THE BRIEF REGISTER MUST STILL REFUSE. The retirement took two things
+    # off the brief's list, and the way that becomes a HOLE instead is if the
+    # other rules quietly stopped biting in this register too, so three of them
+    # are fixtured here against the brief's own cap and its own required list.
+    # `shape` is the one that matters most: it still demands the four sections
+    # that were never retired.
+    for label, want, text in BAD_BRIEF_SURVIVING:
+        rr = check(text, "brief", FIXTURE_NOW)
+        rules = {f.rule for f in rr["findings"]}
+        ok("%-42s is still refused in the BRIEF register by `%s` and nothing "
+           "else (%d of %d word(s), %d of %d required section(s))"
+           % (label, want, rr["words"], rr["cap"],
+              len(rr["sections_required_found"]),
+              len(rr["sections_required"])),
+           rules == {want},
+           "found %s" % (sorted(rules) or "nothing"))
 
     for want, text in BAD.items():
         rr = check(text, "unprompted", FIXTURE_NOW)
@@ -1722,6 +2011,28 @@ def selftest():
        == len(LEGACY_LINK_RULES)
        and g_live["checked"] >= g_live["legacy_links"],
        cap([f[0] for f in g_live["failed"]], keep=3))
+    # THE ACCEPTING CASE FOR THE RETIREMENT, AND IT IS THE LIVE TREE: today's
+    # real brief is in this walk, and it is the message that exposed the conflict
+    # between the 2026-09-05 split order and the 2026-09-09 director test. A
+    # synthetic brief could only show that the rule is off; only the live briefs
+    # show that the messages the Producer actually writes now pass. Read off the
+    # walk above rather than a second one, and the zero ships its denominator:
+    # a tree with no brief in it fails this rather than reading as clean.
+    live_briefs = [(rel, st) for rel, st, why in g_live["results"]
+                   if why.startswith("brief,")]
+    ok("every brief in the LIVE tree passes the brief register as it stands "
+       "after the retirement, today's real message among them "
+       "(briefsChecked=%d filesChecked=%d splitEnforcedOn=%d/%d)"
+       % (len(live_briefs), g_live["checked"], g_live["split_enforced"],
+          g_live["checked"]),
+       # splitEnforcedOn is PRINTED and deliberately NOT BOUNDED here. It reads
+       # 0 today; the day the Sunday summary picks the rule up it rises, and a
+       # bound of zero would be a test that reddens when the ruling is honoured.
+       bool(live_briefs) and len(live_briefs) == g_live["brief_files"]
+       and all(st.startswith("pass") for _, st in live_briefs),
+       cap(["%s %s" % (rel, st) for rel, st in live_briefs
+            if not st.startswith("pass")], keep=3, width=80)
+       or "briefs=%d" % len(live_briefs))
     # THE LIVE SERIES FOR THE ANNOTATION, AND THE ROT CHECK Jafar's ruling
     # needs: the two annotated messages pass WITH a line uncounted, the third
     # frozen name carries no annotation and is counted in full, and all three
@@ -2065,10 +2376,17 @@ def selftest():
        cap([str(f) for f in ru["findings"]], keep=2, width=90))
 
     print("\nproducer-check --selftest: %s. %d passed, %d failed, %d rejecting "
-          "fixture(s) over %d rule(s), %d rejecting gate fixture(s) in %d "
-          "measured gate run(s)"
+          "fixture(s) over %d rule(s) of which %d are enforced by no register "
+          "(%s), %d detector fixture(s) for the retired split rule, %d "
+          "rejecting gate fixture(s) in %d measured gate run(s)"
           % ("PASS" if not failed else "FAILED", passed, len(failed), len(BAD),
-             len(RULES), len(gate_bad), len(gate_runs)))
+             len(RULES),
+             len([x for x in RULES
+                  if not any(x in v[1] for v in REGISTERS.values())]),
+             "/".join(x for x in RULES
+                      if not any(x in v[1] for v in REGISTERS.values()))
+             or "none",
+             len(BAD_BRIEF), len(gate_bad), len(gate_runs)))
     for f in failed:
         print("  " + f)
     return 0 if not failed else 3
@@ -2228,6 +2546,13 @@ def gate(root, now=None, pre_register=PRE_REGISTER, trees=GATE_TREES,
          # OF THE FILES CHECKED, how many had an instant to measure from.
          # Cumulative over the walk, printed beside its denominator.
          "date_pinned": 0, "unpinned": 0,
+         # OF THE FILES CHECKED, how many were graded by a register that still
+         # enforces `split`, and how many were graded as briefs. Both cumulative
+         # over the walk and printed beside their denominators. The first reads
+         # 0 of N while the rule waits for the Sunday summary it is owed by, and
+         # moves the day that register exists: a retirement that printed nothing
+         # would be indistinguishable from a rule passing on every file.
+         "split_enforced": 0, "brief_files": 0,
          "wall_now": wall_now.isoformat(timespec="minutes")}
     frozen = set(pre_register)
     seen = set()
@@ -2303,6 +2628,13 @@ def gate(root, now=None, pre_register=PRE_REGISTER, trees=GATE_TREES,
                 r["legacy_links"] += 1
             res = check(text, kind, file_now, legacy_links=legacy)
             r["checked"] += 1
+            # READ OFF THE REGISTER THIS FILE WAS ACTUALLY GRADED BY, never off
+            # a constant, so the walk's reading moves by itself when a register
+            # picks the rule up.
+            if "split" in res["enforced"]:
+                r["split_enforced"] += 1
+            if kind == "brief":
+                r["brief_files"] += 1
             # THE UNCOUNTED LINE RIDES ON THE FILE'S OWN LINE, pass or fail,
             # because a cap that let something through must say so where the
             # file is named and not only in the footer.
@@ -2405,6 +2737,17 @@ def gate_report(r):
               "only from the count; a second is counted like any other line."
               % (r["historical_uncounted"], r["historical_listed"],
                  HISTORICAL_PREFIX))
+    if r["checked"]:
+        # THE RETIRED RULE ACROSS THE WALK, with both denominators, so a reader
+        # of this report can tell "the split passed everywhere" from "the split
+        # was measured nowhere". Cumulative over the walk.
+        print("  studio-versus-game split: enforced on %d of %d checked "
+              "file(s), %d of them graded as brief(s). Retired from the brief "
+              "register on %s by Jafar's director test and applied to no "
+              "register since; his order of 2026-09-05 stands and the number is "
+              "owed by %s"
+              % (r["split_enforced"], r["checked"], r["brief_files"],
+                 SPLIT_RETIRED_ON.isoformat(), SPLIT_OWED_BY))
     # WHICH CLOCK READ THE DEADLINES, with its denominator, because "0 failed"
     # from a gate measuring the wrong instant is the fault this line exists to
     # make visible. Cumulative over the walk.
@@ -2456,14 +2799,20 @@ def gate_report(r):
         # linksRuledUsed: CUMULATIVE URL matches across the walk over the
         # number of frozen RULED_LINKS entries. On the done line because it is
         # a whole-run number; the per-file lines carry ruled-link:<label>.
+        # splitEnforcedOn: CUMULATIVE count of checked files whose register still
+        # enforces `split`, over the files checked. On the done line because it
+        # is a whole-run number, and in the verification footer through it, so
+        # the retirement of 2026-09-09 is visible at every commit rather than
+        # only in this file's comments.
         print("\nproducer-check --gate: PASS filesChecked=%s "
               "filesLegacyLinks=%d/%d linksRuledUsed=%d/%d "
-              "historicalLinesUncounted=%d/%d "
-              "filesExempt=%d filesWalked=%d filesDatePinned=%d/%d"
+              "historicalLinesUncounted=%d/%d splitEnforcedOn=%d/%d "
+              "filesBriefs=%d filesExempt=%d filesWalked=%d filesDatePinned=%d/%d"
               % (r["checked"] if r["checked"] else "0/" + NOTHING,
                  r["legacy_links"], r["checked"],
                  r["links_ruled_used"], r["links_ruled_of"],
                  r["historical_uncounted"], r["historical_listed"],
+                 r["split_enforced"], r["checked"], r["brief_files"],
                  r["exempt"], r["walked"], r["date_pinned"], r["checked"]))
         return GATE_EXIT_OK
     print("  %d file(s) failed:" % len(r["failed"]))
@@ -2474,11 +2823,12 @@ def gate_report(r):
               % (len(r["failed"]) - 5, len(r["failed"])))
     print("\nproducer-check --gate: FAIL filesFailed=%d filesChecked=%d "
           "filesLegacyLinks=%d/%d linksRuledUsed=%d/%d "
-          "historicalLinesUncounted=%d/%d "
-          "filesExempt=%d filesWalked=%d filesDatePinned=%d/%d"
+          "historicalLinesUncounted=%d/%d splitEnforcedOn=%d/%d "
+          "filesBriefs=%d filesExempt=%d filesWalked=%d filesDatePinned=%d/%d"
           % (len(r["failed"]), r["checked"], r["legacy_links"], r["checked"],
              r["links_ruled_used"], r["links_ruled_of"],
              r["historical_uncounted"], r["historical_listed"],
+             r["split_enforced"], r["checked"], r["brief_files"],
              r["exempt"], r["walked"], r["date_pinned"], r["checked"]))
     return GATE_EXIT_FAIL
 

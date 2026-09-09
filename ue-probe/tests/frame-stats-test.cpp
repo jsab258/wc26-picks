@@ -390,6 +390,99 @@ int main()
 		Check(ValuesHaveNoSpaces(M), "every light-pass value is space-free");
 	}
 
+	// ---- QUEUE 186: THE SKY BANDS, ACCEPTING CASE FIRST ------------------
+	//
+	// THE ACCEPTING FIXTURE IS A FRAME SHAPED LIKE THE ONE THIS SHIPS FOR: a
+	// pale sky over a darker ground, with the sky's channel order B>G>R the
+	// way an overcast British sky reads and the way the day fog colour this
+	// replaces also read. If MeasureBand cannot report that correctly it is
+	// worth nothing, so it is checked before any refusal is.
+	{
+		const int W = 80, H = 80;
+		std::vector<unsigned char> Px((size_t)W * H * 4, 255);
+		for (int Y = 0; Y < H; ++Y)
+		{
+			for (int X = 0; X < W; ++X)
+			{
+				const long long P = (long long)Y * W + X;
+				// Top quarter pale and cool, the rest mid grey.
+				const bool bSky = (Y < H / 4);
+				Px[P * 4]     = bSky ? 210 : 90;   // B
+				Px[P * 4 + 1] = bSky ? 200 : 90;   // G
+				Px[P * 4 + 2] = bSky ? 190 : 90;   // R
+				Px[P * 4 + 3] = 255;
+			}
+		}
+		const BandStats Sky = MeasureBand(Px.data(), W, H, "skyTop",
+		                                  0.0, 0.0, 1.0, SkyTopY1());
+		Check(Sky.Measured && Sky.Pixels == (long long)(W * (int)(SkyTopY1() * H)),
+		      "the sky band measures exactly the pixels its own rectangle covers");
+		Check(Near(Sky.MeanR, 190.0) && Near(Sky.MeanG, 200.0) && Near(Sky.MeanB, 210.0),
+		      "the channel means come back in order, which is what tells a sky from a fog colour");
+		Check(Near(Sky.MeanLuma, Luma(190, 200, 210)) && Near(Sky.P50, Sky.MeanLuma),
+		      "a flat band's mean and median agree and match the shared luma weights");
+		Check(Sky.ClipHiAny == 0,
+		      "an unclipped pale band counts zero clipped pixels over its own denominator");
+		const BandStats Ground = MeasureBand(Px.data(), W, H, "ground",
+		                                     0.0, GroundY0(), 1.0, 1.0);
+		Check(Ground.Measured && Near(Ground.MeanLuma, Luma(90, 90, 90)),
+		      "the ground band reads the darker half and not the sky above it");
+		const BandStats Centre = MeasureBand(Px.data(), W, H, "skyCentre",
+		                                     SkyCentreX0(), 0.0, SkyCentreX1(), SkyTopY1());
+		const std::string L = SkyBandLine(Sky, Centre, Ground);
+		std::printf("    %s\n", L.c_str());
+		Check(L.find("band.skyTop=MEASURED") != std::string::npos
+		      && L.find("band.skyCentre=MEASURED") != std::string::npos
+		      && L.find("band.ground=MEASURED") != std::string::npos,
+		      "all three bands print their own name and their own status");
+		Check(ValuesHaveNoSpaces(L), "every sky-band value is space-free");
+		// THE RATIO IS GROUND OVER SKY AND NOT THE OTHER WAY UP, checked
+		// against the arithmetic rather than against a remembered direction.
+		char Want[64];
+		std::snprintf(Want, sizeof(Want), "bandGroundOverSky=%.4f",
+		              Luma(90, 90, 90) / Luma(190, 200, 210));
+		Check(L.find(Want) != std::string::npos,
+		      "the ratio is the ground band over the sky centre band");
+	}
+	// AND THE REJECTING CASES, EACH PLANTED RATHER THAN WAITED FOR.
+	{
+		const int W = 40, H = 40;
+		const std::vector<unsigned char> Px = Flat(W, H, 10, 10, 10);
+		// A rectangle that rounds away to nothing must say nothing measured
+		// and print the pixel rectangle that proves WHY, because an empty
+		// band and a black band are different faults.
+		const BandStats Empty = MeasureBand(Px.data(), W, H, "skyTop",
+		                                    0.5, 0.5, 0.5, 0.5);
+		const std::string E = BandLine(Empty);
+		std::printf("    %s\n", E.c_str());
+		Check(!Empty.Measured && Empty.Pixels == 0
+		      && E.find("band.skyTop=NOTHING-MEASURED") != std::string::npos
+		      && E.find("band.skyTop.rectPx=20/20/20/20") != std::string::npos,
+		      "a rectangle that covers no pixel says nothing measured and prints the rectangle");
+		Check(ValuesHaveNoSpaces(E), "the nothing-measured band line is space-free");
+		// No image at all is a third state and may not read as either.
+		const BandStats NoImage = MeasureBand(0, 0, 0, "ground", 0.0, 0.0, 1.0, 1.0);
+		Check(!NoImage.Measured && NoImage.Pixels == 0,
+		      "no image at all measures nothing rather than an empty rectangle");
+		// A whole-frame band on a black frame IS measured, and reads black.
+		// This is the case that separates "nothing measured" from "measured
+		// and dark", which is the distinction the sky key exists for.
+		const BandStats Black = MeasureBand(Px.data(), W, H, "ground",
+		                                    0.0, 0.0, 1.0, 1.0);
+		Check(Black.Measured && Black.Pixels == 1600 && Black.MeanLuma < 0.05,
+		      "a dark band is MEASURED and dark, which is not the same as nothing measured");
+		const std::string S = SkyBandLine(Empty, Empty, Black);
+		Check(S.find("bandGroundOverSky=NOTHING-MEASURED") != std::string::npos,
+		      "a ratio with an unmeasured denominator refuses rather than dividing");
+		// AND THE CLIPPING HALF, PLANTED: a band at the top of the range must
+		// count it, or a blown sky reads as a bright one.
+		std::vector<unsigned char> Blown = Flat(W, H, 255, 255, 255);
+		const BandStats Clip = MeasureBand(Blown.data(), W, H, "skyTop",
+		                                   0.0, 0.0, 1.0, 1.0);
+		Check(Clip.Measured && Clip.ClipHiAny == 1600,
+		      "a blown band counts every clipped pixel over its own denominator");
+	}
+
 	std::printf("frame-stats-test: %d check(s), %d failure(s)\n", Checks, Failures);
 	return Failures == 0 ? 0 : 2;
 }

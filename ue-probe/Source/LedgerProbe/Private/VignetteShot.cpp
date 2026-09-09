@@ -79,6 +79,14 @@
 #include "Components/DirectionalLightComponent.h"
 #include "Engine/ExponentialHeightFog.h"
 #include "Components/ExponentialHeightFogComponent.h"
+// QUEUE 186: THE SKY. ASkyLight is the ambient and the reflection source;
+// ASkyAtmosphere is the visible sky it captures. ASkyAtmosphere is declared
+// at the bottom of Components/SkyAtmosphereComponent.h in this engine and
+// has no header of its own, which is the one include here nothing in this
+// container can check.
+#include "Engine/SkyLight.h"
+#include "Components/SkyLightComponent.h"
+#include "Components/SkyAtmosphereComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/PlayerStart.h"
 #include "Camera/CameraActor.h"
@@ -141,6 +149,66 @@ namespace
 	// to capture can. It is NAMED on the scene line as a model so nobody
 	// reads it as a physical sky.
 	const float kFillSky = 0.55f, kFillEquator = 0.35f, kFillGround = 0.18f;
+	// ---- QUEUE 186: THE SKY, AND WHY IT IS THIS SKY ---------------------
+	//
+	// WHAT WAS MEASURED FIRST, because none of the numbers below mean
+	// anything without it. The day frame's top band reads 249.5/250.0/250.5
+	// mean RGB over 8858 pixels and the night frame's SAME band reads
+	// 188.4/179.6/179.3. Those two channel orders are the two fog
+	// inscattering colours set eighty lines below: day 0.55/0.58/0.62 is
+	// R<G<B and night 0.06/0.05/0.05 is R>G=B. THE FAR FIELD IN EVERY FRAME
+	// THIS PROJECT HAS SHOT IS THE HEIGHT FOG, lifted to near white by auto
+	// exposure. The scene line called it none-black and it was never black.
+	//
+	// WHY AN ATMOSPHERE AND A CAPTURED SKYLIGHT, and not the HDRI the shared
+	// file names. A USkyLightComponent takes a CUBE texture and this engine
+	// builds none at runtime; the pack's belfast_open_field_2k.hdr is a
+	// long-lat Radiance file that would need resampling into six faces AND a
+	// staging step to reach a packaged binary, which is three unverifiable
+	// links instead of one. A SkyAtmosphere needs no asset at all, and a
+	// SkyLight capturing it makes the thing that is SEEN and the thing that
+	// is REFLECTED the same object, which an HDRI ambient beside an
+	// atmosphere backdrop would not. The HDRI is the next rung and this run
+	// prints whether the file is even reachable so that rung is a fact
+	// rather than a guess.
+	//
+	// THE FOUR ATMOSPHERE NUMBERS ARE A STARTING POINT AND SAY SO. Rule 2
+	// forbids calling them anything better: no series exists. Rayleigh is
+	// cut because Rayleigh is the blue and Meridian is not blue; Mie is
+	// raised because Mie is the pale haze an overcast sky is made of;
+	// anisotropy is dropped toward zero because a forward-scattering halo is
+	// a clear-sky look and the reference is flat; multi-scattering is taken
+	// to its top because that is what fills a shaded sky. Every one is
+	// printed and the sky band series is what moves them next run.
+	const float kSkyRayleighScale   = 0.004f;   // engine default 0.0331
+	const float kSkyMieScale        = 0.040f;   // engine default 0.003996
+	const float kSkyMieAnisotropy   = 0.05f;    // engine default 0.8
+	const float kSkyMultiScattering = 1.0f;     // engine default 1.0, named anyway
+	// THE SKYLIGHT'S INTENSITY, day and night. The engine's own default is
+	// 1.0 and the day value is left there deliberately: this is the first
+	// run in which a captured sky lights anything here, and starting
+	// anywhere but the engine's default would make the frame a statement
+	// about a number I chose rather than about the mechanism. Night is
+	// lower because the atmosphere with the sun off is nearly black anyway
+	// and the lanterns are meant to own that frame.
+	const float kSkyIntensityDay   = 1.0f;
+	const float kSkyIntensityNight = 0.35f;
+	// HOW MUCH OF THE FAR FIELD THE HEIGHT FOG MAY STILL OWN, now that
+	// something else is behind it. DERIVED, WITH ITS UNKNOWN NAMED. The
+	// current far field measures 0.980 luma and the reference panel's sky
+	// measures 0.808 (p50, 48800 px, Codex's Hook sheet, same luma weights).
+	// If the atmosphere renders at S and the fog covers fraction M, the far
+	// field is M*0.980 + (1-M)*S; S is the unknown and for S between 0.60
+	// and 0.70 the M that lands on 0.81 is between 0.55 and 0.39. 0.45 sits
+	// inside that range. IT IS NOT A MEASURED BOUND, it is one number
+	// derived from two measured ones and one unknown, and the printed sky
+	// band series is what replaces the unknown next run.
+	const float kFogMaxOpacityWithSky = 0.45f;
+	// THE HDRI THE SHARED FILE NAMES, LOOKED FOR AND NOT BOUND. The pack
+	// lives under the Unity tree and the workflow stages CityPackTextures by
+	// name; nothing stages this, so NOT-FOUND is the expected answer and it
+	// is worth having as a fact rather than as an assumption.
+	const TCHAR* kSkyHdriExt = TEXT(".hdr");
 	// HOW FAR A DECAL QUAD IS LIFTED OFF THE SURFACE IT SITS ON. Not in the
 	// file: the file describes a decal, which has no thickness and no
 	// z-fighting, and this engine is drawing it as a quad until Phase C.
@@ -219,6 +287,22 @@ namespace
 	ADirectionalLight* GFillB = nullptr;
 	ADirectionalLight* GFillC = nullptr;
 	AExponentialHeightFog* GFog = nullptr;
+	// QUEUE 186. Both are written by ApplyCondition and by nothing else, the
+	// same rule the sun, the fills and the fog already live under.
+	ASkyLight*      GSky        = nullptr;
+	ASkyAtmosphere* GAtmosphere = nullptr;
+	// WRITE-ON-CHANGE, AND BOTH HALVES COUNTED. ApplyCondition is re-entered
+	// every tick while a condition settles, so a recapture written per tick
+	// is a rebuild asked for four times over. GSkyAppliedId is the last
+	// condition the sky was written for; the two counters are what prove the
+	// guard is doing its job rather than being trusted to.
+	std::string GSkyAppliedId = "none-yet";
+	int32       GApplyCalls   = 0;
+	int32       GSkyWrites    = 0;
+	// THE HDRI THE SHARED FILE NAMES: looked for, measured, NOT bound.
+	std::string GHdriFoundAt    = "NOT-LOOKED-FOR";
+	long long   GHdriBytes      = 0;
+	std::string GHdriDetectedAs = "not-read";
 	ACameraActor* GCam = nullptr;
 	TArray<APointLight*> GLanterns;
 	TArray<APointLight*> GWindows;
@@ -294,6 +378,9 @@ namespace
 	// above them, and the pack import needs DecodeBgra's neighbours to be in
 	// scope.
 	void BindSurfaces();
+	// QUEUE 186. Defined beside the texture search it borrows its candidate
+	// list from; declared here because BuildScene calls it.
+	void LookForNamedHdri();
 	void SpawnControlQuads(UWorld* World, UStaticMesh* Plane);
 
 	FString NoSp(const FString& In) { return In.Replace(TEXT(" "), TEXT("~")); }
@@ -944,6 +1031,40 @@ namespace
 			GFog = World->SpawnActor<AExponentialHeightFog>(
 				AExponentialHeightFog::StaticClass(), FVector(0, 0, 0), FRotator::ZeroRotator, Params);
 			MakeMovable(GFog);
+			// QUEUE 186: THE SKY, SPAWNED HERE AND WRITTEN ONLY BY
+			// ApplyCondition, exactly as the fog above it is.
+			//
+			// ORDER MATTERS AND IS NOT COSMETIC: the atmosphere is the thing
+			// the sky light captures, so it exists first. A sky light that
+			// captures before there is anything to capture holds a black
+			// cubemap, which is the exact failure the fill-light constant
+			// block above named ("it cannot come back black the way a sky
+			// light with nothing to capture can") before any of this existed.
+			GAtmosphere = World->SpawnActor<ASkyAtmosphere>(
+				ASkyAtmosphere::StaticClass(), FVector(0, 0, 0), FRotator::ZeroRotator, Params);
+			MakeMovable(GAtmosphere);
+			GSky = World->SpawnActor<ASkyLight>(
+				ASkyLight::StaticClass(), FVector(0, 0, 300), FRotator::ZeroRotator, Params);
+			MakeMovable(GSky);
+			// FOUND BY COMPONENT CLASS, NOT BY THE ACTOR'S NAMED GETTER,
+			// which is the rule this file already follows for the fog and
+			// for the same reason: a named accessor has been renamed across
+			// engine versions and this container cannot compile one line of
+			// this file to find out.
+			if (GSky != nullptr)
+			{
+				if (USkyLightComponent* SC = GSky->FindComponentByClass<USkyLightComponent>())
+				{
+					// CAPTURED SCENE, IN REAL TIME. The thing that is SEEN
+					// and the thing that is REFLECTED are then the same
+					// object, which is the whole reason this is not an HDRI
+					// ambient standing behind an unrelated backdrop.
+					SC->SourceType = ESkyLightSourceType::SLS_CapturedScene;
+					SC->bRealTimeCapture = true;
+					SC->SetIntensity(0.0f);
+					SC->MarkRenderStateDirty();
+				}
+			}
 		}
 
 		// StandIns, NOT Props, IS WHAT propStandIns MEANS. Its denominator in
@@ -1028,14 +1149,20 @@ namespace
 		// fault from an empty street.
 		char Buf[420];
 		std::snprintf(Buf, sizeof(Buf),
-			" sun=%s fill=%d/3 fog=%s skyModel=none-black/phase-C-owns-the-hdri"
-			" lampGain=%.2f fogGain=%.2f ambientModel=trilight-3-directional/not-a-captured-sky"
+			" sun=%s fill=%d/3 fog=%s"
+			" lampGain=%.2f fogGain=%.2f"
 			" lightUnits=unitless/not-candelas decalLiftCm=%.1f decalModel=quad/phase-C-owns-the-decal",
 			GSun ? "yes" : "SPAWN-FAILED",
 			(GFillA ? 1 : 0) + (GFillB ? 1 : 0) + (GFillC ? 1 : 0),
 			GFog ? "yes" : "SPAWN-FAILED",
 			kLampGainUnitless, kFogDensityGain, kDecalLiftCm);
 		GSceneLine += Buf;
+		// ---- QUEUE 186: LOOK FOR THE HDRI THE SHARED FILE NAMES --------
+		//
+		// Done here, once, while the spec is loaded, and NOT bound to
+		// anything. The reading rides the sky segment, which is taken when
+		// the line is READ rather than now: see SkySegmentNow below.
+		LookForNamedHdri();
 		// PHASE C, AFTER EVERY PIECE IS SPAWNED AND NAMED. It reads GByName,
 		// so it cannot run before the pieces are in it.
 		BindSurfaces();
@@ -1074,18 +1201,53 @@ namespace
 		return nullptr;
 	}
 
-	// THE ONLY WRITER OF THE SUN, THE FILL AND THE FOG. Every condition
-	// change writes all of them, so no setting can carry over from the
-	// previous shot and be attributed to this one.
+	// IS THE SKY STRUCTURALLY THERE. Both actors and both components, asked
+	// at the moment of the question and never remembered from the spawn: a
+	// sky light with no atmosphere captures a black scene, and the two
+	// halves fail independently.
+	bool SkyIsWhole()
+	{
+		if (GSky == nullptr || GAtmosphere == nullptr) { return false; }
+		return GSky->FindComponentByClass<USkyLightComponent>() != nullptr
+		    && GAtmosphere->FindComponentByClass<USkyAtmosphereComponent>() != nullptr;
+	}
+
+	// THE ONLY WRITER OF THE SUN, THE FILL, THE FOG AND THE SKY. Every
+	// condition change writes all of them, so no setting can carry over from
+	// the previous shot and be attributed to this one.
+	//
+	// THE FILLS ARE RETIRED WHEN THE SKY IS WHOLE, AND ONLY THEN. Two
+	// sources of ambient light in one scene is the fault this file's own
+	// header calls the one this project has paid for twice, and a captured
+	// sky is a strictly better statement of the same thing than three
+	// directional lights standing in for an ambient mode. But a sky that
+	// failed to spawn must not take the street's light away with it, so the
+	// retirement is conditional on the structure being there and the scene
+	// line prints which of the two happened.
+	//
+	// WHAT THIS CANNOT SEE, said here rather than discovered later: a sky
+	// light whose capture comes back BLACK is structurally whole and would
+	// retire the fills anyway. Nothing in this process can read the captured
+	// cubemap's brightness. What answers it is the frame, and the sky and
+	// ground bands on every shot line are that answer.
 	void ApplyCondition(const Condition& C)
 	{
+		++GApplyCalls;
 		const FLinearColor DaySky(0.42f, 0.46f, 0.52f, 1.0f);
 		const FLinearColor NightSky(0.05f, 0.05f, 0.07f, 1.0f);
 		const FLinearColor Sky = C.SunOn ? DaySky : NightSky;
+		const bool bWhole = SkyIsWhole();
 		SetDirectional(GSun, FLinearColor(0.95f, 0.96f, 1.0f, 1.0f), C.SunOn ? 3.0f : 0.0f);
-		SetDirectional(GFillA, Sky, kFillSky);
-		SetDirectional(GFillB, Sky * 0.75f, kFillEquator);
-		SetDirectional(GFillC, Sky * 0.45f, kFillGround);
+		// THE FILLS AT ZERO ALSO STOP THEM BEING SUNS. A directional light
+		// is an atmosphere sun light by default in this engine, so three
+		// fills left burning would put up to two extra sun discs in the sky
+		// the atmosphere renders. Zeroing them is one change that answers
+		// two problems, and it is why no atmosphere-sun property is touched
+		// anywhere in this file.
+		const float FillScale = bWhole ? 0.0f : 1.0f;
+		SetDirectional(GFillA, Sky, kFillSky * FillScale);
+		SetDirectional(GFillB, Sky * 0.75f, kFillEquator * FillScale);
+		SetDirectional(GFillC, Sky * 0.45f, kFillGround * FillScale);
 		for (int32 I = 0; I < GLanterns.Num(); ++I)
 			if (ULightComponent* L = GLanterns[I]->GetLightComponent()) L->SetVisibility(C.LanternsOn);
 		for (int32 I = 0; I < GWindows.Num(); ++I)
@@ -1103,8 +1265,134 @@ namespace
 				F->SetFogInscatteringColor(C.SunOn ? FLinearColor(0.55f, 0.58f, 0.62f, 1.0f)
 				                                   : FLinearColor(0.06f, 0.05f, 0.05f, 1.0f));
 				F->SetFogHeightFalloff(0.02f);
+				// AND THE FOG STOPS OWNING THE FAR FIELD, which is the
+				// measurement that started this: with nothing behind it the
+				// fog saturates at the far plane and IS the sky in every
+				// frame this project has shot. Capped only when there is
+				// something behind it to see; with no sky the fog keeps the
+				// far field it has always had, so a failed spawn does not
+				// also silently change the fog.
+				F->SetFogMaxOpacity(bWhole ? kFogMaxOpacityWithSky : 1.0f);
 			}
 		}
+		// ---- THE SKY, WRITTEN ON CHANGE AND NOT PER TICK ---------------
+		//
+		// This function is re-entered every tick while a condition settles.
+		// A recapture per tick is a rebuild asked for four times, and the
+		// count of asks against the count of writes rides the scene line so
+		// nobody has to take this comment's word for it.
+		if (bWhole && GSkyAppliedId != C.Id)
+		{
+			GSkyAppliedId = C.Id;
+			++GSkyWrites;
+			if (USkyAtmosphereComponent* A =
+			        GAtmosphere->FindComponentByClass<USkyAtmosphereComponent>())
+			{
+				// PALE, FLAT AND LOW CONTRAST, which is what the reference
+				// sheet's sky is and what a British overcast is. The four
+				// values are named constants with their reasons at the top
+				// of this file; none of them is measured and the verdict
+				// says so.
+				A->SetRayleighScatteringScale(kSkyRayleighScale);
+				A->SetMieScatteringScale(kSkyMieScale);
+				A->SetMieAnisotropy(kSkyMieAnisotropy);
+				A->SetMultiScatteringFactor(kSkyMultiScattering);
+			}
+			if (USkyLightComponent* SC = GSky->FindComponentByClass<USkyLightComponent>())
+			{
+				SC->SetIntensity(C.SunOn ? kSkyIntensityDay : kSkyIntensityNight);
+				// RECAPTURED EXPLICITLY ON THE CHANGE. Real-time capture
+				// refreshes on its own, but a shot is photographed a fixed
+				// number of frames after the condition changes and a sky
+				// still carrying the previous condition would be attributed
+				// to this one.
+				SC->RecaptureSky();
+			}
+		}
+	}
+
+	// ---- QUEUE 186: WHAT THE SKY ACTUALLY IS, READ WHEN IT IS ASKED ------
+	//
+	// skyModel and ambientModel used to be two literals inside a format
+	// string in BuildScene. One of them was false and no run could have said
+	// so, because a literal in a printf cannot be wrong about the world in
+	// any way a test can catch. Both words now come out of
+	// LedgerVignette::SkySegment, which g++ runs before any dispatch, from
+	// state READ BACK off the components.
+	//
+	// AND IT IS TAKEN HERE RATHER THAN AT BUILD TIME, which is not a detail:
+	// BuildScene runs BEFORE any condition is applied, so a reading taken
+	// there would report fillsRetiredToZero=no and skyWrites=0/of=0 on every
+	// run for ever, and both would be stale rather than wrong-in-a-visible-
+	// way. This runs when a verdict asks for the line, by which time every
+	// condition the run applied has been applied.
+	std::string SkySegmentNow()
+	{
+		LedgerVignette::SkyIn In;
+		In.bSkyLightActor   = (GSky != nullptr);
+		In.bAtmosphereActor = (GAtmosphere != nullptr);
+		if (GSky != nullptr)
+		{
+			if (USkyLightComponent* SC = GSky->FindComponentByClass<USkyLightComponent>())
+			{
+				In.bSkyLightComponent   = true;
+				In.SourceTypeRead       = (int)SC->SourceType;
+				In.bRealTimeCaptureRead = (SC->bRealTimeCapture != 0);
+				In.SkyIntensityRead     = (double)SC->Intensity;
+			}
+		}
+		if (GAtmosphere != nullptr)
+		{
+			In.bAtmosphereComponent =
+				(GAtmosphere->FindComponentByClass<USkyAtmosphereComponent>() != nullptr);
+		}
+		if (GFog != nullptr)
+		{
+			if (UExponentialHeightFogComponent* F =
+			        GFog->FindComponentByClass<UExponentialHeightFogComponent>())
+			{
+				In.bFogComponent     = true;
+				In.FogDensityRead    = (double)F->FogDensity;
+				In.FogMaxOpacityRead = (double)F->FogMaxOpacity;
+			}
+		}
+		In.FillsSpawned = (GFillA ? 1 : 0) + (GFillB ? 1 : 0) + (GFillC ? 1 : 0);
+		// RETIRED IS READ OFF THE LIGHT, NEVER PREDICTED FROM THE RULE THAT
+		// SETS IT. ApplyCondition zeroes the fills when the sky is whole;
+		// asking the fill what its intensity IS is a different statement
+		// from repeating the condition under which it should be zero, and
+		// the two disagreeing is exactly what this key exists to show.
+		In.bFillsRetired = false;
+		if (GFillA != nullptr)
+		{
+			if (ULightComponent* LC = GFillA->GetLightComponent())
+			{
+				In.bFillsRetired = (LC->Intensity <= 0.0f) && In.Whole();
+			}
+		}
+		In.ApplyCalls = (int)GApplyCalls;
+		In.SkyWrites  = (int)GSkyWrites;
+		// THE NAME COMES OUT OF THE SHARED FILE, not out of this file. The
+		// condition block has always carried it and nothing has ever read it;
+		// printing what was asked for beside what became of it is what turns
+		// "the probe never binds the HDRI" from an analysis into a reading.
+		In.HdriAsked = GSpec.Conditions.empty() ? std::string("none")
+		                                       : GSpec.Conditions[0].Hdri;
+		if (In.HdriAsked.empty()) { In.HdriAsked = "none"; }
+		In.HdriFoundAt    = GHdriFoundAt;
+		In.HdriBytes      = GHdriBytes;
+		In.HdriDetectedAs = GHdriDetectedAs;
+		In.HdriBoundAs    = "NOTHING/a-skylight-takes-a-cube-and-this-engine-builds-none-at-runtime";
+		return LedgerVignette::SkySegment(In);
+	}
+
+	// ONE PRODUCER FOR THE LINE ALL FOUR VERDICTS PRINT. The vignette, the
+	// walk and the crime runs each print the street's scene line, and a sky
+	// appended in one of those places and not the others would be three
+	// answers to one question.
+	std::string SceneLineWithSky()
+	{
+		return GSceneLine + " " + SkySegmentNow();
 	}
 
 	// A CVAR THIS ENGINE VERSION DOES NOT CARRY PRINTS THE WORD `absent`.
@@ -1193,6 +1481,32 @@ namespace
 					*CVarIntOrAbsent(TEXT("r.DefaultFeature.AutoExposure.Method")),
 					*CVarIntOrAbsent(TEXT("r.EyeAdaptation.MethodOverride")),
 					*CVarIntOrAbsent(TEXT("r.DefaultFeature.AutoExposure.ExtendDefaultLuminanceRange")));
+				// ---- QUEUE 186: WHAT, IF ANYTHING, THE ROAD CAN REFLECT --
+				//
+				// A sky that lights a scene and a sky that is MIRRORED in
+				// wet stone are two different renderer paths, and only the
+				// second is what the reference panel's lower half is made
+				// of. Which paths this build has is not a thing to reason
+				// about from documentation: these four cvars decide it and
+				// the run can simply read them. `absent` is a real answer
+				// and different from 0, which is why CVarIntOrAbsent exists.
+				//
+				// HOW TO READ THEM. reflectionMethod 1 is Lumen and 2 is
+				// screen space in this engine's numbering; a 0 means the
+				// only reflection any surface gets is the sky light's own
+				// cubemap. skylightRealTimeReflectionCapture is the one that
+				// decides whether the cubemap this run captures is used for
+				// reflections at all, and a 0 there would mean the sky lights
+				// the street and NOTHING mirrors it.
+				GToneLine += FString::Printf(
+					TEXT(" cvarReflectionMethod=%s cvarDynamicGI=%s ")
+					TEXT("cvarSkyLightRealTimeReflectionCapture=%s cvarSkyAtmosphere=%s ")
+					TEXT("reflectStat=cvars-read-at-the-last-camera-placement/one-per-run ")
+					TEXT("reflectNote=these-say-which-reflection-paths-exist/NOT-that-any-surface-is-wet"),
+					*CVarIntOrAbsent(TEXT("r.ReflectionMethod")),
+					*CVarIntOrAbsent(TEXT("r.DynamicGlobalIlluminationMethod")),
+					*CVarIntOrAbsent(TEXT("r.SkyLight.RealTimeReflectionCapture")),
+					*CVarIntOrAbsent(TEXT("r.SkyAtmosphere")));
 			}
 		}
 		FVector GotLoc = FVector::ZeroVector;
@@ -1243,6 +1557,25 @@ namespace
 		Out.Add(TEXT("# shotClipHiAny/shotClipHiAll/shotClipLoAll: COUNTS of pixels at the top and"));
 		Out.Add(TEXT("#   bottom of the 8-bit range over shotPixels, never a mean. shotLumaBands is"));
 		Out.Add(TEXT("#   eight equal luma bands, band 0 darkest: a printed series, not a bound."));
+		Out.Add(TEXT("# band.skyTop / band.skyCentre / band.ground: THREE GEOMETRIC BANDS of THIS"));
+		Out.Add(TEXT("#   frame, named for what they COVER and not for what is in them. skyTop is"));
+		Out.Add(TEXT("#   the top eighth full width and carries roofline as well as sky; skyCentre"));
+		Out.Add(TEXT("#   is the middle fifth of it; ground is the bottom fifth. Each ships its own"));
+		Out.Add(TEXT("#   pixel count as its denominator and its own rectangle in pixels, and a"));
+		Out.Add(TEXT("#   rectangle covering no pixel reads NOTHING-MEASURED rather than dark."));
+		Out.Add(TEXT("#   meanRGB is printed because a sky and a fog inscattering colour are told"));
+		Out.Add(TEXT("#   apart by CHANNEL ORDER: before the sky landed, the day far field read"));
+		Out.Add(TEXT("#   249.5/250.0/250.5 and the night one 188.4/179.6/179.3, which are the day"));
+		Out.Add(TEXT("#   and night fog colours and not a sky. A printed series, not a bound."));
+		Out.Add(TEXT("# bandGroundOverSky: one ratio of two measured means. A ground LIT by a sky"));
+		Out.Add(TEXT("#   and a ground MIRRORING one both raise it; the ground band's own spread is"));
+		Out.Add(TEXT("#   what separates them, because a mirror adds variation and a lamp does not."));
+		Out.Add(TEXT("# skyModel / ambientModel: READ BACK off the components after the write. Both"));
+		Out.Add(TEXT("#   were hardcoded literals in a format string until 2026-09-09 and one of"));
+		Out.Add(TEXT("#   them was false. skyWrites=N/of=M is write-on-change: M is how many times"));
+		Out.Add(TEXT("#   ApplyCondition ran and N how many times the sky was rewritten, and N<M is"));
+		Out.Add(TEXT("#   the point rather than a fault. skyHdriBoundAs says NOTHING on purpose:"));
+		Out.Add(TEXT("#   this run looks for the HDRI the shared file names and binds none of it."));
 		Out.Add(TEXT("# light lines: one per probed light, the SAME camera, condition and frame"));
 		Out.Add(TEXT("#   counts as its shot with that one light switched off. deltaMeanFull is the"));
 		Out.Add(TEXT("#   whole frame, deltaMeanPeak is the named grid cell in peakRegion, and both"));
@@ -1283,7 +1616,7 @@ namespace
 		Out.Add(TEXT("#   greps, and one of them takes the FIRST match. Keys are named in"));
 		Out.Add(TEXT("#   prose above and measured below, never both."));
 		Out.Add(TEXT(""));
-		Out.Add(FString(UTF8_TO_TCHAR(GSceneLine.c_str())));
+		Out.Add(FString(UTF8_TO_TCHAR(SceneLineWithSky().c_str())));
 		Out.Add(GCamLine);
 		Out.Add(GToneLine);
 		if (GShotLines.empty())
@@ -1522,6 +1855,24 @@ namespace
 		Line += " ";
 		Line += LedgerFrame::ExposureLine(
 			LedgerFrame::MeasureExposure((const unsigned char*)Bgra.GetData(), W, H));
+		// AND WHAT THE SKY AND THE GROUND ARE IN THIS FRAME, QUEUE 186.
+		// shotMeanLuma is a mean over the whole picture and cannot tell a
+		// sky that arrived from a fog colour that never left; three named
+		// geometric bands can, and their channel means are what separate a
+		// sky's colour from an inscattering colour. Per-sample keys on the
+		// sample line, because these are statistics of THIS frame.
+		{
+			const unsigned char* Px = (const unsigned char*)Bgra.GetData();
+			const LedgerFrame::BandStats SkyTop = LedgerFrame::MeasureBand(
+				Px, W, H, "skyTop", 0.0, 0.0, 1.0, LedgerFrame::SkyTopY1());
+			const LedgerFrame::BandStats SkyCentre = LedgerFrame::MeasureBand(
+				Px, W, H, "skyCentre", LedgerFrame::SkyCentreX0(), 0.0,
+				LedgerFrame::SkyCentreX1(), LedgerFrame::SkyTopY1());
+			const LedgerFrame::BandStats Ground = LedgerFrame::MeasureBand(
+				Px, W, H, "ground", 0.0, LedgerFrame::GroundY0(), 1.0, 1.0);
+			Line += " ";
+			Line += LedgerFrame::SkyBandLine(SkyTop, SkyCentre, Ground);
+		}
 		GShotLines.push_back(Line);
 		if (GArt.empty())
 		{
@@ -1858,6 +2209,80 @@ namespace
 		OutLoadedAs = FString::Printf(TEXT("%s-BGRA8/srgb=%s"),
 		                              ImageFormatName(Fmt), bSrgb ? TEXT("yes") : TEXT("no"));
 		return Tex;
+	}
+
+	// QUEUE 186: IS THE NAMED HDRI EVEN REACHABLE FROM THIS BINARY.
+	//
+	// NOTHING IS BOUND HERE AND NOTHING MAY BE. A USkyLightComponent takes a
+	// cube texture and this engine builds none at runtime, so a decoded
+	// long-lat Radiance image would have nowhere to go. What this answers is
+	// the ONE question the next rung turns on: whether the file the shared
+	// condition block has always named can be opened from a packaged build
+	// at all, or whether that rung needs a staging step in the workflow
+	// first. Asking it costs one file-exists and one format detect; guessing
+	// it costs a round trip on his PC.
+	//
+	// THE CANDIDATE LIST MIRRORS FindTexRoot's, deliberately, because the
+	// pack and the sky would be staged by the same kind of step and a
+	// different search would answer a different question. EVERY CANDIDATE IS
+	// RECORDED whether or not it answered, for the reason run 19 established:
+	// NOT-FOUND with no list beside it does not say whether the file or the
+	// search is in the wrong place.
+	void LookForNamedHdri()
+	{
+		if (GSpec.Conditions.empty() || GSpec.Conditions[0].Hdri.empty())
+		{
+			GHdriFoundAt = "NOT-LOOKED-FOR/the-shared-file-named-no-hdri";
+			return;
+		}
+		const FString Leaf = FString(UTF8_TO_TCHAR(GSpec.Conditions[0].Hdri.c_str()))
+		                   + FString(kSkyHdriExt);
+		const FString ExeDir = FPaths::GetPath(FPlatformProcess::ExecutablePath());
+		TArray<FString> Cands;
+		Cands.Add(AbsProject(*(FString(TEXT("SkyHdri/")) + Leaf)));
+		Cands.Add(FPaths::ConvertRelativePathToFull(
+			FPaths::Combine(ExeDir, TEXT("SkyHdri"), *Leaf)));
+		Cands.Add(AbsProject(*(FString(TEXT("../ledger/Assets/Resources/")) + Leaf)));
+		Cands.Add(FPaths::ConvertRelativePathToFull(FPaths::Combine(
+			ExeDir, TEXT("../../../../ledger/Assets/Resources"), *Leaf)));
+		std::string Tried;
+		for (int32 I = 0; I < Cands.Num(); ++I)
+		{
+			if (!Tried.empty()) { Tried += ";"; }
+			Tried += NoSpaces(std::string(TCHAR_TO_UTF8(*Cands[I])));
+			if (!IFileManager::Get().FileExists(*Cands[I])) { continue; }
+			GHdriFoundAt = NoSpaces(std::string(TCHAR_TO_UTF8(*Cands[I])));
+			GHdriBytes   = (long long)IFileManager::Get().FileSize(*Cands[I]);
+			// WHAT THE BYTES ARE, ASKED RATHER THAN INFERRED FROM THE SUFFIX,
+			// the same rule ImportTexture follows. The enum VALUE is printed
+			// beside the name because this file's ImageFormatName knows four
+			// formats and Radiance is not one of them: UNRECOGNISED/enum=8
+			// and UNRECOGNISED/enum=-1 are different answers and the number
+			// is what separates them.
+			TArray<uint8> Head;
+			if (FFileHelper::LoadFileToArray(Head, *Cands[I]) && Head.Num() > 0)
+			{
+				IImageWrapperModule* Mod =
+					FModuleManager::Get().LoadModulePtr<IImageWrapperModule>(FName("ImageWrapper"));
+				if (Mod != nullptr)
+				{
+					const EImageFormat Fmt =
+						Mod->DetectImageFormat(Head.GetData(), (int64)Head.Num());
+					// THE NAME IS TURNED INTO AN std::string BEFORE THE
+					// FORMAT CALL rather than handed to a variadic as a
+					// conversion temporary, which is the shape this file
+					// already uses everywhere it crosses that boundary.
+					const std::string FmtName(TCHAR_TO_UTF8(ImageFormatName(Fmt)));
+					char B[160];
+					std::snprintf(B, sizeof(B), "%s/enum=%d", FmtName.c_str(), (int)Fmt);
+					GHdriDetectedAs = NoSpaces(std::string(B));
+				}
+				else { GHdriDetectedAs = "imagewrapper-module-missing"; }
+			}
+			else { GHdriDetectedAs = "file-would-not-load-or-was-empty"; }
+			return;
+		}
+		GHdriFoundAt = "NOT-FOUND/tried=" + Tried;
 	}
 
 	// BIND EVERY SURFACE THE SHARED FILE ASKED FOR, and count what did not
@@ -2501,7 +2926,7 @@ namespace LedgerVignetteShot
 	// ought to see.
 	FString StreetSceneLine()
 	{
-		return FString(UTF8_TO_TCHAR(GSceneLine.c_str()));
+		return FString(UTF8_TO_TCHAR(SceneLineWithSky().c_str()));
 	}
 
 	int32 ControlQuadsSpawnedCount()

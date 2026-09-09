@@ -9,6 +9,66 @@ session would otherwise duplicate, abandon, or wait for forever.
 Keep it current or delete it. A stale NOW is worse than none, because it
 looks like a live state.
 
+## 2026-09-09 09:15Z: THE CHANNEL REGIME CHANGE, AND IT RETIRES TODAY'S WORK
+
+Jafar, with a reading of total 25, Fable 24, ceiling 75. His diagnosis first,
+because it is the part that matters: "The channel fails because nobody with
+judgment sits in it. Replace the machinery with one judgment step."
+
+THAT IS A JUDGEMENT ON WHAT THIS SESSION BUILT. The morning answered a channel
+that was not actionable by building MORE MACHINERY: a cards pass, a repaired brief
+generator, a page notifier already running. The machinery worked, on its first
+real run, and sent him six cards from a stale checkout, one of them withdrawn and
+two of the day's missing. He is right that the fault was never the mechanism.
+
+THE FOUR RULINGS, in his words:
+1. ONE PRODUCER TURN A DAY writes the single message. It reads the queue, the
+   findings, the decision queue, the receipts and the ladder, and decides what he
+   sees and what he never sees. THE BRIEF GENERATOR, THE CARDS PASS AND THE PAGE
+   NOTIFIER ARE RETIRED. The register stays as a FORMAT CHECK AFTER the Producer
+   writes, not as a gate that shapes what is written.
+2. The Producer applies the director test itself: no numbers with units, no
+   coordinates, no file names, no studio vocabulary. It TAKES every decision that
+   has a recommendation and a default, logs it, and reports the notable ones in
+   the Sunday summary. THE SIX CARDS ON HIS PHONE ARE RULED AS THEIR
+   RECOMMENDATIONS. A card reaches him only when the studio CANNOT form a
+   recommendation, at most one a week, with buttons.
+3. EVERY BRIEF CARRIES TWO BUTTONS, readable and unreadable. Unreadable means
+   tomorrow's is written differently and the Producer says what it changed. THIS
+   IS THE ONLY MEASURE OF THE CHANNEL: seven consecutive readable briefs, tapped
+   by him, is the acceptance. SELFTESTS DO NOT COUNT.
+4. Fix the cards race (queue 189), since one card a week still needs to be the
+   right one. NO OTHER CHANNEL WORK.
+
+THEN THE VISUAL WORK THAT DID NOT HAPPEN: the street has no sky, so add one, and
+that is the correct fix for the road BEFORE ANY WETNESS; the Hook comparison from
+the CREATION prompt in data/concept-prompts.json, not the edit file; the Mickey's
+blockout render dispatched. Rung 1 continues. Images and clips arrive INSIDE the
+brief.
+
+DONE ALREADY: all eight decisions taken and logged under a new TAKEN BY THE STUDIO
+section, WAITING is empty by construction, and the pages card is recorded as
+RESOLVED BY EVENTS rather than taken, because the studio decided nothing there and
+should not claim to have.
+
+## 2026-09-09 09:15Z: THE ART DISPATCH MUST BE ITS OWN PUSH, OR THE RUN IS LOST
+
+ledger-art-blender-preview.yml YIELDS rather than queues when a game workflow is
+in progress, and its list is ledger-probe-unreal, ledger-build-windows,
+ledger-build-mac, ledger-core-tests and ledger-ai-playtest. YIELDING LOSES THE
+RUN; it does not defer it.
+
+`ledger-core-tests.yml` fires on `tools/*.py` and `ledger/**`. So a push carrying
+this batch and the art request TOGETHER starts core-tests, the art lane sees it in
+progress, and the Mickey's render is lost rather than queued.
+
+THE ORDER, therefore: land the batch, let core-tests finish, and fire
+`production/pc-ops/art-preview.request` as its OWN push with nothing else in it.
+Its two lines are exactly:
+
+    commission=atlas-01
+    recipe=mickeys-blockout
+
 ## 2026-09-09 09:10Z: SMALL, OPEN, AND EASY TO LOSE
 
 The map's visual-ladder block carries one sentence in the third person on a page

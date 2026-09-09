@@ -1,5 +1,25 @@
 #!/usr/bin/env python3
-"""THE CONSUMER OF THE MAP'S MATERIAL-CHANGE DETECTOR: a published page that
+"""RETIRED 2026-09-09. NOTHING CALLS THIS AND IT WRITES NO MESSAGE.
+
+RULED BY JAFAR, 2026-09-09, VERBATIM: "The brief generator, the cards pass and
+the page notifier are retired." THIS IS THE PAGE NOTIFIER. Its only caller was
+the `notify` job in .github/workflows/publish-glance.yml, and that job is gone;
+the served-page CHECK in the publish job is untouched, because it proves the
+deploy and never wrote a message.
+
+WHY. It decided, from a digest, that Jafar should be told something. The ruling
+moves that decision to a person: "One Producer turn a day writes the single
+message... and decides what I see and what I never see." A map that moved is
+now something the Producer may put in that one message or may never mention.
+
+WHAT IS KEPT. This file, unrun, as the record of the mechanism.
+production/map-notified.json stays as the record of what was last announced,
+and tools/map.py's `mapMaterialChange` detector is untouched: the detector was
+never the problem, the automatic telling was.
+
+WHAT IT WAS, KEPT BELOW AS WRITTEN.
+
+THE CONSUMER OF THE MAP'S MATERIAL-CHANGE DETECTOR: a published page that
 answers, a state he has not been told about, and a message written for the
 sender. Nothing here delivers anything.
 
@@ -856,6 +876,17 @@ def main():
     a = ap.parse_args()
     if a.selftest:
         return selftest()
+    # RETIRED 2026-09-09, AND THE REFUSAL IS HERE RATHER THAN IN A COMMENT.
+    # This program wrote a Producer message into production/outbox/, which the
+    # bot's sweep sends: a stray run would put a machine-composed message in
+    # front of Jafar under the Producer's name, which is exactly what the
+    # ruling ends. Exit 5, its own code, so a caller that still exists reads
+    # as red rather than as a clean no-change run (10 or 11).
+    print("%s: RETIRED 2026-09-09 by Jafar's ruling. Nothing was requested, "
+          "0 page(s) were read and 0 message(s) were written. What the "
+          "published map is doing goes into the one daily message a Producer "
+          "turn writes, or into no message at all." % TOOL)
+    return 5
     if not a.served_map or not a.map_link:
         ap.print_help()
         print("\n%s: nothing measured. --served-map and --map-link are both "

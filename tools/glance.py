@@ -1474,9 +1474,18 @@ def card_lines(model):
 
 # ---------------------------------------------------------------------------
 # SELFTEST, ACCEPTING CASE FIRST. The accepting side is the one that goes
-# unrun, so it is first here and it is run against the live checkout, which is
-# the only fixture that can go stale under us. The rejecting fixtures are
-# synthetic, so doing the work this page asks for can never break the tool.
+# unrun, so it is first here, and part of it runs against the live checkout
+# because that is the only fixture that can catch the real page regressing.
+#
+# WHAT THE LIVE CHECKOUT CANNOT HOLD UP, LEARNED THE HARD WAY ON 2026-09-09: a
+# property that needs a CARD in production/decision-queue.md must not be pinned
+# to that file, because an empty WAITING section is the normal case from the
+# morning the studio began taking every decision that carries a recommendation
+# and a default. Three checks went red that hour on a tree nobody had broken.
+# Those three read FIXTURE_QUEUE_THREE_PUSHABLE now and the properties are
+# unchanged. The rejecting fixtures are synthetic, and so is every accepting
+# fixture whose property needs content the project is free to empty, so doing
+# the work this page asks for cannot break the tool.
 # ---------------------------------------------------------------------------
 
 FIXTURE_SENTENCE = """HEADLINE: The street renders and the sun reached the light.
@@ -1523,6 +1532,75 @@ RECOMMENDATION A.
 ### RULED 2026-09-05: yes
 body.
 """
+
+# THE SAME QUEUE WITH THREE PUSHABLE CARDS IN IT, derived from the one above by
+# a single insertion so the two rungs differ by exactly one contributor: how
+# many pushable cards are waiting.
+#
+# WHY IT EXISTS, 2026-09-09. The byte budget, the file order and the option text
+# were checked against production/decision-queue.md itself. Jafar ruled that
+# morning that the studio takes every decision carrying a recommendation and a
+# default, so those eight were taken, a card is now written at most once a week,
+# and AN EMPTY WAITING SECTION IS THE NORMAL CASE. All three checks went red the
+# hour that ruling landed, on a tree nobody had broken: an accepting case pinned
+# to a live asset breaks when somebody does the work. The properties are kept
+# unchanged and only the input is synthetic now. The live file keeps its own
+# accepting cases, which are the ones that still have a denominator on an empty
+# day: anchorsAreTheSendersOwnIds, twoParsersAgreeOnWaiting,
+# onlyWaitingCardsAreOnThePage and run_checks on the live bytes.
+#
+# THREE THINGS ARE PLANTED ON PURPOSE, each the condition that makes one check
+# discriminate instead of passing on an empty set:
+#   THREE pushable cards, so a budget smaller than their sum can bite at all;
+#   a second card carrying the EARLIEST added date, so file order and the
+#   sender's oldest-first order DIFFER and the page can be proven to use the
+#   file's rather than agreeing with both;
+#   TWO options written over two lines, so the joined-text check is reading a
+#   join that actually happened.
+FIXTURE_QUEUE_THREE_PUSHABLE = FIXTURE_QUEUE.replace("""
+## RULED THIS WEEK
+""", """
+---
+### How wet should the road read after rain?
+CLASS: DECISION
+added 2026-09-01.
+
+THE EARLIEST ADDED DATE IN THIS FIXTURE, ON THE SECOND CARD IN IT. The sender
+messages oldest card first and this page renders in file order, so the two
+orders differ here and a page built in the sender's order is caught.
+
+- A. Standing water in the ruts holding the sodium, and this option is written
+  over two lines so that what the page has to carry is the joined sentence and
+  not the first line of it.
+- B. Damp tarmac, no standing water.
+
+RECOMMENDATION A, because every reference photograph taken after rain has ruts
+standing full in it.
+DEFAULT A if unruled by 2026-09-11.
+DEADLINE: 2026-09-11, after which A takes.
+
+---
+### Which kerb does Quay Street take?
+CLASS: DECISION
+added 2026-09-03.
+
+- A. Granite, square.
+- B. Concrete, rounded.
+
+RECOMMENDATION A, because the port's own kerbs are granite.
+DEFAULT A if unruled by 2026-09-11.
+DEADLINE: 2026-09-11, after which A takes.
+
+## RULED THIS WEEK
+""")
+
+#: HOW MANY PUSHABLE CARDS THAT FIXTURE CARRIES, and the only literal pinning
+#: its size, deliberately in the same file as the fixture for the reason
+#: tools/runner/cards.py gives beside its own FIXTURE_WAITING: a case that
+#: derives the count from the same parser it is checking compares the parser
+#: with itself and asserts nothing. Any OTHER file writing this fixture into a
+#: checkout must derive the count from it instead of copying this number.
+FIXTURE_PUSHABLE_CARDS = 3
 
 # THE TWO REAL SENTENCES JAFAR WROTE, verbatim from production/budget.md's
 # 2026-09-08 rows, as the ceiling pattern's ACCEPTING fixtures. Literals, for
@@ -1874,7 +1952,7 @@ def selftest():
               page7c.count("nothing measured")))
 
     print("\n8. THE CARDS' BYTE BUDGET, ACCEPTING FIRST: the live cards under a "
-          "budget that fits them, then under one that cannot.")
+          "budget that fits them, then PLANTED cards under one that cannot.")
     live_cards = read_cards(ROOT, dash, cards_mod, cards_why)
     allc = live_cards.get("cards") or []
     _h, series_a, used_a, drop_a = pack_cards(allc, PAGE_BYTE_CAP)
@@ -1884,20 +1962,46 @@ def selftest():
        "shown=%d/%d-pushable cardBytesSum=%d budgetBytes=%d firstDrop=%s"
        % (sum(1 for r in series_a if r["shown"]), len(allc), used_a,
           PAGE_BYTE_CAP, "none" if drop_a is None else drop_a["id"]))
-    tight = min([r["bytes"] for r in series_a] or [0])
-    _h, series_t, used_t, drop_t = pack_cards(allc, tight)
+    # THE PLANTED CARD PAGE, BUILT ONCE HERE AND READ BY FOUR CHECKS: the two
+    # below, and the order and option-text pair in 9. ONE BUILD, so those four
+    # readings are one photograph of one page and not four pages that happen to
+    # share a fixture. Why it is planted rather than the live queue is written
+    # at FIXTURE_QUEUE_THREE_PUSHABLE above; the short form is that a byte
+    # budget cannot bite on no cards, and no cards is the normal day now.
+    with tempfile.TemporaryDirectory() as tmp:
+        proot = plant(tmp, queue_text=FIXTURE_QUEUE_THREE_PUSHABLE)
+        ppage, pmodel = build(proot, parse_now("2026-09-05T06:00Z"))
+        pcards = read_cards(proot, dash, cards_mod, cards_why)
+    pall = pcards.get("cards") or []
+    pwaiting = cards_mod.waiting_cards(
+        cards_mod.parse_queue(FIXTURE_QUEUE_THREE_PUSHABLE))
+    _h, pseries_a, pused_a, pdrop_a = pack_cards(pall, PAGE_BYTE_CAP)
+    ok("everyPlantedCardFitsAGenerousBudget",
+       len(pall) == FIXTURE_PUSHABLE_CARDS and pdrop_a is None
+       and all(r["shown"] for r in pseries_a),
+       "shown=%d/%d-pushable of %s-waiting want=%d cardBytesSum=%d "
+       "budgetBytes=%d firstDrop=%s"
+       % (sum(1 for r in pseries_a if r["shown"]), len(pall),
+          pcards.get("waiting"), FIXTURE_PUSHABLE_CARDS, pused_a,
+          PAGE_BYTE_CAP, "none" if pdrop_a is None else pdrop_a["id"]))
+    # AND THE SAME CARDS UNDER A BUDGET THAT CANNOT HOLD THEM: the budget is the
+    # SMALLEST single card's byte cost, read off the series above rather than
+    # chosen, so it is the largest budget that is guaranteed to bite on a set of
+    # more than one card.
+    tight = min([r["bytes"] for r in pseries_a] or [0])
+    _h, series_t, used_t, drop_t = pack_cards(pall, tight)
     shown_t = sum(1 for r in series_t if r["shown"])
     packed_t = {"shown": shown_t, "notShown": len(series_t) - shown_t}
     ok("theCardBudgetBitesAndTheFootSaysSo",
-       len(allc) > 1 and drop_t is not None and shown_t < len(allc)
+       len(pall) > 1 and drop_t is not None and shown_t < len(pall)
        and ("(+%d more not shown" % (len(series_t) - shown_t))
-       in cards_foot(live_cards, packed_t),
+       in cards_foot(pcards, packed_t),
        "budgetBytes=%d shown=%d/%d firstDropId=%s firstDropBytes=%d "
        "roomAtDrop=%d usedAtDrop=%d foot=%s"
-       % (tight, shown_t, len(allc), (drop_t or {}).get("id"),
+       % (tight, shown_t, len(pall), (drop_t or {}).get("id"),
           (drop_t or {}).get("bytes", 0), (drop_t or {}).get("roomAtDrop", 0),
           (drop_t or {}).get("usedAtDrop", 0),
-          cards_foot(live_cards, packed_t).replace(" ", "-")))
+          cards_foot(pcards, packed_t).replace(" ", "-")))
 
     print("\n   AND THE WHOLE PAGE UNDER THE SAME PRESSURE: three planted cards "
           "carrying 80 000 characters of option text each, which is the only "
@@ -1936,30 +2040,46 @@ def selftest():
            % (m8b["looks"][1].get("count"), m8b["looks"][1].get("examined"),
               m8b["colour"], len(CARD_ELEMENT.findall(page8b))))
 
-    print("\n9. THE IMPORT CONTRACT ON THE LIVE BYTES, then REJECTING, "
-          "SYNTHETIC: the anchor check on bytes that violate it and a parser "
-          "split that must be said out loud.")
-    # THE PAGE'S ORDER IS THE FILE'S, PINNED, and the sender's order is printed
-    # beside it rather than asserted: cards.py sends oldest-added first, and the
-    # day a new card is also the oldest the two orders agree without anything
-    # having changed. An assertion that they DIFFER would be a ratchet.
-    page_order = CARD_ANCHOR.findall(page)
-    file_order = [c["id"] for c in live_waiting if cards_mod.sendable(c)[0]]
-    send_order = [c["id"] for c in cards_mod.send_order(live_waiting)
+    print("\n9. THE IMPORT CONTRACT: the order and the option text on the "
+          "PLANTED page built in 8, the leak and the disagreement on the LIVE "
+          "bytes, then REJECTING, SYNTHETIC: the anchor check on bytes that "
+          "violate it and a parser split that must be said out loud.")
+    # THE PAGE'S ORDER IS THE FILE'S, PINNED, and on the planted queue the two
+    # orders are BUILT TO DIFFER: cards.py sends oldest-added first and that
+    # fixture's second card carries the earliest added date, so pageOrder ==
+    # fileOrder and pageOrder != senderOrder each rule out a different wrong
+    # page. Against the live file only the first could ever be asserted,
+    # because the day a new card is also the oldest the two orders agree
+    # without anything having changed and an assertion that they DIFFER there
+    # would be a ratchet. The fixture is what lets the honest assertion be made
+    # at all, and shownOnPage is printed beside it because a card dropped by the
+    # byte budget would shorten pageOrder and read here as an order fault.
+    page_order = CARD_ANCHOR.findall(ppage)
+    file_order = [c["id"] for c in pwaiting if cards_mod.sendable(c)[0]]
+    send_order = [c["id"] for c in cards_mod.send_order(pwaiting)
                   if cards_mod.sendable(c)[0]]
     ok("thePageIsInFileOrderAndSaysSo",
-       page_order == file_order and "These are in FILE ORDER" in page,
-       "pageOrder=%s fileOrder=%s senderOrder=%s sameOrder=%s"
+       page_order == file_order and page_order != send_order
+       and "These are in FILE ORDER" in ppage,
+       "pageOrder=%s fileOrder=%s senderOrder=%s sameOrder=%s "
+       "shownOnPage=%d/%d-pushable queue=planted"
        % ("+".join(page_order), "+".join(file_order), "+".join(send_order),
-          page_order == send_order))
+          page_order == send_order, pmodel["packed"]["shown"],
+          pmodel["packed"]["shown"] + pmodel["packed"]["notShown"]))
     # THE OPTION TEXT IS THE FULL TEXT, checked in the bytes that ship. Until
     # 2026-09-09 the sender kept an option's first line only, so "A. Free
     # house, owned outright. The Beer Orders are WEATHER around you:" read as a
     # whole option with three lines missing. cards.py fixed it in its parser and
     # this asserts the page carries what that parser now joins, rather than a
-    # count of what it once dropped.
+    # count of what it once dropped. AND THE JOIN HAS TO HAVE HAPPENED:
+    # wrappedAndJoined is asserted above zero, because the planted fixture
+    # carries two options written over two lines on purpose, so a fixture edited
+    # down to single-line options fails here instead of passing while measuring
+    # nothing. The live queue cannot hold this one up any more: with WAITING
+    # empty, total_opts was 0 and the check read green-shaped and asserted
+    # nothing, which is why it is planted.
     joined, total_opts, lost = 0, 0, []
-    for c in live_waiting:
+    for c in pwaiting:
         if not cards_mod.sendable(c)[0]:
             continue
         for (letter, label), (letter2, full) in zip(c["options"],
@@ -1967,11 +2087,11 @@ def selftest():
             total_opts += 1
             if len(full) > len(label):
                 joined += 1
-            if esc(dash.plain(full)) not in page:
+            if esc(dash.plain(full)) not in ppage:
                 lost.append("%s%s/%s" % (CARD_ANCHOR_PREFIX, c["id"], letter2))
     ok("optionsAreTheFullTextAndNotTheFirstLine",
-       total_opts > 0 and not lost,
-       "optionsFoundInBytes=%d/%d wrappedAndJoined=%d notFound=%s"
+       total_opts > 0 and joined > 0 and not lost,
+       "optionsFoundInBytes=%d/%d wrappedAndJoined=%d notFound=%s queue=planted"
        % (total_opts - len(lost), total_opts, joined, ",".join(lost) or "none"))
     # AND NO OTHER SECTION OF THAT FILE REACHES HIS PHONE OR THIS PAGE. ON US,
     # NOT ON HIM is the new one; RULED THIS WEEK and RETIRED are the old ones.

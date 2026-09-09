@@ -10,6 +10,10 @@ status: READY 2026-09-09, and it is BLOCKING for the channel being actionable.
   MEASURED, on the first real cards pass: it sent six cards from the queue as it stood
   BEFORE that morning's edits, including one card the studio had deliberately withdrawn
   and missing the two added that day, printing waitingTotal=6 where the branch said 7.
+  CORRECTED 2026-09-09 09:50Z: the withdrawn card was moved out of WAITING BY THE VERY
+  COMMIT THE RUN WAS FOR, 38 seconds earlier, not hours. The race is push-to-step and
+  seconds wide: sweep +35s, cards +38s, flush +41s from the push. That is why the remedy
+  is a bounded wait plus a refusal and not something larger.
   THE CAUSE IS A DEFERRAL, NOT A BUG. install-scheduled-task.ps1:153 skips the CI resync
   while a supervisor is running, correctly, because pc-watcher resyncs every pass. That
   makes freshness another process's property on another process's timer, and the sending

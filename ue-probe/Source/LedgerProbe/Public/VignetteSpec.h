@@ -1855,6 +1855,144 @@ namespace LedgerVignette
 		return std::string(Buf);
 	}
 
+	// ---- QUEUE 186: THE SKY, AS READ BACK OFF THE ENGINE -----------------
+	//
+	// WHY THIS IS HERE AND NOT IN THE .cpp. Until 2026-09-09 the scene line
+	// carried skyModel=none-black/phase-C-owns-the-hdri and
+	// ambientModel=trilight-3-directional/not-a-captured-sky as HARDCODED
+	// LITERALS inside a printf format string in VignetteShot.cpp. Both were
+	// claims about the engine that no run ever checked, and one of them was
+	// false: the day frame's top band measures 249.5/250.0/250.5 mean RGB
+	// over 8858 pixels, which is a pale field and not a black one. A literal
+	// in a format string cannot be wrong about the world in any way a test
+	// can catch, so the words now come from THESE FUNCTIONS, which g++ runs
+	// before any dispatch, out of state the .cpp READ BACK off the actors.
+	//
+	// WHAT THE .cpp SUPPLIES: live state only. Whether each actor and each
+	// component is there, what the component says its own mode and intensity
+	// are AFTER being written, and how many times each was written. Not one
+	// word of the printed string is decided up there.
+	struct SkyIn
+	{
+		// SPAWNED, read back as a pointer being non-null at the moment the
+		// scene line is built, not as a spawn call having returned.
+		bool bSkyLightActor;
+		bool bSkyLightComponent;
+		bool bAtmosphereActor;
+		bool bAtmosphereComponent;
+		bool bFogComponent;
+		// WHAT THE COMPONENT SAYS AFTER THE WRITE, never what was asked for.
+		// SourceTypeRead is the engine's own enum value; 0 is its captured
+		// scene and 1 its specified cubemap in this engine version, and the
+		// number is printed rather than translated so a version that
+		// renumbers them cannot silently print the wrong word.
+		int    SourceTypeRead;
+		bool   bRealTimeCaptureRead;
+		double SkyIntensityRead;
+		double FogDensityRead;
+		double FogMaxOpacityRead;
+		// THE AMBIENT MODEL IS A DECISION AND IT IS MADE HERE, from the two
+		// booleans that decide it: whether the sky is structurally present,
+		// and whether the three fill directionals were retired to zero.
+		bool   bFillsRetired;
+		int    FillsSpawned;
+		// WRITE-ON-CHANGE, COUNTED BOTH WAYS. ApplyCondition is re-entered
+		// every tick while a condition settles, so a sky recaptured per tick
+		// is a rebuild asked for four times. Asked is how many times
+		// ApplyCondition ran; Fired is how many times the sky was actually
+		// rewritten. Asked > Fired is the whole point and is not a fault.
+		int    ApplyCalls;
+		int    SkyWrites;
+		// THE HDRI THE SHARED FILE NAMES, AND WHAT BECAME OF IT. This run
+		// binds nothing from it; these keys exist so the NEXT run does not
+		// have to guess whether the file is even reachable from the packaged
+		// binary. BoundAs is the honest word and it is expected to say the
+		// file was not bound.
+		std::string HdriAsked;
+		std::string HdriFoundAt;
+		long long   HdriBytes;
+		std::string HdriDetectedAs;
+		std::string HdriBoundAs;
+		SkyIn() : bSkyLightActor(false), bSkyLightComponent(false),
+		          bAtmosphereActor(false), bAtmosphereComponent(false),
+		          bFogComponent(false), SourceTypeRead(-1),
+		          bRealTimeCaptureRead(false), SkyIntensityRead(0.0),
+		          FogDensityRead(0.0), FogMaxOpacityRead(0.0),
+		          bFillsRetired(false), FillsSpawned(0),
+		          ApplyCalls(0), SkyWrites(0),
+		          HdriAsked("none"), HdriFoundAt("NOT-LOOKED-FOR"),
+		          HdriBytes(0), HdriDetectedAs("not-read"),
+		          HdriBoundAs("NOTHING") {}
+		// THE SKY IS STRUCTURALLY PRESENT only when every piece of it is.
+		// A skylight with no atmosphere captures a black scene, which is the
+		// exact failure the fill-light comment in VignetteShot.cpp warned
+		// about before any of this existed.
+		bool Whole() const
+		{
+			return bSkyLightActor && bSkyLightComponent
+			    && bAtmosphereActor && bAtmosphereComponent;
+		}
+	};
+
+	// THE MODEL WORDS. Each names the mechanism AND the thing a reader would
+	// otherwise assume: an atmosphere is not a photographed sky, and a sky
+	// that failed to spawn must not read as a sky that is dark.
+	inline std::string SkyModelWord(const SkyIn& In)
+	{
+		if (In.Whole()) { return "skyatmosphere+skylight-realtime-capture/not-an-hdri"; }
+		if (In.bAtmosphereActor && !In.bSkyLightActor)
+		{
+			return "SKYLIGHT-MISSING/atmosphere-visible-but-nothing-captures-it";
+		}
+		if (!In.bAtmosphereActor && In.bSkyLightActor)
+		{
+			return "ATMOSPHERE-MISSING/skylight-would-capture-a-black-scene";
+		}
+		return "SPAWN-FAILED/no-sky-of-any-kind/the-far-field-is-the-height-fog";
+	}
+
+	inline std::string AmbientModelWord(const SkyIn& In)
+	{
+		if (In.Whole() && In.bFillsRetired)
+		{
+			return "skylight-captured-sky/ONE-OWNER/trilight-retired-to-zero";
+		}
+		if (In.Whole() && !In.bFillsRetired)
+		{
+			return "skylight+trilight/TWO-CONTRIBUTORS/the-sky-did-not-take-ownership";
+		}
+		return "trilight-3-directional/not-a-captured-sky/the-sky-is-not-whole";
+	}
+
+	inline std::string SkySegment(const SkyIn& In)
+	{
+		char Buf[1400];
+		std::snprintf(Buf, sizeof(Buf),
+			"skyModel=%s ambientModel=%s "
+			"skyLight=%s skyLightComponent=%s skyAtmosphere=%s skyAtmosphereComponent=%s "
+			"skySourceTypeRead=%d skyRealTimeCaptureRead=%s skyIntensityRead=%.3f "
+			"skyWrites=%d/of=%d/applyCondition-calls/write-on-change "
+			"fogComponent=%s fogDensityRead=%.4f fogMaxOpacityRead=%.3f "
+			"fillsRetiredToZero=%s fillsSpawned=%d/3 "
+			"skyHdriAsked=%s skyHdriFoundAt=%s skyHdriBytes=%lld skyHdriDetectedAs=%s "
+			"skyHdriBoundAs=%s "
+			"skyReadStat=every-value-above-is-read-back-off-the-component-after-the-write/"
+			"never-the-value-that-was-asked-for",
+			SkyModelWord(In).c_str(), AmbientModelWord(In).c_str(),
+			In.bSkyLightActor ? "yes" : "SPAWN-FAILED",
+			In.bSkyLightComponent ? "yes" : "NOT-FOUND",
+			In.bAtmosphereActor ? "yes" : "SPAWN-FAILED",
+			In.bAtmosphereComponent ? "yes" : "NOT-FOUND",
+			In.SourceTypeRead, In.bRealTimeCaptureRead ? "yes" : "no",
+			In.SkyIntensityRead, In.SkyWrites, In.ApplyCalls,
+			In.bFogComponent ? "yes" : "NOT-FOUND",
+			In.FogDensityRead, In.FogMaxOpacityRead,
+			In.bFillsRetired ? "yes" : "no", In.FillsSpawned,
+			In.HdriAsked.c_str(), In.HdriFoundAt.c_str(), In.HdriBytes,
+			In.HdriDetectedAs.c_str(), In.HdriBoundAs.c_str());
+		return std::string(Buf);
+	}
+
 	// THE DONE LINE FOR THE WHOLE CAPTURE. Whole-run numbers only, and a run
 	// that photographed nothing says the words rather than printing zeros
 	// that read like a clean result.

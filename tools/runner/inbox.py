@@ -82,6 +82,19 @@ OUTBOUND_DIR = "production/outbound"
 #: register.
 RULING_DIR = "production/rulings"
 
+#: WHERE A BRIEF'S READABLE/UNREADABLE TAP LANDS, added 2026-09-09 for Jafar's
+#: ruling that every brief carries two buttons and that the consecutive
+#: readable run is the only measure of this channel. ITS OWN FOLDER AND ITS OWN
+#: PATTERN, for exactly the reason RULING_DIR is not OUTBOUND_DIR: a record a
+#: reader cannot classify prints as unreadable and turns a working channel into
+#: a fault report. Separate folder, separate pattern, separate denominator.
+#: `.txt` for the same reason the other two are: tools/producer-check.py walks
+#: `*.md` and must never be handed a tap to grade against a message register.
+#: The record format, the streak arithmetic and every string live in
+#: tools/runner/brief.py, where the tests run; this file carries the transport
+#: and nothing else.
+BRIEF_TAP_DIR = "production/brief-taps"
+
 #: THE PARENT POINTER, LOCAL AND PRIVATE. Written by this file after a push
 #: so the next commit can chain without a fetch. Nothing else in the studio
 #: looks at `refs/ledger-inbox/`: `pc-watcher` reads HEAD, `refs/heads/*` and
@@ -101,6 +114,15 @@ OUTBOUND_RE = re.compile(
 
 #: A ruling record, and nothing else. Same denominator discipline again.
 RULING_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{4}Z-\d+\.ruling\.txt$")
+
+#: A BRIEF TAP OR ITS REASON, and nothing else. The instant in the name is the
+#: TAP'S, so two taps on one brief are two files and neither overwrites the
+#: other; the brief's own day is a field inside. `tap` or `reason` in the name
+#: is the record kind, and `tools/runner/brief.py:parse_tap` reads the field
+#: rather than the name, so the name is for a human and the field is for the
+#: reader.
+BRIEF_TAP_RE = re.compile(
+    r"^\d{4}-\d{2}-\d{2}T\d{4}Z-\d+-(tap|reason)\.brieftap\.txt$")
 
 #: THE SUBCOMMANDS THIS FILE MAY RUN. `fetch` and `pull` are absent on
 #: purpose and the docstring above says why. Anything not here comes back as
@@ -432,10 +454,24 @@ def ruling_files(repo):
                   if RULING_RE.match(n))
 
 
+def brief_tap_files(repo):
+    """Repository-relative paths of the brief taps on this disk, sorted.
+
+    Same shape and same pattern discipline as `ruling_files`: the count beside
+    a zero is the count of records, never of files in a folder.
+    """
+    d = os.path.join(repo, *BRIEF_TAP_DIR.split("/"))
+    if not os.path.isdir(d):
+        return []
+    return sorted("%s/%s" % (BRIEF_TAP_DIR, n) for n in os.listdir(d)
+                  if BRIEF_TAP_RE.match(n))
+
+
 def tracked_files(repo):
-    """Everything this transport carries: inbound messages, outbound records
-    and tapped rulings. One list, because one push moves all three."""
-    return message_files(repo) + outbound_files(repo) + ruling_files(repo)
+    """Everything this transport carries: inbound messages, outbound records,
+    tapped rulings and brief taps. One list, because one push moves all four."""
+    return (message_files(repo) + outbound_files(repo) + ruling_files(repo)
+            + brief_tap_files(repo))
 
 
 def messages_in(paths):
@@ -664,14 +700,15 @@ def tip_sha(repo):
 
 
 def tree_paths(repo, sha):
-    """Every path in that commit's tree under the three folders it carries.
+    """Every path in that commit's tree under the four folders it carries.
 
-    RULING_DIR IS IN THIS LIST, and it has to be: `pending_all` subtracts this
-    set from what is on disk, so a folder missing here is a file the bot
-    pushes again on every pass and reports as pending for ever.
+    RULING_DIR AND BRIEF_TAP_DIR ARE IN THIS LIST, and they have to be:
+    `pending_all` subtracts this set from what is on disk, so a folder missing
+    here is a file the bot pushes again on every pass and reports as pending
+    for ever.
     """
     rc, out, _ = git_call(["ls-tree", "-r", "--name-only", sha, "--", INBOX_DIR,
-                        OUTBOUND_DIR, RULING_DIR], repo)
+                        OUTBOUND_DIR, RULING_DIR, BRIEF_TAP_DIR], repo)
     if rc != 0:
         return set()
     return {p.strip() for p in out.splitlines() if p.strip()}
@@ -1264,6 +1301,33 @@ def _selftest():
         fh.write("not a ruling\n")
     check("reject/a-readme-in-the-rulings-folder-is-not-a-record",
           len(ruling_files(watcher)) == 1, ruling_files(watcher))
+
+    # ---- THE FOURTH RECORD KIND: A BRIEF TAP, 2026-09-09 ----------------
+    # THE TRANSPORT HALF ONLY. The format, the arithmetic and every string are
+    # tools/runner/brief.py's and are covered by its own suite; what is proven
+    # here is that this transport CARRIES the kind, which is the half that was
+    # missing when a ruling record first needed a folder. Accepting case first:
+    # a tap on disk is tracked and reaches the branch.
+    tapd = os.path.join(watcher, *BRIEF_TAP_DIR.split("/"))
+    os.makedirs(tapd, exist_ok=True)
+    tap_rel = "%s/2026-09-10T1830Z-7001-tap.brieftap.txt" % BRIEF_TAP_DIR
+    with open(os.path.join(watcher, *tap_rel.split("/")), "w",
+              encoding="utf-8", newline="\n") as fh:
+        fh.write("record: tap\nbriefDay: 2026-09-10\nverdict: readable\n"
+                 "tappedEpoch: 1788633012\nupdate: 7001\n")
+    check("accept/a-brief-tap-on-disk-is-carried-by-this-transport",
+          tap_rel in brief_tap_files(watcher)
+          and tap_rel in tracked_files(watcher)
+          and tap_rel not in message_files(watcher),
+          "%d tap(s), %d tracked" % (len(brief_tap_files(watcher)),
+                                     len(tracked_files(watcher))))
+    with open(os.path.join(tapd, "README.md"), "w", encoding="utf-8") as fh:
+        fh.write("not a tap\n")
+    with open(os.path.join(tapd, "2026-09-10T1830Z-7001.ruling.txt"), "w",
+              encoding="utf-8") as fh:
+        fh.write("wrong kind in the right folder\n")
+    check("reject/neither-a-readme-nor-a-ruling-name-counts-as-a-brief-tap",
+          len(brief_tap_files(watcher)) == 1, brief_tap_files(watcher))
 
     # ---- B1: A RECEIPT BESIDE A MESSAGE MUST NOT BE COUNTED AS ONE ----
     # The rejecting case above cannot see this: it runs before any receipt

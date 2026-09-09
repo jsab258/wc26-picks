@@ -1,0 +1,349 @@
+{
+  "schema": 2,
+  "batch_name": "hook-compare-2026-09-09",
+  "_comment": [
+    "A ONE-OFF COMPARISON, NOT A LIBRARY ADDITION, NOT SHIPPED CONTENT.",
+    "Jafar asked on 2026-09-09 (item 4(a)) to see Codex's Hook concept",
+    "sheet beside what this lane draws from the same description. This file",
+    "exists so the shipped library is untouched: nothing here is generated",
+    "by a night `all` run, and the output goes to its own directory.",
+    "The authority is",
+    "game-design/decision-2026-09-09-the-hook-comparison-the-ruled-link-and-the-stale-pages.md",
+    "sections 1.2 to 1.6.",
+    "",
+    "THE SOURCE IS THE CREATION PROMPT, NOT THE EDIT NOTE. Jafar first",
+    "named concept-final-prompts.json; that file holds image-EDIT",
+    "instructions for a board that already exists ('Make a single spatial",
+    "correction to the lower street panel of this Hook district concept",
+    "board'), and this lane has no image conditioning, so running it would",
+    "have answered a different question. He named the creation prompt",
+    "instead, and `source` below records exactly which bytes were read.",
+    "",
+    "WHY THE PROMPT IS NOT VERBATIM, AND WHY THAT IS NOT A THUMB ON THE",
+    "SCALE. imagegen.py refuses a positive prompt that carries exclusion",
+    "phrasing, and the refusal is measured rather than cautious: at cfg 1.0",
+    "sd-cli never evaluates the unconditional branch, so a negative prompt",
+    "is inert and `no X` in the positive puts X into the only channel the",
+    "model reads. `no signage legible` is what produced a crisp sign board",
+    "reading WEORED S HONJ on wall_soot_brick. So each exclusion clause is",
+    "translated into positive phrasing exactly as the library did when `no",
+    "people, no cars` became `deserted, empty street` (prompts.json 122 to",
+    "124), every pair is listed in `translation` below, and NOTHING else in",
+    "the text changed. The report that accompanied this file pasted the",
+    "diff to prove it.",
+    "",
+    "WHAT IS STILL NOT LIKE FOR LIKE, SAID HERE SO NOBODY HAS TO FIND IT.",
+    "Their board is three generations deep: the creation prompt below, then",
+    "concept-edit-prompts.json key `hook` (1780 characters, which pulled a",
+    "'nostalgic 1930s town' back to 1990), then concept-final-prompts.json",
+    "key `hook` (715 characters, a spatial correction), with a human eye",
+    "between each pass, and their own PROVENANCE.md says the concepts were",
+    "'selectively edited after visual inspection'. Ours is one draw at a",
+    "fixed seed with no edit pass and no selection. Ours is also smaller",
+    "(see the item note) and is drawn by an eight-step distilled model",
+    "built and measured for flat plates, never for a multi-panel board.",
+    "",
+    "THE SEEDS ARE THE DATE, one per item, written in this file before",
+    "anything was generated, so no agent can be accused of having chosen",
+    "the lucky draw. hook_compare is the one that goes in the message;",
+    "s2 to s4 are banked and cost PC minutes and nothing else.",
+    "",
+    "content_rules, forbidden_tokens and style.framing_required are copied",
+    "VERBATIM from tools/imagegen/prompts.json, so this file runs through",
+    "the same brand, real-person and framing guards as every shipped item.",
+    "The `concept` kind exists because the library's default prefix asks",
+    "for a 'flat orthographic texture sheet' and its default suffix ends",
+    "'one single flat surface': composed round a concept board, that is a",
+    "request for a texture sample of a picture. The prefix here is the",
+    "shortest phrase that carries style.framing_required and describes",
+    "nothing the original does not, and the suffix is PRESENT AND EMPTY",
+    "because resolve_style falls back to the default suffix when a kind",
+    "omits the key.",
+    "",
+    "THERE IS NO `negatives` BLOCK ON PURPOSE. The library's",
+    "negatives.default pushes away people, crowds, faces, cars and traffic,",
+    "which is right for a deserted plate and wrong for a board the original",
+    "asks to be 'inhabited with 3 nonidentifiable people'. Each item",
+    "carries its own `negative`, which is the mirror of the translated",
+    "clauses and nothing else. At cfg 1.0 it is RECORDED AND INERT: the",
+    "manifest's negatives.inert_at_cfg1 count is what says so."
+  ],
+  "content_rules": {
+    "_comment": [
+      "THESE RIDE IN EVERY PROMPT. They are data, not documentation, so an",
+      "editor adding a thirteenth item cannot forget them: the renderer appends",
+      "`rules_clause` to every positive prompt and refuses to build a prompt",
+      "that does not carry it (imagegen.py: build_prompt / _selftest_rules).",
+      "",
+      "WHY: every 1980s British advert, poster and packet is still in copyright",
+      "for decades yet, and trade mark was the ONLY claim Getty actually won in",
+      "[2025] EWHC 2863 (Ch). A model asked for `a British high street in 1989`",
+      "will happily paint a real brewery's livery on a pub. So we never ask for",
+      "one. In-world brands only, which is better content anyway - MICKEY'S is",
+      "a place in this game and a real brewery is not.",
+      "",
+      "AND THIS IS THE ONE CLAUSE THAT STAYS IN THE POSITIVE PROMPT, 25 Aug.",
+      "Every other exclusion moved to `negatives` below. This one did not, and",
+      "the reason is measured rather than cautious: sd-cli only evaluates the",
+      "unconditional branch when cfg != 1.0 (see `negatives._comment`), and this",
+      "batch runs at cfg 1.0 because Z-Image-Turbo is distilled for it. A",
+      "negative prompt is therefore INERT here - so moving the anti-brand,",
+      "anti-real-person clause into it would have deleted the only instruction",
+      "the model actually receives on the subject. It is mirrored into the",
+      "negative as well, where it will start acting the day an item raises cfg.",
+      "The exclusion scan in imagegen.py exempts this clause BY NAME and prints",
+      "that it did, so the hole is a line of output rather than a silence."
+    ],
+    "rules_clause": "invented fictional shop name only, no real company names, no real brand logos, no trade marks, no real person, no recognisable faces, no celebrity likeness",
+    "forbidden_tokens": [
+      "coca-cola",
+      "coca cola",
+      "pepsi",
+      "guinness",
+      "carlsberg",
+      "heineken",
+      "bass ",
+      "watneys",
+      "courage",
+      "whitbread",
+      "tetley",
+      "boddingtons",
+      "woolworths",
+      "marks and spencer",
+      "tesco",
+      "sainsbury",
+      "wimpy",
+      "british rail",
+      "royal mail",
+      "bt ",
+      "british telecom",
+      "post office",
+      "walkers",
+      "cadbury",
+      "mcvitie",
+      "hovis",
+      "bovril",
+      "oxo",
+      "silk cut",
+      "benson and hedges",
+      "embassy",
+      "regal",
+      "players",
+      "castella",
+      "ford ",
+      "vauxhall",
+      "austin rover",
+      "leyland",
+      "shell",
+      "esso",
+      "bp ",
+      "thatcher",
+      "princess diana",
+      "the queen",
+      "elizabeth ii"
+    ]
+  },
+  "style": {
+    "_comment": [
+      "framing_required, and only framing_required, is copied verbatim",
+      "from tools/imagegen/prompts.json line 172. The default prefix and",
+      "suffix are deliberately NOT copied: see the file comment above.",
+      "by_kind.concept.prefix is the shortest phrase that satisfies",
+      "build_prompt's framing check (it contains `filling the frame edge",
+      "to edge`) while describing nothing the original does not: the",
+      "original already asks for two panels with cream margins, and a",
+      "board filling the frame is what it is.",
+      "by_kind.concept.suffix is PRESENT AND EMPTY. Omitting the key",
+      "would inherit the default suffix, which ends `one single flat",
+      "surface`."
+    ],
+    "framing_required": "filling the frame edge to edge",
+    "by_kind": {
+      "concept": {
+        "prefix": "the whole board filling the frame edge to edge,",
+        "suffix": ""
+      }
+    }
+  },
+  "defaults": {
+    "steps": 8,
+    "cfg": 1.0,
+    "sampler": "unset - sd-cli picks its model-specific default",
+    "seed_base": 8025,
+    "_comment": [
+      "steps and cfg are the library's measured settings, unchanged. cfg",
+      "1.0 is where this distilled model is measured and where the",
+      "negative channel is inert; raising it is the named next rung and",
+      "not this run. seed_base is never reached because every item",
+      "carries its own seed."
+    ]
+  },
+  "source": {
+    "what": "the bytes this file's prompt was translated from, so the diff can be re-derived by anyone",
+    "branch": "origin/art/atlas-01",
+    "commit": "8ce81733875888c3fe2c0a5547d3e39a3e85f2a4",
+    "file": "production/art/atlas-01/data/concept-prompts.json",
+    "key": "hook",
+    "read_with": "git show origin/art/atlas-01:production/art/atlas-01/data/concept-prompts.json",
+    "original_prompt_chars": 1599,
+    "original_prompt_sha256": "53408df57ae455779b773ef30a26d92cad416d49e16b222183f4edb6de3654ae",
+    "original_prompt": "Use case: historical-scene. Create one polished portrait environment concept sheet for LEDGER, fictional British port Meridian in 1990. Two clearly separated wide cinematic photoreal panels, top establishing view, bottom pedestrian eye-height view, with restrained cream margins. Title THE HOOK. Small subtitle AI CONCEPT / PROPOSAL. TOP: view from low dock office across an enclosed working stone basin, two-storey red brick warehouses and shop terraces, inland town gently rising behind, quay straight and narrow foot passage off it, working ropes, no pleasure marina. BOTTOM: camera at 1.6m standing at south end looking north along Quay Street, 6m wet asphalt carriageway plus 2m pavement each side, continuous brick terraces. On RIGHT/east first bay is Mickey's a SMALL SINGLE 6m-wide two-storey pub under a 35-degree slate roof, party-wall chimneys, maroon fascia MICKEY'S, two doors on near/south part of facade and wide pub window north of them. Fish shop next along right. Soot brick parapet terraces left with one narrow yard slot further up. Daytime overcast soft light, subtle wetness, inhabited with 3 nonidentifiable people in ordinary 1990 clothing, no street festival. Hand worn paint, soot streaks below gutters, domestic curtains upstairs. Photographic material plausibility, no illustration stylisation. Bottom small strip four material swatches red brick, slate, oxblood painted timber, quay stone; and objects rope fender, metal dustbin, beer firkin. No real brands or logos, no modern tech, no wheeled bins, no contemporary cars. No HUD. This is proposed art, not a screenshot.",
+    "their_image": {
+      "file": "production/art/atlas-01/concepts/hook.png",
+      "width": 1024,
+      "height": 1536,
+      "bytes": 2756513,
+      "sha256": "f744d9f7fcf21a9e5f78e9cb616e688a2991bbd1a3dce36c7d06b7ff96adb1fc",
+      "measured": "PNG IHDR read from the file on the art branch; the bytes and sha256 agree with that branch's own INVENTORY.md row",
+      "not_one_draw": "their PROVENANCE.md: concepts were 'generated for this commission and selectively edited after visual inspection', and data/concept-edit-prompts.json plus data/concept-final-prompts.json both carry a `hook` edit pass"
+    }
+  },
+  "translation": [
+    {
+      "original_clause": "no pleasure marina",
+      "replaced_with": "a commercial cargo basin",
+      "moved_to_negative": [
+        "pleasure marina",
+        "yacht",
+        "leisure moorings",
+        "pontoon"
+      ],
+      "why": "Positive form of the same intent: the water holds trade, not leisure. `commercial cargo` is the positive of `pleasure`; `basin` is the original's own noun, already in this sentence."
+    },
+    {
+      "original_clause": "no street festival",
+      "replaced_with": "everyday activity",
+      "moved_to_negative": [
+        "street festival",
+        "bunting",
+        "fairground",
+        "crowd"
+      ],
+      "why": "Positive form: the inhabitants are having an ordinary day. The sibling prompt `copper` in the same source file says `natural varied activity`, so this is the source author's own register."
+    },
+    {
+      "original_clause": "no illustration stylisation",
+      "replaced_with": "photoreal throughout",
+      "moved_to_negative": [
+        "illustration",
+        "stylised illustration",
+        "cartoon",
+        "painterly"
+      ],
+      "why": "Positive form, using the original's own word: the panels are already asked for as `photoreal` in its second sentence. `rendering` was deliberately NOT used, because the source author's other prompts push `render` away (`concept not game render`)."
+    },
+    {
+      "original_clause": "No real brands or logos",
+      "replaced_with": "Fictional unbranded signage only",
+      "moved_to_negative": [
+        "real brand logo",
+        "trade mark",
+        "real company name"
+      ],
+      "why": "Positive form copied from the source author's own sibling prompt `copper`, which says `Fictional unbranded signage only`. The same intent also rides in the appended content_rules.rules_clause verbatim, which is the one exclusion clause imagegen.py allows in a positive prompt and exempts from the scan by name."
+    },
+    {
+      "original_clause": "no modern tech, no wheeled bins, no contemporary cars",
+      "replaced_with": "everything period-correct for 1990",
+      "moved_to_negative": [
+        "modern tech",
+        "computer screen",
+        "mobile phone",
+        "wheeled bin",
+        "wheelie bin",
+        "contemporary car",
+        "modern car"
+      ],
+      "why": "One positive clause for three exclusions that share one intent: a wheelie bin, a modern car and modern tech are each a thing that is not period-correct for 1990. THIS IS WEAKER THAN THE ORIGINAL and the loss is recorded rather than hidden: the three nouns are named individually in the original and only the umbrella survives in ours, because a positive naming of bins or cars would PLACE a bin or a car in a street where the source author placed neither."
+    },
+    {
+      "original_clause": "No HUD. ",
+      "replaced_with": "",
+      "moved_to_negative": [
+        "HUD",
+        "heads-up display",
+        "game interface overlay"
+      ],
+      "why": "NO HONEST POSITIVE EQUIVALENT: the positive of `no overlay` is nothing to draw, and any phrase naming a HUD in a positive prompt asks for one. Moved to `negative` only, where the manifest's inert_at_cfg1 count records that it did nothing at cfg 1.0."
+    },
+    {
+      "original_clause": "This is proposed art, not a screenshot.",
+      "replaced_with": "This is proposed art.",
+      "moved_to_negative": [
+        "screenshot",
+        "game screenshot"
+      ],
+      "why": "The positive half is the source author's own sentence and is kept word for word; only the `not a ...` half moves to `negative`."
+    }
+  ],
+  "items": [
+    {
+      "id": "hook_compare",
+      "kind": "concept",
+      "probe": true,
+      "binds_to": "COMPARISON ONLY - not shipped, not bound to anything. Jafar 2026-09-09 item 4(a), Codex's Hook sheet against this lane.",
+      "width": 688,
+      "height": 1024,
+      "seed": 20260909,
+      "prompt": "Use case: historical-scene. Create one polished portrait environment concept sheet for LEDGER, fictional British port Meridian in 1990. Two clearly separated wide cinematic photoreal panels, top establishing view, bottom pedestrian eye-height view, with restrained cream margins. Title THE HOOK. Small subtitle AI CONCEPT / PROPOSAL. TOP: view from low dock office across an enclosed working stone basin, two-storey red brick warehouses and shop terraces, inland town gently rising behind, quay straight and narrow foot passage off it, working ropes, a commercial cargo basin. BOTTOM: camera at 1.6m standing at south end looking north along Quay Street, 6m wet asphalt carriageway plus 2m pavement each side, continuous brick terraces. On RIGHT/east first bay is Mickey's a SMALL SINGLE 6m-wide two-storey pub under a 35-degree slate roof, party-wall chimneys, maroon fascia MICKEY'S, two doors on near/south part of facade and wide pub window north of them. Fish shop next along right. Soot brick parapet terraces left with one narrow yard slot further up. Daytime overcast soft light, subtle wetness, inhabited with 3 nonidentifiable people in ordinary 1990 clothing, everyday activity. Hand worn paint, soot streaks below gutters, domestic curtains upstairs. Photographic material plausibility, photoreal throughout. Bottom small strip four material swatches red brick, slate, oxblood painted timber, quay stone; and objects rope fender, metal dustbin, beer firkin. Fictional unbranded signage only, everything period-correct for 1990. This is proposed art.",
+      "negative": "pleasure marina, yacht, leisure moorings, pontoon, street festival, bunting, fairground, crowd, illustration, stylised illustration, cartoon, painterly, real brand logo, trade mark, real company name, modern tech, computer screen, mobile phone, wheeled bin, wheelie bin, contemporary car, modern car, HUD, heads-up display, game interface overlay, screenshot, game screenshot",
+      "_note": [
+        "OURS IS SMALLER THAN THEIRS, AND THE CAPTION MUST SAY SO. hook.png is",
+        "1024x1536, 1.57 megapixels. This item is 688x1024, 0.70 megapixels, 45",
+        "per cent of their pixel count. 1024 is the largest long edge this lane",
+        "has banked without a blank (45 PNGs on disk: long edge 1024 x6, 896 x19,",
+        "768 x18, 512 x2; blank_check 0 blank and 0 undecodable of 41 checked and",
+        "45 rechecked). Asking for 1536 would be a size no run here has measured,",
+        "on the one draw a decision is being made from.",
+        "",
+        "NO PORTRAIT FRAME THIS LARGE HAS BEEN BANKED EITHER. Both numbers have",
+        "been banked separately (1024 as a long edge, 688 under the 1024 that",
+        "wall_soot_brick used) and the area is 67 per cent of the largest banked",
+        "area, but 688x1024 as a pair is new, so a blank is a live possibility and",
+        "the run prints the blank verdict per image."
+      ]
+    },
+    {
+      "id": "hook_compare_s2",
+      "kind": "concept",
+      "probe": true,
+      "binds_to": "COMPARISON ONLY - not shipped, not bound to anything. Jafar 2026-09-09 item 4(a), Codex's Hook sheet against this lane.",
+      "width": 688,
+      "height": 1024,
+      "seed": 20260910,
+      "prompt": "Use case: historical-scene. Create one polished portrait environment concept sheet for LEDGER, fictional British port Meridian in 1990. Two clearly separated wide cinematic photoreal panels, top establishing view, bottom pedestrian eye-height view, with restrained cream margins. Title THE HOOK. Small subtitle AI CONCEPT / PROPOSAL. TOP: view from low dock office across an enclosed working stone basin, two-storey red brick warehouses and shop terraces, inland town gently rising behind, quay straight and narrow foot passage off it, working ropes, a commercial cargo basin. BOTTOM: camera at 1.6m standing at south end looking north along Quay Street, 6m wet asphalt carriageway plus 2m pavement each side, continuous brick terraces. On RIGHT/east first bay is Mickey's a SMALL SINGLE 6m-wide two-storey pub under a 35-degree slate roof, party-wall chimneys, maroon fascia MICKEY'S, two doors on near/south part of facade and wide pub window north of them. Fish shop next along right. Soot brick parapet terraces left with one narrow yard slot further up. Daytime overcast soft light, subtle wetness, inhabited with 3 nonidentifiable people in ordinary 1990 clothing, everyday activity. Hand worn paint, soot streaks below gutters, domestic curtains upstairs. Photographic material plausibility, photoreal throughout. Bottom small strip four material swatches red brick, slate, oxblood painted timber, quay stone; and objects rope fender, metal dustbin, beer firkin. Fictional unbranded signage only, everything period-correct for 1990. This is proposed art.",
+      "negative": "pleasure marina, yacht, leisure moorings, pontoon, street festival, bunting, fairground, crowd, illustration, stylised illustration, cartoon, painterly, real brand logo, trade mark, real company name, modern tech, computer screen, mobile phone, wheeled bin, wheelie bin, contemporary car, modern car, HUD, heads-up display, game interface overlay, screenshot, game screenshot",
+      "_note": [
+        "Same recipe as hook_compare in every respect except the seed, so the four together say what one draw cannot: how much of the result is the prompt and how much is the lottery. Not sent unless he asks; see hook_compare's note."
+      ]
+    },
+    {
+      "id": "hook_compare_s3",
+      "kind": "concept",
+      "probe": true,
+      "binds_to": "COMPARISON ONLY - not shipped, not bound to anything. Jafar 2026-09-09 item 4(a), Codex's Hook sheet against this lane.",
+      "width": 688,
+      "height": 1024,
+      "seed": 20260911,
+      "prompt": "Use case: historical-scene. Create one polished portrait environment concept sheet for LEDGER, fictional British port Meridian in 1990. Two clearly separated wide cinematic photoreal panels, top establishing view, bottom pedestrian eye-height view, with restrained cream margins. Title THE HOOK. Small subtitle AI CONCEPT / PROPOSAL. TOP: view from low dock office across an enclosed working stone basin, two-storey red brick warehouses and shop terraces, inland town gently rising behind, quay straight and narrow foot passage off it, working ropes, a commercial cargo basin. BOTTOM: camera at 1.6m standing at south end looking north along Quay Street, 6m wet asphalt carriageway plus 2m pavement each side, continuous brick terraces. On RIGHT/east first bay is Mickey's a SMALL SINGLE 6m-wide two-storey pub under a 35-degree slate roof, party-wall chimneys, maroon fascia MICKEY'S, two doors on near/south part of facade and wide pub window north of them. Fish shop next along right. Soot brick parapet terraces left with one narrow yard slot further up. Daytime overcast soft light, subtle wetness, inhabited with 3 nonidentifiable people in ordinary 1990 clothing, everyday activity. Hand worn paint, soot streaks below gutters, domestic curtains upstairs. Photographic material plausibility, photoreal throughout. Bottom small strip four material swatches red brick, slate, oxblood painted timber, quay stone; and objects rope fender, metal dustbin, beer firkin. Fictional unbranded signage only, everything period-correct for 1990. This is proposed art.",
+      "negative": "pleasure marina, yacht, leisure moorings, pontoon, street festival, bunting, fairground, crowd, illustration, stylised illustration, cartoon, painterly, real brand logo, trade mark, real company name, modern tech, computer screen, mobile phone, wheeled bin, wheelie bin, contemporary car, modern car, HUD, heads-up display, game interface overlay, screenshot, game screenshot",
+      "_note": [
+        "Same recipe as hook_compare in every respect except the seed, so the four together say what one draw cannot: how much of the result is the prompt and how much is the lottery. Not sent unless he asks; see hook_compare's note."
+      ]
+    },
+    {
+      "id": "hook_compare_s4",
+      "kind": "concept",
+      "probe": true,
+      "binds_to": "COMPARISON ONLY - not shipped, not bound to anything. Jafar 2026-09-09 item 4(a), Codex's Hook sheet against this lane.",
+      "width": 688,
+      "height": 1024,
+      "seed": 20260912,
+      "prompt": "Use case: historical-scene. Create one polished portrait environment concept sheet for LEDGER, fictional British port Meridian in 1990. Two clearly separated wide cinematic photoreal panels, top establishing view, bottom pedestrian eye-height view, with restrained cream margins. Title THE HOOK. Small subtitle AI CONCEPT / PROPOSAL. TOP: view from low dock office across an enclosed working stone basin, two-storey red brick warehouses and shop terraces, inland town gently rising behind, quay straight and narrow foot passage off it, working ropes, a commercial cargo basin. BOTTOM: camera at 1.6m standing at south end looking north along Quay Street, 6m wet asphalt carriageway plus 2m pavement each side, continuous brick terraces. On RIGHT/east first bay is Mickey's a SMALL SINGLE 6m-wide two-storey pub under a 35-degree slate roof, party-wall chimneys, maroon fascia MICKEY'S, two doors on near/south part of facade and wide pub window north of them. Fish shop next along right. Soot brick parapet terraces left with one narrow yard slot further up. Daytime overcast soft light, subtle wetness, inhabited with 3 nonidentifiable people in ordinary 1990 clothing, everyday activity. Hand worn paint, soot streaks below gutters, domestic curtains upstairs. Photographic material plausibility, photoreal throughout. Bottom small strip four material swatches red brick, slate, oxblood painted timber, quay stone; and objects rope fender, metal dustbin, beer firkin. Fictional unbranded signage only, everything period-correct for 1990. This is proposed art.",
+      "negative": "pleasure marina, yacht, leisure moorings, pontoon, street festival, bunting, fairground, crowd, illustration, stylised illustration, cartoon, painterly, real brand logo, trade mark, real company name, modern tech, computer screen, mobile phone, wheeled bin, wheelie bin, contemporary car, modern car, HUD, heads-up display, game interface overlay, screenshot, game screenshot",
+      "_note": [
+        "Same recipe as hook_compare in every respect except the seed, so the four together say what one draw cannot: how much of the result is the prompt and how much is the lottery. Not sent unless he asks; see hook_compare's note."
+      ]
+    }
+  ]
+}

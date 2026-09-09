@@ -45,6 +45,7 @@ REPO = os.path.dirname(HERE)
 RUNNER = os.path.join(HERE, "runner")
 if RUNNER not in sys.path:
     sys.path.insert(0, RUNNER)
+import brief                                                   # noqa: E402
 import cards                                                   # noqa: E402
 import inbox                                                   # noqa: E402
 import outbox                                                  # noqa: E402
@@ -210,7 +211,7 @@ def read_inbox(repo, do_fetch=True, remote="origin", branch=None):
     res = {"fetch": "skipped", "detail": "", "seen": 0, "delivered": [],
            "already": [], "samples": [], "branch": branch, "messages": [],
            "outbound": {}, "outboundDelivered": [], "rulings": {},
-           "rulingsDelivered": []}
+           "rulingsDelivered": [], "briefTaps": {}, "briefTapsDelivered": []}
     if do_fetch:
         res["fetch"], res["detail"] = fetch_branch(repo, remote, branch)
     files = branch_files(repo)
@@ -256,6 +257,15 @@ def read_inbox(repo, do_fetch=True, remote="origin", branch=None):
     res["rulings"] = records_from_branch(repo, inbox.RULING_DIR,
                                          inbox.RULING_RE)
     res["rulingsDelivered"] = deliver(repo, res["rulings"])
+    # AND THE BRIEF TAPS, 2026-09-09, delivered by the SAME walker for the same
+    # reason: Jafar's ruling makes the consecutive readable run the only
+    # measure of this channel, and a tap that stays on the branch is a measure
+    # nobody in the container can read. `tools/producer-day.py` counts them out
+    # of the checkout, so the delivery is what makes tomorrow's Producer turn
+    # able to see yesterday's verdict at all.
+    res["briefTaps"] = records_from_branch(repo, inbox.BRIEF_TAP_DIR,
+                                           inbox.BRIEF_TAP_RE)
+    res["briefTapsDelivered"] = deliver(repo, res["briefTaps"])
     return res
 
 
@@ -324,6 +334,15 @@ def report(res, say=print):
     if not (res.get("rulings") or {}):
         say("  rulings: nothing measured, 0 tapped ruling(s) on the branch, "
             "so nothing is known about what he tapped.")
+    say("  briefTaps: onBranch=%d deliveredThisRun=%d/%d dir=%s"
+        % (len(res.get("briefTaps") or {}),
+           len(res.get("briefTapsDelivered") or []),
+           len(res.get("briefTaps") or {}), inbox.BRIEF_TAP_DIR))
+    if not (res.get("briefTaps") or {}):
+        say("  briefTaps: nothing measured, 0 brief tap(s) on the branch, so "
+            "nothing is known about whether any brief could be read. The "
+            "consecutive readable run is counted by tools/producer-day.py, "
+            "which reads the same records out of this checkout.")
 
 
 def main(argv):
@@ -549,6 +568,35 @@ def selftest():
           and len(bad_fold["refused"]) == 1
           and any("REFUSED" in l and "rule it twice" in l for l in lines),
           lines[-2:])
+
+    # ---- THE BRIEF TAP, ACROSS THE SAME BRANCH (2026-09-09) -------------
+    # ACCEPTING CASE FIRST: a tap written on the PC is delivered into this
+    # checkout, which is what makes tomorrow's Producer turn able to read
+    # yesterday's verdict at all. The streak arithmetic is brief.py's suite;
+    # what is proven HERE is the delivery and its printed denominator.
+    brief.tap_and_push(watcher, "2026-09-10", brief.READABLE, sent + 2400,
+                       7001, now=sent + 2405)
+    lines = []
+    res_tap = read_inbox(reader, remote=far)
+    report(res_tap, lines.append)
+    tap_rel = "%s/%s" % (inbox.BRIEF_TAP_DIR,
+                         brief.tap_name("2026-09-10", sent + 2400, 7001))
+    check("accept/a-brief-tap-crosses-the-branch-and-lands-in-the-checkout",
+          tap_rel in res_tap["briefTapsDelivered"]
+          and os.path.exists(os.path.join(reader, *tap_rel.split("/"))),
+          res_tap["briefTapsDelivered"])
+    check("accept/and-the-reader-prints-the-tap-count-with-its-denominator",
+          any("briefTaps: onBranch=1 deliveredThisRun=1/1" in l
+              for l in lines), [l for l in lines if "briefTaps" in l])
+    # AND THE ZERO CASE, WHICH MUST SAY NOTHING MEASURED RATHER THAN 0.
+    zero_lines = []
+    report({"branch": "x", "fetch": "skipped", "detail": "", "seen": 0,
+            "messages": [], "delivered": [], "already": [], "samples": [],
+            "files_state": "ok"}, zero_lines.append)
+    check("reject/no-tap-on-the-branch-reads-as-nothing-measured",
+          any("briefTaps: nothing measured, 0 brief tap(s)" in l
+              for l in zero_lines),
+          [l for l in zero_lines if "briefTaps" in l])
 
     print("\ninbox-read --selftest: %s, %d passed, %d failed, %d case(s) run. "
           "NOT COVERED: nothing here touches Telegram or GitHub; the branch "

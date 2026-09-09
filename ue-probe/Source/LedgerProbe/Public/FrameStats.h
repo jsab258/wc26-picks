@@ -29,6 +29,7 @@
 // ought to be waits for the series these functions print.
 #pragma once
 
+#include <algorithm>
 #include <cstdio>
 #include <string>
 #include <vector>
@@ -493,5 +494,203 @@ namespace LedgerFrame
 			RestoreMismatch, Probed, Controls,
 			ShotsProbed, ShotsAsked, BudgetSeconds, SpentSeconds, FramesBeforeShot);
 		return std::string(Buf);
+	}
+}
+
+// ============================================================================
+// QUEUE 186: THE STREET HAS NO SKY, AND NOTHING PRINTS WHAT THE SKY IS.
+//
+// WHAT THIS EXISTS FOR. On 2026-09-09 the UE verdict carried
+// skyModel=none-black as a HARDCODED STRING in a format literal, and the
+// frames refute it: the top of ue-vign_camA_day.png measures 249.5/250.0/250.5
+// mean RGB over 8858 pixels, which is a near-white field and not a black one.
+// The string described what the author believed. Worse, the two conditions'
+// backgrounds carry their own fog inscattering colour's CHANNEL ORDER: the day
+// band reads R<G<B against a day fog colour of 0.55/0.58/0.62, and the night
+// band reads R>G=B against a night fog colour of 0.06/0.05/0.05. The
+// background is the height fog at the far plane, blown up by auto exposure,
+// and nothing in the run said so.
+//
+// So this section prints WHAT THE SKY IS IN THE FRAME. A key that says what
+// was asked for cannot catch a sky that never arrived; a band of pixels read
+// out of the committed file can.
+//
+// WHAT EACH NUMBER IS A STATISTIC OF, and every one is per-frame:
+//   Pixels      pixels inside this band in THIS image, its own denominator
+//   MeanLuma    mean over those pixels, 0 to 1, the Unity sim's weights
+//   P05/P50/P95 order statistics over those same pixels
+//   Spread      P95 minus P05, the band's own within-band variation
+//   MeanR/G/B   channel means 0..255, because a fog colour and a sky colour
+//               are told apart by their channel ORDER and a luma cannot see it
+//   ClipHiAny   count of pixels with any channel at 255, over Pixels
+//
+// NO BOUND IS SET HERE AND NONE MAY BE. There is no series yet. The reference
+// numbers a bound would eventually come from are recorded in the report of
+// 2026-09-09, measured off Codex's Hook panel with these same weights: its sky
+// region reads meanLuma 0.7514 with p50 0.8075 over 48800 px, and its near wet
+// road reads meanLuma 0.5321 with spread 0.4318 over 39000 px. Those are the
+// reference's numbers, not ours, and they are written in a comment rather than
+// in code precisely so that nothing here can compare against them by accident.
+// ============================================================================
+
+namespace LedgerFrame
+{
+	struct BandStats
+	{
+		// false means the band had no pixels: nothing measured is not the
+		// same as measured and dark, and neither may read as the other.
+		bool        Measured = false;
+		std::string Name     = "unnamed";
+		int         X0 = 0, Y0 = 0, X1 = 0, Y1 = 0;
+		long long   Pixels    = 0;
+		double      MeanLuma  = 0.0;
+		double      P05 = 0.0, P50 = 0.0, P95 = 0.0;
+		double      MeanR = 0.0, MeanG = 0.0, MeanB = 0.0;
+		long long   ClipHiAny = 0;
+	};
+
+	// A BAND OF ONE FRAME, GIVEN AS FRACTIONS OF THE FRAME so one call site
+	// serves every resolution this project shoots at. The rectangle is
+	// clamped to the image and PRINTED IN PIXELS, because a fraction that
+	// rounded to an empty rectangle and a band that is genuinely empty are
+	// different faults and the pixel rectangle separates them.
+	inline BandStats MeasureBand(const unsigned char* Bgra, int W, int H,
+	                             const char* Name,
+	                             double Fx0, double Fy0, double Fx1, double Fy1)
+	{
+		BandStats S;
+		S.Name = (Name != 0 && Name[0] != '\0') ? Name : "unnamed";
+		if (Bgra == 0 || W <= 0 || H <= 0) { return S; }
+		int X0 = (int)(Fx0 * (double)W), X1 = (int)(Fx1 * (double)W);
+		int Y0 = (int)(Fy0 * (double)H), Y1 = (int)(Fy1 * (double)H);
+		if (X0 < 0) { X0 = 0; }
+		if (Y0 < 0) { Y0 = 0; }
+		if (X1 > W) { X1 = W; }
+		if (Y1 > H) { Y1 = H; }
+		S.X0 = X0; S.Y0 = Y0; S.X1 = X1; S.Y1 = Y1;
+		if (X1 <= X0 || Y1 <= Y0) { return S; }
+		std::vector<double> L;
+		L.reserve((size_t)((X1 - X0) * (Y1 - Y0)));
+		double SumR = 0.0, SumG = 0.0, SumB = 0.0;
+		for (int Y = Y0; Y < Y1; ++Y)
+		{
+			for (int X = X0; X < X1; ++X)
+			{
+				const long long P = (long long)Y * (long long)W + (long long)X;
+				const unsigned char B = Bgra[P * 4];
+				const unsigned char G = Bgra[P * 4 + 1];
+				const unsigned char R = Bgra[P * 4 + 2];
+				if (R == 255 || G == 255 || B == 255) { ++S.ClipHiAny; }
+				SumR += (double)R; SumG += (double)G; SumB += (double)B;
+				L.push_back(Luma(R, G, B));
+			}
+		}
+		S.Measured = true;
+		S.Pixels = (long long)L.size();
+		std::sort(L.begin(), L.end());
+		double Sum = 0.0;
+		for (size_t I = 0; I < L.size(); ++I) { Sum += L[I]; }
+		S.MeanLuma = Sum / (double)L.size();
+		// INDEXED, NOT INTERPOLATED, and clamped so a one-pixel band cannot
+		// index past the end. The same convention tools/road-brightness.py
+		// uses, so the two rulers agree on what a p95 is.
+		size_t I05 = (size_t)(0.05 * (double)L.size());
+		size_t I50 = (size_t)(0.50 * (double)L.size());
+		size_t I95 = (size_t)(0.95 * (double)L.size());
+		if (I05 >= L.size()) { I05 = L.size() - 1; }
+		if (I50 >= L.size()) { I50 = L.size() - 1; }
+		if (I95 >= L.size()) { I95 = L.size() - 1; }
+		S.P05 = L[I05]; S.P50 = L[I50]; S.P95 = L[I95];
+		S.MeanR = SumR / (double)L.size();
+		S.MeanG = SumG / (double)L.size();
+		S.MeanB = SumB / (double)L.size();
+		return S;
+	}
+
+	// THE BANDS THIS PROJECT READS, AS FRACTIONS, NAMED ONCE HERE.
+	//
+	// WHY A BAND AND NOT A MASK. Nothing in this run knows which pixels are
+	// sky; a depth-aware mask is a second measurement and this is the first.
+	// So the bands are geometric, they are NAMED for what they cover rather
+	// than for what is hoped to be in them, and the name travels with every
+	// number. skyTop is the top eighth full width and in these cameras it
+	// carries roofline and building as well as sky; skyCentre is the middle
+	// fifth of that band, which in cam_A and cam_hook is sky and nothing
+	// else. Reading both is what stops a dark roofline being reported as a
+	// dark sky.
+	inline double SkyTopY1()     { return 0.125; }
+	inline double SkyCentreX0()  { return 0.400; }
+	inline double SkyCentreX1()  { return 0.600; }
+	// The bottom fifth, full width, which in every camera here is ground.
+	inline double GroundY0()     { return 0.800; }
+
+	// PER-SAMPLE KEYS ONLY. Every number on this line is a statistic of THIS
+	// frame, and a band with no pixels prints the words rather than zeros
+	// that would read as a black sky.
+	inline std::string BandLine(const BandStats& S)
+	{
+		if (!S.Measured || S.Pixels == 0)
+		{
+			char Empty[300];
+			std::snprintf(Empty, sizeof(Empty),
+				"band.%s=NOTHING-MEASURED band.%s.rectPx=%d/%d/%d/%d "
+				"band.%s.why=no-pixels-in-this-rectangle/not-a-dark-band",
+				S.Name.c_str(), S.Name.c_str(), S.X0, S.Y0, S.X1, S.Y1,
+				S.Name.c_str());
+			return std::string(Empty);
+		}
+		char Buf[700];
+		std::snprintf(Buf, sizeof(Buf),
+			"band.%s=MEASURED band.%s.px=%lld band.%s.rectPx=%d/%d/%d/%d "
+			"band.%s.meanLuma=%.4f band.%s.p05=%.4f band.%s.p50=%.4f band.%s.p95=%.4f "
+			"band.%s.spread=%.4f band.%s.meanRGB=%.1f/%.1f/%.1f "
+			"band.%s.clipHiAny=%lld/%lld",
+			S.Name.c_str(), S.Name.c_str(), S.Pixels,
+			S.Name.c_str(), S.X0, S.Y0, S.X1, S.Y1,
+			S.Name.c_str(), S.MeanLuma, S.Name.c_str(), S.P05,
+			S.Name.c_str(), S.P50, S.Name.c_str(), S.P95,
+			S.Name.c_str(), S.P95 - S.P05,
+			S.Name.c_str(), S.MeanR, S.MeanG, S.MeanB,
+			S.Name.c_str(), S.ClipHiAny, S.Pixels);
+		return std::string(Buf);
+	}
+
+	// THE THREE BANDS OF ONE SHOT, ON ONE LINE, plus the one derived number
+	// that is worth having and its named limit.
+	//
+	// groundOverSky IS A RATIO OF TWO MEASURED MEANS AND NOTHING ELSE. It
+	// does not say the ground reflects the sky: a ground lit by a sky and a
+	// ground mirroring a sky both raise it. What separates them is the
+	// GROUND BAND'S OWN SPREAD, printed above, because a mirror adds
+	// variation and a lamp does not. Said here so the ratio is never read as
+	// the answer to the reflection question.
+	inline std::string SkyBandLine(const BandStats& SkyTop,
+	                               const BandStats& SkyCentre,
+	                               const BandStats& Ground)
+	{
+		std::string Out = BandLine(SkyTop);
+		Out += " ";
+		Out += BandLine(SkyCentre);
+		Out += " ";
+		Out += BandLine(Ground);
+		Out += " ";
+		if (!SkyCentre.Measured || !Ground.Measured
+		    || SkyCentre.Pixels == 0 || Ground.Pixels == 0
+		    || SkyCentre.MeanLuma <= 0.0)
+		{
+			Out += "bandGroundOverSky=NOTHING-MEASURED "
+			       "bandGroundOverSkyWhy=one-of-the-two-bands-had-no-pixels-or-a-zero-sky";
+			return Out;
+		}
+		char Buf[420];
+		std::snprintf(Buf, sizeof(Buf),
+			"bandGroundOverSky=%.4f "
+			"bandGroundOverSkyStat=ground-band-mean-luma-over-skyCentre-band-mean-luma/one-frame "
+			"bandGroundOverSkyLimit=a-lit-ground-and-a-mirroring-ground-both-raise-this/"
+			"the-ground-bands-own-spread-is-what-separates-them "
+			"bandStat=per-frame-geometric-bands/named-for-what-they-cover-not-for-what-is-in-them",
+			Ground.MeanLuma / SkyCentre.MeanLuma);
+		Out += Buf;
+		return Out;
 	}
 }

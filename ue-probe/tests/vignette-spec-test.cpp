@@ -1806,6 +1806,106 @@ int main(int argc, char** argv)
 		}
 	}
 
+	// ---- QUEUE 186: THE SKY SEGMENT, ACCEPTING CASE FIRST ----------------
+	//
+	// Rule 5b, in the order it says: the case this must PASS is a whole sky
+	// with the fills retired, because that is the state the change exists to
+	// produce and a formatter that cannot print it is worth nothing. The
+	// refusals come after, each with the condition PLANTED rather than
+	// waited for.
+	{
+		LedgerVignette::SkyIn In;
+		In.bSkyLightActor = true; In.bSkyLightComponent = true;
+		In.bAtmosphereActor = true; In.bAtmosphereComponent = true;
+		In.bFogComponent = true;
+		In.SourceTypeRead = 0;
+		In.bRealTimeCaptureRead = true;
+		In.SkyIntensityRead = 1.0;
+		In.FogDensityRead = 0.012;
+		In.FogMaxOpacityRead = 0.45;
+		In.bFillsRetired = true;
+		In.FillsSpawned = 3;
+		In.ApplyCalls = 12; In.SkyWrites = 2;
+		In.HdriAsked = "Sky/polyhaven/belfast_open_field_2k";
+		In.HdriFoundAt = "NOT-FOUND";
+		In.HdriDetectedAs = "not-read";
+		In.HdriBoundAs = "NOTHING/no-cube-texture-is-built-at-runtime-in-this-change";
+		const std::string L = LedgerVignette::SkySegment(In);
+		std::printf("    %s\n", L.c_str());
+		Check(L.find("skyModel=skyatmosphere+skylight-realtime-capture/not-an-hdri")
+		      != std::string::npos,
+		      "a whole sky names its mechanism and says it is not an HDRI");
+		Check(L.find("ambientModel=skylight-captured-sky/ONE-OWNER/trilight-retired-to-zero")
+		      != std::string::npos,
+		      "and names one owner for the ambient when the fills are retired");
+		Check(L.find("skyWrites=2/of=12/") != std::string::npos,
+		      "write-on-change prints both counts, so a per-tick rebuild would be visible");
+		Check(L.find("skyRealTimeCaptureRead=yes") != std::string::npos
+		      && L.find("skySourceTypeRead=0") != std::string::npos,
+		      "the capture mode is printed as the component reported it, enum value and all");
+		Check(L.find("fogMaxOpacityRead=0.450") != std::string::npos
+		      && L.find("fogDensityRead=0.0120") != std::string::npos,
+		      "the fog's two numbers are read back beside the sky that now shares the far field");
+		Check(L.find("skyHdriBoundAs=NOTHING/") != std::string::npos,
+		      "the named HDRI reports plainly that nothing was bound from it");
+		Check(EveryTokenIsKeyValue(L),
+		      "every sky value is space-free, so no reader truncates it silently");
+	}
+	{
+		// AN ATMOSPHERE WITH NO SKYLIGHT: visible sky, nothing capturing it,
+		// so nothing to reflect. It must not read as a whole sky.
+		LedgerVignette::SkyIn In;
+		In.bAtmosphereActor = true; In.bAtmosphereComponent = true;
+		In.FillsSpawned = 3;
+		const std::string L = LedgerVignette::SkySegment(In);
+		Check(!In.Whole()
+		      && L.find("skyModel=SKYLIGHT-MISSING/") != std::string::npos,
+		      "an atmosphere with no skylight names the half that is missing");
+		Check(L.find("ambientModel=trilight-3-directional/not-a-captured-sky/the-sky-is-not-whole")
+		      != std::string::npos,
+		      "and the ambient stays with the tri-light rather than claiming a captured sky");
+	}
+	{
+		// A SKYLIGHT WITH NO ATMOSPHERE captures a black scene. That is the
+		// exact failure the fill-light comment in VignetteShot.cpp warned
+		// about, and it must be a NAMED state and not a dark frame.
+		LedgerVignette::SkyIn In;
+		In.bSkyLightActor = true; In.bSkyLightComponent = true;
+		In.FillsSpawned = 3;
+		const std::string L = LedgerVignette::SkySegment(In);
+		Check(L.find("skyModel=ATMOSPHERE-MISSING/skylight-would-capture-a-black-scene")
+		      != std::string::npos,
+		      "a skylight with nothing to capture says so instead of reporting a sky");
+	}
+	{
+		// NOTHING SPAWNED AT ALL. The far field is then still the height fog,
+		// which is what the frames of 2026-09-09 actually showed, and the
+		// word must say that rather than "black".
+		const LedgerVignette::SkyIn In;
+		const std::string L = LedgerVignette::SkySegment(In);
+		std::printf("    %s\n", L.c_str());
+		Check(L.find("skyModel=SPAWN-FAILED/no-sky-of-any-kind/the-far-field-is-the-height-fog")
+		      != std::string::npos,
+		      "no sky at all names the height fog as what fills the far field");
+		Check(L.find("skyHdriAsked=none") != std::string::npos
+		      && L.find("skyHdriFoundAt=NOT-LOOKED-FOR") != std::string::npos,
+		      "a run that never looked for the HDRI says so rather than printing NOT-FOUND");
+		Check(L.find("skyWrites=0/of=0/") != std::string::npos,
+		      "zero writes ship the zero calls they are over");
+		Check(EveryTokenIsKeyValue(L), "the spawn-failed sky line is space-free too");
+	}
+	{
+		// A WHOLE SKY THAT DID NOT TAKE THE AMBIENT. Two contributors is a
+		// real state and the line must name it as two rather than as one.
+		LedgerVignette::SkyIn In;
+		In.bSkyLightActor = true; In.bSkyLightComponent = true;
+		In.bAtmosphereActor = true; In.bAtmosphereComponent = true;
+		In.bFillsRetired = false; In.FillsSpawned = 3;
+		const std::string L = LedgerVignette::SkySegment(In);
+		Check(L.find("ambientModel=skylight+trilight/TWO-CONTRIBUTORS/") != std::string::npos,
+		      "a sky that did not take ownership prints two contributors, not one owner");
+	}
+
 	std::printf("%s: %d of %d check(s) failed\n",
 	            gFailed == 0 ? "PASS" : "FAIL", gFailed, gChecks);
 	return gFailed == 0 ? 0 : 1;

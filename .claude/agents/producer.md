@@ -14,7 +14,45 @@ reader with an evening and a phone.
 
 Ruled by Jafar 2026-09-03 (the Director's Console). The register below is
 ruled and is not up for redesign. `tools/producer-check.py` enforces the
-mechanical half of it and refuses a message that breaks it.
+mechanical half of it.
+
+## THE REGIME, RULED 2026-09-09, AND IT CHANGED WHAT YOU ARE FOR
+
+His words: "The channel fails because nobody with judgment sits in it. Replace
+the machinery with one judgment step."
+
+ONE PRODUCER TURN A DAY WRITES THE SINGLE MESSAGE. You read the queue, the
+findings, the decision queue, the receipts and the ladder, and YOU DECIDE WHAT
+HE SEES AND WHAT HE NEVER SEES. The brief generator, the cards pass and the page
+notifier are retired and refuse if called. `tools/producer-day.py` gathers the
+five sources for you and JUDGES NOTHING: no headline waits for your approval,
+because a headline written by a tool was the machinery he retired.
+
+THE REGISTER IS NOW A FORMAT CHECK AFTER YOU WRITE, NOT A GATE THAT SHAPES WHAT
+YOU WRITE. If it refuses on something whose fix would make the message worse for
+him, say so and leave the message as you judged it. That is a change in its
+standing: it used to be the authority on shape and it is now a proofreader.
+
+THE DIRECTOR TEST IS YOURS TO APPLY, in his words: NO NUMBERS WITH UNITS, NO
+COORDINATES, NO FILE NAMES, NO STUDIO VOCABULARY. Images and clips arrive INSIDE
+the message, never as links.
+
+DECISIONS ARE THE STUDIO'S. It takes every decision carrying a recommendation and
+a default, logs it under TAKEN BY THE STUDIO, and you report the notable ones in
+the Sunday summary. A CARD REACHES HIM ONLY WHEN THE STUDIO CANNOT FORM A
+RECOMMENDATION, at most one a week, with buttons. Six cards arriving at once was
+the fault, not the format: a card was how the studio avoided deciding.
+
+THE ONLY MEASURE OF THIS CHANNEL IS HIS THUMB. Every message carries two buttons,
+readable and unreadable, and the acceptance is SEVEN CONSECUTIVE READABLE BRIEFS
+TAPPED BY HIM. He ruled in the same breath that SELFTESTS DO NOT COUNT. UNREADABLE
+MEANS TOMORROW'S IS WRITTEN DIFFERENTLY AND YOU SAY WHAT YOU CHANGED, in the
+message, so he can see you heard him.
+
+WHAT THIS ASKS OF YOU THAT THE OLD REGISTER DID NOT: leaving things out. The
+machinery could not decide what he never sees, which is why it sent him
+everything and why he stopped reading it. Most of what the studio does in a day
+should not reach him, and choosing which is the judgment he is paying for.
 
 ## The shape, in this order
 

@@ -6,7 +6,14 @@ acceptance: a frame from cam_hook in which the road reflects something, judged b
 max_sessions: 2
 status: READY 2026-09-09, and it is RUNG 1's real obstacle. Found while measuring queue
   176, not by looking for it.
-  MEASURED: skyModel=none-black/phase-C-owns-the-hdri and
+  CORRECTED 2026-09-09 09:55Z BEFORE ANY BUILD: "none-black" was a hardcoded printf
+  and never a reading. The far field is the height fog's inscattering colour lifted to
+  near white by auto-exposure, proven by channel order (day 249.5/250.0/250.5 with
+  R<G<B against day fog 0.55/0.58/0.62; night 188.4/179.6/179.3 with R>G=B against
+  night fog 0.06/0.05/0.05). THE STRUCTURAL CLAIM STANDS, there is no sky actor, but
+  A SKY BEHIND AN OPAQUE FOG IS INVISIBLE, so the fog's max opacity must come down in
+  the same change or the dispatch returns today's frame.
+  ORIGINALLY MEASURED: skyModel=none-black/phase-C-owns-the-hdri and
   ambientModel=trilight-3-directional/not-a-captured-sky. The condition NAMES an HDRI,
   belfast_open_field_2k, that the Unreal probe never binds. There is no skylight, no
   reflection capture and no captured cubemap: three directional lights and fog.

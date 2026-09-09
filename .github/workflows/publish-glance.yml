@@ -418,141 +418,25 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-  # THE MAP'S MATERIAL-CHANGE DETECTOR, FINALLY ASKED A QUESTION (queue 134).
+  # THE NOTIFY JOB IS RETIRED, 2026-09-09, RULED BY JAFAR VERBATIM: "The
+  # brief generator, the cards pass and the page notifier are retired." THIS
+  # WAS THE PAGE NOTIFIER'S ONLY CALLER, and removing it is what retires it:
+  # a banner on tools/map-notify.py with this job still here would be a
+  # comment, not a retirement.
   #
-  # WHY A SECOND JOB AND NOT A STEP IN THE FIRST. Three reasons, and the first
-  # is a permission. This job needs `contents: write` to land the message and
-  # the record; the publish job holds `pages: write` and `id-token: write` and
-  # must not also hold a write on the tree it publishes. The second is
-  # ordering: `needs: publish` means nothing here runs unless the deploy AND
-  # the served-page check above both passed, which is the "publication
-  # succeeded" precondition expressed by the graph rather than by a comment.
-  # The third is that tools/publish-glance.py says in its own docstring that it
-  # does not generate anything and does not write into the tree; writing an
-  # outbox message is a different responsibility with a different failure mode.
+  # WHAT IT DID. After a successful deploy it fetched the SERVED map, compared
+  # its material state against production/map-notified.json, and wrote an
+  # unprompted Producer message into production/outbox/ when the page had
+  # changed. Three steps: its selftest, the comparison, and the commit of the
+  # message plus the record.
   #
-  # AND IT DOES NOT TRUST THE JOB ABOVE. `needs:` proves the publish job's exit
-  # code, and this project's rule is that a job's EFFECTS are what count, so
-  # tools/map-notify.py requests the served map itself and reads the body it
-  # gets back. If that request does not complete, it refuses to notify and says
-  # nothing was measured; it never assumes.
+  # WHY IT WENT. It is machinery that decided what Jafar is told, which is the
+  # thing the ruling moves to a person: "One Producer turn a day writes the
+  # single message... and decides what I see and what I never see." A published
+  # map that moved is now something the Producer may mention in that one
+  # message, or may never mention, which is the judgment the ruling asks for.
   #
-  # THE ONE EXTRA RUN, NAMED SO NOBODY DIAGNOSES IT AS A LOOP. A message lands
-  # under production/outbox/**, which is in this workflow's own paths filter,
-  # so a notification costs exactly one further publish run. That run finds the
-  # served state already in production/map-notified.json and exits 10 with no
-  # message, so it terminates. production/map-notified.json is deliberately NOT
-  # in the paths filter: the record moving is not a reason to republish.
-  notify:
-    needs: publish
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref_name }}
-          # Enough history to rebase onto a branch that moved while this run
-          # was deploying. A depth-1 checkout cannot rebase at all, and the
-          # push then fails on a race that a fetch would have fixed.
-          fetch-depth: 50
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: the consumer's selftest, accepting case first
-        run: python3 tools/map-notify.py --selftest
-
-      - name: has the PUBLISHED map changed materially since he was last told
-        id: notify
-        run: |
-          set -u
-          base="${{ needs.publish.outputs.pageUrl }}"
-          if [ -z "$base" ]; then
-            echo "mapNotifyResult=NONE reason=the-publish-job-handed-back-no-url"
-            echo "NOTHING MEASURED about the served page, so nothing is written."
-            exit 12
-          fi
-          case "$base" in */) ;; *) base="$base/" ;; esac
-          python3 tools/map-notify.py \
-            --served-map "${base}map.html" \
-            --map-link "${base}map.html" \
-            --expect-commit "${{ github.sha }}" \
-            2>&1 | tee /tmp/map-notify.out
-          # PIPESTATUS IS READ UNCONDITIONALLY, on the line after the pipeline
-          # and never behind a `||`: the pipeline's own status is tee's, which
-          # is 0 whatever the tool decided, so `|| code=$?` here would report
-          # every refusal as a clean run. That is the silent-instrument shape
-          # this project keeps paying for.
-          code=${PIPESTATUS[0]}
-          # The tool prints no spaces inside a value, which is the only reason
-          # this one-line extraction is safe.
-          msg=$(sed -n 's/.*messageWritten=\([^ ]*\).*/\1/p' /tmp/map-notify.out | tail -1)
-          if [ "$msg" = "none" ]; then msg=""; fi
-          echo "mapNotifyExit=$code mapNotifyMessage=${msg:-none}"
-          echo "exit=$code" >> "$GITHUB_OUTPUT"
-          echo "message=${msg}" >> "$GITHUB_OUTPUT"
-          case "$code" in
-            0)  echo "mapNotifyOutcome=a-message-was-written-into-the-outbox-and-nobody-has-been-told-anything" ;;
-            10) echo "mapNotifyOutcome=no-material-change-since-the-recorded-state" ;;
-            11) echo "mapNotifyOutcome=first-reading-recorded-as-the-baseline-no-message" ;;
-            *)  echo "mapNotifyOutcome=REFUSED-code-$code-see-the-lines-above"; exit "$code" ;;
-          esac
-
-      - name: land the message and the record, staged BY NAME
-        # 0 wrote a message and a record; 11 wrote the record alone. Both must
-        # land: a baseline that is never committed makes every future run a
-        # first run, and the detector would then never fire at all.
-        if: steps.notify.outputs.exit == '0' || steps.notify.outputs.exit == '11'
-        run: |
-          set -eu
-          git config user.name  "Claude"
-          git config user.email "noreply@anthropic.com"
-          # BY NAME, never `git add production/`: a stale checkout otherwise
-          # commits its own files as this run's evidence.
-          git add production/map-notified.json
-          if [ -n "${{ steps.notify.outputs.message }}" ]; then
-            git add "${{ steps.notify.outputs.message }}"
-          fi
-          if git diff --cached --quiet; then
-            echo "recordUnchanged=yes filesStaged=0 (nothing to land)"
-            exit 0
-          fi
-          git commit -F - <<'MSG'
-          The published map moved, and the message for it is written
-
-          Written by tools/map-notify.py from the page as SERVED, after the
-          served page answered with this run's stamp. The record is what stops
-          a second publish of one state becoming a second message.
-
-          A message in the outbox is not a delivery. The receipt under
-          production/outbound/ carrying the platform's message id is.
-          MSG
-          for i in 1 2 3 4 5 6; do
-            git push origin HEAD:${GITHUB_REF_NAME} && exit 0
-            echo "pushAttempt=$i/6 result=failed (the branch probably moved)"
-            git fetch origin ${GITHUB_REF_NAME} \
-              && git rebase origin/${GITHUB_REF_NAME} || git rebase --abort
-            sleep $((2 ** i))
-          done
-          echo "pushAttempts=6/6 result=all-failed. The message was NOT landed,"
-          echo "so nothing can send it. It is not lost: the next run rewrites"
-          echo "the same path, because the digest is in the filename."
-          exit 1
-
-      - name: what this job decided, in the summary
-        if: always()
-        run: |
-          {
-            echo "## map-notify"
-            echo ""
-            echo "exit: ${{ steps.notify.outputs.exit }}"
-            echo "message: ${{ steps.notify.outputs.message }}"
-            echo "job: ${{ job.status }}"
-            echo ""
-            echo "A message here is PREPARATION. Nobody has been told anything"
-            echo "until a receipt under production/outbound/ carries the"
-            echo "platform's own message id, and the sender that writes one"
-            echo "runs on Jafar's PC."
-          } >> "$GITHUB_STEP_SUMMARY"
+  # WHAT IS KEPT. tools/map-notify.py stays in the tree with its own RETIRED
+  # banner and refuses to run, and production/map-notified.json stays as the
+  # record of what was last announced. The served-page CHECK in the publish job
+  # above is untouched: it proves the deploy, and it never wrote a message.

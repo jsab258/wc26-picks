@@ -1196,6 +1196,18 @@ TOOL_SELFTESTS = (
     # deleted registration would be invisible, and the hook would be the sixth
     # selftest nobody runs.
     ("wake queue", "tools/wake-queue.py"),
+    # THE CHANNEL AS JAFAR RULED IT 2026-09-09, three rows for three tools that
+    # replaced the machinery he retired. Without these rows the whole daily path
+    # would be selftested by nothing, which is exactly the state the brief
+    # generator was in when it printed a refused headline for three days.
+    #
+    # `checkout gate` is the queue 189 fix and it is the one that must never go
+    # untracked: the workflow resolves it by path, so if it ships uncommitted
+    # BOTH senders refuse for ever. That failure is loud by design and this row
+    # is what makes it loud here rather than on his machine.
+    ("checkout gate", "tools/runner/checkout-contains.py"),
+    ("brief", "tools/runner/brief.py"),
+    ("producer day", "tools/producer-day.py"),
 )
 # `N passed, M failed` is the shape all four print. A tool that stops printing
 # it goes RED here rather than silently passing, which is the whole point: a
@@ -1292,6 +1304,44 @@ SYSTEMS_INVENTORY_RE = re.compile(r"entries=(\d+) namesFromOrder=(\d+) "
                                   r"covered=(\d+)/(\d+)")
 SYSTEMS_EXIT = {0: "accepted", 1: "REFUSED", 2: NOTHING_MEASURED,
                 3: "COULD NOT RUN"}
+
+
+def checkout_gate_selftest():
+    """QUEUE 189: the sender must not read a checkout nothing proves is current.
+
+    The first real decision-cards pass sent six cards from the queue as it stood
+    BEFORE the very commit the run was for. The card that should not have gone
+    was moved out of WAITING BY THAT COMMIT, 38 seconds earlier; the race is
+    push-to-step and seconds wide, measured at sweep +35s, cards +38s, flush
+    +41s. This tool answers "does his checkout CONTAIN the run's commit", waits
+    a bounded time for the watcher's resync, and refuses rather than sending.
+
+    THE ROW EXISTS BECAUSE THE TOOL MUST BE TRACKED. The workflow resolves it by
+    path, so an uncommitted tool makes BOTH senders refuse for ever. Untracked
+    here is red, which is the loud failure this wants.
+    """
+    return _tool_selftest_run(7)
+
+
+def brief_selftest():
+    """The one daily message and its two buttons, ruled 2026-09-09.
+
+    Readable and unreadable are the ONLY measure of the channel: seven
+    consecutive readable briefs, tapped by him. Jafar ruled in the same breath
+    that selftests do not count toward that number, and none here can move it:
+    the streak is counted from tap records that only his phone can write.
+    """
+    return _tool_selftest_run(8)
+
+
+def producer_day_selftest():
+    """The harness for the one judgment step, and it judges nothing.
+
+    It gathers the five sources he named and prints the streak. There is no
+    headline function in it deliberately: that was the machinery his ruling
+    retired, and a case asserts no draft leaked into the gatherer.
+    """
+    return _tool_selftest_run(9)
 
 
 def systems_inventory():
@@ -6261,7 +6311,7 @@ def main():
     for fn in (director_cadence, footer_strings,
                lint, shape, shadow, tools_tracked, reach, stranger_test, shape_files, voice_cast, voice_gen, barks_current, voice_live, voice_assets, voices_into_build, pc_watcher, slop,
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape, producer_register, claude_md_size,
-               inbox_selftest, inbox_read_selftest, bot_config_selftest, outbox_selftest, supervise_selftest, executor_selftest, wake_queue_selftest, systems_inventory, inbox_tracked,
+               inbox_selftest, inbox_read_selftest, bot_config_selftest, outbox_selftest, supervise_selftest, executor_selftest, wake_queue_selftest, checkout_gate_selftest, brief_selftest, producer_day_selftest, systems_inventory, inbox_tracked,
                template_sync,
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
                static_instance, raw_avenues, bat_editor, bootstrap_single, blender_hash_parse, filename_as_type, namespace_as_value, workflow_size,

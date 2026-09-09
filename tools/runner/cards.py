@@ -48,6 +48,31 @@ the CLASS and the options. The recommendation, the default, the deadline and
 the link were all sitting in the queue file unread, which is the fault the
 ruling names: a message he cannot act on without opening a laptop.
 
+THE SENDING HALF IS RETIRED, RULED BY JAFAR 2026-09-09, VERBATIM: "The brief
+generator, the cards pass and the page notifier are retired." `send_cards` below RAISES
+`SendingRetired`, and its two printers (`cards_done_line`,
+`cards_nothing_line`) have no caller left; `--send-cards` and `Bot.sweep_cards` in
+tools/runner/telegram-bot.py refuse the same way, and the CI step that ran them
+is gone. Nothing deletes them: the code is the record of what was measured.
+
+WHAT STAYS, AND IT IS MOST OF THIS FILE. The PARSER: `parse_queue`,
+`waiting_cards`, `find_card`, `card_message`, `keyboard_for`, `fold` and
+`fold_from_disk`. tools/glance.py imports the parser to render the cards page,
+tools/inbox-read.py calls the fold, and a card already on his phone can still
+be tapped, so the tap half stays wired. Only the SENDING goes.
+
+AND THE NORMAL CASE IS NOW THAT NOTHING NEEDS HIM, ruled 2026-09-09: the studio
+takes every decision that carries a recommendation and a default and logs it
+under `## TAKEN BY THE STUDIO`, so WAITING is empty by construction and a card
+is written at most once a week, only when the studio cannot form a
+recommendation. A reader of this file that treats a WAITING card as the ordinary
+case has it backwards.
+
+WHAT THE RETIRED SENDER MEASURED BEFORE IT WENT, because the measurement is why
+the ruling is right rather than a waste: on 2026-09-09 at 10:42 local it sent
+six cards in two seconds, six of six waiting, one of them already withdrawn by
+the studio. The receipts are production/pc-ops/cards-send.txt.
+
 AND A CARD IS SENT ONCE, NOT EVERY PASS. The dedupe this file deliberately
 did not have is here now, because the sender has a caller now: one receipt
 per (cardId, fingerprint of the card's content), asked of the SAME receipt
@@ -203,6 +228,25 @@ CARD_ANCHOR_PREFIX = "card-"
 #: 2026-09-09), so there is no count, no commit sha and no metric in it: the
 #: selftest asserts it carries no digit and no link.
 NOTHING_NEEDS_YOU = "Nothing needs you."
+
+#: WHY THE SENDER REFUSES, IN JAFAR'S OWN WORDS, IN ONE PLACE. Both refusals
+#: (here and in tools/runner/telegram-bot.py) read this string, so the two
+#: cannot come to say different things about the same ruling.
+RETIREMENT = (
+    "the cards pass is RETIRED, ruled by Jafar 2026-09-09: \"The channel "
+    "fails because nobody with judgment sits in it. Replace the machinery "
+    "with one judgment step.\" One Producer turn a day writes one message, "
+    "with two buttons on it: tools/runner/brief.py and telegram-bot.py "
+    "--send-brief. This parser stays; the sending does not.")
+
+
+class SendingRetired(Exception):
+    """Raised by the retired sending half, so a caller that comes back is
+    LOUD rather than quietly sending stale cards to his phone.
+
+    A comment saying retired is a comment. This is the half that makes rule 6
+    mechanical in reverse: nothing calls it, and if something does, it stops.
+    """
 
 #: THE TWO CLASSES THAT ARE NOT PUSHED BY DESIGN, as opposed to the ones that
 #: are not pushed because something is wrong with the card.
@@ -688,8 +732,13 @@ def send_cards(text, sender, store, say=None, today=None):
     that was sent and whose platform answer carried no message id is HELD, not
     sent again, for the reason outbox.py gives: a duplicate in his chat is
     worse than a late message.
+
+    RETIRED 2026-09-09. Everything above is what it DID; the raise below is
+    what it does now. The body is kept unrun, under the raise, because it is
+    the record of a mechanism that was measured and ruled against, and because
+    the decision-queue parsing it sits on top of is still live.
     """
-    say = say or (lambda _s: None)
+    raise SendingRetired(RETIREMENT)
     # THE DAY IS UTC, NAMED AS SUCH EVERYWHERE IT IS PRINTED (`dayUtc=`), the
     # same clock every record in production/outbound/ is stamped with by
     # `inbox.iso_utc`. A once-a-day guard on two different clocks is a guard
@@ -1312,128 +1361,29 @@ def _selftest():
         check("accept/a-changed-%s-is-a-new-fingerprint" % what,
               card_fingerprint(changed) != fp, card_fingerprint(changed))
 
-    # ---- THE PASS: order, dedupe, counts -------------------------------
-    store = _FakeStore()
-    sent = []
-
-    def wire(text, keyboard):
-        sent.append((text, keyboard))
-        return {"message_id": 600 + len(sent)}
-
-    res = send_cards(FIXTURE, wire, store, say=lambda _s: None,
-                     today="2026-09-09")
-    check("accept/the-pass-sends-only-the-sendable-card",
-          len(sent) == 1 and len(res["sent"]) == 1
-          and len(res["skipped"]) == FIXTURE_WAITING - 1
-          and "How close" in sent[0][0], [h for h, _w in res["skipped"]])
-    check("accept/the-done-line-counts-every-zero-against-waiting",
-          "cardsSent=1/%d" in cards_done_line(res).replace(str(FIXTURE_WAITING),
-                                                           "%d")
-          and "cardsAlreadySent=0/%d" % FIXTURE_WAITING in cards_done_line(res)
-          and "skipped=%d/%d" % (FIXTURE_WAITING - 1, FIXTURE_WAITING)
-          in cards_done_line(res), cards_done_line(res))
-    check("accept/the-receipt-was-written-under-the-card-and-fingerprint",
-          len(res["records"]) == 1 and fp in res["records"][0]
-          and live["id"] in res["records"][0], res["records"])
-    res2 = send_cards(FIXTURE, wire, store, say=lambda _s: None,
-                      today="2026-09-09")
-    check("accept/the-second-pass-sends-nothing-and-says-so-with-both-counts",
-          len(sent) == 1 and res2["sent"] == []
-          and len(res2["already"]) == 1
-          and "cardsSent=0/%d" % FIXTURE_WAITING in cards_done_line(res2)
-          and "cardsAlreadySent=1/%d" % FIXTURE_WAITING
-          in cards_done_line(res2), cards_done_line(res2))
-    moved_text = FIXTURE.replace("- C. 1.4 m. Reserved, wary.",
-                                 "- C. 1.4 m. Reserved and wary.")
-    res3 = send_cards(moved_text, wire, store, say=lambda _s: None,
-                      today="2026-09-09")
-    check("accept/a-card-whose-text-changed-is-sent-again",
-          len(res3["sent"]) == 1 and len(sent) == 2
-          and "Reserved and wary" in sent[1][0], res3["already"])
-    gone, _r = fold(FIXTURE, {"2026-09-09T1200Z-7001.ruling.txt":
-                              _record(live["id"], "B", 1788633012, 7001)})
-    res4 = send_cards(gone, wire, store, say=lambda _s: None,
-                      today="2026-09-09")
-    check("accept/a-ruled-card-out-of-waiting-needs-no-receipt-cleanup",
-          res4["sent"] == [] and res4["already"] == []
-          and res4["waiting"] == FIXTURE_WAITING - 1
-          and len(store.cards) == 2, (res4["waiting"], sorted(store.cards)))
-
-    check("accept/the-send-order-is-oldest-added-first",
-          [c["added"] for c in send_order(waiting_cards(cards))]
-          == sorted(c["added"] for c in waiting_cards(cards)),
-          [c["added"] for c in send_order(waiting_cards(cards))])
-    undated = parse_queue(FIXTURE.replace("added 2026-08-04, still open", ""))
-    check("accept/an-undated-card-sorts-last-and-is-counted",
-          send_order(waiting_cards(undated))[-1]["heading"]
-          == "How close should strangers stand?"
-          and "undatedCards=1/%d" % FIXTURE_WAITING
-          in cards_done_line(send_cards(
-              FIXTURE.replace("added 2026-08-04, still open", ""),
-              wire, _FakeStore(), say=lambda _s: None, today="2026-09-09")),
-          send_order(waiting_cards(undated))[-1]["heading"])
-
-    # ---- NOTHING NEEDS YOU, both halves of the once-a-day guard --------
-    EMPTY = "# nothing\n\n## WAITING\n\n## RULED THIS WEEK\n"
-    qstore, qsent = _FakeStore(), []
-
-    def qwire(text, keyboard):
-        qsent.append((text, keyboard))
-        return {"message_id": 700 + len(qsent)}
-
-    q1 = send_cards(EMPTY, qwire, qstore, say=lambda _s: None,
-                    today="2026-09-09")
-    check("accept/the-days-first-empty-pass-says-nothing-needs-you",
-          len(qsent) == 1 and qsent[0][0] == NOTHING_NEEDS_YOU
-          and qsent[0][1] is None and q1["nothing"] == "sent"
-          and "nothingNeedsYou=sent" in cards_done_line(q1),
-          cards_done_line(q1))
-    q2 = send_cards(EMPTY, qwire, qstore, say=lambda _s: None,
-                    today="2026-09-09")
-    check("reject/the-second-empty-pass-the-same-day-sends-nothing",
-          len(qsent) == 1 and q2["nothing"] == "already-today"
-          and "nothingNeedsYou=already-today" in cards_done_line(q2),
-          cards_done_line(q2))
-    q3 = send_cards(EMPTY, qwire, qstore, say=lambda _s: None,
-                    today="2026-09-10")
-    check("accept/the-next-day-says-it-once-again",
-          len(qsent) == 2 and q3["nothing"] == "sent", cards_done_line(q3))
-    check("accept/the-message-is-those-words-and-nothing-more",
-          not any(ch.isdigit() for ch in NOTHING_NEEDS_YOU)
-          and "http" not in NOTHING_NEEDS_YOU
-          and "cardId" not in NOTHING_NEEDS_YOU
-          and len(NOTHING_NEEDS_YOU.splitlines()) == 1, NOTHING_NEEDS_YOU)
-    quiet_only = ("# q\n\n## WAITING\n\n### A quiet card\nCLASS: FYI\n"
-                  "added 2026-09-01\n\n- A. One.\n- B. Two.\n")
-    q4 = send_cards(quiet_only, qwire, _FakeStore(), say=lambda _s: None,
-                    today="2026-09-09")
-    check("accept/a-queue-of-fyi-cards-only-is-a-quiet-day",
-          q4["nothing"] == "sent" and len(qsent) == 3, cards_done_line(q4))
-    q5 = send_cards(FIXTURE.replace("### How close should strangers stand?",
-                                    "### How close should they stand?"),
-                    qwire, _FakeStore(), say=lambda _s: None,
-                    today="2026-09-11")
-    check("reject/a-pass-with-a-pushable-card-never-says-nothing-needs-you",
-          len(qsent) == 4 and q5["nothing"].startswith("not-needed/"),
-          q5["nothing"])
-    broken = "\n".join(ln for ln in FIXTURE.splitlines()
-                       if not ln.startswith("RECOMMENDATION B,")
-                       and not ln.startswith("festival."))
-    q6 = send_cards(broken, qwire, _FakeStore(), say=lambda _s: None,
-                    today="2026-09-12")
-    check("reject/and-a-queue-whose-every-card-is-broken-says-nothing",
-          len(qsent) == 4 and q6["nothing"].startswith("withheld/")
-          and q6["pushable"] == [], q6["nothing"])
-
-    check("accept/an-empty-queue-says-nothing-measured",
-          "nothing measured" in cards_nothing_line(q1)
-          and "cardsSent=0/0" in cards_done_line(q1),
-          cards_nothing_line(q1))
-    check("accept/no-spaces-inside-any-key-value",
-          all(" " not in kv.split("=", 1)[1]
-              for kv in cards_done_line(res).split()
-              if "=" in kv and not kv.startswith("file=")),
-          cards_done_line(res))
+    # ---- THE PASS IS RETIRED, AND THIS IS THE CASE THAT SAYS SO --------
+    # 2026-09-09. The block that stood here drove `send_cards` through order,
+    # dedupe, the quiet-day message and the counts, and it was the reason the
+    # sender was trusted. The sender is retired by Jafar's ruling, so the cases
+    # that exercised it are gone with it: a suite that keeps a retired path
+    # green is how a retirement becomes a comment. What is asserted now is the
+    # retirement itself, and that the PARSER the glance and the fold depend on
+    # is untouched by it.
+    retired = None
+    try:
+        send_cards(FIXTURE, lambda _t, _k: {"message_id": 1}, _FakeStore(),
+                   today="2026-09-12")
+    except SendingRetired as e:
+        retired = str(e)
+    check("accept/the-card-sender-refuses-to-run-and-names-the-ruling",
+          retired is not None and "RETIRED" in retired
+          and "2026-09-09" in retired and "--send-brief" in retired,
+          (retired or "IT STILL SENDS")[:90])
+    check("accept/and-the-parser-the-page-and-the-fold-use-is-untouched",
+          len(waiting_cards(parse_queue(FIXTURE))) == FIXTURE_WAITING
+          and card_message(live)[0]
+          and len(keyboard_for(live)["inline_keyboard"]) >= 2,
+          "%d waiting in the fixture" % FIXTURE_WAITING)
 
     # ---- THE FOLD, accepting case first --------------------------------
     epoch = 1788633012                              # 2026-09-05T18:30:12Z
@@ -1536,12 +1486,23 @@ def _selftest():
     else:
         live_cards = parse_queue(live_text)
         w = waiting_cards(live_cards)
-        check("accept/the-live-queue-parses-and-has-a-waiting-card",
-              len(w) >= 1 and all(c["id"] for c in live_cards),
+        # AN EMPTY WAITING SECTION IS THE NORMAL CASE NOW, RULED 2026-09-09:
+        # the studio takes every decision carrying a recommendation and a
+        # default and logs it under TAKEN BY THE STUDIO, so a card is written
+        # at most once a week and only when no recommendation can be formed.
+        # THESE THREE CASES ASSERTED THE OPPOSITE AND WENT RED THE HOUR THAT
+        # RULING LANDED, on a tree nobody had broken, which is the trap this
+        # project's own instruments rule names: an accepting case pinned to a
+        # live asset breaks when somebody does the work. What is asserted now
+        # is the property that holds either way, with the reading printed
+        # beside it: every card parses to an id, and IF a card is waiting it is
+        # sendable and its message names all six things.
+        check("accept/the-live-queue-parses-and-every-card-has-an-id",
+              len(live_cards) >= 1 and all(c["id"] for c in live_cards),
               "%d waiting of %d card(s)" % (len(w), len(live_cards)))
         sendables = [c for c in w if sendable(c)[0]]
-        check("accept/at-least-one-live-waiting-card-is-sendable",
-              len(sendables) >= 1,
+        check("accept/every-live-waiting-card-is-sendable-or-there-are-none",
+              len(sendables) == len(w),
               "%d sendable of %d waiting" % (len(sendables), len(w)))
         check("accept/the-live-queue-has-a-ruled-this-week-section",
               _insert_at(live_text.splitlines()) is not None, RULED)
@@ -1558,10 +1519,19 @@ def _selftest():
                     and m.count("http") == 1 and card_link(c) in m
                     and len(m) <= TELEGRAM_TEXT_MAX):
                 bad.append(c["heading"])
+        # THE DENOMINATOR IS THE POINT OF THIS ONE. With no live card the
+        # answer is nothing measured and NOT a clean pass, printed in those
+        # words, and the FIXTURE above is what keeps the six-field rendering
+        # covered when the live file is quiet.
         check("accept/every-live-sendable-cards-message-names-all-six",
-              not bad and len(sendables) >= 1,
+              not bad,
               "%d of %d live sendable card(s) lost a field: %s"
               % (len(bad), len(sendables), bad[:3]))
+        if not sendables:
+            print("    live six-field reading: nothing measured, 0 sendable "
+                  "card(s) under %s in %s. The ruling of 2026-09-09 makes "
+                  "that the normal case; the FIXTURE above carries the "
+                  "six-field assertions." % (WAITING, QUEUE_REL))
         chars = [len(card_message(c)) for c in sendables]
         print("    live series: waiting=%d sendable=%d messageChars=%s "
               "longest=%d/%d platformCap capsThatBit=%d/%d"

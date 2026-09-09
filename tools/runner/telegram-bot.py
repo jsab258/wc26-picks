@@ -7,7 +7,8 @@
     python3 tools/runner/telegram-bot.py --send-file PATH  one CHECKED message
     python3 tools/runner/telegram-bot.py --send-outbox     sweep the outbox
     python3 tools/runner/telegram-bot.py --send-frame      one verified picture
-    python3 tools/runner/telegram-bot.py --send-cards      the WAITING cards
+    python3 tools/runner/telegram-bot.py --send-brief      the ONE daily brief
+    python3 tools/runner/telegram-bot.py --send-cards      RETIRED 2026-09-09
     python3 tools/runner/telegram-bot.py --flush-inbox     push the return half
     python3 tools/runner/telegram-bot.py --selftest       offline, no network
 
@@ -28,13 +29,25 @@ a message rather than rounded or coerced. Queue 090's decision cards keep
 their buttons, because choosing among named options is exactly what a preset
 is for.
 
-AND SINCE QUEUE 090, A TAP IS A RULING. A WAITING card in
-production/decision-queue.md is sent with one inline button per option; a tap
-arrives as a `callback_query`, is answered so his phone stops spinning, and is
-written as a RULING RECORD onto the same branch as the inbox. The PC never
-edits the decision queue itself: `tools/inbox-read.py` folds the records into
-it in the container, where one writer owns that file. The card format, the
-buttons and the fold are all `tools/runner/cards.py`.
+AND SINCE QUEUE 090, A TAP IS A RULING. A tap arrives as a `callback_query`,
+is answered so his phone stops spinning, and is written as a RECORD onto the
+same branch as the inbox. The PC never edits a tracked file itself: the
+container folds the records in, where one writer owns each file.
+
+TWO KINDS OF TAP COME BACK THROUGH THAT ONE BRANCH, and `handle_callback`
+tries the brief parser first and the card parser second, so neither guesses at
+the other's bytes:
+  - THE BRIEF'S TWO BUTTONS, readable and unreadable, ruled by Jafar
+    2026-09-09 and the ONLY measure of this channel. `tools/runner/brief.py`.
+  - A DECISION CARD'S OPTIONS, queue 090. `tools/runner/cards.py`. THE SENDING
+    OF CARDS IS RETIRED (see `--send-cards` below); the tap half stays wired
+    because cards already on his phone can still be tapped.
+
+THE CARD SENDER IS RETIRED, RULED BY JAFAR 2026-09-09: "The brief generator,
+the cards pass and the page notifier are retired." `--send-cards` and
+`Bot.sweep_cards` below refuse to run and name the ruling; the loop no longer
+calls either. What replaced them is one Producer turn a day writing one
+message, sent by `--send-brief` with two buttons on it.
 
 AND SINCE QUEUE 088, THE INBOUND HALF: every message he types that is not a
 command is written to `production/inbox/` and pushed to the `pc-inbox`
@@ -81,7 +94,10 @@ do not need a network: the config reader and the message arithmetic. The
 first double-click on Jafar's PC is the accepting case.
 
 EXIT CODES. 0 stopped cleanly. 1 it could not start or it crashed; the window
-says which. 3 selftest failed.
+says which. 3 selftest failed. 5 a RETIRED entry point was called, which is
+its own code so a caller that still exists shows up red rather than green. 6
+`--send-brief` found no brief for that day, which is not a failure and is not
+a send either.
 """
 import datetime
 import json
@@ -99,6 +115,7 @@ REPO = os.path.dirname(os.path.dirname(HERE))
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
 import botconfig                                              # noqa: E402
+import brief                                                  # noqa: E402
 import cards                                                  # noqa: E402
 import inbox                                                  # noqa: E402
 import outbox                                                 # noqa: E402
@@ -558,10 +575,20 @@ class Bot(object):
         self.pending = None    # None, "total" or "fable"
         self.total = None
         self.started = time.time()
-        # THE TAPS, queue 090. Cumulative, each against the set it came from.
+        # THE TAPS, queue 090 and the brief's two buttons of 2026-09-09.
+        # Cumulative, each against the set it came from.
         self.taps = 0          # callback updates seen, the denominator
-        self.taps_filed = 0    # of those, written as a ruling record
+        self.taps_filed = 0    # of those, written as a record
         self.taps_refused = 0  # of those, refused with a reason
+        self.taps_brief = 0    # of those FILED, ones that were brief taps
+        self.reasons_filed = 0  # sentences filed as why a brief was unreadable
+        # WHICH BRIEF IS WAITING FOR A REASON, set by an unreadable tap and
+        # cleared by the next thing he types. IN MEMORY ONLY AND THAT IS
+        # DELIBERATE: a restart loses the invitation, not the reason, because
+        # whatever he types is filed as a message either way and
+        # tools/producer-day.py shows tomorrow's writer his messages since the
+        # tap alongside the reason record. Nothing he says is lost by this.
+        self.reason_wanted = None
         # THE BACKLOG, filed once at startup rather than dropped.
         self.backlog_seen = 0
         self.backlog_filed = 0
@@ -580,17 +607,13 @@ class Bot(object):
         self.out_passes = 0
         self.out_sent = 0
         self.out_refused = 0
-        # THE CARDS, queue 093. Cumulative over the whole run, each against the
-        # set it came from on the done line. `cards_already` is the skip count
-        # the receipts produced, which is the number that says the dedupe is
-        # working rather than that the queue is empty.
-        self.last_cards = 0.0
-        self.cards_passes = 0
-        self.cards_sent = 0
-        self.cards_already = 0
-        self.cards_skipped = 0
-        self.quiet_days_sent = 0
-        self.cards_note = "no-pass-yet"
+        # THE CARD COUNTERS ARE GONE WITH THE CARD SENDER, RETIRED 2026-09-09.
+        # They counted a pass this loop no longer makes, and a counter that can
+        # only ever read zero is a reading nobody can interpret. The brief is
+        # NOT counted here either, and that is the honest answer rather than an
+        # omission: it is sent by a one-shot `--send-brief` and not by this
+        # loop, so this process has nothing to count. Its evidence is the
+        # `brief-send done:` line, committed by the step that runs it.
         # RULED BY JAFAR 2026-09-08: "measure whether the bot's own loop
         # sweeps at all, with a per-pass counter in the published status.
         # Report the observed number rather than reasoning about whether it
@@ -832,6 +855,13 @@ class Bot(object):
         else:
             self.push_fails += 1
         self.last_flush = time.time()
+        # AND IF THIS IS THE SENTENCE AFTER AN UNREADABLE TAP, IT IS ALSO
+        # FILED AS THE REASON, ruled 2026-09-09. A SECOND COPY AND NOT A
+        # DIVERSION: whatever he types is a message to the studio first, and
+        # the reason record is an extra pointer for tomorrow's writer. Filing
+        # first, attributing second, so a broken reason path cannot cost him
+        # the message.
+        self.file_brief_reason(text, sent_epoch, update_id)
         return inbox.reply_text(res)
 
     def flush_inbox(self, every=60):
@@ -914,20 +944,13 @@ class Bot(object):
                 "botSweepSecSinceLast=%s" % (since if since >= 0
                                              else "nothing-measured"),
                 "botSweepLastResult=%s" % self.sweep_note.replace(" ", "-"),
-                # THE CARDS HALF OF THE SAME QUESTION, and the same three
-                # states kept apart: no file means this process never started,
-                # botCardsPasses=0 with a fresh write means the loop has not
-                # reached the card pass, and a number says it sweeps.
-                "botCardsPasses=%d" % self.cards_passes,
-                "botCardsSent=%d" % self.cards_sent,
-                "botCardsAlreadySent=%d" % self.cards_already,
-                "botCardsSkipped=%d" % self.cards_skipped,
-                "botQuietDaysSent=%d" % self.quiet_days_sent,
-                "botCardsEverySec=%d" % self.CARDS_EVERY_SEC,
-                "botCardsSecSinceLast=%s"
-                % (int(time.time() - self.last_cards) if self.last_cards
-                   else "nothing-measured"),
-                "botCardsLastResult=%s" % self.cards_note.replace(" ", "-"),
+                # THE botCards* KEYS ARE GONE, 2026-09-09, with the card
+                # sender they measured. A key that can only ever print 0 after
+                # a retirement is worse than no key: a reader cannot tell it
+                # from a loop that stopped sweeping. The brief has no key here
+                # because this loop does not send it (see __init__).
+                "botBriefTapsFiled=%d" % self.taps_brief,
+                "botBriefReasonsFiled=%d" % self.reasons_filed,
                 "botUptimeSec=%d" % up,
                 "botSweepWrittenAt=%s"
                 % time.strftime("%Y-%m-%dT%H:%M:%S"),
@@ -937,60 +960,31 @@ class Bot(object):
         except OSError:
             pass
 
-    #: HOW OFTEN THE LOOP SWEEPS THE DECISION CARDS, in seconds.
+    #: RETIRED 2026-09-09 BY JAFAR'S RULING, VERBATIM: "The brief generator,
+    #: the cards pass and the page notifier are retired." The interval that was
+    #: here measured how often this loop swept the decision cards; the loop no
+    #: longer sweeps them at all, so the number is gone rather than left
+    #: standing as a setting for something that does not run.
     #:
-    #: IT IS THE OUTBOX SWEEP'S OWN RHYTHM, COPIED, AND I HAVE NO SERIES THAT
-    #: SETS IT FROM THE VALUE OF SENDING SOONER. What I do have is the rate the
-    #: input changes: over the 11 commits that have touched
-    #: production/decision-queue.md the gaps between them are, in seconds,
-    #: 842 9246 13023 14949 20234 46329 49283 56563 99453 171812 (median 33281,
-    #: about 9.2 hours; shortest 842, 14 minutes; 0 of 10 shorter than this
-    #: interval). So 120 seconds oversamples the fastest edit this file has
-    #: ever seen by seven times, and a card written at any instant reaches him
-    #: inside one pass.
+    #: WHAT REPLACED IT. One Producer turn a day writes one message, and it
+    #: carries two buttons. `tools/runner/brief.py` and `--send-brief`.
     #:
-    #: WHAT MAKES THAT SAFE IS THE DEDUPE AND NOT THE INTERVAL. A pass with
-    #: nothing new costs one file read plus one receipt stat per pushable card
-    #: and sends nothing; before the receipts existed this same loop would have
-    #: sent every waiting card every two minutes, which is why the sender had
-    #: no caller until the receipts did.
-    CARDS_EVERY_SEC = 120
-
+    #: WHAT THE RETIRED PASS MEASURED BEFORE IT WENT, because the measurement
+    #: is the reason the ruling is right and not a waste: on 2026-09-09 at
+    #: 10:42 local it sent six cards from the decision queue in two seconds,
+    #: six of six waiting, and one of them was a card the studio had already
+    #: withdrawn. The receipts are production/pc-ops/cards-send.txt. Machinery
+    #: with nobody's judgment in it sent him stale questions faster than
+    #: anybody could stop it.
     def sweep_cards(self, every=None):
-        """Send the WAITING cards, at most every `CARDS_EVERY_SEC`.
+        """RETIRED. It raises, so a caller that comes back is loud.
 
-        ITS OWN TIMESTAMP, not the outbox's. Two pieces of work on one guard
-        would mean a quiet outbox silencing the cards, or the other way round,
-        and the two have nothing to do with each other.
-
-        WRAPPED FOR THE REASON `sweep_outbox` IS: a broken card pass must not
-        take the channel down, and a pass that RAISED is still a pass that
-        happened, so the counter moves and the note names the failure.
+        NOT DELETED, AND NOT A COMMENT EITHER. Rule 6 in reverse: a thing is
+        retired when nothing calls it. The loop's call is gone (see
+        `poll_forever`), `--send-cards` refuses, and this raise is what catches
+        a third caller somebody adds next month without reading either.
         """
-        every = self.CARDS_EVERY_SEC if every is None else every
-        if time.time() - self.last_cards < every:
-            return
-        self.last_cards = time.time()
-        try:
-            res = cards_pass(self.creds, self.repo, OUT.say)
-        except Exception as e:                                # noqa: BLE001
-            OUT.say("cards: the pass could not run (%s). The channel keeps "
-                    "running." % type(e).__name__)
-            self.cards_passes += 1
-            self.cards_note = "raised/%s" % type(e).__name__
-            self.write_sweep_status()
-            return
-        self.cards_passes += 1
-        self.cards_sent += len(res["sent"])
-        self.cards_skipped += len(res["skipped"])
-        self.cards_already += len(res["already"])
-        if res["nothing"] == "sent":
-            self.quiet_days_sent += 1
-        self.cards_note = ("sent%d/already%d/skipped%d/of%d/nothing.%s"
-                           % (len(res["sent"]), len(res["already"]),
-                              len(res["skipped"]), res["waiting"],
-                              res["nothing"]))
-        self.write_sweep_status()
+        raise cards.SendingRetired(cards.RETIREMENT)
 
     def sweep_outbox(self, every=120):
         """Send anything the Producer left in the outbox, at most every two
@@ -1128,6 +1122,14 @@ class Bot(object):
                                    "configured for, so nothing was recorded.")
             return
         self.mine += 1
+        # THE BRIEF'S TWO BUTTONS FIRST, ruled 2026-09-09 and the only measure
+        # of this channel. Two callback families share this one door: this
+        # parser refuses anything that is not a brief tap and hands it on to
+        # the card parser below, so neither ever guesses at the other's bytes.
+        b_day, b_verdict, _b_why = brief.parse_callback(cq.get("data"))
+        if b_day is not None:
+            return self.handle_brief_tap(cq, cid_q, b_day, b_verdict,
+                                         update_id)
         card_id, letter, why = cards.parse_callback(cq.get("data"))
         heading = None
         if card_id is None:
@@ -1163,6 +1165,68 @@ class Bot(object):
                         % (self.taps_filed, self.taps))
         self.answer_tap(cid_q, note.split("\n")[0])
         self.reply(note)
+
+    def handle_brief_tap(self, cq, cid_q, day, verdict, update_id):
+        """A TAP ON THE BRIEF BECOMES A RECORD TOMORROW'S WRITER READS.
+
+        ANSWERED FIRST, ALWAYS, like every other path out of `handle_callback`:
+        his phone shows a spinner on the button until the bot answers, so an
+        unanswered tap reads as a dead message even when the record was filed.
+
+        AND UNREADABLE OPENS ONE QUESTION. Jafar's ruling: "Unreadable means
+        tomorrow's is written differently, and the Producer says what it
+        changed." The reply invites the reason and the next thing he types is
+        filed as one, in ADDITION to being filed as an ordinary message, so
+        nothing depends on him answering.
+        """
+        try:
+            res = brief.tap_and_push(self.repo, day, verdict,
+                                     self.tap_epoch(cq), update_id, OUT.say)
+        except Exception as e:                                # noqa: BLE001
+            self.taps_refused += 1
+            self.push_fails += 1
+            note = ("I could not file that on the PC (%s). It is NOT "
+                    "recorded, so please tap it again once the window on the "
+                    "PC stops showing that error." % type(e).__name__)
+            OUT.say("brief tap FAILED to file (%s). The channel keeps running."
+                    % type(e).__name__)
+        else:
+            self.taps_filed += 1
+            self.taps_brief += 1
+            if res["ok"]:
+                self.pushed += len(res["pushed"])
+            else:
+                self.push_fails += 1
+            self.last_flush = time.time()
+            self.reason_wanted = day if verdict == brief.UNREADABLE else None
+            note = brief.tap_reply_text(res)
+            OUT.say("brief tap filed: briefDay=%s verdict=%s (%d brief tap(s) "
+                    "of %d filed tap(s) of %d seen)"
+                    % (day, verdict, self.taps_brief, self.taps_filed,
+                       self.taps))
+        self.answer_tap(cid_q, note.split("\n")[0])
+        self.reply(note)
+
+    def file_brief_reason(self, text, sent_epoch, update_id):
+        """The sentence after an unreadable tap, written where tomorrow's
+        Producer turn reads it. Returns the reason record path or None.
+
+        WRAPPED AND NEVER FATAL: this is an extra copy of something already
+        filed as a message, so a failure here must not cost him the message.
+        """
+        day, self.reason_wanted = self.reason_wanted, None
+        if not day:
+            return None
+        try:
+            res = brief.reason_and_push(self.repo, day, text,
+                                        int(sent_epoch or time.time()),
+                                        int(update_id or 0), OUT.say)
+        except Exception as e:                                # noqa: BLE001
+            OUT.say("brief reason: could not be filed (%s). His message is "
+                    "still filed as a message." % type(e).__name__)
+            return None
+        self.reasons_filed += 1
+        return res["file"]
 
     def tap_epoch(self, cq):
         """TELEGRAM'S OWN CLOCK for the tap, from the message the button sits
@@ -1280,18 +1344,20 @@ class Bot(object):
                 # the try was already doing, including the deliberate returns
                 # above it.
                 #
-                # AND THE CARDS SWEEP IS HERE, NOT SOMEWHERE ELSE, BECAUSE
-                # NOTHING CALLED IT AT ALL UNTIL 2026-09-09. `cards_pass` and
-                # the whole keyboard were built for queue 090 and no caller
-                # ever reached them: the only sender that ran was the text-only
-                # outbox sweep, whose `sender(text)` has no place to put a
-                # keyboard. That is rule 6, built is not running, and it is why
-                # Jafar's phone got cards as plain text with no buttons, or not
-                # at all. One line here is the whole difference.
+                # AND THE CARDS SWEEP IS NOT HERE ANY MORE. It was added to
+                # this block on 2026-09-09 at about 10:00 and retired by Jafar
+                # the same day, after the pass it enabled sent him six cards
+                # off a queue one of whose cards was already withdrawn: "The
+                # channel fails because nobody with judgment sits in it.
+                # Replace the machinery with one judgment step." The one
+                # judgment step is a Producer turn writing one message a day,
+                # sent by `--send-brief`, which is a one-shot and deliberately
+                # NOT swept from here: two senders on one receipt race, and a
+                # duplicate of the one message a day is itself a channel
+                # failure.
                 try:
                     self.flush_inbox()
                     self.sweep_outbox()
-                    self.sweep_cards()
                 except Exception as e:                        # noqa: BLE001
                     OUT.say("the offline half could not run this pass (%s). "
                             "The bot keeps polling." % type(e).__name__)
@@ -1314,8 +1380,7 @@ class Bot(object):
                 "backlogFiled=%d/%d networkErrors=%d inboxFiled=%d "
                 "inboxPushed=%d/%d inboxPushFailures=%d inboxPending=%s "
                 "outboxPasses=%d outboxSent=%d outboxRefused=%d "
-                "cardsPasses=%d cardsSent=%d cardsAlreadySent=%d "
-                "cardsSkipped=%d quietDaysSent=%d "
+                "briefTapsFiled=%d/%d briefReasonsFiled=%d "
                 "repliesReceipted=%d/%d"
                 % (int((time.time() - self.started) / 60), self.seen,
                    self.mine, self.seen, self.other, self.seen,
@@ -1326,8 +1391,7 @@ class Bot(object):
                    self.filed, self.pushed, self.filed, self.push_fails,
                    "unreadable" if waiting < 0 else waiting, self.out_passes,
                    self.out_sent, self.out_refused,
-                   self.cards_passes, self.cards_sent, self.cards_already,
-                   self.cards_skipped, self.quiet_days_sent,
+                   self.taps_brief, self.taps_filed, self.reasons_filed,
                    self.receipted, self.replies))
 
 
@@ -1471,36 +1535,63 @@ def outbox_pass(creds, repo=None, say=None):
 
 
 def cards_pass(creds, repo=None, say=None):
-    """Send every pushable WAITING card he has not been sent, with one button
-    per option.
+    """RETIRED 2026-09-09. It raises; nothing calls it.
 
-    THE CHOOSING, THE COUNTING AND THE STRINGS ARE IN `cards.send_cards`,
-    where the tests run; this supplies the wire, the file and the receipt
-    store. A card whose options do not fit the queue's own two-to-four rule,
-    or which states no recommendation, default or deadline, is named here with
-    the reason rather than sent as a message he cannot act on.
+    WHAT IT WAS: the wire, the file and the receipt store for
+    `cards.send_cards`. WHY IT IS GONE: Jafar's ruling of 2026-09-09, carried
+    verbatim in `cards.RETIREMENT`. The pass ran once, at 10:42 local that
+    morning, and sent six cards in two seconds off a queue one of whose cards
+    the studio had already withdrawn. That measurement is what the ruling
+    rests on, and it is kept in production/pc-ops/cards-send.txt.
 
-    THE RECEIPTS GO BACK THE SAME WAY A PRODUCER MESSAGE'S DO. `outbox_pass`
-    pushes its records at the end of a sweep and this does the same, for the
-    same reason: a receipt that stays on the PC is a send the studio cannot
-    see, and the dedupe it feeds is local, so a failed push costs nothing but
-    the studio's view of it.
+    NOT DELETED: the body it replaced is in the history of this file, and the
+    thing it called still reads the decision queue for the glance. A raise
+    rather than a comment, because a comment does not stop a caller.
+    """
+    raise cards.SendingRetired(cards.RETIREMENT)
+
+
+def brief_pass(creds, repo=None, say=None, day=None):
+    """THE ONE MESSAGE A DAY, WITH ITS TWO BUTTONS. Ruled 2026-09-09.
+
+    This supplies the wire, the file, the receipt store and the register check;
+    every decision, count and string is `brief.send_brief`'s, where the tests
+    run. What the Producer wrote is sent byte for byte: nothing here composes,
+    ranks, summarises or prefixes anything.
+
+    THE CHECK RUNS HERE, ON THE SENDING SIDE, AFTER THE WRITING AND BEFORE THE
+    SEND, which is both the ruling of 2026-09-09 ("the register stays as a
+    format check after the Producer writes") and the split producer.md already
+    describes: the Producer writes the file, the sender checks it. It is the
+    same `tools/producer-check.py` through the same `outbox.run_check`, so a
+    brief is graded by the one implementation of the register and not a copy.
+
+    A ONE-SHOT AND DELIBERATELY NOT IN THE POLL LOOP. Two senders sharing one
+    receipt race, and a duplicate of the one message a day is itself a channel
+    failure. The step that runs this is in
+    .github/workflows/ledger-install-supervisor-task.yml and fires on a push
+    that touches production/briefs/.
     """
     repo = repo or REPO
     say = say or OUT.say
-    empty = {"waiting": 0, "pushable": [], "sent": [], "already": [],
-             "held": [], "skipped": [], "failed": [], "noid": [],
-             "records": [], "undated": 0, "nothing": "not-looked-at",
-             "day": "nothing-measured"}
+    day = day or brief.today()
+    rel = brief.brief_rel(day)
     try:
-        with open(os.path.join(repo, *cards.QUEUE_REL.split("/")), "r",
-                  encoding="utf-8") as fh:
+        with open(outbox.full_path(repo, rel), "r", encoding="utf-8") as fh:
             text = fh.read()
     except OSError as e:
-        say("NOT SENT: %s could not be read (%s), so 0 card(s) were sent and "
-            "nothing is known about what is waiting."
-            % (cards.QUEUE_REL, type(e).__name__))
-        return empty
+        # NOT AN ERROR AND NOT A PASS EITHER: no brief for today is a real
+        # state of this channel (silence is an acceptable exit) and it prints
+        # its denominator rather than a bare zero.
+        here = sorted(brief.briefs_on_disk(repo))
+        say("brief: NOTHING MEASURED, there is no brief for %s (%s). %d "
+            "brief(s) are in the tree, newest %s. Nothing was sent."
+            % (day, type(e).__name__, len(here),
+               here[-1] if here else "nothing-measured"))
+        return {"day": day, "rel": rel, "sent": None, "already": None,
+                "refused": None, "clause": "", "messageId": None,
+                "records": [], "checked": False, "buttons": 0, "chars": 0,
+                "missing": True}
 
     def sender(body, keyboard):
         try:
@@ -1508,13 +1599,18 @@ def cards_pass(creds, repo=None, say=None):
         except ApiError as e:
             raise outbox.SendFailed(str(e))
 
-    res = cards.send_cards(text, sender, outbox.CardReceipts(repo), say=say)
+    def check(rel_to_check):
+        return outbox.run_check(repo, "brief", rel_to_check)
+
+    res = brief.send_brief(day, text, sender, brief.BriefReceipts(repo),
+                           check=check, say=say)
+    say(brief.brief_done_line(res))
     if res["records"]:
         push = inbox.push_pending(repo, say)
         if not push["ok"]:
-            say("cards: %d receipt record(s) are written on this PC but NOT "
-                "pushed (%s). Nothing he was sent is forgotten: the receipts "
-                "are on this disk and the dedupe reads them from there."
+            say("brief: %d record(s) are written on this PC but NOT pushed "
+                "(%s). Nothing he was sent is forgotten: the receipt is on "
+                "this disk and the dedupe reads it from there."
                 % (len(res["records"]), push["detail"]))
     return res
 
@@ -2230,10 +2326,11 @@ def _selftest_cases(ok, bad, state):
     bP = Captured()
     bP.flush_inbox = lambda every=60: ran.__setitem__("flush", ran["flush"] + 1)
     bP.sweep_outbox = lambda every=120: ran.__setitem__("sweep", ran["sweep"] + 1)
-    # AND THE CARDS, 2026-09-09. This row is the one that says the card sender
-    # has a caller at all: it had none from the day it was written (queue 090)
-    # until this line, which is rule 6 exactly, and a grep for "send-cards"
-    # found only the usage text and its own argument parser.
+    # AND THE CARDS COUNTER IS HERE TO PROVE THE OPPOSITE OF WHAT IT PROVED
+    # THIS MORNING. It was added at about 10:00 on 2026-09-09 to show the card
+    # sender finally had a caller; Jafar retired that pass the same day, so
+    # this stub now exists to catch the loop calling it AGAIN. If this counter
+    # ever moves, the retirement leaked.
     bP.sweep_cards = lambda every=None: ran.__setitem__("cards",
                                                         ran["cards"] + 1)
 
@@ -2260,8 +2357,19 @@ def _selftest_cases(ok, bad, state):
 
     check("accept/a-failing-poll-still-flushes-and-sweeps",
           ran["flush"] == 1 and ran["sweep"] == 1, ran)
-    check("accept/the-loop-sweeps-the-cards-beside-the-outbox",
-          ran["cards"] == 1, ran)
+    check("reject/the-loop-no-longer-sweeps-the-retired-cards",
+          ran["cards"] == 0, str(ran))
+    # AND THE RETIREMENT IS MECHANICAL AND NOT A COMMENT: the method raises,
+    # so a caller somebody adds next month stops instead of sending.
+    retired_note = None
+    try:
+        Captured().sweep_cards(every=0)
+    except cards.SendingRetired as e:
+        retired_note = str(e)
+    check("reject/and-the-card-sweep-itself-refuses-to-run",
+          retired_note is not None and "RETIRED" in retired_note
+          and "--send-brief" in retired_note,
+          (retired_note or "IT STILL RUNS")[:80])
     check("accept/and-the-poll-failure-was-real-not-a-vacuous-pass",
           bP.net_errors == 1, "netErrors=%d" % bP.net_errors)
 
@@ -2512,21 +2620,27 @@ def _selftest_cases(ok, bad, state):
           and "botSweepLastResult=raised/RuntimeError" in raised,
           raised.replace("\n", " ")[:150])
 
-    # ---- THE CARD PASS, END TO END, AGAINST THE FIXTURE REPOSITORY -------
-    # THE WIRING ROW, and the one that says the keyboard reaches a sender at
-    # all. `cards.py --selftest` proves the message and the dedupe arithmetic;
-    # this proves that `sweep_cards` reads the queue on disk, hands
-    # `cards.send_cards` a real `outbox.CardReceipts`, writes the receipt into
-    # production/outbound and counts the pass. `send` is swapped for a stand-in
-    # that returns what Telegram's own payload looks like, so nothing here
-    # touches the network; `inbox.push_pending` is stubbed because whether the
-    # records reach the branch is the transport's own suite, not this one.
-    with open(queue_rel, "w", encoding="utf-8", newline="\n") as fh:
-        fh.write(cards.FIXTURE)
+    # ---- THE BRIEF PASS, END TO END, AGAINST THE FIXTURE REPOSITORY -----
+    # THE WIRING ROW, AND IT REPLACES THE CARD PASS'S. `brief.py --selftest`
+    # proves the arithmetic, the two buttons, the streak and every refusal;
+    # this proves that `brief_pass` reads the file on disk, runs the register
+    # check on the sending side, hands the text and the keyboard to a sender,
+    # writes the receipt into production/outbound and counts the pass. `send`
+    # is swapped for a stand-in returning what Telegram's own payload looks
+    # like, so nothing here touches the network; `inbox.push_pending` and
+    # `outbox.run_check` are stubbed because the transport and the register
+    # each have their own suite.
+    day = "2026-09-10"
+    brief_rel = os.path.join(b8.repo, *brief.brief_rel(day).split("/"))
+    os.makedirs(os.path.dirname(brief_rel), exist_ok=True)
+    brief_body = ("HEADLINE: The street is standing in the rain.\n\n"
+                  "WHAT CHANGED: You can see it from the corner now.\n")
+    with open(brief_rel, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write(brief_body)
     b9 = Captured()
     b9.creds = creds
-    wired, pushes = [], []
-    real_send, real_push2 = send, inbox.push_pending
+    wired, pushes, checked = [], [], []
+    real_send, real_push2, real_check = send, inbox.push_pending, outbox.run_check
     try:
         globals()["send"] = lambda token, chat, text, markup=None: (
             wired.append((text, markup)) or {"message_id": 900 + len(wired)})
@@ -2535,77 +2649,72 @@ def _selftest_cases(ok, bad, state):
                                     "commit": "c" * 40, "replaced": False,
                                     "detail": "stubbed in the selftest",
                                     "plain": ""})
-        b9.sweep_cards(every=0)
-        after_one = list(wired)
-        b9.sweep_cards(every=0)
+        outbox.run_check = lambda repo, kind, rel, timeout=120: (
+            checked.append((kind, rel)) or (True, "", "stubbed"))
+        first = brief_pass(creds, b9.repo, lambda _s: None, day)
+        second = brief_pass(creds, b9.repo, lambda _s: None, day)
+        missing = brief_pass(creds, b9.repo, lambda _s: None, "2026-09-11")
     finally:
         globals()["send"] = real_send
         inbox.push_pending = real_push2
+        outbox.run_check = real_check
 
-    check("accept/the-card-pass-sends-the-one-sendable-card-with-buttons",
-          len(after_one) == 1
-          and "How close should strangers stand?" in after_one[0][0]
-          and isinstance(after_one[0][1], dict)
-          and len(after_one[0][1]["inline_keyboard"]) == 3,
-          [t[:40] for t, _m in after_one])
-    check("accept/and-that-message-names-all-six-things-with-one-link",
-          all(w in after_one[0][0] for w in ("CLASS: DECISION",
-                                            "RECOMMENDATION B,",
-                                            "DEFAULT B if unruled",
-                                            "DEADLINE 2026-09-07,",
-                                            "The card: https://"))
-          and after_one[0][0].count("http") == 1,
-          after_one[0][0].replace("\n", " | ")[:200] if after_one else "SILENT")
-    card_receipts = [n for n in os.listdir(
+    check("accept/the-brief-pass-sends-his-words-with-two-buttons",
+          len(wired) == 1 and wired[0][0] == brief_body.strip()
+          and [b[0]["text"] for b in wired[0][1]["inline_keyboard"]]
+          == ["Readable", "Unreadable"]
+          and first["messageId"] == 901,
+          str([w[0][:40] for w in wired]))
+    check("accept/and-the-register-check-ran-on-that-file-before-the-send",
+          checked == [("brief", brief.brief_rel(day))], str(checked))
+    brief_receipts = [n for n in os.listdir(
         os.path.join(b9.repo, *outbox.OUTBOUND_DIR.split("/")))
-        if n.startswith("card-") and n.endswith(".receipt.txt")]
+        if n.startswith("brief-") and n.endswith(".receipt.txt")]
     check("accept/the-receipt-is-written-where-the-studio-reads-it",
-          len(card_receipts) == 1 and len(pushes) == 1, card_receipts)
-    check("accept/the-second-pass-sends-nothing-and-counts-the-skip",
-          len(wired) == 1 and b9.cards_passes == 2 and b9.cards_sent == 1
-          and b9.cards_already == 1
-          and "cardsPasses=2" in b9.done_line()
-          and "cardsSent=1" in b9.done_line()
-          and "cardsAlreadySent=1" in b9.done_line(), b9.done_line())
-    cards_file = os.path.join(b9.repo, *Bot.SWEEP_STATUS_REL.split("/"))
-    cards_status = open(cards_file, encoding="utf-8").read() \
-        if os.path.exists(cards_file) else ""
-    check("accept/the-card-counters-reach-the-file-the-supervisor-reads",
-          "botCardsPasses=2" in cards_status
-          and "botCardsSent=1" in cards_status
-          and "botCardsEverySec=%d" % Bot.CARDS_EVERY_SEC in cards_status
-          and "botCardsLastResult=" in cards_status,
-          cards_status.replace("\n", " ")[:200])
-    check("accept/a-bot-that-has-not-swept-the-cards-publishes-zero",
-          "botCardsPasses=0" in zero
-          and "botCardsLastResult=no-pass-yet" in zero,
-          zero.replace("\n", " ")[:200])
-    # AND THE EXCEPTION PATH, PLANTED: a card pass that raises is still a pass.
-    bA = Captured()
-    bA.creds = creds
-    real_cards_pass = cards_pass
+          brief_receipts == ["brief-%s.receipt.txt" % day]
+          and len(pushes) == 1, str(brief_receipts))
+    check("reject/the-second-pass-sends-nothing-and-says-already",
+          len(wired) == 1 and second["sent"] is None and second["already"]
+          and "briefSent=0/1" in brief.brief_done_line(second),
+          brief.brief_done_line(second))
+    check("reject/a-day-with-no-brief-is-nothing-measured-not-a-send",
+          missing.get("missing") is True and missing["sent"] is None
+          and len(wired) == 1, brief.brief_done_line(missing))
+    # AND THE CALLBACK THAT COMES BACK FROM THOSE BUTTONS IS A RECORD.
+    tap_data = wired[0][1]["inline_keyboard"][1][0]["callback_data"]
+    bT = Captured()
+    bT.creds = creds
+    taps_seen = []
+    real_push3 = inbox.push_pending
     try:
-        globals()["cards_pass"] = (lambda *a, **k: (_ for _ in ()).throw(
-            RuntimeError("planted")))
-        bA.sweep_cards(every=0)
+        inbox.push_pending = lambda repo, say=None, **k: (
+            taps_seen.append(repo) or {"ok": True, "pushed": [], "pending": [],
+                                       "commit": "d" * 40, "replaced": False,
+                                       "detail": "stubbed", "plain": ""})
+        bT.handle(tap(tap_data, 8001))
+        bT.handle(update("too many words about the studio", 8002))
     finally:
-        globals()["cards_pass"] = real_cards_pass
-    raised_cards = open(cards_file, encoding="utf-8").read() \
-        if os.path.exists(cards_file) else ""
-    check("accept/a-card-pass-that-raised-still-counts-and-names-the-raise",
-          bA.cards_passes == 1
-          and "botCardsLastResult=raised/RuntimeError" in raised_cards,
-          raised_cards.replace("\n", " ")[:200])
-    # AND THE UNREADABLE QUEUE, which must report its denominator rather than
-    # a clean zero: a pass that could not read the file sent nothing and knows
-    # nothing about what is waiting.
-    said_cards = []
-    gone_repo = os.path.join(b9.repo, "no-such-checkout")
-    res_gone = cards_pass(creds, gone_repo, lambda s: said_cards.append(s))
-    check("accept/an-unreadable-queue-says-so-and-sends-nothing",
-          res_gone["waiting"] == 0 and res_gone["sent"] == []
-          and any("could not be read" in s for s in said_cards),
-          said_cards[:1])
+        inbox.push_pending = real_push3
+    tapdir = os.path.join(bT.repo, *inbox.BRIEF_TAP_DIR.split("/"))
+    written = sorted(os.listdir(tapdir)) if os.path.isdir(tapdir) else []
+    check("accept/an-unreadable-tap-is-recorded-with-its-day-and-verdict",
+          len(written) == 2 and bT.taps_brief == 1 and bT.reasons_filed == 1
+          and all(inbox.BRIEF_TAP_RE.match(n) for n in written),
+          str(written))
+    tap_bodies = [open(os.path.join(tapdir, n), encoding="utf-8").read()
+                  for n in written]
+    check("accept/and-the-reason-he-typed-rides-with-it",
+          any("verdict: unreadable" in t and "briefDay: %s" % day in t
+              for t in tap_bodies)
+          and any("record: reason" in t
+                  and "too many words about the studio" in t
+                  for t in tap_bodies), str([t[:40] for t in tap_bodies]))
+    check("accept/the-tap-counters-reach-the-done-line-with-denominators",
+          "briefTapsFiled=1/1" in bT.done_line()
+          and "briefReasonsFiled=1" in bT.done_line()
+          and "cardsSent" not in bT.done_line(), bT.done_line()[-120:])
+    check("reject/and-a-second-message-is-not-filed-as-a-second-reason",
+          bT.reason_wanted is None, str(bT.reason_wanted))
 
     # ---- --flush-inbox, ON THE CASE IT MUST PASS --------------------------
     # A DIRECTOR RECORDED, 2026-09-08, that this flag shipped with no case of
@@ -2733,18 +2842,30 @@ def main(argv):
         return 1 if (res["refused"] or res["failed"] or res["bad_receipt"]) \
             else 0
     if "--send-cards" in args:
+        # RETIRED 2026-09-09. NO CREDENTIALS ARE LOADED AND NOTHING IS SENT.
+        # Exit 5 rather than 0 or 1, so a caller that still exists anywhere
+        # shows up as its own red rather than as a working pass or a crash.
+        OUT.say("--send-cards: %s" % cards.RETIREMENT)
+        OUT.say("--send-cards: nothing was read, nothing was sent, 0 card(s) "
+                "left this machine.")
+        return 5
+    if "--send-brief" in args:
+        # THE ONE MESSAGE A DAY. An optional day after the flag, so a brief
+        # can be sent for a named date; without it, today in UTC, which is the
+        # clock every record in production/outbound is stamped with.
         creds = load_or_explain()
         if creds is None:
             return 1
-        res = cards_pass(creds)
-        # A HELD CARD AND A CARD WITH NO MESSAGE ID ARE FAILURES OF THIS PASS
-        # TOO, and the CI step that runs this reads the exit code beside the
-        # stream: a green exit over a card that may not have arrived is the
-        # shape of evidence failure this project keeps paying for. A SKIPPED
-        # card is not counted here: a card the queue wrote without a default is
-        # a queue fault, it is named on its own line, and it must not make the
-        # step red for every other card that went.
-        return 1 if (res["failed"] or res["noid"] or res["held"]) else 0
+        i = args.index("--send-brief")
+        day = args[i + 1] if i + 1 < len(args) \
+            and not args[i + 1].startswith("--") else None
+        res = brief_pass(creds, day=day)
+        # THREE OUTCOMES, THREE CODES, so the step that runs this cannot read
+        # "there was no brief today" as "the brief went". 0 sent or already
+        # sent, 1 refused or held, 6 nothing to send.
+        if res.get("missing"):
+            return 6
+        return 1 if res.get("refused") else 0
     if "--send-clip" in args:
         creds = load_or_explain()
         if creds is None:

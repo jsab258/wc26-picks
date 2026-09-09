@@ -1,5 +1,36 @@
 #!/usr/bin/env python3
-"""THE MORNING BRIEF, GENERATED FROM REPO STATE. No model call, one writer.
+"""RETIRED 2026-09-09. NOTHING CALLS THIS AND IT NO LONGER WRITES THE MESSAGE.
+
+RULED BY JAFAR, 2026-09-09, VERBATIM: "The channel fails because nobody with
+judgment sits in it. Replace the machinery with one judgment step. One Producer
+turn a day writes the single message. It reads the queue, findings, decision
+queue, receipts and ladder, and decides what I see and what I never see. The
+brief generator, the cards pass and the page notifier are retired; the register
+stays as a format check after the Producer writes."
+
+THIS IS THE BRIEF GENERATOR. WHAT REPLACED IT:
+  - tools/producer-day.py gathers the five sources he named for one Producer
+    turn, and prints the consecutive readable count.
+  - The Producer writes production/briefs/<YYYY-MM-DD>.md in its own words.
+    No template, no headline function, no ranking.
+  - tools/producer-check.py checks that file AFTER it is written.
+  - tools/runner/telegram-bot.py --send-brief sends it with two buttons on it,
+    readable and unreadable, and the tap comes back as a record.
+
+ITS LAST CALLER WAS tools/runner/run-night.ps1 AND THAT CALL IS GONE. Nothing
+in the repository runs this program; a grep for its name finds this banner, the
+records that describe it and the comments in other files that name it as the
+thing that was retired.
+
+NOT DELETED, DELIBERATELY. Its composition rules, its provenance lines and its
+refusals are the record of what a generated brief could and could not do, and
+the reason the ruling above is right: it could compose a shape and it could
+not decide what he never sees.
+
+WHAT IT DID, KEPT BELOW AS WRITTEN, so the retirement is readable rather than
+a blank file. Everything after this line describes the retired program.
+
+THE MORNING BRIEF, GENERATED FROM REPO STATE. No model call, one writer.
 
     python3 tools/morning-brief.py                 # write production/briefs/<today>.md
     python3 tools/morning-brief.py --dry-run       # compose and print, write nothing
@@ -1883,6 +1914,18 @@ def main():
     a = ap.parse_args()
     if a.selftest:
         return selftest()
+    # RETIRED 2026-09-09, AND THE REFUSAL IS HERE RATHER THAN IN A COMMENT.
+    # A banner does not stop a program: this one wrote into
+    # production/briefs/, which is where the Producer's own message now goes,
+    # so a stray run would put a generated file where a written one belongs
+    # and the send path would send whichever it found. Exit 5, its own code,
+    # so a caller that still exists reads as red rather than as a working run.
+    print("morning-brief: RETIRED 2026-09-09 by Jafar's ruling. Nothing was "
+          "read and nothing was written; 0 brief(s) composed. One Producer "
+          "turn a day writes production/briefs/<day>.md now: gather with "
+          "tools/producer-day.py, check with tools/producer-check.py, send "
+          "with tools/runner/telegram-bot.py --send-brief.")
+    return 5
     today = (datetime.date.fromisoformat(a.date) if a.date
              else datetime.datetime.now(datetime.timezone.utc).date())
     root = pathlib.Path(a.root).resolve()

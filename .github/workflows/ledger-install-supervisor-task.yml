@@ -53,9 +53,12 @@ name: LEDGER install supervisor scheduled task
 # minute CI ran --flush-inbox, and nothing between them. That is absence of a
 # LOOK, not absence of a delivery.
 #
-# production/decision-queue.md is here for the same reason one layer up: it is
-# the input to the --send-cards step below, and a new card that nothing sends
-# is the same fault as a message that nothing sweeps.
+# production/briefs/** is here because the one message a day is written there
+# and the step below is what sends it: without that line a Producer turn could
+# write the brief, push it, and nothing on his machine would ever send it.
+# production/decision-queue.md stays for the glance rather than for a sender:
+# the --send-cards step this file used to carry was retired by Jafar on
+# 2026-09-09 and the sender itself now refuses to run.
 #
 # WHAT THIS COSTS, AND WHAT ELSE WAITS. The runner is his one PC
 # ([self-hosted, ledger-pc]), so each of these runs occupies it briefly. The
@@ -83,6 +86,15 @@ on:
       - 'tools/runner/single_instance.py'
       - 'tools/runner/process-query.ps1'
       - 'production/outbox/**'
+      # A BRIEF WRITTEN AND PUSHED IS WHAT MUST START THIS RUN, 2026-09-09.
+      # The one message a day lives here (never production/outbox/, whose
+      # sweep has nowhere to put a keyboard), so without this line a Producer
+      # turn could write the brief, push it, and nothing on his machine would
+      # ever send it.
+      - 'production/briefs/**'
+      # production/decision-queue.md STAYS in this filter even though the
+      # cards step is retired: the queue is still read by the glance and a
+      # push that changes it should still bring the machine up to date.
       - 'production/decision-queue.md'
 
 permissions:
@@ -409,90 +421,174 @@ jobs:
               "sweepStatus=NOTHING-MEASURED reason=no-python-found" | Add-Content $out
             } else {
               "sweepPython=$($py -replace ' ','~')" | Add-Content $out
-              # -u AND A HARD WAIT, because the first attempt produced NOT
-              # ONE LINE in six minutes and then died with the step. Two
-              # things could do that, and both are fixed here rather than
-              # guessed between: python block-buffers stdout when it is a
-              # pipe rather than a console, so even a process that ran fine
-              # would show nothing until it exited; and a process that truly
-              # hangs never exits, so a pipeline that appends on completion
-              # appends never. -u makes each line appear as it happens, and
-              # the redirect plus a bounded wait means a hang still leaves
-              # the lines it reached, which is the half that names WHERE.
-              $raw = Join-Path $env:RUNNER_TEMP "sweep-raw.txt"
-              Remove-Item $raw -Force -ErrorAction SilentlyContinue
-              Remove-Item "$raw.err" -Force -ErrorAction SilentlyContinue
-              Push-Location $repo
-              $proc = Start-Process -FilePath $py -PassThru -NoNewWindow -ArgumentList @("-u", "tools\runner\telegram-bot.py", "--send-outbox") -RedirectStandardOutput $raw -RedirectStandardError "$raw.err"
-              $waited = 0
-              while (-not $proc.HasExited -and $waited -lt 180) {
-                Start-Sleep -Seconds 3
-                $waited += 3
-              }
-              if (-not $proc.HasExited) {
-                "sweepStatus=HUNG sweepWaitedSec=$waited sweepNote=killed-after-the-wait/lines-below-are-where-it-got-to" | Add-Content $out
-                try { $proc.Kill() } catch { }
-                Start-Sleep -Seconds 2
+              # QUEUE 189, AND IT IS THE ONE ASSERTION THIS STEP NEVER MADE.
+              # Everything below reads HIS checkout, and nothing proved that
+              # checkout was current. It is not this step's to refresh: the
+              # installer above deliberately SKIPS its resync while a
+              # supervisor or a bare pc-watcher is running, because two
+              # writers on one git index cost this project four days. That
+              # leaves freshness as another process's property on another
+              # process's timer, and on 2026-09-09 the timer had not come
+              # round. MEASURED, off the files this job commits: the push
+              # landed at 08:41:51, this step ran 35 seconds later and read
+              # outboxFiles=15 where the branch carried 16, and his checkout
+              # was still at 650f0755 (06:27:03), one commit behind. Three
+              # seconds after that the cards step sent six cards from the
+              # queue as his checkout held it, including one that the very
+              # push this run was started for had just moved out of WAITING.
+              #
+              # THE GATE IS THE WORKSPACE'S COPY, NOT HIS. Running his copy
+              # of the check would be the same bug one level up: a stale
+              # checkout answering whether it is stale.
+              #
+              # FORWARD SLASHES IN THAT PATH ARE LOAD-BEARING, not a style
+              # slip: ledger/verify.py's tools_tracked walk greps every
+              # workflow for a forward-slashed path under tools ending in .py
+              # and goes red if the file it names is absent or untracked, and
+              # a backslash copy is invisible to
+              # it. Windows takes either. Without this the gate could ship
+              # uncommitted and both senders would refuse for ever.
+              #
+              # THE ARITHMETIC AND EVERY PRINTED WORD LIVE IN THE TOOL, which
+              # has a selftest that runs in the container (both outcomes,
+              # accepting first). What stays here is two paths, a prefix and
+              # an exit code, because this pwsh cannot be run from there.
+              # ANY NON-ZERO MEANS DO NOT SEND: 3 his checkout is stale, 4
+              # the question could not be asked, 5 the gate is not in the
+              # workspace, anything else the gate itself broke. Fail closed
+              # in all four, and say WHICH in one status key.
+              $gate = Join-Path (Get-Location).Path "tools/runner/checkout-contains.py"
+              if (Test-Path $gate) {
+                # THE WAIT IS 90 SECONDS AND THE NUMBER IS READ, NOT PICKED.
+                # tools/pc-watcher.py resyncs at the top of every pass and
+                # sleeps max(10, --seconds) after it, --seconds defaults to
+                # 60 and tools/supervise.py starts it with no flags, so one
+                # period is 60s plus whatever that pass did. 90 is one
+                # period plus slack, and it fits this step's own 6 minute
+                # ceiling beside the 180s hard wait below. The gate prints
+                # the series of heads it saw and when, so the next session
+                # sets this from real runs instead of from the code.
+                $gateArgs = @($gate, "--run-sha", "$($env:GITHUB_SHA)",
+                              "--repo", $repo,
+                              "--run-repo", (Get-Location).Path,
+                              "--key-prefix", "sweepCheckout",
+                              "--out", $out,
+                              "--wait-sec", "90", "--poll-sec", "5")
+                & $py @gateArgs 2>&1 | ForEach-Object { Write-Host $_ }
+                $gateExit = $LASTEXITCODE
               } else {
-                "sweepStatus=EXITED sweepWaitedSec=$waited sweepExitCode=$($proc.ExitCode)" | Add-Content $out
+                $gateExit = 5
+                "sweepGateMissing=$($gate -replace ' ','~')" | Add-Content $out
               }
-              Pop-Location
-              foreach ($f in @($raw, "$raw.err")) {
-                if (Test-Path $f) {
-                  $lines = @(Get-Content $f -ErrorAction SilentlyContinue)
-                  "sweepStream=$(Split-Path $f -Leaf) sweepLines=$($lines.Count)" | Add-Content $out
-                  $lines | Select-Object -Last 40 | Add-Content $out
-                  if ($lines.Count -gt 40) { "(+$($lines.Count - 40) earlier line(s) not shown)" | Add-Content $out }
+              if ($gateExit -ne 0) {
+                # A REFUSAL IS NOT A JOB FAILURE. The step stays green and
+                # the verdict file carries the refusal, which is the channel
+                # this project trusts; a red job for a race the next push
+                # clears teaches a reader to ignore red. The annotation is
+                # so it is visible without opening the file.
+                $why = switch ($gateExit) {
+                  3 { "REFUSED-STALE-CHECKOUT" }
+                  4 { "REFUSED-CANNOT-PROVE-CURRENT" }
+                  5 { "REFUSED-GATE-MISSING" }
+                  default { "REFUSED-GATE-ERROR" }
+                }
+                "sweepStatus=$why sweepSent=0 sweepGateExit=$gateExit" | Add-Content $out
+                Write-Host "::warning title=LEDGER outbox sweep sent nothing::$why. Nothing was sent, and the two shas that say why are in production/pc-ops/outbox-sweep.txt on the sweepCheckoutRunSha and sweepCheckoutPcHeadSha keys: the first is the commit CI ran for, the second is the commit his checkout was at."
+              } else {
+                # -u AND A HARD WAIT, because the first attempt produced NOT
+                # ONE LINE in six minutes and then died with the step. Two
+                # things could do that, and both are fixed here rather than
+                # guessed between: python block-buffers stdout when it is a
+                # pipe rather than a console, so even a process that ran fine
+                # would show nothing until it exited; and a process that truly
+                # hangs never exits, so a pipeline that appends on completion
+                # appends never. -u makes each line appear as it happens, and
+                # the redirect plus a bounded wait means a hang still leaves
+                # the lines it reached, which is the half that names WHERE.
+                $raw = Join-Path $env:RUNNER_TEMP "sweep-raw.txt"
+                Remove-Item $raw -Force -ErrorAction SilentlyContinue
+                Remove-Item "$raw.err" -Force -ErrorAction SilentlyContinue
+                Push-Location $repo
+                $proc = Start-Process -FilePath $py -PassThru -NoNewWindow -ArgumentList @("-u", "tools\runner\telegram-bot.py", "--send-outbox") -RedirectStandardOutput $raw -RedirectStandardError "$raw.err"
+                $waited = 0
+                while (-not $proc.HasExited -and $waited -lt 180) {
+                  Start-Sleep -Seconds 3
+                  $waited += 3
+                }
+                if (-not $proc.HasExited) {
+                  "sweepStatus=HUNG sweepWaitedSec=$waited sweepNote=killed-after-the-wait/lines-below-are-where-it-got-to" | Add-Content $out
+                  try { $proc.Kill() } catch { }
+                  Start-Sleep -Seconds 2
+                } else {
+                  "sweepStatus=EXITED sweepWaitedSec=$waited sweepExitCode=$($proc.ExitCode)" | Add-Content $out
+                }
+                Pop-Location
+                foreach ($f in @($raw, "$raw.err")) {
+                  if (Test-Path $f) {
+                    $lines = @(Get-Content $f -ErrorAction SilentlyContinue)
+                    "sweepStream=$(Split-Path $f -Leaf) sweepLines=$($lines.Count)" | Add-Content $out
+                    $lines | Select-Object -Last 40 | Add-Content $out
+                    if ($lines.Count -gt 40) { "(+$($lines.Count - 40) earlier line(s) not shown)" | Add-Content $out }
+                  }
                 }
               }
             }
           }
           Write-Host (Get-Content $out -Raw)
 
-      # THE DECISION CARDS, AFTER THE OUTBOX AND ON THE SAME TRIGGER, added
-      # 2026-09-09 for Jafar's ruling that every "needs you" arrives as its own
-      # message with tap buttons. `--send-cards` existed from queue 090 and
-      # NOTHING EVER CALLED IT: a grep for send-cards across the workflows, the
-      # runner and the batch files found only the usage text and its own
-      # argument parser, so the only sender that ever ran was the text-only
-      # outbox sweep, whose sender has no place to put a keyboard. That is rule
-      # 6, built is not running.
+      # THE ONE DAILY BRIEF, AFTER THE OUTBOX AND ON THE SAME TRIGGER.
+      # REPLACES THE DECISION-CARDS STEP THAT STOOD HERE FOR SIX HOURS ON
+      # 2026-09-09. That step sent six cards in two seconds off a queue one of
+      # whose cards the studio had already withdrawn, and Jafar retired it the
+      # same day: "The channel fails because nobody with judgment sits in it.
+      # Replace the machinery with one judgment step. One Producer turn a day
+      # writes the single message." The receipts of that pass are kept in
+      # production/pc-ops/brief-send.txt; the sender itself now refuses to run.
       #
-      # IT IS ALLOWED TO SEND, like the sweep above, and for the same reason it
-      # is safe to: one receipt per (cardId, fingerprint of the card's
-      # content), written into production/outbound and checked before any send,
-      # so a card he has already been sent is skipped and the skip is counted
-      # (cardsAlreadySent=K/M). A card whose question or options CHANGE is a new
-      # fingerprint and goes again, which is the behaviour a reader of the queue
-      # needs. The receipts are the same mechanism the outbox uses, proven by
-      # `python3 tools/runner/outbox.py --selftest`.
+      # WHAT THIS STEP SENDS. production/briefs/<today UTC>.md, written by a
+      # Producer turn in its own words, checked HERE by tools/producer-check.py
+      # on the sending side, and sent with two inline buttons on it: readable
+      # and unreadable. A tap comes back as a record on the pc-inbox branch
+      # through the same transport as everything else on that branch.
+      #
+      # IT IS ALLOWED TO SEND, like the sweep above, and safe for the same
+      # reason: one receipt per day in production/outbound, checked before any
+      # send, so a brief he has already been sent is never sent twice
+      # (briefAlready=1/1). The exit codes are distinct on purpose: 0 sent or
+      # already sent, 1 refused by the register or held, 6 there is no brief
+      # for today, which is not a failure and not a send either.
+      #
+      # THERE IS NO SECOND SENDER. The bot's poll loop deliberately does NOT
+      # sweep briefs: two senders sharing one receipt race, and a duplicate of
+      # the one message a day is itself a channel failure.
       #
       # STRUCTURE COPIED LINE BY LINE FROM THE SWEEP STEP ABOVE, deliberately:
       # absolute $out (a relative one resolves inside Push-Location and lands
       # in his checkout), -u so each line appears as it happens, a bounded wait
       # so a hang still leaves the lines it reached, a status line on EVERY
       # path, and the tail cap announcing itself.
-      - name: Run one decision-cards pass on his machine and print what it says
+      - name: Send the one daily brief from his machine and print what it says
         if: always()
         continue-on-error: true
         timeout-minutes: 6
         shell: pwsh
         run: |
           $ErrorActionPreference = "Continue"
-          $out = Join-Path (Get-Location).Path "production/pc-ops/cards-send.txt"
+          $out = Join-Path (Get-Location).Path "production/pc-ops/brief-send.txt"
           New-Item -ItemType Directory -Force -Path "production/pc-ops" | Out-Null
           $repo = "C:\Users\Jafar\wc26-picks"
           $sha = if ($env:GITHUB_SHA) { $env:GITHUB_SHA.Substring(0,7) } else { "SHA-UNKNOWN" }
-          "# LEDGER one decision-cards pass - $sha @$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())" |
+          "# LEDGER one daily-brief send - $sha @$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())" |
             Set-Content $out -Encoding utf8
           "# Line 1 names the commit this was run on. This step SENDS: it runs" | Add-Content $out
-          "# tools/runner/telegram-bot.py --send-cards once, which is the same" | Add-Content $out
-          "# pass the bot's own loop makes every 120s. One message per WAITING" | Add-Content $out
-          "# card, with one tap button per option, and a receipt per card so an" | Add-Content $out
-          "# unchanged card is never sent twice. Streamed, so a timeout still" | Add-Content $out
-          "# leaves everything it learned." | Add-Content $out
+          "# tools/runner/telegram-bot.py --send-brief once. ONE message: the" | Add-Content $out
+          "# brief a Producer turn wrote for today, checked here against the" | Add-Content $out
+          "# register before it goes, carrying two buttons, readable and" | Add-Content $out
+          "# unreadable. One receipt per day, so it is never sent twice. The" | Add-Content $out
+          "# bot's loop does NOT also send it: one sender, no race. Streamed," | Add-Content $out
+          "# so a timeout still leaves everything it learned." | Add-Content $out
           if (-not (Test-Path "$repo\tools\runner\telegram-bot.py")) {
-            "cardsStatus=NOTHING-MEASURED reason=no-bot-at-that-path" | Add-Content $out
+            "briefStatus=NOTHING-MEASURED reason=no-bot-at-that-path" | Add-Content $out
           } else {
             $py = $null
             foreach ($c in @("$repo\tools\voice-live\env-export\Scripts\python.exe",
@@ -501,44 +597,87 @@ jobs:
               try { & $c --version *> $null; if ($LASTEXITCODE -eq 0) { $py = $c; break } } catch { }
             }
             if (-not $py) {
-              "cardsStatus=NOTHING-MEASURED reason=no-python-found" | Add-Content $out
+              "briefStatus=NOTHING-MEASURED reason=no-python-found" | Add-Content $out
             } else {
-              "cardsPython=$($py -replace ' ','~')" | Add-Content $out
-              $raw = Join-Path $env:RUNNER_TEMP "cards-raw.txt"
-              Remove-Item $raw -Force -ErrorAction SilentlyContinue
-              Remove-Item "$raw.err" -Force -ErrorAction SilentlyContinue
-              Push-Location $repo
-              $proc = $null
-              try {
-                $proc = Start-Process -FilePath $py -PassThru -NoNewWindow -ArgumentList @("-u", "tools\runner\telegram-bot.py", "--send-cards") -RedirectStandardOutput $raw -RedirectStandardError "$raw.err"
-              } catch {
-                "cardsStatus=NOT-STARTED reason=$($_.Exception.GetType().Name)" | Add-Content $out
-              }
-              if ($null -eq $proc) {
-                "cardsStatus=NO-PROCESS cardsWaitedSec=0" | Add-Content $out
+              "briefPython=$($py -replace ' ','~')" | Add-Content $out
+              # QUEUE 189, THE SAME GATE THE SWEEP AND THE FLUSH CARRY, and
+              # this step is the one it matters most for: ONE message a day,
+              # so a brief sent off a stale checkout is not a message that can
+              # be corrected by the next one. The cards pass this step
+              # replaced sent six cards out of his checkout as it stood before
+              # the push that started the run, including one that same push
+              # had just moved out of WAITING, 38 seconds earlier.
+              #
+              # 30 SECONDS, NOT 90: the sweep step ahead of this one has
+              # already carried the long wait, so this is slack for a watcher
+              # pass that landed in between rather than a wait for one. It
+              # fits this step's 6 minute ceiling beside the 180s hard wait
+              # below. ANY NON-ZERO MEANS DO NOT SEND, and which one it was
+              # goes in a single briefStatus key.
+              $gate = Join-Path (Get-Location).Path "tools/runner/checkout-contains.py"
+              if (Test-Path $gate) {
+                $gateArgs = @($gate, "--run-sha", "$($env:GITHUB_SHA)",
+                              "--repo", $repo,
+                              "--run-repo", (Get-Location).Path,
+                              "--key-prefix", "briefCheckout",
+                              "--out", $out,
+                              "--wait-sec", "30", "--poll-sec", "5")
+                & $py @gateArgs 2>&1 | ForEach-Object { Write-Host $_ }
+                $gateExit = $LASTEXITCODE
               } else {
-                $waited = 0
-                while (-not $proc.HasExited -and $waited -lt 180) {
-                  Start-Sleep -Seconds 3
-                  $waited += 3
-                }
-                if (-not $proc.HasExited) {
-                  "cardsStatus=HUNG cardsWaitedSec=$waited cardsNote=killed-after-the-wait/lines-below-are-where-it-got-to" | Add-Content $out
-                  try { $proc.Kill() } catch { }
-                  Start-Sleep -Seconds 2
-                } else {
-                  "cardsStatus=EXITED cardsWaitedSec=$waited cardsExitCode=$($proc.ExitCode)" | Add-Content $out
-                }
+                $gateExit = 5
+                "briefGateMissing=$($gate -replace ' ','~')" | Add-Content $out
               }
-              Pop-Location
-              foreach ($f in @($raw, "$raw.err")) {
-                if (Test-Path $f) {
-                  $lines = @(Get-Content $f -ErrorAction SilentlyContinue)
-                  "cardsStream=$(Split-Path $f -Leaf) cardsLines=$($lines.Count)" | Add-Content $out
-                  $lines | Select-Object -Last 40 | Add-Content $out
-                  if ($lines.Count -gt 40) { "(+$($lines.Count - 40) earlier line(s) not shown)" | Add-Content $out }
+              if ($gateExit -ne 0) {
+                # NOT A JOB FAILURE, the same decision as the other two
+                # senders: the refusal rides in the file CI commits, and a
+                # red job for a race the next push clears is a worse signal
+                # than a printed refusal naming both shas.
+                $why = switch ($gateExit) {
+                  3 { "REFUSED-STALE-CHECKOUT" }
+                  4 { "REFUSED-CANNOT-PROVE-CURRENT" }
+                  5 { "REFUSED-GATE-MISSING" }
+                  default { "REFUSED-GATE-ERROR" }
+                }
+                "briefStatus=$why briefSent=0 briefGateExit=$gateExit" | Add-Content $out
+                Write-Host "::warning title=LEDGER daily brief sent nothing::$why. Nothing was sent, and the two shas that say why are in production/pc-ops/brief-send.txt on the briefCheckoutRunSha and briefCheckoutPcHeadSha keys: the first is the commit CI ran for, the second is the commit his checkout was at."
+              } else {
+                $raw = Join-Path $env:RUNNER_TEMP "brief-raw.txt"
+                Remove-Item $raw -Force -ErrorAction SilentlyContinue
+                Remove-Item "$raw.err" -Force -ErrorAction SilentlyContinue
+                Push-Location $repo
+                $proc = $null
+                try {
+                  $proc = Start-Process -FilePath $py -PassThru -NoNewWindow -ArgumentList @("-u", "tools\runner\telegram-bot.py", "--send-brief") -RedirectStandardOutput $raw -RedirectStandardError "$raw.err"
+                } catch {
+                  "briefStatus=NOT-STARTED reason=$($_.Exception.GetType().Name)" | Add-Content $out
+                }
+                if ($null -eq $proc) {
+                  "briefStatus=NO-PROCESS briefWaitedSec=0" | Add-Content $out
                 } else {
-                  "cardsStream=$(Split-Path $f -Leaf) cardsLines=nothing-measured reason=no-such-file" | Add-Content $out
+                  $waited = 0
+                  while (-not $proc.HasExited -and $waited -lt 180) {
+                    Start-Sleep -Seconds 3
+                    $waited += 3
+                  }
+                  if (-not $proc.HasExited) {
+                    "briefStatus=HUNG briefWaitedSec=$waited briefNote=killed-after-the-wait/lines-below-are-where-it-got-to" | Add-Content $out
+                    try { $proc.Kill() } catch { }
+                    Start-Sleep -Seconds 2
+                  } else {
+                    "briefStatus=EXITED briefWaitedSec=$waited briefExitCode=$($proc.ExitCode)" | Add-Content $out
+                  }
+                }
+                Pop-Location
+                foreach ($f in @($raw, "$raw.err")) {
+                  if (Test-Path $f) {
+                    $lines = @(Get-Content $f -ErrorAction SilentlyContinue)
+                    "briefStream=$(Split-Path $f -Leaf) briefLines=$($lines.Count)" | Add-Content $out
+                    $lines | Select-Object -Last 40 | Add-Content $out
+                    if ($lines.Count -gt 40) { "(+$($lines.Count - 40) earlier line(s) not shown)" | Add-Content $out }
+                  } else {
+                    "briefStream=$(Split-Path $f -Leaf) briefLines=nothing-measured reason=no-such-file" | Add-Content $out
+                  }
                 }
               }
             }
@@ -596,47 +735,100 @@ jobs:
               # last run before it.
               $head = (& git -c safe.directory=* -C $repo rev-parse --short HEAD 2>&1 | Out-String).Trim()
               "flushRepoHead=$($head -replace '\s','~')" | Add-Content $out
-              $raw = Join-Path $env:RUNNER_TEMP "flush-raw.txt"
-              Remove-Item $raw -Force -ErrorAction SilentlyContinue
-              Remove-Item "$raw.err" -Force -ErrorAction SilentlyContinue
-              Push-Location $repo
-              $proc = $null
-              try {
-                $proc = Start-Process -FilePath $py -PassThru -NoNewWindow -ArgumentList @("-u", "tools\runner\telegram-bot.py", "--flush-inbox") -RedirectStandardOutput $raw -RedirectStandardError "$raw.err"
-              } catch {
-                "flushStatus=NOT-STARTED reason=$($_.Exception.GetType().Name)" | Add-Content $out
-              }
-              # THE STATUS LINE IS WRITTEN ON EVERY PATH, AND TO THE RUNNER'S
-              # FILE: $out is absolute because both status writes here sit
-              # inside Push-Location, and the sweep step's relative $out is
-              # how its status line landed in his checkout instead (ruling
-              # 2026-09-08, section 4). A status key that can go missing
-              # cannot tell a hang from a clean exit.
-              if ($null -eq $proc) {
-                "flushStatus=NO-PROCESS flushWaitedSec=0" | Add-Content $out
+              # QUEUE 189, THE SAME ASSERTION AS THE SWEEP STEP ABOVE AND FOR
+              # THE SAME REASON. flushRepoHead right above is HALF the pair:
+              # it has printed his checkout's head since 2026-09-08 and
+              # nothing ever compared it to the commit this run was started
+              # for. They differed by a commit and two hours on 2026-09-09
+              # and both files still said line 1 was "the commit this was run
+              # on", which was true of the run and not of the checkout.
+              #
+              # THIS HALF PUSHES RATHER THAN SENDING TO HIS PHONE, and it
+              # refuses anyway: --flush-inbox force-pushes a tip built by
+              # whatever bot code is on that disk, and old code on that disk
+              # is exactly what the A10 key above exists to detect. A refusal
+              # here costs his inbound messages one round trip, which is the
+              # cheaper of the two mistakes.
+              #
+              # 30 SECONDS, NOT 90: this step runs minutes after the sweep,
+              # which has already carried the longer wait, so this is slack
+              # for a watcher pass that landed in between rather than a wait
+              # for one. It fits inside this step's 5 minute ceiling beside
+              # the 90s hard wait below.
+              # TO MAKE THIS RECORD-ONLY INSTEAD OF REFUSING, the one line to
+              # change is the `if ($gateExit -ne 0)` below: keep the status
+              # and the warning, drop the else. Nothing else here depends on
+              # the refusal.
+              $gate = Join-Path (Get-Location).Path "tools/runner/checkout-contains.py"
+              if (Test-Path $gate) {
+                $gateArgs = @($gate, "--run-sha", "$($env:GITHUB_SHA)",
+                              "--repo", $repo,
+                              "--run-repo", (Get-Location).Path,
+                              "--key-prefix", "flushCheckout",
+                              "--out", $out,
+                              "--wait-sec", "30", "--poll-sec", "5")
+                & $py @gateArgs 2>&1 | ForEach-Object { Write-Host $_ }
+                $gateExit = $LASTEXITCODE
               } else {
-                $waited = 0
-                while (-not $proc.HasExited -and $waited -lt 90) {
-                  Start-Sleep -Seconds 3
-                  $waited += 3
-                }
-                if (-not $proc.HasExited) {
-                  "flushStatus=HUNG flushWaitedSec=$waited flushNote=killed-after-the-wait/lines-below-are-where-it-got-to" | Add-Content $out
-                  try { $proc.Kill() } catch { }
-                  Start-Sleep -Seconds 2
-                } else {
-                  "flushStatus=EXITED flushWaitedSec=$waited flushExitCode=$($proc.ExitCode)" | Add-Content $out
-                }
+                $gateExit = 5
+                "flushGateMissing=$($gate -replace ' ','~')" | Add-Content $out
               }
-              Pop-Location
-              foreach ($f in @($raw, "$raw.err")) {
-                if (Test-Path $f) {
-                  $lines = @(Get-Content $f -ErrorAction SilentlyContinue)
-                  "flushStream=$(Split-Path $f -Leaf) flushLines=$($lines.Count)" | Add-Content $out
-                  $lines | Select-Object -Last 40 | Add-Content $out
-                  if ($lines.Count -gt 40) { "(+$($lines.Count - 40) earlier line(s) not shown)" | Add-Content $out }
+              if ($gateExit -ne 0) {
+                # NOT A JOB FAILURE, the same decision as the sweep step: the
+                # refusal goes in the file CI commits, which is the channel
+                # this project trusts, and a red job for a race the next push
+                # clears is a worse signal than a printed refusal.
+                $why = switch ($gateExit) {
+                  3 { "REFUSED-STALE-CHECKOUT" }
+                  4 { "REFUSED-CANNOT-PROVE-CURRENT" }
+                  5 { "REFUSED-GATE-MISSING" }
+                  default { "REFUSED-GATE-ERROR" }
+                }
+                "flushStatus=$why flushPushed=0 flushGateExit=$gateExit" | Add-Content $out
+                Write-Host "::warning title=LEDGER return-half push did nothing::$why. Nothing was pushed, and the two shas that say why are in production/pc-ops/inbox-flush.txt on the flushCheckoutRunSha and flushCheckoutPcHeadSha keys: the first is the commit CI ran for, the second is the commit his checkout was at."
+              } else {
+                $raw = Join-Path $env:RUNNER_TEMP "flush-raw.txt"
+                Remove-Item $raw -Force -ErrorAction SilentlyContinue
+                Remove-Item "$raw.err" -Force -ErrorAction SilentlyContinue
+                Push-Location $repo
+                $proc = $null
+                try {
+                  $proc = Start-Process -FilePath $py -PassThru -NoNewWindow -ArgumentList @("-u", "tools\runner\telegram-bot.py", "--flush-inbox") -RedirectStandardOutput $raw -RedirectStandardError "$raw.err"
+                } catch {
+                  "flushStatus=NOT-STARTED reason=$($_.Exception.GetType().Name)" | Add-Content $out
+                }
+                # THE STATUS LINE IS WRITTEN ON EVERY PATH, AND TO THE RUNNER'S
+                # FILE: $out is absolute because both status writes here sit
+                # inside Push-Location, and the sweep step's relative $out is
+                # how its status line landed in his checkout instead (ruling
+                # 2026-09-08, section 4). A status key that can go missing
+                # cannot tell a hang from a clean exit.
+                if ($null -eq $proc) {
+                  "flushStatus=NO-PROCESS flushWaitedSec=0" | Add-Content $out
                 } else {
-                  "flushStream=$(Split-Path $f -Leaf) flushLines=nothing-measured reason=no-such-file" | Add-Content $out
+                  $waited = 0
+                  while (-not $proc.HasExited -and $waited -lt 90) {
+                    Start-Sleep -Seconds 3
+                    $waited += 3
+                  }
+                  if (-not $proc.HasExited) {
+                    "flushStatus=HUNG flushWaitedSec=$waited flushNote=killed-after-the-wait/lines-below-are-where-it-got-to" | Add-Content $out
+                    try { $proc.Kill() } catch { }
+                    Start-Sleep -Seconds 2
+                  } else {
+                    "flushStatus=EXITED flushWaitedSec=$waited flushExitCode=$($proc.ExitCode)" | Add-Content $out
+                  }
+                }
+                Pop-Location
+                foreach ($f in @($raw, "$raw.err")) {
+                  if (Test-Path $f) {
+                    $lines = @(Get-Content $f -ErrorAction SilentlyContinue)
+                    "flushStream=$(Split-Path $f -Leaf) flushLines=$($lines.Count)" | Add-Content $out
+                    $lines | Select-Object -Last 40 | Add-Content $out
+                    if ($lines.Count -gt 40) { "(+$($lines.Count - 40) earlier line(s) not shown)" | Add-Content $out }
+                  } else {
+                    "flushStream=$(Split-Path $f -Leaf) flushLines=nothing-measured reason=no-such-file" | Add-Content $out
+                  }
                 }
               }
             }
@@ -748,11 +940,13 @@ jobs:
           # rather than by eye, because by eye missed it twice.
           git add -A -- production/pc-ops/push-diagnosis.txt 2>/dev/null || true
           git add -A -- production/pc-ops/outbox-sweep.txt 2>/dev/null || true
-          # AND THE CARDS PASS, BY NAME. Fourth time a step wrote a file this
-          # step did not name would be the fourth incident of the same kind:
-          # -A so its ABSENCE is staged too, because a run where the cards step
-          # wrote nothing must not leave the last run's copy standing as this
-          # run's evidence.
+          # AND THE DAILY BRIEF SEND, BY NAME, 2026-09-09. -A so its ABSENCE
+          # is staged too, because a run where that step wrote nothing must
+          # not leave the last run's copy standing as this run's evidence.
+          git add -A -- production/pc-ops/brief-send.txt 2>/dev/null || true
+          # The retired cards pass keeps its line for one reason only: -A
+          # stages the DELETION of its file, so the last card pass's output
+          # cannot sit in the tree looking like something that still runs.
           git add -A -- production/pc-ops/cards-send.txt 2>/dev/null || true
           git add -A -- production/pc-ops/inbox-flush.txt 2>/dev/null || true
           git diff --cached --quiet && { echo "install verification unchanged; nothing to commit"; exit 0; }
