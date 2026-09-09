@@ -1556,3 +1556,113 @@ asphalt 1 to 2.7 m further off in the same frame is properly textured dark grey
 with red aggregate and the setts below are grey with moss. The piece is readable
 as a shape and it is not readable as METAL. That is the visual bar, not the prop
 route, and it needs the Pillow read rather than a run.
+
+--------------------------------------------------------------------------
+2026-09-09  art-deliveries.py READS ZERO BRANCHES FOR EVER, BECAUSE A RULING
+            RETIRED THE THING IT WALKS.
+--------------------------------------------------------------------------
+MEASURED, run on the daily wake's instruction:
+
+    art-deliveries done: branchesWalked=0 deliveriesFound=0/0-branches
+      alreadyFiled=0/0-found filedNow=0/0-found dryRun=no
+    art-deliveries: 0 of 0, and that is NO ART BRANCHES AT ALL rather than
+      art branches with nothing on them
+
+The tool is honest and says exactly which zero it is, which is the whole reason
+this is readable at all. `git branch -r` confirms it: five remote refs, none of
+them `art/*`.
+
+THE CAUSE IS NOT A MISSING BRANCH. It is that the IN-HOUSE CLAUSE, ruled
+2026-09-08, says a spawned designer has no separate checkout and writes only
+under `production/art/<commission>/` in the STUDIO checkout. So the atlas-02
+delivery landed on the studio branch, correctly, and no art branch was ever
+created for it.
+
+SO TWO RECORDS DISAGREE AND THE TOOL IS THE EVIDENCE.
+`game-design/art-collaboration.md` section 5 still tables `art/atlas-01` and
+`art/atlas-02` with forty-character pins, and section 4 says "Deliveries live on
+the art branch; reviews live here. Neither line writes on the other's branch."
+The in-house clause, added to the same file the same day, says the opposite for a
+spawn. Both sentences are in one document.
+
+THE SHAPE, and it is the reach-decay class rather than a bug: a tool whose INPUT
+SOURCE was retired by a ruling keeps running, keeps passing, and keeps reporting
+zero. Nothing is broken. The daily wake will call it every morning and it will
+answer 0 of 0 every morning, and a reader who does not know the ruling will
+conclude the art line is idle when it delivered 1368 lines last night.
+
+WHAT IS NOT CLAIMED HERE: that the tool should be deleted, or that branches
+should come back. Both are live options and one of them is Jafar's taste about
+how an outside delivery arrives when there is one. Queue 178 carries it.
+
+--------------------------------------------------------------------------
+2026-09-09  ONE UNSENDABLE MESSAGE HAD BEEN REFUSED 483 TIMES AND WROTE A
+            FILE EACH TIME. THE GUARD WAS RIGHT EVERY ONE OF THEM.
+--------------------------------------------------------------------------
+MEASURED, from tools/inbox-read.py on the daily wake's instruction:
+
+    outbound: records=506 sent=12 replies=9 captioned=0 captionedClips=2
+      videos=0 refused=483 photos=0 unreadable=0
+    194 outbound record(s) written into this checkout, UNTRACKED
+
+483 of 506 records are ONE MESSAGE,
+production/outbox/2026-09-03-batch-landed-and-the-wait.unprompted.md, refused on
+every sweep since 3 September for four register rules at once: a deadline now 70
+hours in the past, two links to a repository commit rather than the glance, map or
+gallery, no link to any of those three, and 22 words over the 120 cap.
+
+THE GUARD WAS NOT WRONG 483 TIMES. Each refusal is a correct decision, and the
+register catching a six-day-old message with a dead deadline is the thing working.
+WHAT WAS WRONG WAS LEAVING THE INPUT IN FRONT OF IT, so every sweep paid to
+rediscover the same answer and wrote a file to say so, and 179 of the 194 untracked
+records in this checkout are that one message's refusals.
+
+AND THE MESSAGE SAYS SO ITSELF, in its own first line: "HISTORICAL, written 3
+September, delivered late: the Unreal run it asks about has since gone and the
+street it promised now shows its textures." Somebody knew it was superseded and
+left it where the sweep would keep trying.
+
+MOVED, NOT DELETED, to production/outbox/expired/ with a README that states the
+convention: a message that was written is part of the record whether or not it
+crossed, it goes out of the sweep's path, and it is NEVER edited to make it
+sendable. A superseded message is rewritten as a new one with today's facts or it
+is not sent at all.
+
+THE SHAPE WORTH KEEPING: a guard that fires correctly for ever is indistinguishable
+in its output from a guard that is broken, unless somebody counts. 483 correct
+refusals and 483 spurious ones produce the same directory. The count is what made
+it visible, and the count only appeared because the daily wake said to run the
+reader.
+
+--------------------------------------------------------------------------
+2026-09-09  RETIRING ONE MESSAGE TOOK THREE ATTEMPTS AND EVERY FAILURE WAS A
+            GATE DOING ITS JOB.
+--------------------------------------------------------------------------
+The message refused 483 times had to leave the sweep's path. Three attempts:
+
+1. MOVED to production/outbox/expired/. The producer register reads a message's
+   kind off its NAME SUFFIX, not its directory, so it was still an unprompted
+   message and still failed: wordcap, 22 words over 120.
+2. RENAMED to end .expired. That produced a file kind no rule classified, and the
+   attribution check caught it in one line: "every file kind walked is ruled asset
+   or not-asset (1 unclassified of 4819 walked): .expired x1".
+3. RENAMED to .EXPIRED.md, still inside production/outbox/. The register walks
+   that tree and requires every .md in it to carry a register suffix or be a
+   README, so it failed with "the name carries no register".
+
+THE ANSWER WAS NOT A CLEVERER NAME. It was that A RETIRED MESSAGE IS NOT AN
+OUTBOX FILE AT ALL: it moved to legacy/outbox/, which is where this project
+already puts superseded text, keeping a known extension. Green on the fourth try.
+
+WHAT THIS IS ACTUALLY ABOUT, and it is not one file. Two exemption mechanisms
+were available and both were REFUSED in favour of a move: GATE_EXEMPT_NAMES could
+have grown past README.md, and EXEMPT_MARKER could have been pasted into a
+historical message's first line. Either would have worked in one attempt and
+either would have widened a hole to fit one file. The three failures cost ten
+minutes; a widened exemption costs whatever the next file that slips through it
+costs, which nobody can price in advance.
+
+AND THE GATES WERE RIGHT THREE TIMES RUNNING, each naming the exact thing wrong
+and each pointing at a different rule. That is what a checked repository feels
+like from the inside when you are the one being checked: not obstruction, three
+correct answers to three bad ideas.

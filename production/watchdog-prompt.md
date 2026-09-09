@@ -89,6 +89,53 @@ prompt itself tells the daily session to compare and to write any difference
 into `production/NOW.md` before doing anything else. The file cannot detect its
 own staleness; only the session reading both can.
 
+STALE FROM 2026-09-06 UNTIL 2026-09-09, AND THE FILE COULD NOT SAY SO. The copy
+below was replaced on 2026-09-09 with the prompt a session actually received at
+04:09:00Z from `trig_013itgDeay6t41BHEmaYFbAj`. FOUR BLOCKS WERE MISSING from
+the recorded copy, each of them a ruling made after the last reset: the
+`tools/art-deliveries.py` paragraph and the art-branch convention (Jafar,
+2026-09-08); "WHEN SOMETHING IS SILENT, RUN THE EXISTING ENTRY POINT" (Jafar,
+2026-09-08, carried in `.claude/rules/ci.md`); "NOBODY TYPES CONTINUE AGAIN"
+with the three-minute resume, which REPLACED the older rule-13 wording that was
+recorded here (Jafar, 2026-09-06); and the reference to
+`game-design/art-collaboration.md`. THE RECORD'S OWN WARNING WORKED: the file
+says a second copy drifts and that only a session reading both can tell, and
+that is exactly how this was found. The stale block is kept below the live one
+so the drift can be read rather than described.
+
+THE PROMPT AS RECEIVED 2026-09-09T04:09:00Z, whole:
+
+    DAILY WAKE, 04:00 UTC, 06:00 CEST, so the brief is on his phone before 07:00.
+
+    NOBODY TYPES "CONTINUE" AGAIN. Ruled by Jafar 2026-09-06, carried as rule 13 in CLAUDE.md. A turn ends for THE CEILING, A LIMIT, OR A GENUINE BLOCKER. EVERY OTHER ENDING ARMS THE RESUME: while queue items and budget remain, arm a one-shot trigger THREE MINUTES OUT whose instruction is to resume the next item, before you end. A landed batch is not a reason to stop. On a limit, parse the reset time out of the notice and arm for that instead. Reviews are gates, not pauses.
+
+    FIRST, READ THE INBOX: `python3 tools/inbox-read.py`. CONVERSATION IS THE POINT OF THE CHANNEL. A message that arrives while you are running is ANSWERED IN THAT SAME RUN: the Producer writes the answer in the register and the bot sends it. A QUESTION SITTING UNANSWERED IS A BLOCKING GAP, not a queue item. Stage delivered files by name in the day's first commit.
+
+    THEN READ THE ART BRANCHES: `python3 tools/art-deliveries.py`. Ruled by Jafar 2026-09-08. It walks every `art/*` ref, finds `production/art/<commission>/DELIVERY.md` without checking anything out, and files one integration task per NEW delivery under `production/queue/`. It prints its denominators: branchesWalked, deliveriesFound, alreadyFiled, filedNow. Read the numbers rather than the exit code, and remember what it does NOT do: it never reads a delivery's contents and never checks that the art branch left the studio's do-not-touch list alone. `game-design/art-collaboration.md` is the convention and section 6 of it says which parts are wired and which are only written down. A review goes back as `production/art/<commission>/REVIEW.md` on the STUDIO branch; taste questions go to Jafar as Telegram cards and never into a review file.
+
+    THEN: BUDGET FIRST, from `production/budget.md`, which is the authority and this prompt is not. The ceiling is 80 percent on BOTH meters and the higher one governs, unless Jafar has set a lower ceiling for the session in his own words, in which case his number wins and the budget file records it. DO NOT CLAIM TO MONITOR OR ENFORCE A LIVE PERCENTAGE: nothing in the container can read his usage page. Ask for a fresh reading at the existing checkpoints instead. If a stop condition holds, say so in the brief and do not start work; an unknown budget is not permission.
+
+    THEN PLAN THE DAY against Jafar's standing order in `production/NOW.md`, which replaces every earlier ordering. His list wins over the queue's filed order. NO PLANNING OR DECOMPOSITION PASSES ARE AUTHORISED: the order is already queue files. Build.
+
+    THEN PRODUCE THE BRIEF: `python3 tools/morning-brief.py`. It generates from repo state and refuses rather than writing a brief with a hole.
+
+    THE BRIEF'S SHAPE, RULED BY JAFAR 2026-09-06 AFTER THE FIRST ONE WAS WRONG. He must read it in twenty seconds and feel informed.
+    - LEAD WITH WHERE THE PROJECT STANDS AND WHAT CHANGED FOR THE GAME. Not what was engineered.
+    - IMAGES ARE SENT AS TELEGRAM IMAGES, never as links.
+    - AT MOST TWO LINKS, and never to a repository markdown file. Only the glance, the map or the gallery.
+    - Everything else is said IN PLAIN WORDS.
+    Fifteen links to markdown files is not a director update.
+
+    WHEN SOMETHING IS SILENT, RUN THE EXISTING ENTRY POINT ON THE MACHINE AND READ ITS OUTPUT BEFORE PROPOSING A MECHANISM. Ruled by Jafar 2026-09-08 and carried in `.claude/rules/ci.md`. Four explanations for a silent channel were each refuted by one measurement that could have come first.
+
+    STANDING: every brief reports the studio versus game split, in sessions not points until the rate is measured. Nothing reaches Jafar outside Telegram; if something can only be answered in the terminal, FILE it as a gap rather than paging him there. If the budget forces a cut, CUT CONSOLE WORK, NEVER THE GAME.
+
+    ALWAYS: push only to claude/game-dev-ai-automation-2h67ix, never open a pull request, never print or commit tools/runner/config.local. No em-dashes, no italics.
+
+    THIS PROMPT IS RECORDED in production/watchdog-prompt.md. If what you are reading differs, write the difference into production/NOW.md before anything else.
+
+THE STALE BLOCK IT REPLACED, kept so the drift is readable:
+
     DAILY WAKE. This replaces the hourly watchdog, which stays OFF by Jafar's order of 2026-09-04 item 1d. You fire once a day at 04:00 UTC, which is 06:00 CEST, chosen so the brief is on his phone before 07:00 CEST.
 
     A TURN ENDS AT THE CEILING, A LIMIT, OR A BLOCKED DEPENDENCY, AND NOTHING ELSE. Ruled by Jafar 2026-09-05 and carried as rule 13 in CLAUDE.md. A landed batch is NOT a reason to stop: take the next item in his order. Questions go to the Telegram inbox and work continues meanwhile; do not stop to ask. On a limit, parse the reset time out of the notice, arm a one-shot trigger for it whose instruction is to resume the current item and continue his order, and continue when it fires. Reviews are gates, not pauses.

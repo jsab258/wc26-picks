@@ -9,6 +9,36 @@ session would otherwise duplicate, abandon, or wait for forever.
 Keep it current or delete it. A stale NOW is worse than none, because it
 looks like a live state.
 
+## 2026-09-09: THE DAILY PROMPT DIFFERS FROM ITS RECORD, WRITTEN HERE FIRST
+
+The daily wake's last line tells the session to compare what it is reading
+against production/watchdog-prompt.md and to write any difference here before
+doing anything else. THEY DIFFER, by four blocks, each one a ruling made after
+the record's last reset on 2026-09-06:
+
+1. The `tools/art-deliveries.py` paragraph and the whole art-branch convention,
+   ruled by Jafar 2026-09-08. The record has no mention of it, so a session
+   working from the record alone would never walk the art refs.
+2. "WHEN SOMETHING IS SILENT, RUN THE EXISTING ENTRY POINT ON THE MACHINE AND
+   READ ITS OUTPUT BEFORE PROPOSING A MECHANISM", ruled 2026-09-08 and carried
+   in .claude/rules/ci.md.
+3. "NOBODY TYPES CONTINUE AGAIN" with the THREE MINUTES OUT resume, ruled
+   2026-09-06. This one is worse than an omission: the record carries an OLDER
+   wording of rule 13 that the live prompt has replaced, so the record is not
+   incomplete, it is wrong.
+4. The reference to game-design/art-collaboration.md.
+
+THE RECORD'S OWN WARNING IS WHAT CAUGHT IT: "THIS IS A SECOND COPY AND SECOND
+COPIES DRIFT... The file cannot detect its own staleness; only the session
+reading both can." It worked, three days late, because no session had compared
+them since 2026-09-06. production/watchdog-prompt.md now carries the prompt as
+received at 2026-09-09T04:09:00Z with the stale block kept beneath it, so the
+drift is readable rather than described.
+
+AND THE SAME WAKE NAMED THREE THINGS THIS SESSION HAD NOT DONE: read the inbox
+(done, 0 inbound messages, so no blocking gap), walk the art branches, and stage
+the 194 outbound records this checkout is holding untracked.
+
 ## 2026-09-09 05:25Z: THE GRATE IS IN A FRAME, READABLE AS IRONWORK
 
 RUN 36 ON 7a3fa3e. The camera traces before it shoots now: it tried three

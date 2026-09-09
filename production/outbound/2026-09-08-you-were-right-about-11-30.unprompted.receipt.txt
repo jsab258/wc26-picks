@@ -1,0 +1,13 @@
+receipt: sent
+file: production/outbox/2026-09-08-you-were-right-about-11-30.unprompted.md
+kind: unprompted
+fileCommit: cfb6dc96e08e441832100060925792b118204a1f
+fileCommitEpoch: 1788849742
+sent: 2026-09-08T11:52:50+00:00
+sentEpoch: 1788868370
+messageId: 32
+chars: 726
+outboundLatencySec: 18628
+outboundLatencySecFrom: fileCommitInstant
+outboundLatencySecTo: sendInstant
+note: one sample of one message, not a rate.

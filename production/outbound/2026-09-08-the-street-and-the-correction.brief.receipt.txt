@@ -1,0 +1,16 @@
+receipt: sent-with-clip
+file: production/outbox/2026-09-08-the-street-and-the-correction.brief.md
+kind: brief
+clipRef: production/d1-probe/ue-walk.gif
+fileCommit: 580a9ec78feb2c00dfca743e62b66cb14c4ef9f4
+fileCommitEpoch: 1788834346
+sent: 2026-09-08T02:34:10+00:00
+sentEpoch: 1788834850
+messageId: 31
+chars: 907
+descriptorKind: animation
+videoDescriptor: 320x180/2s
+outboundLatencySec: 504
+outboundLatencySecFrom: fileCommitInstant
+outboundLatencySecTo: sendInstant
+note: one sample of one message, not a rate.

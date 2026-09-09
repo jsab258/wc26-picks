@@ -1,0 +1,13 @@
+receipt: sent
+file: production/outbox/2026-09-08-closing-status.brief.md
+kind: brief
+fileCommit: 7ec80fe5255c189ce6a3fa407c62895836f64dc7
+fileCommitEpoch: 1788884959
+sent: 2026-09-08T16:29:52+00:00
+sentEpoch: 1788884992
+messageId: 35
+chars: 1001
+outboundLatencySec: 33
+outboundLatencySecFrom: fileCommitInstant
+outboundLatencySecTo: sendInstant
+note: one sample of one message, not a rate.
