@@ -23,14 +23,22 @@
    "message": "production/outbox/2026-09-07-the-map-changed-78a360dcdf18.unprompted.md",
    "notified": true,
    "why": "material-change"
+  },
+  {
+   "at": "2026-09-09T08:44:31Z",
+   "changedFields": "q3",
+   "digest": "388cdbcead10",
+   "message": "production/outbox/2026-09-09-the-map-changed-388cdbcead10.unprompted.md",
+   "notified": true,
+   "why": "material-change"
   }
  ],
  "historyCap": 20,
  "historyDropped": 0,
  "last": {
-  "at": "2026-09-07T20:24:44Z",
-  "changedFields": "q2/q3",
-  "digest": "78a360dcdf18",
+  "at": "2026-09-09T08:44:31Z",
+  "changedFields": "q3",
+  "digest": "388cdbcead10",
   "fields": {
    "q1": [
     "LEDGER_Unreal_probe|runnable-visual-probe|ran-on-your-pc",
@@ -53,14 +61,14 @@
     "the-worlds-props|runs-in-text-only"
    ],
    "q3": [
-    "1|Control-a-character-in-the-street-that-already-exists|live",
-    "2|Commit-one-crime-there-and-pass-a-real-witness-event-into-th|live",
-    "3|Overhear-the-gossip-it-causes-and-see-one-consequence-in-tha|live"
+    "1|The-street-matched-to-the-Hook-sheet|live",
+    "2|Props-read-as-their-materials|live",
+    "3|Mickey-s-frontage-on-the-street|live"
    ]
   },
-  "message": "production/outbox/2026-09-07-the-map-changed-78a360dcdf18.unprompted.md",
+  "message": "production/outbox/2026-09-09-the-map-changed-388cdbcead10.unprompted.md",
   "notified": true,
-  "pageCommit": "45de6c2198d069117af1d2ee0287eb4501db6181",
+  "pageCommit": "3cf3731b495a92a94ca2cb868603f530191d3c9e",
   "servedUrl": "https://jsab258.github.io/wc26-picks/map.html",
   "why": "material-change"
  },
