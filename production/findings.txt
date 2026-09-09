@@ -1291,3 +1291,59 @@ top face is exactly coincident with two rendered solids over about 0.16 square
 metres and nothing here can say whether that ties in the depth test. A director
 ruled that it goes to a reading or is reported UNRESOLVED with its rung named,
 and that nobody squints at a frame and calls it decided.
+
+--------------------------------------------------------------------------
+2026-09-09  RUN 35 AIMED A CAMERA AT THE GRATE AND PHOTOGRAPHED A CROWD
+            CONTROL BARRIER IN FRONT OF A WHITE VOID. THE KEYS ARE ALL GREEN.
+--------------------------------------------------------------------------
+MEASURED, run 35 on 14316ed:
+
+    grateShotStatus=AIMED grateRectStatus=MEASURED
+    grateViewRestoreStatus=RESTORED walkFramesWrote=7/7
+    grateBoundsTopZcm=-6.50 grateCamAskedPitchYaw=-43.9/-90.0
+    grateSubjectRectFrac=0.4492/0.4792/0.5508/0.6024
+    grateControlRectFrac=0.4492/0.1184/0.5508/0.2416
+
+EVERY ONE OF THOSE IS TRUE. The camera spawned, aimed at the placed bounds top,
+projected both rectangles, wrote both frames and put the view back. A director
+checked the arithmetic before the run and it was right: 180.35 cm standoff, 43.88
+degrees down, 65.80 degrees horizontal, a 0.3999 m piece at 164 by 114 px.
+
+THEN THE PICTURE WAS OPENED, AND THE SUBJECT RECTANGLE WAS CROPPED OUT AND
+ENLARGED, WHICH IS THE ONLY REASON THIS ENTRY EXISTS. Inside x 431 to 529,
+y 259 to 325, the 6468 pixels the z-fight tool measured, there is A DARK BARRIER
+POST AND ITS HORIZONTAL RAIL, and behind it a flat white field with faint pale
+diagonal streaks. THERE IS NO GRATE IN IT. The whole frame is the same: angled
+bars of prop_crowd_control_barrier_0 across the width, asphalt above, setts below,
+and a band of white void between them where the street's ground planes end.
+
+SO THE Z-FIGHT READING IS VOID AND MUST NOT BE QUOTED. It printed
+zfightStatus=TIE, zfightSpeckleFired=yes/subject=155px-control=6px at contrast 32
+and zfightFlickerFired=no. It measured SPECKLE ON A BARRIER POST against asphalt.
+It is a correct reading of the wrong rectangle, which is the worst kind, because
+every denominator in it is honest.
+
+TWO CAUSES, ONE MEASURED AND ONE CHECKABLE.
+1. NOTHING TESTED FOR OCCLUSION. The camera stands 130 cm back on the pavement
+   side, and prop_crowd_control_barrier_0 stands between it and the piece. The
+   probe already owns the code that would have caught this: the crime probe
+   decides witness sightlines with real line traces and prints actorOccluded and
+   actorBlocker by name. The grate camera traces nothing.
+2. THE BACKGROUND IS WHITE VOID, not the street. The same void is visible in
+   every one of the six crime stills opened earlier tonight. A camera 1.25 m above
+   a gutter looking down at 44 degrees should see road, kerb and footway and
+   nothing else.
+
+AND A THIRD THING THE READING CANNOT SETTLE EVEN WHEN AIMED CORRECTLY. Both
+frames come from a camera that did not move over static geometry, so a depth-test
+tie would be DETERMINISTIC and reproduce identically in both, showing no flicker.
+The ruling that flicker is the evidence and speckle is context assumed flicker
+would appear. It would not. A tie needs a moving camera, or two renders at
+different sub-pixel offsets, to flicker at all.
+
+WHAT THIS COSTS AND WHAT IT DOES NOT. It does not touch run 34: the grate IS a
+real imported mesh, it DOES report collision, and it IS at the running surface,
+all measured from placed bounds with via=loaded-asset. What is still true is that
+NOBODY HAS SEEN IT. Jafar's item 2 asked for the grate in a walk clip, and the
+studio has a verified piece, a camera pointed at the right coordinates, and two
+photographs of a barrier.

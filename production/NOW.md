@@ -9,6 +9,26 @@ session would otherwise duplicate, abandon, or wait for forever.
 Keep it current or delete it. A stale NOW is worse than none, because it
 looks like a live state.
 
+## 2026-09-09 03:30Z: EVERY KEY IS GREEN AND THE PHOTOGRAPH IS OF A BARRIER
+
+RUN 35 aimed a camera at the grate and wrote two frames. grateShotStatus=AIMED,
+grateRectStatus=MEASURED, grateViewRestoreStatus=RESTORED, walkFramesWrote=7/7,
+and a director had checked the camera arithmetic before the run and found it
+right to two decimals. THE PICTURE IS OF A CROWD CONTROL BARRIER IN FRONT OF A
+WHITE VOID. Cropping the exact subject rectangle the verdict names and enlarging
+it shows a post and a rail and no grate at all. prop_crowd_control_barrier_0
+stands between the camera and the piece and nothing tested for it, while the
+crime probe next door decides witness sightlines with real line traces and names
+its blockers.
+
+THE Z-FIGHT READING FROM THAT RUN IS VOID AND MUST NOT BE QUOTED. It measured
+speckle on a barrier post against asphalt. Every denominator in it is honest,
+which is what makes a correct reading of the wrong rectangle the worst kind.
+
+SO ITEM 2 STANDS WHERE RUN 34 LEFT IT: the grate is a real imported mesh, it
+reports collision, it is at the running surface, all from placed bounds. NOBODY
+HAS SEEN IT. Queue 172 and 173 carry the two faults.
+
 ## 2026-09-09 02:40Z: THE GRATE IS AT THE SURFACE, MEASURED FROM PLACED BOUNDS
 
 RUN 34 ON 31902b7: propFullyBuried=0/23 where it was 1/23 and the one was the
