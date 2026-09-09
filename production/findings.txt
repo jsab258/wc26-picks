@@ -1666,3 +1666,69 @@ AND THE GATES WERE RIGHT THREE TIMES RUNNING, each naming the exact thing wrong
 and each pointing at a different rule. That is what a checked repository feels
 like from the inside when you are the one being checked: not obstruction, three
 correct answers to three bad ideas.
+
+--------------------------------------------------------------------------
+2026-09-09  THE RULED BRIEF GENERATOR LEADS WITH A PICTURE COUNT, WHICH IS THE
+            SHAPE JAFAR RULED AGAINST AFTER THE FIRST BRIEF WAS WRONG.
+--------------------------------------------------------------------------
+THE WAKE NAMES tools/morning-brief.py AND THIS SESSION DID NOT USE IT. The brief
+that reached him was written by the Producer by hand. Running the tool afterwards,
+to close that loop honestly rather than leave the divergence unexamined:
+
+    morning-brief: WROTE sourcesRead=7/7 words=112/150 registerFindings=0
+      splitStudio=50/96 splitGame=46/96 splitBasis=spawns
+      budgetAgeDays=1 cardsWaiting=6/15 landed=91
+      picturesSincePreviousBrief=18/49-in-the-repository
+
+It works, it refuses nothing, it passes the register, and its headline is
+"Eighteen new pictures of the street since the previous brief, and six decisions
+are waiting for you", with "ninety-one changes have landed" beneath it. ITS
+"NEXT VISIBLE THING" IS "unknown, because nothing names it".
+
+THAT IS THE SHAPE HE RULED AGAINST ON 2026-09-06 AFTER THE FIRST BRIEF WAS WRONG:
+"LEAD WITH WHERE THE PROJECT STANDS AND WHAT CHANGED FOR THE GAME. Not what was
+engineered." Eighteen pictures and ninety-one commits are what was engineered. The
+tool cannot know that a town composed its own sentence about a broken window or
+that a grate is finally in a frame, because it reads COUNTS (pictures, commits,
+cards, sessions) and outcomes are not counts.
+
+SO THE HAND-WRITTEN BRIEF WAS THE BETTER ONE AND THE DIVERGENCE WAS STILL WRONG.
+The tool is the ruled path; bypassing it silently means nobody learns it produces
+this. It is kept at production/briefs/2026-09-09.md, labelled as not the brief
+that went, so the two can be read side by side.
+
+AND THE SENT BRIEF MISSED A STANDING ITEM, found by the same comparison. The wake
+says every brief reports the STUDIO VERSUS GAME split. The sent brief reported the
+ART share instead, four of sixty-nine sessions, which is what Jafar's item 6 asked
+for and is a different question. The studio-versus-game numbers for the same
+window are 50 and 46 of 96 spawns. Neither number is wrong; the brief answered one
+standing question and not the other, and no gate reads for that because the
+register checks shape and not coverage.
+
+--------------------------------------------------------------------------
+2026-09-09  I LABELLED AN ARCHIVED BRIEF AND THE LABEL BROKE IT, BECAUSE
+            EVERYTHING UNDER production/briefs/ IS A BRIEF.
+--------------------------------------------------------------------------
+Four lines were added to the top of production/briefs/2026-09-09.md saying it was
+not the brief that went. The register counted them as brief text and failed on two
+rules at once: "wordcap: 8 words over the 150 cap (158 words)" and "banned: file
+path", because the label named tools/morning-brief.py and a brief may not carry a
+repository path. TREE_DEFAULT_KIND makes everything under production/briefs/ a
+brief; a note about a brief, placed inside it, becomes part of it.
+
+THE EXEMPTION MECHANISM EXISTS AND WAS REFUSED. PRODUCER-REGISTER-EXEMPT would
+have cleared it in one line, and the marker is deliberately useless on its own:
+the file must also be named in the frozen PRE_REGISTER list, and
+production/briefs/latest.md says so in its own text, "a marker on a file that list
+does not name is a gate failure". That is an anti-loophole design working exactly
+as intended, on me, twice in one morning after the same refusal over the retired
+outbox message.
+
+THE LABEL IS GONE AND THE ARCHIVE READS AS THE TOOL WROTE IT. The comparison it
+was trying to make belongs here, in the findings, where it already is: the
+generated brief leads with a picture count, the sent one led with the crime
+landing, and the difference is queue 179.
+
+THE SHAPE, twice this morning: WHEN A GATE REFUSES A NOTE ABOUT A FILE, THE NOTE
+BELONGS SOMEWHERE ELSE, not inside an exemption. Both times the cheap fix was to
+move the text out rather than widen the rule to admit it.
