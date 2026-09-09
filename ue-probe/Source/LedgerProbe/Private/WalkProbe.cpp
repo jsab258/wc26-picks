@@ -56,12 +56,22 @@
 //      NAMED first-cut, not a bound tuned from a series this instrument
 //      has never produced before, and the file says so at the line.
 //
+// THE SIXTH AND SEVENTH MILESTONES, ADDED 2026-09-09: THE GRATE, AIMED AT.
+// Run 34 measured prop_drainage_grate_01_0 as a placed mesh with collision at
+// the running surface (propsAsMesh=22/23, propPlacedWithCollision=22/22,
+// propFullyBuried=0/23, propBurialSubject=.../via=loaded-asset/collision=YES/
+// topM=-0.0650) and NOT ONE OF THE FIVE MILESTONES BELOW POINTS AT IT: the
+// piece is 0.3999 m square at x=12.0, z=2.8 on the east channel and the walk
+// route runs past it. A verdict saying a piece is there with no frame showing
+// it is rule 4 pointed the other way round. See the block above AimAtGrate
+// for why there are two frames of it and not one.
+//
 // THE CLIP. Unreal's own Movie Render Pipeline needs a Level Sequence asset
 // and this project ships no content directory by design (see
 // VignetteShot.cpp); wiring it in for one probe would be a new asset type
 // and a new plugin dependency, neither verifiable until the next Windows
 // build, so this file does not use it. This file writes FRAMES ONLY, in two
-// kinds: five named milestones (ue-walk_NN_*.png, the evidence) and a
+// kinds: seven named milestones (ue-walk_NN_*.png, the evidence) and a
 // SEQUENCE along the route (ue-walkseq_NNN.png, enough of them that played
 // back they read as motion rather than a slideshow). Turning the sequence
 // into ONE GIF is tools/clip-from-frames.py's job, done with Pillow, which
@@ -74,6 +84,7 @@
 #include "WalkProbe.h"
 
 #include "VignetteShot.h"
+#include "VignetteSpec.h"
 #include "SurfaceBind.h"
 #include "FrameStats.h"
 
@@ -93,6 +104,8 @@
 
 #include "Engine/Engine.h"
 #include "Engine/World.h"
+#include "Camera/CameraActor.h"
+#include "Camera/CameraComponent.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
@@ -134,7 +147,64 @@ namespace
 	const double kStuckFloorCm         = 50.0;
 
 	const TCHAR* kWallName = TEXT("east_parade_bay0");
-	const int32  kTotalShots = 5;
+	// SEVEN SINCE 2026-09-09, WAS FIVE. The five route milestones plus the
+	// two grate frames below; walkFramesRequested=N/7 reads against this.
+	const int32  kTotalShots = 7;
+
+	// ---- THE GRATE SHOT: WHERE IT STANDS AND WHY ------------------------
+	//
+	// TWO FRAMES OF ONE STATIC CAMERA, AND THAT IS THE WHOLE REASON FOR THE
+	// SEVENTH. The grate's top face is exactly coincident with the channel
+	// and carriageway top faces over about 0.16 square metres, and whether
+	// that TIES in the depth test is answered by tools/grate-zfight.py, which
+	// reads a speckle density AND a FRAME-TO-FRAME FLICKER density against a
+	// same-area control rectangle on plain carriageway in the same frame.
+	// Flicker needs two frames of the SAME view: one still cannot produce it,
+	// and every ue-walkseq frame is from a different place. So this takes two
+	// from one camera that does not move between them, and whatever temporal
+	// jitter the renderer applies between two ticks is what a tie shimmers
+	// through.
+	//
+	// EVERY OFFSET BELOW IS FROM THE ENGINE'S OWN PLACED BOUNDS OF THE GRATE
+	// (GetComponentsBoundingBox, after scale and rotation), never from the
+	// spec file a second time.
+	const TCHAR* kGrateName = TEXT("prop_drainage_grate_01_0");
+	// THE PAVEMENT SIDE IS +Y. vignette-scene.json puts the east footway's
+	// camera at z=4.0 m and this piece at z=2.8 m, and SpawnPiece maps the
+	// file's z to the engine's Y with the same sign (the same fact the
+	// blocked-walk plant above relies on). 130 cm back puts the standpoint at
+	// z=4.10 m, on the footway, not in the road.
+	const double kGrateStandCm      = 130.0;
+	// A LITTLE BELOW WALKING EYE HEIGHT (cam_A stands at 1.60 m) so the piece
+	// fills a useful part of the frame rather than being six pixels at the
+	// end of a street. 125 cm above the piece's own placed top, at 130 cm
+	// back, is a 1.80 m standoff looking down 43.9 degrees.
+	const double kGrateEyeCm        = 125.0;
+	// FRAMING, DERIVED AND NOT GUESSED. At 40 degrees vertical on 960x540 the
+	// horizontal field is 65.9 degrees, so the frame is 2.33 m wide where the
+	// grate is: a 0.3999 m piece is 17 percent of the frame width, about 165
+	// px across, and about 114 px down after the 43.9 degree foreshortening.
+	const double kGrateVFovDeg      = 40.0;
+	const int32  kGrateShotW        = 960;
+	const int32  kGrateShotH        = 540;
+	// THE SUBJECT RECTANGLE, INSET AND BIASED TOWARD THE KERB. Inset because
+	// the projected outline of a square is a quadrilateral and its axis
+	// aligned pixel box would include road outside the piece. Biased +7 cm
+	// toward the kerb because the double yellow's bands end at z=2.75 m and
+	// the piece spans 2.60 to 3.00 m: a rect centred on the piece would carry
+	// a paint EDGE into the subject and a paint edge reads as speckle. 22 cm
+	// square centred at z=2.87 m spans 2.76 to 2.98 m, inside the piece and
+	// clear of the paint.
+	const double kGrateSubjOffsetCm = 7.0;
+	const double kGrateSubjHalfCm   = 11.0;
+	// THE CONTROL, ON PLAIN CARRIAGEWAY IN THE SAME FRAME. 80 cm toward the
+	// crown from the piece's centre is z=2.00 m: past the channel course
+	// (2.745 to 3.0 m) and 45 cm clear of the double yellow's inner band
+	// (2.45 m), so it is asphalt with nothing coincident under it. Its pixel
+	// rectangle is the SUBJECT'S OWN width and height, so the two are the
+	// same area by construction rather than by a second calculation.
+	const double kGrateCtrlAcrossCm = 80.0;
+	const double kGrateSettleSeconds = 0.5;
 
 	// ---- THE SEQUENCE: THE CLIP, AS OPPOSED TO THE FIVE MILESTONES -------
 	//
@@ -173,7 +243,9 @@ namespace
 		WaitWorld, WaitPawn, SettleAfterSpawn,
 		ShotStart, ClearWalkA, ShotMidClear, ClearWalkB, ShotAfterClear,
 		TeleportToWall, SettleAfterTeleport, ShotBeforeBlocked,
-		BlockedWalk, ShotAfterBlocked, Done
+		BlockedWalk, ShotAfterBlocked,
+		AimGrate, SettleAfterAim, ShotGrateA, ShotGrateB, RestoreView, ConfirmRestore,
+		Done
 	};
 
 	FTSTicker::FDelegateHandle GTicker;
@@ -194,6 +266,15 @@ namespace
 	bool bPawnFound = false, bClearWalked = false, bTeleported = false, bBlockedWalked = false;
 	FString GFinishReason = TEXT("process-completed-normally");
 	bool GWallFound = false;
+
+	// ---- the grate aim: one camera, reused by both grate frames --------
+	AActor*       GGrateActor = nullptr;
+	ACameraActor* GGrateCam   = nullptr;
+	AActor*       GViewBefore = nullptr;
+	FString GGrateLine =
+		TEXT("grateShotStatus=NOT-REACHED grateShotReason=the-route-never-got-past-the-blocked-walk");
+	FString GGrateRectLine    = TEXT("grateRectStatus=NOT-REACHED");
+	FString GGrateRestoreLine = TEXT("grateViewRestoreStatus=NOT-REACHED");
 
 	// ---- the shot-in-flight, one at a time, reused across all five -----
 	bool    GShotInFlight        = false;
@@ -478,6 +559,236 @@ namespace
 		GLastSeqCaptureTime = Now;
 	}
 
+	// ---- THE GRATE: AIM, READ THE AIM BACK, THEN PHOTOGRAPH IT TWICE ----
+	//
+	// THE CAMERA IS A SPAWNED ACameraActor AND A SetViewTarget, WHICH IS THE
+	// MECHANISM VignetteShot.cpp's PlaceCamera ALREADY USES for all four
+	// vignette stills, copied rather than invented: the pawn's own camera is
+	// a 3.5 m spring arm reading the controller's rotation, so aiming it at a
+	// 0.40 m square would photograph the square from 5 m away behind an
+	// invisible body. The capture path is unchanged: ShotBegin/ShotPump, the
+	// same two candidates and the same decode-and-measure as the other five.
+	void AimAtGrate()
+	{
+		UWorld* World = GameWorld();
+		if (World == nullptr)
+		{
+			GGrateLine = TEXT("grateShotStatus=NO-WORLD ")
+			             TEXT("grateShotReason=the-game-world-vanished-between-ticks");
+			return;
+		}
+		GGrateActor = LedgerVignetteShot::FindStreetPiece(kGrateName);
+		if (GGrateActor == nullptr)
+		{
+			GGrateLine = FString::Printf(
+				TEXT("grateShotStatus=NOTHING-MEASURED grateShotName=%s ")
+				TEXT("grateShotReason=name-not-among-the-pieces-BuildScene-spawned"), kGrateName);
+			return;
+		}
+		// THE ENGINE'S OWN BOUNDS, AFTER SCALE AND ROTATION, NOT THE FILE'S
+		// NUMBERS A SECOND TIME. The same read the blocked-walk plant makes.
+		const FBox   Box  = GGrateActor->GetComponentsBoundingBox();
+		const FVector C   = Box.GetCenter();
+		const double TopZ = (double)Box.Max.Z;
+		const FVector CamLoc((float)C.X,
+		                     (float)(C.Y + kGrateStandCm),
+		                     (float)(TopZ + kGrateEyeCm));
+		const FVector AimAt((float)C.X, (float)C.Y, (float)TopZ);
+		// THE ROTATION IS DERIVED FROM THE TWO POINTS, never a pitch guessed
+		// and hoped to land: whatever the placed piece's top turns out to be,
+		// this points at it.
+		const FRotator CamRot = (AimAt - CamLoc).Rotation();
+
+		if (GGrateCam == nullptr)
+		{
+			FActorSpawnParameters Params;
+			Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			GGrateCam = World->SpawnActor<ACameraActor>(
+				ACameraActor::StaticClass(), CamLoc, CamRot, Params);
+		}
+		else
+		{
+			GGrateCam->SetActorLocationAndRotation(CamLoc, CamRot);
+		}
+		if (GGrateCam == nullptr)
+		{
+			GGrateLine = TEXT("grateShotStatus=SPAWN-FAILED ")
+			             TEXT("grateShotReason=the-world-refused-to-spawn-a-camera-actor");
+			return;
+		}
+		if (UCameraComponent* CC = GGrateCam->GetCameraComponent())
+		{
+			// VERTICAL TO HORIZONTAL, THROUGH THE CONVERTER IN VignetteSpec.h
+			// THAT g++ ALREADY RUNS: this engine's FieldOfView is horizontal
+			// and the framing arithmetic above is vertical, and a second copy
+			// of that conversion in this file is how two cameras meant to
+			// match stop matching.
+			CC->SetFieldOfView((float)LedgerVignette::HorizontalFovDeg(
+				kGrateVFovDeg, kGrateShotW, kGrateShotH));
+			CC->SetAspectRatio((float)kGrateShotW / (float)kGrateShotH);
+			CC->SetConstraintAspectRatio(true);
+		}
+		APlayerController* PC = World->GetFirstPlayerController();
+		if (PC == nullptr)
+		{
+			GGrateLine = TEXT("grateShotStatus=NO-CONTROLLER ")
+			             TEXT("grateShotReason=no-first-player-controller-to-take-the-view");
+			return;
+		}
+		// CAPTURED, NOT ASSUMED, so the restore below puts back what was
+		// actually there rather than what this file believes was there.
+		GViewBefore = PC->GetViewTarget();
+		PC->SetViewTarget(GGrateCam);
+		GGrateLine = FString::Printf(
+			TEXT("grateShotStatus=AIMED grateShotName=%s ")
+			TEXT("grateBoundsCentreXYZcm=%.1f/%.1f/%.1f grateBoundsTopZcm=%.2f ")
+			TEXT("grateBoundsSizeXYZcm=%.1f/%.1f/%.1f ")
+			TEXT("grateCamAskedXYZcm=%.1f/%.1f/%.1f grateCamAskedPitchYaw=%.1f/%.1f ")
+			TEXT("grateCamStandoffCm=%.1f grateCamVFovDeg=%.1f grateCamHFovDeg=%.1f"),
+			kGrateName, C.X, C.Y, C.Z, TopZ,
+			Box.GetSize().X, Box.GetSize().Y, Box.GetSize().Z,
+			CamLoc.X, CamLoc.Y, CamLoc.Z, CamRot.Pitch, CamRot.Yaw,
+			FVector::Dist(CamLoc, AimAt), kGrateVFovDeg,
+			LedgerVignette::HorizontalFovDeg(kGrateVFovDeg, kGrateShotW, kGrateShotH));
+	}
+
+	// FOUR CORNERS OF A HORIZONTAL SQUARE, PROJECTED, AND THE AXIS-ALIGNED
+	// PIXEL BOX THAT CONTAINS THEM. Returns false if ANY corner refuses to
+	// project, because a box built from three of four corners is a box over
+	// the wrong pixels and would be a silent instrument.
+	bool ProjectSquare(APlayerController* PC, double CX, double CY, double CZ, double HalfCm,
+	                   FVector2D& OutMin, FVector2D& OutMax)
+	{
+		const double Dx[4] = { -1.0,  1.0, 1.0, -1.0 };
+		const double Dy[4] = { -1.0, -1.0, 1.0,  1.0 };
+		for (int32 I = 0; I < 4; ++I)
+		{
+			FVector2D S(0.0, 0.0);
+			const FVector W((float)(CX + Dx[I] * HalfCm), (float)(CY + Dy[I] * HalfCm), (float)CZ);
+			if (!PC->ProjectWorldLocationToScreen(W, S, false)) { return false; }
+			if (I == 0) { OutMin = S; OutMax = S; }
+			else
+			{
+				OutMin.X = FMath::Min(OutMin.X, S.X);
+				OutMin.Y = FMath::Min(OutMin.Y, S.Y);
+				OutMax.X = FMath::Max(OutMax.X, S.X);
+				OutMax.Y = FMath::Max(OutMax.Y, S.Y);
+			}
+		}
+		return true;
+	}
+
+	// READ THE AIM BACK AND SAY WHERE THE TWO RECTANGLES LANDED, ONE TICK
+	// AFTER THE CAMERA WAS TAKEN, because a view point read on the same tick
+	// the view target changed can still be the old camera's.
+	//
+	// THE RECTANGLES ARE EMITTED AS FRACTIONS OF THE FRAME, not pixels: this
+	// capture path has two candidates (a viewport screenshot and a 960x540
+	// HighResShot) and they need not be the same size, so a pixel box would
+	// be right for one and wrong for the other. tools/grate-zfight.py
+	// multiplies these by the image's OWN width and height.
+	void MeasureGrateAim()
+	{
+		UWorld* World = GameWorld();
+		APlayerController* PC = (World != nullptr) ? World->GetFirstPlayerController() : nullptr;
+		if (PC == nullptr || GGrateActor == nullptr || GGrateCam == nullptr)
+		{
+			GGrateRectLine = TEXT("grateRectStatus=NOTHING-MEASURED ")
+			                 TEXT("grateRectReason=no-controller-or-no-aim-to-read-back");
+			return;
+		}
+		FVector  GotLoc = FVector::ZeroVector;
+		FRotator GotRot = FRotator::ZeroRotator;
+		PC->GetPlayerViewPoint(GotLoc, GotRot);
+		int32 VpW = 0, VpH = 0;
+		PC->GetViewportSize(VpW, VpH);
+		if (VpW <= 0 || VpH <= 0)
+		{
+			GGrateRectLine = FString::Printf(
+				TEXT("grateRectStatus=NOTHING-MEASURED grateRectReason=viewport-size-read-%d-by-%d ")
+				TEXT("grateCamReadXYZcm=%.1f/%.1f/%.1f grateCamReadPitchYaw=%.1f/%.1f"),
+				VpW, VpH, GotLoc.X, GotLoc.Y, GotLoc.Z, GotRot.Pitch, GotRot.Yaw);
+			return;
+		}
+		const FBox    Box  = GGrateActor->GetComponentsBoundingBox();
+		const FVector C    = Box.GetCenter();
+		const double  TopZ = (double)Box.Max.Z;
+
+		FVector2D SubMin(0.0, 0.0), SubMax(0.0, 0.0);
+		const bool bSub = ProjectSquare(PC, C.X, C.Y + kGrateSubjOffsetCm, TopZ,
+		                                kGrateSubjHalfCm, SubMin, SubMax);
+		FVector2D CtrCentre(0.0, 0.0);
+		const bool bCtr = PC->ProjectWorldLocationToScreen(
+			FVector((float)C.X, (float)(C.Y - kGrateCtrlAcrossCm), (float)TopZ), CtrCentre, false);
+		if (!bSub || !bCtr)
+		{
+			GGrateRectLine = FString::Printf(
+				TEXT("grateRectStatus=NOTHING-MEASURED ")
+				TEXT("grateRectReason=projection-refused-subject=%s-control=%s ")
+				TEXT("grateCamReadXYZcm=%.1f/%.1f/%.1f grateCamReadPitchYaw=%.1f/%.1f"),
+				bSub ? TEXT("ok") : TEXT("no"), bCtr ? TEXT("ok") : TEXT("no"),
+				GotLoc.X, GotLoc.Y, GotLoc.Z, GotRot.Pitch, GotRot.Yaw);
+			return;
+		}
+		// THE CONTROL IS THE SUBJECT'S OWN PIXEL BOX, MOVED. Same area by
+		// construction and not by a second calculation that could disagree.
+		const double HalfW = (double)(SubMax.X - SubMin.X) * 0.5;
+		const double HalfH = (double)(SubMax.Y - SubMin.Y) * 0.5;
+		const double CtrX0 = (double)CtrCentre.X - HalfW, CtrX1 = (double)CtrCentre.X + HalfW;
+		const double CtrY0 = (double)CtrCentre.Y - HalfH, CtrY1 = (double)CtrCentre.Y + HalfH;
+		const bool bInFrame =
+			SubMin.X >= 0.0 && SubMin.Y >= 0.0 && SubMax.X <= (double)VpW && SubMax.Y <= (double)VpH &&
+			CtrX0 >= 0.0 && CtrY0 >= 0.0 && CtrX1 <= (double)VpW && CtrY1 <= (double)VpH;
+		GGrateRectLine = FString::Printf(
+			TEXT("grateRectStatus=%s grateRectFrameWH=%d/%d ")
+			TEXT("grateSubjectRectFrac=%.4f/%.4f/%.4f/%.4f grateControlRectFrac=%.4f/%.4f/%.4f/%.4f ")
+			TEXT("grateSubjectRectPx=%.0f/%.0f grateRectPixelsEach=%.0f ")
+			TEXT("grateSubjectIs=grate-top-face-inset-and-clear-of-the-yellow ")
+			TEXT("grateControlIs=plain-carriageway-%.0fcm-toward-the-crown/same-pixel-area ")
+			TEXT("grateCamReadXYZcm=%.1f/%.1f/%.1f grateCamReadPitchYaw=%.1f/%.1f ")
+			TEXT("grateRectNote=fractions-of-the-frame/multiply-by-the-image-own-size"),
+			bInFrame ? TEXT("MEASURED") : TEXT("OFF-FRAME"), VpW, VpH,
+			(double)SubMin.X / VpW, (double)SubMin.Y / VpH,
+			(double)SubMax.X / VpW, (double)SubMax.Y / VpH,
+			CtrX0 / VpW, CtrY0 / VpH, CtrX1 / VpW, CtrY1 / VpH,
+			HalfW * 2.0, HalfH * 2.0, HalfW * 2.0 * HalfH * 2.0,
+			kGrateCtrlAcrossCm,
+			GotLoc.X, GotLoc.Y, GotLoc.Z, GotRot.Pitch, GotRot.Yaw);
+	}
+
+	// PUT THE VIEW BACK WHERE IT WAS. The process exits seconds later, but a
+	// probe that leaves the player looking through its own camera is a probe
+	// whose next reader inherits its idea of the scene; and it is RESTORED TO
+	// THE CAPTURED TARGET rather than to the pawn this file assumes was
+	// there. Read back one tick later by ConfirmRestore below.
+	void RestoreViewTarget()
+	{
+		UWorld* World = GameWorld();
+		APlayerController* PC = (World != nullptr) ? World->GetFirstPlayerController() : nullptr;
+		if (PC == nullptr || GViewBefore == nullptr)
+		{
+			GGrateRestoreLine = TEXT("grateViewRestoreStatus=NOTHING-MEASURED ")
+			                    TEXT("grateViewRestoreReason=nothing-was-captured-to-restore");
+			return;
+		}
+		PC->SetViewTarget(GViewBefore);
+		GGrateRestoreLine = TEXT("grateViewRestoreStatus=ASKED grateViewRestoreRead=not-yet-read");
+	}
+
+	void ConfirmViewRestore()
+	{
+		UWorld* World = GameWorld();
+		APlayerController* PC = (World != nullptr) ? World->GetFirstPlayerController() : nullptr;
+		if (PC == nullptr || GViewBefore == nullptr) { return; }
+		const AActor* Now = PC->GetViewTarget();
+		GGrateRestoreLine = FString::Printf(
+			TEXT("grateViewRestoreStatus=%s grateViewRestoreWas=%s ")
+			TEXT("grateViewRestoreNowIsTheProbeCamera=%s"),
+			(Now == GViewBefore) ? TEXT("RESTORED") : TEXT("NOT-RESTORED"),
+			(GViewBefore == static_cast<AActor*>(GPawn)) ? TEXT("the-pawn") : TEXT("not-the-pawn"),
+			(Now == static_cast<AActor*>(GGrateCam)) ? TEXT("yes") : TEXT("no"));
+	}
+
 	// WRITTEN AT EACH MILESTONE, BEFORE THE WORK THAT MILESTONE GUARDS. A
 	// crash between two milestones leaves the LAST one on disk, which is
 	// what tells the workflow step "started but crashed at X" apart from
@@ -528,8 +839,20 @@ namespace
 		Out.Add(TEXT("#   read off a series (rule 2): this instrument has never run before this"));
 		Out.Add(TEXT("#   commit, so the raw *DistanceCm numbers beside every word are the"));
 		Out.Add(TEXT("#   evidence, not the word."));
+		Out.Add(TEXT("# THE GRATE, frames 05 and 06 and every grate* key below: ONE CAMERA aimed"));
+		Out.Add(TEXT("#   at prop_drainage_grate_01_0 from the pavement side, photographed TWICE"));
+		Out.Add(TEXT("#   without moving. Frame 05 is the picture of Jafar's accepting case, which"));
+		Out.Add(TEXT("#   run 34 measured (propsAsMesh, propPlacedWithCollision, propFullyBuried)"));
+		Out.Add(TEXT("#   and no frame showed. The PAIR exists because the piece's top face is"));
+		Out.Add(TEXT("#   coincident with the channel and carriageway top faces, and whether that"));
+		Out.Add(TEXT("#   ties in the depth test is read by tools/grate-zfight.py as a speckle AND"));
+		Out.Add(TEXT("#   a frame-to-frame flicker density, against the same-area control rectangle"));
+		Out.Add(TEXT("#   named on the grateRect line. THE CONTROL IS THE DENOMINATOR: no bound is"));
+		Out.Add(TEXT("#   set here, and this file decides nothing about the tie. It supplies the"));
+		Out.Add(TEXT("#   two frames and the two rectangles as FRACTIONS of the frame."));
 		Out.Add(TEXT("# THE CLIP: this file writes two kinds of frame. ue-walk_NN_*.png is the"));
-		Out.Add(TEXT("#   evidence, five named milestones, untouched by the clip. ue-walkseq_NNN.png"));
+		Out.Add(TEXT("#   evidence, seven named milestones (five route, two grate), untouched by"));
+		Out.Add(TEXT("#   the clip. ue-walkseq_NNN.png"));
 		Out.Add(TEXT("#   is the SEQUENCE (walkSeqFramesRequested/Wrote below), which"));
 		Out.Add(TEXT("#   tools/clip-from-frames.py (Pillow, no new dependency; see its own header)"));
 		Out.Add(TEXT("#   stitches into one GIF outside this process. This file never writes a GIF."));
@@ -620,6 +943,15 @@ namespace
 		{
 			for (const std::string& Line : GShotLines) { Out.Add(FString(UTF8_TO_TCHAR(Line.c_str()))); }
 		}
+
+		// THE GRATE'S THREE LINES: where the camera was put, where the two
+		// rectangles landed, and whether the view target this phase borrowed
+		// went back. Each one carries its own NOTHING-MEASURED reason when
+		// the route never reached it, so an absent picture never reads as a
+		// picture with nothing in it.
+		Out.Add(GGrateLine);
+		Out.Add(GGrateRectLine);
+		Out.Add(GGrateRestoreLine);
 
 		// THE CLIP'S OWN INPUT. walkSeqFramesRequested is over kMaxSeqFrames
 		// (16, a safety cap on a clock, named so it announces itself if it
@@ -784,7 +1116,54 @@ namespace
 		}
 		case EWalkPhase::ShotAfterBlocked:
 			return RunShotPhase(TEXT("after_blocked"), TEXT("ue-walk_04_after_blocked.png"),
-			                     EWalkPhase::Done, Now);
+			                     EWalkPhase::AimGrate, Now);
+		// ---- THE GRATE, LAST ON PURPOSE. Every collision and walk number
+		// above is already measured and written by the time this runs, so a
+		// camera this phase spawns, a view target it takes, or a crash inside
+		// it cannot change any of them.
+		case EWalkPhase::AimGrate:
+		{
+			WriteBreadcrumb(TEXT("blocked-walk-done"));
+			AimAtGrate();
+			GPhase = EWalkPhase::SettleAfterAim;
+			GPhaseStart = Now;
+			return true;
+		}
+		case EWalkPhase::SettleAfterAim:
+		{
+			if ((Now - GPhaseStart) < kGrateSettleSeconds) { return true; }
+			MeasureGrateAim();
+			WriteBreadcrumb(TEXT("grate-aimed"));
+			GPhase = EWalkPhase::ShotGrateA;
+			GPhaseStart = Now;
+			return true;
+		}
+		case EWalkPhase::ShotGrateA:
+			return RunShotPhase(TEXT("grate_a"), TEXT("ue-walk_05_grate_a.png"),
+			                     EWalkPhase::ShotGrateB, Now);
+		// THE SAME CAMERA, NOT MOVED BETWEEN THE TWO. This is the pair
+		// tools/grate-zfight.py reads its flicker density from; if anything
+		// ever moves the camera between these two phases, the flicker half of
+		// that instrument stops measuring z-fighting and starts measuring the
+		// move, and the grateCamRead numbers on the rect line are what would
+		// show it.
+		case EWalkPhase::ShotGrateB:
+			return RunShotPhase(TEXT("grate_b"), TEXT("ue-walk_06_grate_b.png"),
+			                     EWalkPhase::RestoreView, Now);
+		case EWalkPhase::RestoreView:
+		{
+			RestoreViewTarget();
+			GPhase = EWalkPhase::ConfirmRestore;
+			GPhaseStart = Now;
+			return true;
+		}
+		case EWalkPhase::ConfirmRestore:
+		{
+			ConfirmViewRestore();
+			GPhase = EWalkPhase::Done;
+			GPhaseStart = Now;
+			return true;
+		}
 		case EWalkPhase::Done:
 		default:
 			Finish();

@@ -1248,3 +1248,46 @@ z-fighting risk. The builder refused to invent an offset to dodge it, on the
 grounds that every candidate available (the decals' 10 mm standoff, a stray
 0.098 mm) would be a number with no derivation behind it. The run is the
 measurement.
+
+--------------------------------------------------------------------------
+2026-09-09  RUN 34: propFullyBuried=0/23 FROM PLACED BOUNDS. THE GRATE IS A
+            REAL MESH, WITH COLLISION, AT THE SURFACE, AND NO CAMERA IS
+            POINTED AT IT.
+--------------------------------------------------------------------------
+MEASURED, run 34 on 31902b7, and the word that matters is via=loaded-asset,
+because every flush number before this one was arithmetic on a file:
+
+    propsAsMesh=22/23 propStandIns=1/23 propPlacedWithCollision=22/22
+    propFullyBuried=0/23  (was 1/23, and the one was the grate)
+    propBurialSubject=prop_drainage_grate_01_0/via=loaded-asset/collision=YES/
+      topM=-0.0650/buried=40.0pct/overhung=0.0pct/open=60.0pct/deepestMm=65.01/
+      by=ground_east_carriageway/cells=400
+    propCentreWorstMm=0.00/on=prop_awning_02_1/of=22
+    propSizeComparable=20/22   (was 22/22, and the drop is the ruled cost)
+
+SO JAFAR'S ACCEPTING CASE IS MET IN EVERY MEASURABLE PART AND ONE UNMEASURABLE
+PART IS MISSING. The grate is a real imported mesh, it reports collision, it sits
+at the running surface, and it is placed 0.00 mm from where the file put it.
+WHAT IS MISSING IS A PICTURE OF IT: the six key frames this run writes are aimed
+along the street and the grate is 0.3999 m square at x 12.0 on the east channel,
+so no camera in the run points at it. THE VERDICT SAYS THE PIECE IS THERE AND NO
+FRAME SHOWS IT, which is rule 4 pointed the other way round from its usual
+direction: not a green number standing in for a bad picture, a green number with
+no picture at all.
+
+THE RESIDUAL 40.0pct AT 65.01mm IS NOT COVER AND WAS DECOMPOSED BEFORE THE RUN
+RATHER THAN AFTER IT, which is the difference between an instrument and an
+excuse. It is 8 of 20 z-columns: seven are the carriageway slab's AABB, whose top
+is the road CROWN at y -0.00000035 and 2.745 m away in z, and the eighth is the
+double yellow stripe alone. Without the paint the same key reads 35.0pct.
+
+propSizeComparable FELL FROM 22/22 TO 20/22 AND THAT IS THE RULED COST, NOT A
+REGRESSION. The size half of the placement instrument is gated on pitch being
+zero, and this piece now has a pitch, which its own stat string already said
+before the change was made. Predicted in the dispatch entry, observed in the run.
+
+WHAT IS STILL UNRESOLVED AND IS BEING MEASURED RATHER THAN ARGUED: the grate's
+top face is exactly coincident with two rendered solids over about 0.16 square
+metres and nothing here can say whether that ties in the depth test. A director
+ruled that it goes to a reading or is reported UNRESOLVED with its rung named,
+and that nobody squints at a frame and calls it decided.

@@ -9,6 +9,28 @@ session would otherwise duplicate, abandon, or wait for forever.
 Keep it current or delete it. A stale NOW is worse than none, because it
 looks like a live state.
 
+## 2026-09-09 02:40Z: THE GRATE IS AT THE SURFACE, MEASURED FROM PLACED BOUNDS
+
+RUN 34 ON 31902b7: propFullyBuried=0/23 where it was 1/23 and the one was the
+grate, and the reading carries via=loaded-asset, so it is the engine's own bounds
+and not arithmetic on a file. propsAsMesh=22/23, propPlacedWithCollision=22/22,
+propBurialSubject=.../collision=YES/topM=-0.0650/open=60.0pct,
+propCentreWorstMm=0.00.
+
+JAFAR'S ITEM 2 IS MET IN EVERY MEASURABLE PART. The grate is a real imported
+mesh, it reports collision, it is at the running surface and it is placed 0.00 mm
+from where the file put it. WHAT IS MISSING IS A PICTURE: the run's six key frames
+are aimed along the street and nothing points at a 0.40 m square at x 12.0 on the
+east channel. A builder is adding one still aimed at it and the z-fight reading a
+director ruled must be a number rather than an opinion.
+
+TWO CONDITIONS THE CLIP CARRIES WHEREVER IT GOES, and offering it without them is
+the only version that is a fault. A double yellow line crosses exactly 25.0
+percent of the piece, lying on it rather than through it, its underside 5.6 um
+above the top face. And the top face is exactly coincident with two rendered
+solids over about 0.16 square metres, which no number in this repository can yet
+call a tie or not.
+
 ## 2026-09-09 01:10Z: THE STREET IS MADE OF REAL MESHES AND THE TOWN SPEAKS ITS OWN SENTENCE
 
 RUN 33 LANDED EVERY PREDICTION. propsAsMesh=22/23 where every earlier run read
