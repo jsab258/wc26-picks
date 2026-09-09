@@ -1,28 +1,40 @@
-# LEDGER supervisor status as CI read it - 8aaf780 @1788957210
+# LEDGER supervisor status as CI read it - fe13e91 @1788986175
 # Line 1 names the commit this was read on.
-# Copied verbatim from the supervisor's own file on his PC,
-# read right after the restart step above, so a changed
-# telegram-botStarts or a reset telegram-botUptimeSec here is
-# the evidence the restart actually took effect.
+# Copied verbatim from the supervisor's own file on his PC.
+# It is written there every 60s and was published nowhere until
+# this step existed, which is why a bot that stopped at 11:30 on
+# 2026-09-07 could not say so.
 statusSource=C:\Users\Jafar\wc26-picks\game-design\pc-jobs\supervisor-status.txt
-statusFound=yes statusBytes=626 statusLines=18 statusAgeSec=21
+statusFound=yes statusBytes=898 statusLines=30 statusAgeSec=59
 statusFresh=yes
 
 supervisor=running
 daemons=3
 running=3
 gaveUp=0
-autostart=installed
-resync=ok/df7a7061
+autostart=removed
+resync=ok/e953e62b
 outboxFiles=17
-outboxReceipts=34
+outboxReceipts=39
 outboxRefusals=494
-written=2026-09-09T14:33:09
+written=2026-09-09T22:35:16
+botSweepPasses=57
+botSweepSent=0
+botSweepRefused=0
+botSweepEverySec=120
+botSweepSecSinceLast=0
+botSweepLastResult=sent0/refused0/of17
+botBriefTapsFiled=0
+botBriefReasonsFiled=0
+botUptimeSec=7305
+botSweepWrittenAt=2026-09-09T22:35:03
+botSweepAgeSec=13
+botSweepStatus=read/10-key(s)
 executorState=idle
 executorHandled=1
 executorPending=0
 executorLimitResumeIn=none
-studio-watcher=running studio-watcherUptimeSec=177258 studio-watcherStarts=1 studio-watcherStops=0 studio-watcherLastExit=none
-telegram-bot=running telegram-botUptimeSec=0 telegram-botStarts=5 telegram-botStops=4 telegram-botLastExit=4294967295
-claude-executor=running claude-executorUptimeSec=177258 claude-executorStarts=1 claude-executorStops=0 claude-executorLastExit=none
+studio-watcher=running studio-watcherUptimeSec=7324 studio-watcherStarts=1 studio-watcherStops=0 studio-watcherLastExit=none
+telegram-bot=running telegram-botUptimeSec=7324 telegram-botStarts=1 telegram-botStops=0 telegram-botLastExit=none
+claude-executor=running claude-executorUptimeSec=7324 claude-executorStarts=1 claude-executorStops=0 claude-executorLastExit=none
 

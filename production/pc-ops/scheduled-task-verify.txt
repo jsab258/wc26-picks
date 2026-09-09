@@ -1,34 +1,40 @@
-# LEDGER scheduled task install/verify - 884f049 @1788951305
+# LEDGER scheduled task install/verify - fe13e91 @1788986142
 # Line 1 names the commit this was measured on.
 # Installs tools/runner/launch-supervisor.py (wraps tools/supervise.py,
 # unmodified) as a Windows scheduled task. Ruling 2026-09-07.
 
 workflowRef=claude/game-dev-ai-automation-2h67ix daemonsBranch=claude/game-dev-ai-automation-2h67ix daemonsBranchIsWhatGitActuallyUses=true
-supervisorQueryOk=true supervisorQueryContext=before-resync supervisorProcessesFound=4
-supervisorQueryContext=before-resync supervisorPid=19712 supervisorParentPid=10700 supervisorKind=supervise.py
-supervisorQueryContext=before-resync supervisorPid=14608 supervisorParentPid=19712 supervisorKind=supervise.py
-supervisorQueryContext=before-resync supervisorPid=29456 supervisorParentPid=14608 supervisorKind=pc-watcher.py
-supervisorQueryContext=before-resync supervisorPid=14548 supervisorParentPid=29456 supervisorKind=pc-watcher.py
-resyncAction=skipped-supervisor-running kinds=supervise.py,supervise.py,pc-watcher.py,pc-watcher.py reason=a-running-supervisor-or-watcher-already-keeps-this-checkout-current-do-not-touch-its-index
+supervisorQueryOk=true supervisorQueryContext=before-resync supervisorProcessesFound=6
+supervisorQueryContext=before-resync supervisorPid=9048 supervisorParentPid=3124 supervisorKind=launch-supervisor.py
+supervisorQueryContext=before-resync supervisorPid=9384 supervisorParentPid=9048 supervisorKind=launch-supervisor.py
+supervisorQueryContext=before-resync supervisorPid=10228 supervisorParentPid=9384 supervisorKind=supervise.py
+supervisorQueryContext=before-resync supervisorPid=12864 supervisorParentPid=10228 supervisorKind=supervise.py
+supervisorQueryContext=before-resync supervisorPid=7900 supervisorParentPid=12864 supervisorKind=pc-watcher.py
+supervisorQueryContext=before-resync supervisorPid=15332 supervisorParentPid=7900 supervisorKind=pc-watcher.py
+resyncAction=skipped-supervisor-running kinds=launch-supervisor.py,launch-supervisor.py,supervise.py,supervise.py,pc-watcher.py,pc-watcher.py reason=a-running-supervisor-or-watcher-already-keeps-this-checkout-current-do-not-touch-its-index
 runnerAccount=JAFAR-DESKTOP\Jafar
 repo=C:\Users\Jafar\wc26-picks
 python=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\python.exe
 pythonForTask=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\pythonw.exe windowless=True
 configLocalPresent=True
 installAction=already-correct
-supervisorQueryOk=true supervisorQueryContext=before-start supervisorProcessesFound=4
-supervisorQueryContext=before-start supervisorPid=19712 supervisorParentPid=10700 supervisorKind=supervise.py
-supervisorQueryContext=before-start supervisorPid=14608 supervisorParentPid=19712 supervisorKind=supervise.py
-supervisorQueryContext=before-start supervisorPid=29456 supervisorParentPid=14608 supervisorKind=pc-watcher.py
-supervisorQueryContext=before-start supervisorPid=14548 supervisorParentPid=29456 supervisorKind=pc-watcher.py
-startedNow=refused reason=4_supervisor_process(es)_already_running kinds=supervise.py,supervise.py,pc-watcher.py,pc-watcher.py
-supervisorQueryOk=true supervisorQueryContext=after-verify supervisorProcessesFound=4
-supervisorQueryContext=after-verify supervisorPid=19712 supervisorParentPid=10700 supervisorKind=supervise.py
-supervisorQueryContext=after-verify supervisorPid=14608 supervisorParentPid=19712 supervisorKind=supervise.py
-supervisorQueryContext=after-verify supervisorPid=29456 supervisorParentPid=14608 supervisorKind=pc-watcher.py
-supervisorQueryContext=after-verify supervisorPid=14548 supervisorParentPid=29456 supervisorKind=pc-watcher.py
+supervisorQueryOk=true supervisorQueryContext=before-start supervisorProcessesFound=6
+supervisorQueryContext=before-start supervisorPid=9048 supervisorParentPid=3124 supervisorKind=launch-supervisor.py
+supervisorQueryContext=before-start supervisorPid=9384 supervisorParentPid=9048 supervisorKind=launch-supervisor.py
+supervisorQueryContext=before-start supervisorPid=10228 supervisorParentPid=9384 supervisorKind=supervise.py
+supervisorQueryContext=before-start supervisorPid=12864 supervisorParentPid=10228 supervisorKind=supervise.py
+supervisorQueryContext=before-start supervisorPid=7900 supervisorParentPid=12864 supervisorKind=pc-watcher.py
+supervisorQueryContext=before-start supervisorPid=15332 supervisorParentPid=7900 supervisorKind=pc-watcher.py
+startedNow=refused reason=6_supervisor_process(es)_already_running kinds=launch-supervisor.py,launch-supervisor.py,supervise.py,supervise.py,pc-watcher.py,pc-watcher.py
+supervisorQueryOk=true supervisorQueryContext=after-verify supervisorProcessesFound=6
+supervisorQueryContext=after-verify supervisorPid=9048 supervisorParentPid=3124 supervisorKind=launch-supervisor.py
+supervisorQueryContext=after-verify supervisorPid=9384 supervisorParentPid=9048 supervisorKind=launch-supervisor.py
+supervisorQueryContext=after-verify supervisorPid=10228 supervisorParentPid=9384 supervisorKind=supervise.py
+supervisorQueryContext=after-verify supervisorPid=12864 supervisorParentPid=10228 supervisorKind=supervise.py
+supervisorQueryContext=after-verify supervisorPid=7900 supervisorParentPid=12864 supervisorKind=pc-watcher.py
+supervisorQueryContext=after-verify supervisorPid=15332 supervisorParentPid=7900 supervisorKind=pc-watcher.py
 taskExists=True
-taskState=Ready
+taskState=Running
 taskEnabled=True
 taskTriggerKind=MSFT_TaskLogonTrigger
 taskRestartCount=999
@@ -37,12 +43,12 @@ taskMultipleInstancesPolicy=IgnoreNew
 taskHiddenInSchedulerUI=True
 taskRunAsUser=Jafar
 taskLogonType=Interactive
-taskLastRunTime=11/30/1999 00:00:00
-taskLastTaskResult=267011
+taskLastRunTime=09/09/2026 20:33:00
+taskLastTaskResult=267009
 taskNextRunTime=
-install-scheduled-task: installAction=already-correct taskExists=True supervisorProcessesAfter=4
+install-scheduled-task: installAction=already-correct taskExists=True supervisorProcessesAfter=6
 installerExitCode=0
 
 # The existing channel, read rather than duplicated (ruling point 4).
-pcInboxReachable=true pcInboxHeadShort=4c29a45 pcInboxLastCommitAgeSec=11
+pcInboxReachable=true pcInboxHeadShort=663b211b pcInboxLastCommitAgeSec=7375
 pcInboxNote=this-branch-is-the-studios-own-de-facto-heartbeat;no-new-transport-was-built
