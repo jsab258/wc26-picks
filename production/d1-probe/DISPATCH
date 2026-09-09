@@ -577,3 +577,39 @@ launchReason=build-step-published-no-binary, every downstream key
 NOTHING-MEASURED, and no older frame carried forward under this run's name.
 Expect perceptionUnknownFns=4/FactNull-needs-exceptions, which is the ruled
 cost of the fix and not a regression.
+run 33 - 2026-09-09 - THE TOWN SAYS SOMETHING IT COMPOSED, THE CAPTION BURNS
+WHAT WAS SAID, AND THE STREET IS ASKED WHETHER ANYTHING IS ON TOP OF THE GRATE.
+Three changes ride one round trip. The overheard beat composes its telling from
+the rumour the mill carried instead of picking a bank row keyed to the rung, and
+the bank now carries a third-person lowercase CLAUSE beside its sentence, because
+one string cannot be both a thing said whole and a thing spliced after "I heard
+from the shopkeeper that". The clip's captions read lineText off the keys line,
+so the frame no longer burns the row the beat stopped speaking. And the scene
+line answers the placement question propCentreWorstMm is blind to: whether
+anything occupies the footprint above a prop.
+Read, in this order: crimeReached=end and crimeSelftestFailed; then
+bankSummaryClauseShape, which must read clause where it read
+sentence-not-clause; then overheardReplyMode, overheardBeatsComposed=1/2,
+overheardCarriedSummary and overheardComposedRefusedWhy=none; then
+clipCaptionsBySource, where spoken should be 8 and bank 0 where they were 0 and
+8; then propPlacedWithCollision, which replaces a key that read 0 both for an
+asset with no body setup and for one a complex-as-simple flag makes solid; then
+propFullyBuried and propBurialSubject.
+THE GRATE ROW, WHICH THE RULING OF 2026-09-09 REQUIRES THIS ENTRY TO CARRY. A
+walk clip of this grate is NOT Jafar's item 2 and must not be reported as it.
+Measured off the spec file: cover runs 20.00 mm at the west footprint edge to
+10.25 mm at the last sampled cell, 15.00 mm at the centre line, and
+ground_east_carriageway straddles 36 percent of the footprint while the channel
+slab is 0.255 m wide against the grate's 0.3999 m, the two overlapping by
+0.469 mm with no gap. No part of the grate reaches the surface, so a capsule
+stands on the road and never on it and no frame can show it. This run MEASURES
+that from placed bounds instead of from the file, which is the whole of amendment
+A6 of the 2026-09-08 ruling. The fix is a street-spec change under its own
+review: one row rising and taking the cross-fall.
+AND propsAsMesh=0/23 GOING IN. The walk build has never placed one prop mesh, so
+the three-valued collision reading is being asked its question for the first time
+on this run. Expect UNKNOWN rather than NO if a body setup cannot be read at
+BuildScene time in a cooked build; those are different words on purpose.
+Five UE 5.8 API uses in VignetteShot.cpp have never been compiled by any
+container and this is their first compile. If it fails there, that is the cost of
+the reading and not a regression.
