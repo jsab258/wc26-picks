@@ -708,3 +708,43 @@ channel course, so the carriageway strip at z 2.60 to 2.745 is unmeasured by any
 rectangle here, and the flicker half cannot fire on a static pair whatever the
 depth test does. And the near-white render, which is queue 176 and needs a Pillow
 read rather than a run.
+
+================================================================================
+RUN 37, 2026-09-09: THE STREET GETS A SKY, AND THE FOG STOPS DOING ITS JOB
+================================================================================
+Jafar ruled it this morning: "the street has no sky, so add one, the correct fix
+for the road before any wetness". Wetness is NOT wired in this run and must not be
+read for.
+
+WHAT WAS WRONG WITH THE OLD DESCRIPTION, because it decides how to read this run.
+`skyModel=none-black` was a HARDCODED PRINTF, never a measurement. The far field is
+not black: it is the height fog's inscattering colour lifted to near white by
+auto-exposure, proven by channel order rather than brightness (day background
+249.5/250.0/250.5 with R<G<B against day fog 0.55/0.58/0.62; night 188.4/179.6/179.3
+with R>G=B against night fog 0.06/0.05/0.05). SO A SKY ADDED BEHIND AN OPAQUE FOG
+WOULD HAVE BEEN INVISIBLE, and this run caps the fog's max opacity only when there
+is something behind it to see.
+
+PREDICTIONS WRITTEN BEFORE THE RUN SO THE RUN CAN JUDGE THEM:
+1. The sky spawns whole and reads back, so the scene line says skyatmosphere plus a
+   real-time captured skylight rather than SPAWN-FAILED or ATMOSPHERE-MISSING.
+2. The far field comes DOWN from about 0.98, not up. Codex's reference sky measures
+   0.81 and ours is brighter, so the instinct to add light is backwards.
+3. The kerb band barely moves. It is roadCause=MATERIAL-ALBEDO, a texture at 0.7228
+   source mean against asphalt's 0.2659, and no sky touches it. If
+   roadSubjectOverControlMean moves far from 2.26 the change did something it was
+   not meant to.
+4. The road's SPREAD is the number that answers the reflection question, not its
+   mean. Ours is 0.2314 and the reference is 0.432 to 0.560. A brighter road only
+   proves the sky lit it; only added within-band variation proves anything is being
+   mirrored.
+
+READ IN THIS ORDER: the scene line's skyModel and ambientModel; then
+cvarSkyLightRealTimeReflectionCapture and cvarReflectionMethod, which decide whether
+anything mirrors at all; then band.skyCentre; THEN OPEN THE FRAMES; then run
+tools/road-brightness.py on the new frame so before and after share one ruler.
+
+WHAT THIS RUN CANNOT SETTLE. The road is still dry rough asphalt, so a sky gives it
+a wide dim wash and not the mirror in Codex's panel. That needs wetness, which is
+deliberately not in this run. Rung 1's sky is one dispatch away; the panel's road is
+not.
