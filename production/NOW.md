@@ -9,6 +9,36 @@ session would otherwise duplicate, abandon, or wait for forever.
 Keep it current or delete it. A stale NOW is worse than none, because it
 looks like a live state.
 
+## 2026-09-09 01:10Z: THE STREET IS MADE OF REAL MESHES AND THE TOWN SPEAKS ITS OWN SENTENCE
+
+RUN 33 LANDED EVERY PREDICTION. propsAsMesh=22/23 where every earlier run read
+0/23; propPlacedWithCollision=22/22; the only fallback is pavement_sign, whose
+GLB holds three mesh nodes and whose resolver correctly refuses to choose. The
+throughput ledger's prop row went from 0 verified pieces to 22 in one run of
+5 min 42 s, push to landed evidence.
+
+THE OVERHEARD BEAT COMPOSES AND THE FRAME SHOWS IT.
+overheardReplyMode=COMPOSED, overheardSummaryShape=clause where it read
+sentence-not-clause, and clipCaptionsBySource=spoken..8/bank..0 where it was
+0 and 8, with all eight differing from the bank row they would have burned.
+Frame 17 of the clip was opened and reads: "You hear all sorts. The man that did
+the window looked straight in at the shop before he ran, and his face is known if
+not his name, apparently." That sentence did not exist before the run; it was
+built from the rumour the mill carried.
+
+WHAT IS NOT MET IS JAFAR'S ITEM 2, and the reason is geometry, not the pipeline.
+propFullyBuried=1/23 and the one is the grate: it sits under the carriageway and
+the channel both, 20.00 mm of cover at the west footprint edge and 10.25 mm at
+the last sampled cell, so no camera can see it. Queue 162 carries the fix, one
+row rising and taking the cross-fall, and it is a street-spec change under the
+art line's review. THE GRATE IS A VERIFIED PIECE AND IT IS INVISIBLE, and those
+are two different facts.
+
+STILL OPEN AND NOT FIXED TONIGHT, by Jafar's own rule that only findings blocking
+items 1 to 3 are fixed: six things the six stills say about the visual bar, led by
+no human figure in any frame and a pure white sky. They are in the findings file
+with the number that would settle each.
+
 ## 2026-09-08 NIGHT: THE CRIME LANDED, THE PROPS IMPORT, COLLISION DOES NOT
 
 THE NIGHT'S ONE REQUIRED OUTCOME IS DONE. Run 32 launched the packaged build on

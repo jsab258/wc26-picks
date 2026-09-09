@@ -1156,3 +1156,58 @@ twenty minutes and is corrected in place with the refutation kept beside it. Had
 it not been caught, a later session would have read queue 166 as "the fault is
 visible while it waits" when in fact the guard PINS the bug and nothing warns.
 The guard that pins the bug is the worse state and the item now says so.
+
+--------------------------------------------------------------------------
+2026-09-09  RUN 33: EVERY PREDICTION LANDED, THE STREET PLACED TWENTY-TWO
+            REAL MESHES, AND THE GRATE IS VERIFIED AND INVISIBLE.
+--------------------------------------------------------------------------
+MEASURED, run 33 on 76e4238, dispatched 01:01:57Z and evidence committed
+01:07:39Z, a round trip of 5 min 42 s carrying a cold build, a cook, a packaged
+launch, two crimes, a gossip round, 30 frames and a clip:
+
+    crimeSelftestChecks=156 crimeSelftestFailed=0/156
+    bankSummaryClauseShape=clause         (was sentence-not-clause)
+    overheardSummaryShape=clause          (was sentence-not-clause)
+    overheardReplyMode=COMPOSED/telling-built-at-run-time-around-the-carried-summary
+    overheardBeatsComposed=1/2 overheardBeatsPicked=1/2
+    overheardComposedRefusedWhy=none
+    clipCaptionsBySource=spoken..8/bank..0/nowords..17/refused..0/examined..25
+    clipCaptionSpokenVsBank=differed..8/agreed..0/comparable..8
+    propsAsMesh=22/23 propStandIns=1/23
+    propPlacedWithCollision=22/22 propPlacedCollisionUnread=0/22
+    propFullyBuried=1/23 propAnyBuried=10/23
+    propBurialSubject=prop_drainage_grate_01_0/via=loaded-asset/collision=YES
+
+FOUR THINGS WORTH SEPARATING.
+
+ONE, THE CAPTIONS ARE NOW WHAT WAS SAID. Eight of twenty-five frames carry words,
+all eight came from the spoken text where all eight previously came from the bank,
+and ALL EIGHT DIFFER from the bank row they would have burned. Before tonight
+those two runs would have printed byte-identical evidence.
+
+TWO, THE ARTIFACT WAS OPENED, not inferred from the count. Frame 17 of
+ue-crime.gif, extracted and looked at, carries:
+"You hear all sorts. The man that did the window looked straight in at the shop
+before he ran, and his face is known if not his name, apparently."
+That is a sentence the simulation built at run time out of the rumour the gossip
+mill carried, burned onto a frame, two lines inside the strip, no doubled stop.
+It is what the moat looks like when it reaches a picture.
+
+THREE, THE MEMORY FILE IS FIXED IN THE RUN'S OWN OUTPUT.
+production/d1-probe/ue-crime-memory-n2.md now reads "I heard from the shopkeeper
+that the man that did the window looked straight in at the shop before he ran,
+and his face is known if not his name". The committed artifact that read "that He
+looked straight at me" is gone, rewritten by the run rather than by a hand.
+
+FOUR, AND IT IS THE SPLIT JAFAR'S ITEM 2 TURNS ON. The street placed 22 of 23
+props as real imported meshes and every one reports collision. The grate is among
+them, via=loaded-asset, collision=YES. IT IS A VERIFIED PIECE AND IT CANNOT BE
+SEEN, because propFullyBuried=1/23 and the one is the grate. So the accepting case
+is not met, and the reason is a street-spec fault and not a pipeline fault. The
+pipeline is what the throughput ledger measures and that row went from 0 to 22 in
+one run.
+
+THE ONE FALLBACK IS CORRECT: propFallbackWhy=prop_pavement_sign_0=no-uasset-for-
+pavement_sign, whose source GLB holds three mesh nodes (hinges, sign_front,
+sign_back) and whose resolver refuses to choose. Nothing was loosened to make a
+number go green.
