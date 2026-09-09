@@ -1,0 +1,34 @@
+{
+  "_what": "The resume record: what is on disk and which recipe made it. Delete this file to have everything made again, or delete one PNG to have just that one made again.",
+  "written": "2026-09-09T21:48:56",
+  "items": {
+    "hook_compare": {
+      "recipe": "f6ecc9ecb5ea5d16",
+      "seed": 20260909,
+      "file": "hook_compare.png",
+      "when": "2026-09-09T21:41:11",
+      "from": "made by this run"
+    },
+    "hook_compare_s2": {
+      "recipe": "2f217dff24a41c35",
+      "seed": 20260910,
+      "file": "hook_compare_s2.png",
+      "when": "2026-09-09T21:43:46",
+      "from": "made by this run"
+    },
+    "hook_compare_s3": {
+      "recipe": "b0df38d273954b08",
+      "seed": 20260911,
+      "file": "hook_compare_s3.png",
+      "when": "2026-09-09T21:46:21",
+      "from": "made by this run"
+    },
+    "hook_compare_s4": {
+      "recipe": "7765d7a2c5a5bdac",
+      "seed": 20260912,
+      "file": "hook_compare_s4.png",
+      "when": "2026-09-09T21:48:56",
+      "from": "made by this run"
+    }
+  }
+}

@@ -1,11 +1,11 @@
 LEDGER - image generation, machine report
 ============================================================
-written   2026-09-03 05:31:47 local
+written   2026-09-09 21:48:56 local
 host      JAFAR-DESKTOP
 os        Microsoft Windows 11 Pro  (26200)
 cpu       AMD Ryzen 5 5600X 6-Core Processor  x6 cores
 ram       31.9 GB
-free disk 87.1 GB on C:
+free disk 58.5 GB on C:
 python    C:\Users\Jafar\miniconda3\python.exe
 probe     ok  (probe version 2)
 
@@ -46,35 +46,84 @@ PLAN CHOSEN FROM THE ABOVE
 
 RUN
 ------------------------------------------------------------
-        negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
-        ok  102s  1157 KB  varied: spread 255/255, 256 levels over 23040 of 573440 px
-    [41/45] notice_opening_hours  the prompt or settings changed since the PNG already here was made, so it is NOT skipped - making it again
-    [41/45] notice_opening_hours  640x896  seed 8094  cfg 1.0  about 100s
-        negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
-        ok  102s  1083 KB  varied: spread 246/255, 246 levels over 23040 of 573440 px
-    [42/45] poster_safety  the prompt or settings changed since the PNG already here was made, so it is NOT skipped - making it again
-    [42/45] poster_safety  640x896  seed 8095  cfg 1.0  about 100s
-        negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
-        ok  102s  920 KB  varied: spread 254/255, 253 levels over 23040 of 573440 px
-    [43/45] interior_shop_shelves  the prompt or settings changed since the PNG already here was made, so it is NOT skipped - making it again
-    [43/45] interior_shop_shelves  768x512  seed 8096  cfg 1.0  about 68s
-        negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
-        ok  57s  661 KB  varied: spread 255/255, 255 levels over 24576 of 393216 px
-    [44/45] interior_bar_back  the prompt or settings changed since the PNG already here was made, so it is NOT skipped - making it again
-    [44/45] interior_bar_back  768x512  seed 8097  cfg 1.0  about 68s
-        negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
-        ok  57s  554 KB  varied: spread 255/255, 256 levels over 24576 of 393216 px
-    [45/45] interior_stair_landing  the prompt or settings changed since the PNG already here was made, so it is NOT skipped - making it again
-    [45/45] interior_stair_landing  512x768  seed 8098  cfg 1.0  about 68s
-        negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
-        ok  57s  698 KB  varied: spread 255/255, 246 levels over 24576 of 393216 px
+    SENDING BACK IS OFF: switched off for this run
+  LEDGER - image generation, machine report
+============================================================
+written   2026-09-09 21:38:33 local
+host      JAFAR-DESKTOP
+os        Microsoft Windows 11 Pro  (26200)
+cpu       AMD Ryzen 5 5600X 6-Core Processor  x6 cores
+ram       31.9 GB
+free disk 58.5 GB on C:
+python    C:\Users\Jafar\miniconda3\python.exe
+probe     ok  (probe version 2)
+
+GPUs   2 found via Win32_VideoController (CIM)
+  [0] Parsec Virtual Display Adapter   (from Win32_VideoController (CIM))
+      driver 0.45.0.0   vendor string Parsec Cloud, Inc.
+      AdapterRAM 0.00 GB (uint32, saturates at 4.00)
+      registry qwMemorySize 0.00 GB (the one to believe)  [exact name match]
+  [1] AMD Radeon RX 6700   (from Win32_VideoController (CIM))
+      driver 32.0.21045.5002   vendor string Advanced Micro Devices, Inc.
+      AdapterRAM 4.00 GB (uint32, saturates at 4.00)
+      registry qwMemorySize 9.98 GB (the one to believe)  [exact name match]
+
+vulkan drivers registered: 0
+vulkan status:             loader present but NO Khronos key - the display driver registered no Vulkan device
+vulkan loader dll:         present
+directml dll present:      present
+
+PLAN CHOSEN FROM THE ABOVE
+------------------------------------------------------------
+  vendor        amd
+  vram          9.98 GB  (known: True)
+  backend       vulkan   fallback chain vulkan -> cpu
+  model         Z-Image-Turbo Q4_K  (Apache-2.0)
+  flags         --offload-to-cpu --diffusion-fa
+  download      6.7 GB one time
+  free disk ok  True  (need 20 GB)
+
+  why:
+    - VRAM 10.0 GB from vram_bytes_registry
+    - amd adapter, so Vulkan - it is the one vendor-neutral GPU path on Windows and needs no SDK at runtime, the same reasoning that made DirectML the speech baseline
+    - AMD, so the NEXT RUNG applies and is named rather than taken: win-rocm-7.14.0-x64 (189 MB, same release) is the named next rung for an AMD card if Vulkan is slow or wrong - not wired, not measured, conditional on what this probe reports.
+    - quantisation Q4_K: 7-10GB
+
+  next rung (model):   FLUX.1-schnell (Apache-2.0, 12B + T5-XXL, ~10GB more download) is the named next rung if Z-Image's lettering is not good enough. stable-diffusion.cpp runs both; the switch is one field. It is Apache-2.0 and UNGATED - see the VAE comment above, where the opposite was asserted and is retracted.
+  next rung (runtime): win-rocm-7.14.0-x64 (189 MB, same release) is the named next rung for an AMD card if Vulkan is slow or wrong - not wired, not measured, conditional on what this probe reports.
+      ^ this machine is the AMD case that rung is for. It is NOT wired and NOT measured; it is here so the next run has somewhere to go.
+
+SENDING BACK
+------------------------------------------------------------
+  Sending back is OFF: switched off for this run
+  Zip the pictures folder named above and send it, plus this file.
+
+  spec file=tools\imagegen\compare-hook-2026-09-09.json source=--spec schema=2 itemsInSpec=4
+  Downloading about 6.7 GB, once. It resumes if interrupted.
+    generator: C:\Users\Jafar\ledger-imagegen\runtime-vulkan\sd-cli.exe
   
-  DONE: 41 written, 4 skipped, 0 failed, 41 attempted of 45 in the batch
-    blank check: 0 blank, 0 undecodable, of 41 PNGs decoded (blank when spread <= 2/255 AND stdev <= 1.0, or alpha is 0 everywhere sampled)
-    already made: 4 skipped, 41 remade because what was on disk was blank or unreadable, of 45 PNGs found already on disk
-    Those files were left exactly as they were - anything you picked out by hand is safe.
-    To make one again: delete its .png and double-click again. To make them all again: run with --redo.
-    images and manifest: C:\actions-runner-ledger\_work\wc26-picks\wc26-picks\ledger\Assets\StreamingAssets\Decals\generated
+  Generating into production\art\compare\hook-2026-09-09 from tools\imagegen\compare-hook-2026-09-09.json
+    4 item(s) selected of 4 in the batch, by name: hook_compare,hook_compare_s2,hook_compare_s3,hook_compare_s4
+    --limit 4: at most 4 picture(s) will be GENERATED this run. Items already on disk are skipped and do not count against it.
+    --fail-on-blank: the first blank or unreadable PNG stops the run and the exit code is 6.
+    [1/4] hook_compare  688x1024  seed 20260909  cfg 1.0  about 152s
+        negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
+        ok  157s  1302 KB  varied: spread 252/255, 253 levels over 28290 of 704512 px
+        first image took 157s, so the batch projects to about 10 min for 4 images
+    [2/4] hook_compare_s2  688x1024  seed 20260910  cfg 1.0  about 152s
+        negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
+        ok  154s  1304 KB  varied: spread 254/255, 255 levels over 28290 of 704512 px
+    [3/4] hook_compare_s3  688x1024  seed 20260911  cfg 1.0  about 152s
+        negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
+        ok  155s  1334 KB  varied: spread 251/255, 252 levels over 28290 of 704512 px
+    [4/4] hook_compare_s4  688x1024  seed 20260912  cfg 1.0  about 152s
+        negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
+        ok  155s  1369 KB  varied: spread 251/255, 252 levels over 28290 of 704512 px
+  
+  DONE: 4 written, 0 skipped, 0 failed, 4 attempted of 4 in the batch
+    blank check: 0 blank, 0 undecodable, of 4 PNGs decoded (blank when spread <= 2/255 AND stdev <= 1.0, or alpha is 0 everywhere sampled)
+    already made: 0 skipped, 0 remade because what was on disk was blank or unreadable, of 0 PNGs found already on disk
+    images and manifest: production\art\compare\hook-2026-09-09
     every image is review=pending until a human has looked at it
 
 SENDING BACK

@@ -1,0 +1,275 @@
+{
+  "batch": "hook-compare-2026-09-09",
+  "written": "2026-09-09T21:48:56",
+  "status": "DONE",
+  "run": {
+    "sha": "b7ce9f6",
+    "started": "2026-09-09T21:38:33",
+    "what": "the commit this batch was generated on; 'local' means it was run by hand rather than by CI"
+  },
+  "generator": {
+    "tool": "stable-diffusion.cpp",
+    "tool_licence": "MIT",
+    "tool_release": "master-827-97d2990",
+    "backend": "vulkan",
+    "exe": "C:\\Users\\Jafar\\ledger-imagegen\\runtime-vulkan\\sd-cli.exe"
+  },
+  "model": {
+    "name": "Z-Image-Turbo",
+    "upstream": "Tongyi-MAI/Z-Image-Turbo",
+    "licence": "Apache-2.0",
+    "licence_note": "Apache-2.0 model weights; outputs unrestricted. No account, no terms to accept, no purchase.",
+    "params": "6B DiT + Qwen3-4B text encoder",
+    "steps": 8,
+    "cfg": 1.0,
+    "quant": "Q4_K",
+    "file": "z_image_turbo-Q4_K.gguf"
+  },
+  "text_encoder": {
+    "file": "Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+    "licence": "Apache-2.0 (Qwen3, Alibaba)"
+  },
+  "vae": {
+    "file": "ae.safetensors",
+    "licence": "Apache-2.0 (Z-Image / FLUX.1 autoencoder)"
+  },
+  "machine_plan": {
+    "vendor": "amd",
+    "vram_gb": 9.98,
+    "vram_known": true,
+    "backend": "vulkan",
+    "quant": "Q4_K",
+    "flags": [
+      "--offload-to-cpu",
+      "--diffusion-fa"
+    ]
+  },
+  "content_rules": "invented fictional shop name only, no real company names, no real brand logos, no trade marks, no real person, no recognisable faces, no celebrity likeness",
+  "rights": "Model weights Apache-2.0; outputs unrestricted by the model licence. No third-party asset was an input. Prompts name only in-world Meridian businesses. NOTHING SHIPS UNREVIEWED: every image below is review=pending until a human has looked for anything resembling a real mark or a real face.",
+  "caps": [
+    "--only: 4 of 4 item(s) selected by name",
+    "--limit: at most 4 picture(s) GENERATED this run; items already on disk that pass the skip check do not count against it",
+    "wall-clock cap 30.0 min"
+  ],
+  "blank_check": {
+    "what": "every written PNG is decoded and its luminance measured; a uniform image is the known Vulkan failure (leejet/stable-diffusion.cpp#1031: blank PNG, exit success)",
+    "bound": "blank when spread <= 2/255 AND stdev <= 1.0, or alpha is 0 everywhere sampled",
+    "checked": 4,
+    "blank": 0,
+    "undecodable": 0,
+    "rechecked": 0,
+    "remade": 0,
+    "remade_blank": 0,
+    "remade_unrecorded": 0,
+    "remade_recipe_changed": 0
+  },
+  "resume": {
+    "what": "recipe = prompt + negative(if it can act) + size + cfg + steps + seed; a match is skipped, a mismatch is made again",
+    "record": "nothing on record; 0 item(s) on record in total",
+    "kept": 0,
+    "prompt_changed": 0,
+    "unrecorded": 0
+  },
+  "negatives": {
+    "what": "--negative-prompt is passed whenever an item has one; it only ACTS when cfg != 1.0, because sd-cli evaluates the unconditional branch only then",
+    "carried": 4,
+    "active": 0,
+    "inert_at_cfg1": 4
+  },
+  "items_in_spec": 4,
+  "items_selected": 4,
+  "selection": {
+    "only": [
+      "hook_compare",
+      "hook_compare_s2",
+      "hook_compare_s3",
+      "hook_compare_s4"
+    ],
+    "limit": 4,
+    "selected": 4,
+    "of": 4,
+    "what": "only = the ids asked for by name; limit = how many pictures this run may GENERATE, which skipped items do not count against"
+  },
+  "items_attempted": 4,
+  "items_written": 4,
+  "items_failed": 0,
+  "items_skipped": 0,
+  "not_attempted": [],
+  "images": [
+    {
+      "id": "hook_compare",
+      "kind": "concept",
+      "binds_to": "COMPARISON ONLY - not shipped, not bound to anything. Jafar 2026-09-09 item 4(a), Codex's Hook sheet against this lane.",
+      "prompt": "the whole board filling the frame edge to edge, Use case: historical-scene. Create one polished portrait environment concept sheet for LEDGER, fictional British port Meridian in 1990. Two clearly separated wide cinematic photoreal panels, top establishing view, bottom pedestrian eye-height view, with restrained cream margins. Title THE HOOK. Small subtitle AI CONCEPT / PROPOSAL. TOP: view from low dock office across an enclosed working stone basin, two-storey red brick warehouses and shop terraces, inland town gently rising behind, quay straight and narrow foot passage off it, working ropes, a commercial cargo basin. BOTTOM: camera at 1.6m standing at south end looking north along Quay Street, 6m wet asphalt carriageway plus 2m pavement each side, continuous brick terraces. On RIGHT/east first bay is Mickey's a SMALL SINGLE 6m-wide two-storey pub under a 35-degree slate roof, party-wall chimneys, maroon fascia MICKEY'S, two doors on near/south part of facade and wide pub window north of them. Fish shop next along right. Soot brick parapet terraces left with one narrow yard slot further up. Daytime overcast soft light, subtle wetness, inhabited with 3 nonidentifiable people in ordinary 1990 clothing, everyday activity. Hand worn paint, soot streaks below gutters, domestic curtains upstairs. Photographic material plausibility, photoreal throughout. Bottom small strip four material swatches red brick, slate, oxblood painted timber, quay stone; and objects rope fender, metal dustbin, beer firkin. Fictional unbranded signage only, everything period-correct for 1990. This is proposed art., invented fictional shop name only, no real company names, no real brand logos, no trade marks, no real person, no recognisable faces, no celebrity likeness",
+      "negative": "pleasure marina, yacht, leisure moorings, pontoon, street festival, bunting, fairground, crowd, illustration, stylised illustration, cartoon, painterly, real brand logo, trade mark, real company name, modern tech, computer screen, mobile phone, wheeled bin, wheelie bin, contemporary car, modern car, HUD, heads-up display, game interface overlay, screenshot, game screenshot",
+      "negative_active": false,
+      "negative_note": "RECORDED BUT INERT: at cfg 1.0 sd-cli never evaluates the unconditional branch (resolve_guidance sets use_uncond only when img_cfg != txt_cfg), so this negative prompt was not encoded and changed nothing",
+      "seen_on_run": "b7ce9f6",
+      "review": "pending",
+      "probe": true,
+      "recipe": "f6ecc9ecb5ea5d16",
+      "width": 688,
+      "height": 1024,
+      "seed": 20260909,
+      "steps": 8,
+      "cfg": 1.0,
+      "sampler": "sd-cli model-specific default (not overridden)",
+      "flags": [
+        "--offload-to-cpu",
+        "--diffusion-fa"
+      ],
+      "seconds": 156.7,
+      "blank_check": {
+        "verdict": "varied",
+        "why": "luminance spread 252/255, stdev 80.329, 253 distinct levels over 28290 of 704512 pixels",
+        "spread": 252,
+        "stdev": 80.329,
+        "distinct": 253,
+        "sampled": 28290,
+        "pixels": 704512
+      },
+      "status": "OK",
+      "bytes": 1333495,
+      "sha256": "264c842648809564039b30aa73bada1f5da02457075855ee6b85e0ab863f5aba",
+      "file": "hook_compare.png",
+      "made_on_run": "b7ce9f6"
+    },
+    {
+      "id": "hook_compare_s2",
+      "kind": "concept",
+      "binds_to": "COMPARISON ONLY - not shipped, not bound to anything. Jafar 2026-09-09 item 4(a), Codex's Hook sheet against this lane.",
+      "prompt": "the whole board filling the frame edge to edge, Use case: historical-scene. Create one polished portrait environment concept sheet for LEDGER, fictional British port Meridian in 1990. Two clearly separated wide cinematic photoreal panels, top establishing view, bottom pedestrian eye-height view, with restrained cream margins. Title THE HOOK. Small subtitle AI CONCEPT / PROPOSAL. TOP: view from low dock office across an enclosed working stone basin, two-storey red brick warehouses and shop terraces, inland town gently rising behind, quay straight and narrow foot passage off it, working ropes, a commercial cargo basin. BOTTOM: camera at 1.6m standing at south end looking north along Quay Street, 6m wet asphalt carriageway plus 2m pavement each side, continuous brick terraces. On RIGHT/east first bay is Mickey's a SMALL SINGLE 6m-wide two-storey pub under a 35-degree slate roof, party-wall chimneys, maroon fascia MICKEY'S, two doors on near/south part of facade and wide pub window north of them. Fish shop next along right. Soot brick parapet terraces left with one narrow yard slot further up. Daytime overcast soft light, subtle wetness, inhabited with 3 nonidentifiable people in ordinary 1990 clothing, everyday activity. Hand worn paint, soot streaks below gutters, domestic curtains upstairs. Photographic material plausibility, photoreal throughout. Bottom small strip four material swatches red brick, slate, oxblood painted timber, quay stone; and objects rope fender, metal dustbin, beer firkin. Fictional unbranded signage only, everything period-correct for 1990. This is proposed art., invented fictional shop name only, no real company names, no real brand logos, no trade marks, no real person, no recognisable faces, no celebrity likeness",
+      "negative": "pleasure marina, yacht, leisure moorings, pontoon, street festival, bunting, fairground, crowd, illustration, stylised illustration, cartoon, painterly, real brand logo, trade mark, real company name, modern tech, computer screen, mobile phone, wheeled bin, wheelie bin, contemporary car, modern car, HUD, heads-up display, game interface overlay, screenshot, game screenshot",
+      "negative_active": false,
+      "negative_note": "RECORDED BUT INERT: at cfg 1.0 sd-cli never evaluates the unconditional branch (resolve_guidance sets use_uncond only when img_cfg != txt_cfg), so this negative prompt was not encoded and changed nothing",
+      "seen_on_run": "b7ce9f6",
+      "review": "pending",
+      "probe": true,
+      "recipe": "2f217dff24a41c35",
+      "width": 688,
+      "height": 1024,
+      "seed": 20260910,
+      "steps": 8,
+      "cfg": 1.0,
+      "sampler": "sd-cli model-specific default (not overridden)",
+      "flags": [
+        "--offload-to-cpu",
+        "--diffusion-fa"
+      ],
+      "seconds": 154.2,
+      "blank_check": {
+        "verdict": "varied",
+        "why": "luminance spread 254/255, stdev 82.535, 255 distinct levels over 28290 of 704512 pixels",
+        "spread": 254,
+        "stdev": 82.535,
+        "distinct": 255,
+        "sampled": 28290,
+        "pixels": 704512
+      },
+      "status": "OK",
+      "bytes": 1335537,
+      "sha256": "323b24b30d6d46e5c41ea2187a1b374ca887b5cf47ad0cc6eab843995a0347e6",
+      "file": "hook_compare_s2.png",
+      "made_on_run": "b7ce9f6"
+    },
+    {
+      "id": "hook_compare_s3",
+      "kind": "concept",
+      "binds_to": "COMPARISON ONLY - not shipped, not bound to anything. Jafar 2026-09-09 item 4(a), Codex's Hook sheet against this lane.",
+      "prompt": "the whole board filling the frame edge to edge, Use case: historical-scene. Create one polished portrait environment concept sheet for LEDGER, fictional British port Meridian in 1990. Two clearly separated wide cinematic photoreal panels, top establishing view, bottom pedestrian eye-height view, with restrained cream margins. Title THE HOOK. Small subtitle AI CONCEPT / PROPOSAL. TOP: view from low dock office across an enclosed working stone basin, two-storey red brick warehouses and shop terraces, inland town gently rising behind, quay straight and narrow foot passage off it, working ropes, a commercial cargo basin. BOTTOM: camera at 1.6m standing at south end looking north along Quay Street, 6m wet asphalt carriageway plus 2m pavement each side, continuous brick terraces. On RIGHT/east first bay is Mickey's a SMALL SINGLE 6m-wide two-storey pub under a 35-degree slate roof, party-wall chimneys, maroon fascia MICKEY'S, two doors on near/south part of facade and wide pub window north of them. Fish shop next along right. Soot brick parapet terraces left with one narrow yard slot further up. Daytime overcast soft light, subtle wetness, inhabited with 3 nonidentifiable people in ordinary 1990 clothing, everyday activity. Hand worn paint, soot streaks below gutters, domestic curtains upstairs. Photographic material plausibility, photoreal throughout. Bottom small strip four material swatches red brick, slate, oxblood painted timber, quay stone; and objects rope fender, metal dustbin, beer firkin. Fictional unbranded signage only, everything period-correct for 1990. This is proposed art., invented fictional shop name only, no real company names, no real brand logos, no trade marks, no real person, no recognisable faces, no celebrity likeness",
+      "negative": "pleasure marina, yacht, leisure moorings, pontoon, street festival, bunting, fairground, crowd, illustration, stylised illustration, cartoon, painterly, real brand logo, trade mark, real company name, modern tech, computer screen, mobile phone, wheeled bin, wheelie bin, contemporary car, modern car, HUD, heads-up display, game interface overlay, screenshot, game screenshot",
+      "negative_active": false,
+      "negative_note": "RECORDED BUT INERT: at cfg 1.0 sd-cli never evaluates the unconditional branch (resolve_guidance sets use_uncond only when img_cfg != txt_cfg), so this negative prompt was not encoded and changed nothing",
+      "seen_on_run": "b7ce9f6",
+      "review": "pending",
+      "probe": true,
+      "recipe": "b0df38d273954b08",
+      "width": 688,
+      "height": 1024,
+      "seed": 20260911,
+      "steps": 8,
+      "cfg": 1.0,
+      "sampler": "sd-cli model-specific default (not overridden)",
+      "flags": [
+        "--offload-to-cpu",
+        "--diffusion-fa"
+      ],
+      "seconds": 154.5,
+      "blank_check": {
+        "verdict": "varied",
+        "why": "luminance spread 251/255, stdev 80.302, 252 distinct levels over 28290 of 704512 pixels",
+        "spread": 251,
+        "stdev": 80.302,
+        "distinct": 252,
+        "sampled": 28290,
+        "pixels": 704512
+      },
+      "status": "OK",
+      "bytes": 1365802,
+      "sha256": "319f67cb8ea9afd61b87b152294e07f6c89f04df01e46eb7c6896a387fc008cb",
+      "file": "hook_compare_s3.png",
+      "made_on_run": "b7ce9f6"
+    },
+    {
+      "id": "hook_compare_s4",
+      "kind": "concept",
+      "binds_to": "COMPARISON ONLY - not shipped, not bound to anything. Jafar 2026-09-09 item 4(a), Codex's Hook sheet against this lane.",
+      "prompt": "the whole board filling the frame edge to edge, Use case: historical-scene. Create one polished portrait environment concept sheet for LEDGER, fictional British port Meridian in 1990. Two clearly separated wide cinematic photoreal panels, top establishing view, bottom pedestrian eye-height view, with restrained cream margins. Title THE HOOK. Small subtitle AI CONCEPT / PROPOSAL. TOP: view from low dock office across an enclosed working stone basin, two-storey red brick warehouses and shop terraces, inland town gently rising behind, quay straight and narrow foot passage off it, working ropes, a commercial cargo basin. BOTTOM: camera at 1.6m standing at south end looking north along Quay Street, 6m wet asphalt carriageway plus 2m pavement each side, continuous brick terraces. On RIGHT/east first bay is Mickey's a SMALL SINGLE 6m-wide two-storey pub under a 35-degree slate roof, party-wall chimneys, maroon fascia MICKEY'S, two doors on near/south part of facade and wide pub window north of them. Fish shop next along right. Soot brick parapet terraces left with one narrow yard slot further up. Daytime overcast soft light, subtle wetness, inhabited with 3 nonidentifiable people in ordinary 1990 clothing, everyday activity. Hand worn paint, soot streaks below gutters, domestic curtains upstairs. Photographic material plausibility, photoreal throughout. Bottom small strip four material swatches red brick, slate, oxblood painted timber, quay stone; and objects rope fender, metal dustbin, beer firkin. Fictional unbranded signage only, everything period-correct for 1990. This is proposed art., invented fictional shop name only, no real company names, no real brand logos, no trade marks, no real person, no recognisable faces, no celebrity likeness",
+      "negative": "pleasure marina, yacht, leisure moorings, pontoon, street festival, bunting, fairground, crowd, illustration, stylised illustration, cartoon, painterly, real brand logo, trade mark, real company name, modern tech, computer screen, mobile phone, wheeled bin, wheelie bin, contemporary car, modern car, HUD, heads-up display, game interface overlay, screenshot, game screenshot",
+      "negative_active": false,
+      "negative_note": "RECORDED BUT INERT: at cfg 1.0 sd-cli never evaluates the unconditional branch (resolve_guidance sets use_uncond only when img_cfg != txt_cfg), so this negative prompt was not encoded and changed nothing",
+      "seen_on_run": "b7ce9f6",
+      "review": "pending",
+      "probe": true,
+      "recipe": "7765d7a2c5a5bdac",
+      "width": 688,
+      "height": 1024,
+      "seed": 20260912,
+      "steps": 8,
+      "cfg": 1.0,
+      "sampler": "sd-cli model-specific default (not overridden)",
+      "flags": [
+        "--offload-to-cpu",
+        "--diffusion-fa"
+      ],
+      "seconds": 154.8,
+      "blank_check": {
+        "verdict": "varied",
+        "why": "luminance spread 251/255, stdev 82.023, 252 distinct levels over 28290 of 704512 pixels",
+        "spread": 251,
+        "stdev": 82.023,
+        "distinct": 252,
+        "sampled": 28290,
+        "pixels": 704512
+      },
+      "status": "OK",
+      "bytes": 1401539,
+      "sha256": "8aee0751b280115bd40110429fc6756b12d1fb9790d5d0c2475cdc87aad1d872",
+      "file": "hook_compare_s4.png",
+      "made_on_run": "b7ce9f6"
+    }
+  ],
+  "downloads": [
+    {
+      "file": "z_image_turbo-Q4_K.gguf",
+      "bytes": 3864250304,
+      "url": "already on disk",
+      "licence": "Apache-2.0",
+      "sha256": "244527f44f1c16ba13eeb3ca9467e8926760d597357dd3f5e77a6dcf5fc76ca1 (first 64MB only)"
+    },
+    {
+      "file": "Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+      "bytes": 2497281120,
+      "url": "already on disk",
+      "licence": "Apache-2.0 (Qwen3, Alibaba)",
+      "sha256": "97428507a1be5ffd4064a2acdc1d132b47db90cab28a3ca7758a1138774578a9 (first 64MB only)"
+    },
+    {
+      "file": "ae.safetensors",
+      "bytes": 335304388,
+      "url": "already on disk",
+      "licence": "Apache-2.0 (Z-Image / FLUX.1 autoencoder)",
+      "sha256": "39e440a13a5f2fa7decb5289644e4af2db44e083bef720c252edd5a8447659a0 (first 64MB only)"
+    }
+  ]
+}
