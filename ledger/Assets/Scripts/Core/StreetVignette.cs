@@ -1405,10 +1405,31 @@ namespace Ledger.Core
         ///
         /// EMITTED PAINT AND NOT A DECAL, which is a route change on A5 and
         /// is recorded in the scene file beside the numbers: A5 is make_by 2D
-        /// there, and no yellow-line image exists in this repository. The six
-        /// held RoadLines sets are worn WHITE paint. Two boxes a side is
-        /// cheaper than an image nobody has made, and the colour is copied
-        /// from the town's own yellow rather than chosen again here.
+        /// there, and the paint is two boxes a side at the town's own yellow
+        /// rather than a picture.
+        ///
+        /// CORRECTED 2026-09-10, queue 226, AND THE OLD SENTENCE IS WHY THIS
+        /// ONE IS LONGER. This comment used to say that no yellow-line image
+        /// exists in this repository and that the six held RoadLines sets are
+        /// worn WHITE paint. THAT IS FALSE OF ONE OF THE SIX, and the
+        /// refutation is a measurement rather than a sighting:
+        /// StreamingAssets/Decals/ambientcg/RoadLines011_2K-PNG_Color.png is
+        /// 2048x2048, its brightest one per cent means RGB 216.0/180.3/47.7,
+        /// and its yellowness (the mean of red and green, less blue, over
+        /// those pixels) is 150.5 against 3.4, -0.3, 4.6, 4.6 and 4.8 for
+        /// RoadLines 001, 004, 007, 010 and 018, which are white. It is
+        /// CC0 1.0 and already recorded in that directory's THIRD-PARTY.md.
+        ///
+        /// AND THE ROUTE STILL DOES NOT CHANGE, which is the half a correction
+        /// like this one must not skip. `paint_yellow` is ProceduralOnly in
+        /// AssetLibrary (the switch at SurfaceSpec.For), so Unity renders it
+        /// from the tint and ignores any pack file; the Unreal probe paints
+        /// the same surface from the same tint through
+        /// SurfaceBind.h ProceduralAlbedoTexel. Binding that PNG on one engine
+        /// and a tint on the other would render one surface from two different
+        /// inputs, which is the single thing D1 exists to avoid. Whether to
+        /// revisit ProceduralOnly on BOTH engines together is a question for
+        /// the quality ladder and not for this comment.
         static void Paint(Plan plan, Dictionary<string, object> root)
         {
             var s = plan.Sec;

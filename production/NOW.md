@@ -9,6 +9,42 @@ session would otherwise duplicate, abandon, or wait for forever.
 Keep it current or delete it. A stale NOW is worse than none, because it
 looks like a live state.
 
+## 2026-09-10 09:00Z: THE FAIRVIEW SHEET LANDED AND THE TWO-ARM DESIGN PAID OFF
+
+BANKED, four of four, none blank, 171.1 to 188.8 seconds each. The estimator
+said 132.8 and the builder scaled it to about 158 from measured neighbours;
+the truth is 179.5 mean, so the estimator UNDER-READS BY 35 PER CENT at this
+size and the builder's own scaling still under-read by 14. Do not quote the
+estimator as a cost without the measured neighbour beside it.
+
+THE TWO-ARM DESIGN ANSWERED THE QUESTION IT WAS BUILT FOR, and the answer is
+worth keeping. The builder spent two of four seeds on the authored prompt at 542
+words and two on the same concept cut to 387, on the one adherence fact this
+lane had measured. BOTH SHORT DRAWS GOT THE SHEET TITLE RIGHT AND BOTH LONG
+DRAWS DID NOT. That is a measured result about prompt length and lettering from
+a design that could have been four seeds of one arm and told us nothing.
+
+OURS AGAINST THEIRS, honestly, and their sheet is the better DOCUMENT. The
+photographs are competitive: red brick, slate, chimney pots, aerials, a wet road,
+a washing line, the harbour and its cranes below. THEIR SHEET IS A DESIGNED
+ARTEFACT AND OURS IS TWO PICTURES AND A SWATCH ROW. Theirs carries a header
+block, a tagline, EIGHT LABELLED swatches, annotations ON the panels naming the
+height band, the slope, the eye height and the view direction, a street sign and
+a school sign, and a footer. Its two panels are the SAME LOCATION LOOKING
+OPPOSITE WAYS and say so. Ours has four unlabelled swatches, no annotations and
+some garbled lettering on the panels.
+
+AND THEIRS HAS THE CHAPEL AND SCHOOL, WHICH IS OUR OWN ATLAS LANDMARK F1. We
+asked for it in the positive half, a slate-roofed chapel and a railed school yard
+mid-slope, and the model did not put it where the eye lands. That is not a
+sourcing gap, it is an adherence gap, and it is the kind the negative half cannot
+help with because the negative is never evaluated at all.
+
+TOMORROW'S PICTURE IS BUILT AND ITS SIDECAR IS WRITTEN:
+game-design/sim-shots/brief_2026-09-11.jpg stacks the sun before and after, the
+Hook pair and the Fairview pair in caption order, and
+production/briefs/2026-09-11.photo.txt names it.
+
 ## 2026-09-10 08:10Z: THE FOUR-LANE BATCH IS LANDED AND TWO RUNS ARE OUT
 
 FIVE COMMITS, IN THE ORDER THE REVIEW'S C12 REQUIRES, and the working tree went

@@ -712,6 +712,36 @@ def decal_ink():
     return True, "%s decal-ink checks (%s failed)%s" % (m.group(1), m.group(2), tail)
 
 
+def surface_tint_agreement():
+    """The two copies of the procedural surface tints agree.
+
+    WIRED HERE THE HOUR IT WAS WRITTEN, because the alternative was the exact
+    fault it exists to prevent. ue-probe/Source/LedgerProbe/Public/SurfaceBind.h
+    carries a SECOND copy of the tints whose original is the switch in
+    ledger/Assets/Scripts/Game/AssetLibrary.cs, and its comment told every
+    reader that a tool parsed both files and refused any disagreement. The tool
+    was written on 2026-09-10 and for one hour NOTHING CALLED IT: a grep for its
+    name across every py, yml, yaml and sh returned one file, itself. A guard
+    that nothing runs is rule 6 applied to a guard, and it is worse than no
+    guard because the comment beside the constants says a reader need not check.
+
+    It compares TINTS ONLY. Smoothness, emission, tiling and pattern are copied
+    across the same boundary and are NOT compared, which the tool prints on its
+    own pass line so a green here is never read as a green about the whole
+    table. Unity's switch is authoritative: D1 is a comparison between two
+    engines and the Unity street is the one that has shipped, so the C# value is
+    the fact and the C++ table is the copy.
+    """
+    code, out = run(["python3", str(ROOT.parent / "tools" / "surface-tint-check.py")])
+    if code != 0:
+        return False, _lint_red(code, out, "THE TWO COPIES OF THE SURFACE TINTS DISAGREE",
+                                "surface-tint-check")
+    m = re.search(r"(\d+) surface\(s\) compared", out)
+    return True, ("surface tints agree (%s surface(s) compared, tints only)"
+                  % m.group(1) if m else
+                  "surface tints agree (%s)" % NOTHING_MEASURED)
+
+
 def blender_hash_parse():
     """The Blender checksum parse, tested against fixtures.
 
@@ -6328,7 +6358,7 @@ def main():
                inbox_selftest, inbox_read_selftest, bot_config_selftest, outbox_selftest, supervise_selftest, executor_selftest, wake_queue_selftest, checkout_gate_selftest, brief_selftest, producer_day_selftest, systems_inventory, inbox_tracked,
                template_sync,
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
-               static_instance, raw_avenues, bat_editor, bootstrap_single, blender_hash_parse, filename_as_type, namespace_as_value, workflow_size,
+               static_instance, raw_avenues, bat_editor, bootstrap_single, blender_hash_parse, surface_tint_agreement, filename_as_type, namespace_as_value, workflow_size,
                powershell_steps, sheet_read, prop_dimensions, prop_reach,
                ue_probe_tests,
                ue_material_selftest,

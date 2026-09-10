@@ -448,6 +448,23 @@ namespace
 	UMaterialInterface* GBaseMaterial = nullptr;
 	std::vector<LedgerSurface::Bound> GBinds;
 	int32 GTexturesImported = 0, GMidsCreated = 0;
+	// ---- the decal pass, queue 223 ----------------------------------------
+	// WHERE THE TWENTY PICTURES ARE, AND WHAT EACH QUAD DID WITH ITS OWN.
+	// Separate from the texture root on purpose: the pack and the decals are
+	// staged by two different steps and a single `NOT-FOUND` covering both
+	// would not say which one is missing.
+	FString GDecalRoot;
+	int32   GDecalRootFiles = 0;
+	std::vector<std::string> GDecalRootTried;
+	std::vector<LedgerSurface::DecalResult> GDecalResults;
+	std::string GDecalsLine =
+		"decalsStatus=NOT-REACHED decalsPainted=nothing-measured"
+		" decalsNote=the-material-pass-never-ran";
+	// THE RUN'S PAINT CENSUS, ONE INCREMENT PER PIECE. Whole-run counters,
+	// filled by the piece loop in BindSurfaces and read once by the materials
+	// line. Its denominator is the pieces the loop EXAMINED, never the count
+	// the file asked for.
+	LedgerSurface::PaintTally GPaint;
 	std::string GMaterialsLine =
 		"materialsStatus=NOT-REACHED materialsNote=the-material-pass-never-ran";
 
@@ -1963,6 +1980,38 @@ namespace
 		Out.Add(TEXT("#   of the rig. The eye adaptation SPEEDS are the one thing this probe"));
 		Out.Add(TEXT("#   overrides, named on the tonemap line; the exposure VALUE is still the"));
 		Out.Add(TEXT("#   engine's own, so a still is still the level a player would settle at."));
+		Out.Add(TEXT("# QUEUE 223, THE THIRTY PIECES NOTHING PAINTED. Until this run a piece"));
+		Out.Add(TEXT("#   whose surface did not resolve to a pack file got no material instance"));
+		Out.Add(TEXT("#   at all and rendered the engine default: ten card decals, ten multiply"));
+		Out.Add(TEXT("#   decals, six shop interiors and four runs of yellow road paint. Four"));
+		Out.Add(TEXT("#   routes now paint a piece and the census is on the materials line:"));
+		Out.Add(TEXT("#   piecesPainted, piecesUnpainted, paintRoutes and paintUnpaintedWhy,"));
+		Out.Add(TEXT("#   over the pieces the loop EXAMINED and not over what the file asked"));
+		Out.Add(TEXT("#   for. pack is the twelve surfaces the pack answers for; tint is"));
+		Out.Add(TEXT("#   interior and paint_yellow, built in code from the SurfaceSpec tint"));
+		Out.Add(TEXT("#   because one is ProceduralOnly in the Unity host and the other has no"));
+		Out.Add(TEXT("#   pack file; decal-card is the piece's own picture, cropped at decode."));
+		Out.Add(TEXT("#   THE INTERIOR WEARS THE WINDOW'S NORMAL AND ROUGHNESS, which is the"));
+		Out.Add(TEXT("#   Unity host's own rule, and a borrowed map is named on the surface"));
+		Out.Add(TEXT("#   line and counted APART from a found one: mapsFound still means this"));
+		Out.Add(TEXT("#   surface's own candidate answered."));
+		Out.Add(TEXT("# THE MULTIPLY DECALS ARE HIDDEN AND SAY SO. A stain is a material blend"));
+		Out.Add(TEXT("#   mode, not an instance parameter, and this build ships one opaque base"));
+		Out.Add(TEXT("#   material, so the grime cannot be drawn here yet. Hiding is the Unity"));
+		Out.Add(TEXT("#   host's own rule for a decal whose image does not load, and it is the"));
+		Out.Add(TEXT("#   lesser of the two wrongs: ten grey rectangles in the carriageway are"));
+		Out.Add(TEXT("#   louder in a judged frame than ten absent stains. The pair differs by"));
+		Out.Add(TEXT("#   the grime until that material exists, and decalsMultiplyNote says so."));
+		Out.Add(TEXT("# THE CARD DECALS ARE CROPPED AT DECODE AND NOT BY AN ST PAIR. The base"));
+		Out.Add(TEXT("#   material has tiling scalars and no uv offset, so the rectangle the"));
+		Out.Add(TEXT("#   asset string carries is cut out of the decoded buffer instead. The"));
+		Out.Add(TEXT("#   crop's v is measured from the BOTTOM and image rows arrive top down;"));
+		Out.Add(TEXT("#   that flip is in CropPixels, which g++ runs here before dispatch, and"));
+		Out.Add(TEXT("#   decalRowOrder on every decal line names which way round it went."));
+		Out.Add(TEXT("#   WHAT NO NUMBER HERE CAN SEE is whether the engine's plane carries the"));
+		Out.Add(TEXT("#   same uv winding as the Unity quad, so a lettered fascia could arrive"));
+		Out.Add(TEXT("#   mirrored. The frame is what answers that, and the answer is one"));
+		Out.Add(TEXT("#   character in SurfaceBind.h if it is wrong."));
 		Out.Add(TEXT("# NO COMMENT IN THIS HEADER WRITES A KEY WITH AN EQUALS AND A VALUE."));
 		Out.Add(TEXT("#   Run 19 spelled this key out with MISSING beside it up here and"));
 		Out.Add(TEXT("#   measured it as loaded down there, which tools/verdict-dupkeys.py"));
@@ -1993,6 +2042,21 @@ namespace
 			Out.Add(TEXT("# no surface line: the material pass did not reach a surface."));
 		}
 		Out.Add(FString(UTF8_TO_TCHAR(GMaterialsLine.c_str())));
+		// THE DECALS, AFTER THE SURFACES, because card and multiply appear on
+		// both: as two surface names that are NOT library surfaces, and here as
+		// twenty pieces each carrying its own picture. A cap on the lines would
+		// announce itself; there are twenty pieces and twenty lines, so nothing
+		// is capped and nothing has to say so.
+		for (size_t I = 0; I < GDecalResults.size(); ++I)
+		{
+			Out.Add(FString(UTF8_TO_TCHAR(
+				LedgerSurface::DecalLine(GDecalResults[I]).c_str())));
+		}
+		if (GDecalResults.empty())
+		{
+			Out.Add(TEXT("# no decal line: the material pass reached no decal piece."));
+		}
+		Out.Add(FString(UTF8_TO_TCHAR(GDecalsLine.c_str())));
 		// THE CONTROLS, AFTER THE SURFACES THEY ARE THE CONTROL FOR. One line
 		// per quad with its own placement and where it should land on the
 		// frame, then the pass's own totals. A run that spawned none of them
@@ -2747,8 +2811,66 @@ namespace
 		return FString();
 	}
 
+	// THE DECAL ROOT, LOOKED FOR THE SAME WAY THE PACK IS, AND COUNTED
+	// RECURSIVELY BECAUSE IT HAS SUBDIRECTORIES.
+	//
+	// The twenty pictures this street asks for live under
+	// ledger/Assets/StreamingAssets/Decals as `generated/<id>.png` and
+	// `ambientcg/<set>/`, and the asset string in the shared file carries that
+	// relative path, so the layout has to survive staging. The workflow copies
+	// the generated directory to `LedgerDecals` beside the staged project and
+	// beside the exe, by name, exactly as it copies CityPackTextures, and this
+	// search is not widened to guess at a repository layout from a packaged
+	// binary.
+	//
+	// A NON-RECURSIVE FILE COUNT WOULD HAVE READ ZERO HERE and skipped a
+	// directory that is perfectly staged: the root holds no files at all, only
+	// the two subdirectories. That is the same shape as FindTexRoot's
+	// `Found.Num() == 0` guard and it would have been invisible except as a
+	// decalRoot=NOT-FOUND over a staged tree.
+	FString FindDecalRoot(int32& OutFiles, std::vector<std::string>& OutTried)
+	{
+		const FString ExeDir = FPaths::GetPath(FPlatformProcess::ExecutablePath());
+		TArray<FString> Cands;
+		Cands.Add(AbsProject(TEXT("LedgerDecals")));
+		Cands.Add(FPaths::ConvertRelativePathToFull(FPaths::Combine(ExeDir, TEXT("LedgerDecals"))));
+		Cands.Add(AbsProject(TEXT("../ledger/Assets/StreamingAssets/Decals")));
+		Cands.Add(FPaths::ConvertRelativePathToFull(FPaths::Combine(
+			ExeDir, TEXT("../../../../ledger/Assets/StreamingAssets/Decals"))));
+		OutFiles = 0;
+		for (int32 I = 0; I < Cands.Num(); ++I)
+		{
+			OutTried.push_back(std::string(TCHAR_TO_UTF8(*Cands[I])));
+			if (!IFileManager::Get().DirectoryExists(*Cands[I])) { continue; }
+			TArray<FString> Found;
+			IFileManager::Get().FindFilesRecursive(Found, *Cands[I], TEXT("*.png"), true, false);
+			if (Found.Num() == 0) { continue; }
+			OutFiles = Found.Num();
+			return Cands[I];
+		}
+		return FString();
+	}
+
+	// DECODE A FILE AND UPLOAD IT, WHOLE OR CROPPED, BY ONE PATH.
+	//
+	// THE CROP IS WHY THIS FUNCTION GREW AND NOT WHY A SECOND ONE WAS
+	// WRITTEN. A decal's asset string carries the rectangle of the picture
+	// that is the subject (see SurfaceBind.h SplitDecalAsset), and the base
+	// material exposes tiling scalars but NO uv offset, so the rectangle
+	// cannot be expressed as an ST pair the way the Unity host expresses it.
+	// It is cut out of the decoded buffer instead, which needs no material
+	// change at all. Two copies of a decode is this project's most repeated
+	// fault, so there is one decode here and the crop is a parameter.
+	//
+	// OutW and OutH STAY THE WHOLE IMAGE'S SIZE, which is what the surface
+	// line has always called loadedAs: the thing the decoder said the file
+	// IS. The rectangle that was taken out of it rides OutCrop, and the
+	// arithmetic that turns four uv numbers into texels is CropPixels, in the
+	// tested header, because the row order is the whole of it.
 	UTexture2D* ImportTexture(const FString& FullPath, bool bSrgb,
-	                          int32& OutW, int32& OutH, FString& OutLoadedAs)
+	                          int32& OutW, int32& OutH, FString& OutLoadedAs,
+	                          const LedgerSurface::DecalAsset* CropFrom = nullptr,
+	                          LedgerSurface::CropPx* OutCrop = nullptr)
 	{
 		OutW = 0; OutH = 0;
 		OutLoadedAs = TEXT("not-read");
@@ -2782,7 +2904,20 @@ namespace
 			OutLoadedAs = FString::Printf(TEXT("%s-getraw-refused"), ImageFormatName(Fmt));
 			return nullptr;
 		}
-		UTexture2D* Tex = UTexture2D::CreateTransient(W, H, PF_B8G8R8A8);
+		// THE RECTANGLE, DECIDED IN THE TESTED HEADER, OR THE WHOLE IMAGE.
+		LedgerSurface::CropPx Rect;
+		Rect.X = 0; Rect.Y = 0; Rect.W = W; Rect.H = H;
+		if (CropFrom != nullptr)
+		{
+			Rect = LedgerSurface::CropPixels(*CropFrom, W, H);
+		}
+		if (OutCrop != nullptr) { *OutCrop = Rect; }
+		if (Rect.W <= 0 || Rect.H <= 0)
+		{
+			OutLoadedAs = FString::Printf(TEXT("%s-crop-came-out-empty"), ImageFormatName(Fmt));
+			return nullptr;
+		}
+		UTexture2D* Tex = UTexture2D::CreateTransient(Rect.W, Rect.H, PF_B8G8R8A8);
 		if (Tex == nullptr)
 		{
 			OutLoadedAs = FString::Printf(TEXT("%s-createtransient-returned-null"), ImageFormatName(Fmt));
@@ -2796,13 +2931,79 @@ namespace
 		// a dynamic material instance is exactly the shape of object this
 		// engine collects between two ticks.
 		Tex->AddToRoot();
-		void* Dest = Tex->GetPlatformData()->Mips[0].BulkData.Lock(LOCK_READ_WRITE);
-		FMemory::Memcpy(Dest, Raw.GetData(), (SIZE_T)Raw.Num());
+		uint8* Dest = (uint8*)Tex->GetPlatformData()->Mips[0].BulkData.Lock(LOCK_READ_WRITE);
+		if (CropFrom == nullptr)
+		{
+			// THE PACK'S OWN PATH, BYTE FOR BYTE WHAT IT ALWAYS WAS. Only a
+			// decal asks for a rectangle, so only a decal takes the row loop.
+			FMemory::Memcpy(Dest, Raw.GetData(), (SIZE_T)Raw.Num());
+		}
+		else
+		{
+			// ROW BY ROW, FOUR BYTES A TEXEL, AND THE ROW INDEX IS THE ONLY
+			// THING THAT COULD BE WRONG HERE. Rect.Y is already a TOP-DOWN
+			// row, turned from the file's bottom-up v by CropPixels. The two
+			// flips are the lever for the one question this container cannot
+			// answer (the engine plane's uv winding) and both are off today.
+			const int64 SrcStride = (int64)W * 4;
+			const int64 DstStride = (int64)Rect.W * 4;
+			const bool bFlipRows = LedgerSurface::DecalFlipRows();
+			const bool bFlipCols = LedgerSurface::DecalFlipCols();
+			for (int32 Row = 0; Row < Rect.H; ++Row)
+			{
+				const int32 SrcRow = bFlipRows ? (Rect.Y + Rect.H - 1 - Row) : (Rect.Y + Row);
+				const uint8* Src = Raw.GetData() + (int64)SrcRow * SrcStride + (int64)Rect.X * 4;
+				uint8* Dst = Dest + (int64)Row * DstStride;
+				if (!bFlipCols)
+				{
+					FMemory::Memcpy(Dst, Src, (SIZE_T)DstStride);
+					continue;
+				}
+				for (int32 Col = 0; Col < Rect.W; ++Col)
+				{
+					FMemory::Memcpy(Dst + (int64)Col * 4,
+					                Src + (int64)(Rect.W - 1 - Col) * 4, 4);
+				}
+			}
+		}
 		Tex->GetPlatformData()->Mips[0].BulkData.Unlock();
 		Tex->UpdateResource();
 		OutW = W; OutH = H;
 		OutLoadedAs = FString::Printf(TEXT("%s-BGRA8/srgb=%s"),
 		                              ImageFormatName(Fmt), bSrgb ? TEXT("yes") : TEXT("no"));
+		return Tex;
+	}
+
+	// A FLAT TEXTURE OF ONE COLOUR, BUILT IN CODE, NO FILE AND NO DECODER.
+	//
+	// THIS IS THE WHOLE OF THE TINT ROUTE ON THIS SIDE. The Unity host paints
+	// interior and paint_yellow from the SurfaceSpec tint because the pack
+	// answers for neither, and the Unreal base material has a base colour MAP
+	// and no base colour parameter, so the tint arrives as a texture. Two by
+	// two rather than one by one for the reason the control texture is 2x2: a
+	// one-texel mip chain is a shape nothing else here uses, and four
+	// identical texels cost nothing.
+	//
+	// THE TEXEL COMES OUT OF THE TESTED HEADER. Nothing here decides a colour:
+	// ProceduralAlbedoTexel takes the Unity literal, the byte quantisation and
+	// both grades and returns the byte triple, and g++ runs that before this
+	// file is ever compiled.
+	UTexture2D* MakeFlatTexture(int32 R, int32 G, int32 B, bool bSrgb, const TCHAR* Name)
+	{
+		UTexture2D* Tex = UTexture2D::CreateTransient(2, 2, PF_B8G8R8A8);
+		if (Tex == nullptr) { return nullptr; }
+		Tex->SRGB = bSrgb;
+		Tex->Filter = TF_Nearest;
+		Tex->AddToRoot();
+		const uint8 Px[4] = {(uint8)B, (uint8)G, (uint8)R, 255};
+		uint8* Dest = (uint8*)Tex->GetPlatformData()->Mips[0].BulkData.Lock(LOCK_READ_WRITE);
+		for (int32 I = 0; I < 4; ++I)
+		{
+			FMemory::Memcpy(Dest + I * 4, Px, 4);
+		}
+		Tex->GetPlatformData()->Mips[0].BulkData.Unlock();
+		Tex->UpdateResource();
+		(void)Name;
 		return Tex;
 	}
 
@@ -2887,6 +3088,10 @@ namespace
 	{
 		GBaseMaterial = LoadObject<UMaterialInterface>(nullptr, kBaseMaterialPath);
 		GTexRoot = FindTexRoot(GTexRootFiles, GTexRootTried);
+		// THE DECALS ARE A SECOND ROOT AND A SECOND READING. They are staged by
+		// their own step, so one NOT-FOUND covering both would not say which of
+		// the two is missing.
+		GDecalRoot = FindDecalRoot(GDecalRootFiles, GDecalRootTried);
 		const std::vector<LedgerSurface::Ask> Asked = LedgerSurface::SurfacesAsked(GSpec.Pieces);
 		// One imported texture per map per surface, kept beside its bind so
 		// no file is decoded twice for the 150 pieces that share a surface.
@@ -2897,6 +3102,69 @@ namespace
 			LedgerSurface::Bound B;
 			B.Surface = Asked[I].Surface;
 			B.Pieces  = Asked[I].Pieces;
+			// ---- QUEUE 223, RULE ONE: A BLEND MODE IS NOT A SURFACE --------
+			//
+			// card and multiply never reach the texture root, and that is the
+			// correction rather than an optimisation: asking for card.png asks
+			// for a file that BY DESIGN can never exist, so three candidate
+			// filenames on the verdict were three filenames nobody should ever
+			// go looking for. The picture comes from the piece's own asset
+			// field, per piece, in the loop below.
+			if (LedgerSurface::IsDecalBlend(B.Surface))
+			{
+				B.Status = "DECAL-BLEND";
+				B.Reason = "not-a-library-surface/StreetVignette.cs-57-declares-"
+				           "card-and-multiply-as-the-two-decal-blends/the-picture-"
+				           "is-the-piece-own-asset-under-StreamingAssets-Decals";
+				B.Route = LedgerSurface::PaintRouteName(
+					LedgerSurface::IsMultiplyBlend(B.Surface)
+						? LedgerSurface::Paint_DecalMultiply
+						: LedgerSurface::Paint_DecalCard);
+				GBinds.push_back(B);
+				continue;
+			}
+			// ---- QUEUE 223, RULE TWO: THE SurfaceSpec TINT FALLBACK --------
+			//
+			// interior has no pack file and paint_yellow is ProceduralOnly, so
+			// the pack is not asked about either of them. The tint texel, both
+			// grades and the byte quantisation are in SurfaceBind.h where g++
+			// runs them; this builds the two textures and records what it
+			// built. IT IS BEFORE THE TEXTURE ROOT CHECK ON PURPOSE: a run
+			// whose pack did not stage should still paint the surfaces that
+			// never needed one.
+			if (LedgerSurface::ProceduralSurfaceIndex(B.Surface) >= 0)
+			{
+				const LedgerSurface::Texel T =
+					LedgerSurface::ProceduralAlbedoTexel(B.Surface);
+				UTexture2D* Flat = MakeFlatTexture(T.R, T.G, T.B, true,
+				                                   TEXT("tint-albedo"));
+				if (Flat != nullptr)
+				{
+					Maps[(int32)I * LedgerSurface::MapCount() + 0] = Flat;
+					++GTexturesImported;
+					B.bTintBuilt = true;
+					B.Tint = T;
+				}
+				// THE ROUGHNESS, FROM THE SAME SPEC ROW, because the base
+				// material has a roughness MAP and no roughness scalar. It is
+				// overwritten below if this surface borrows a real one.
+				const int RoughTexel = LedgerSurface::ProceduralRoughnessTexel(B.Surface);
+				UTexture2D* Rough = MakeFlatTexture(RoughTexel, RoughTexel, RoughTexel,
+				                                    false, TEXT("tint-roughness"));
+				if (Rough != nullptr)
+				{
+					Maps[(int32)I * LedgerSurface::MapCount() + 2] = Rough;
+					++GTexturesImported;
+				}
+				B.Status = (GBaseMaterial == nullptr) ? "NO-BASE-MATERIAL" : "PROCEDURAL";
+				B.Reason = Flat != nullptr
+					? "painted-from-the-SurfaceSpec-tint/AssetLibrary.cs-1613-marks-"
+					  "paint_yellow-ProceduralOnly-and-interior-has-no-pack-file"
+					: "tint-texture-would-not-build";
+				B.Route = LedgerSurface::PaintRouteName(LedgerSurface::Paint_Tint);
+				GBinds.push_back(B);
+				continue;
+			}
 			if (GTexRoot.IsEmpty())
 			{
 				B.Status = "ABSENT";
@@ -2960,27 +3228,224 @@ namespace
 				// A SURFACE CAN BE RESOLVED AND STILL HAVE LOST A MAP, and
 				// the reason says which one rather than reading as clean.
 				B.Reason = DecodeFail.empty() ? "none" : ("albedo-ok/lost-" + DecodeFail);
+				B.Route = LedgerSurface::PaintRouteName(LedgerSurface::Paint_Pack);
 			}
 			GBinds.push_back(B);
 		}
 
+		// ---- QUEUE 223, RULE THREE: THE INTERIOR BORROWS THE WINDOW'S MAPS --
+		//
+		// AssetLibrary.cs:611 in one line: mapsFrom = logical == Interior ?
+		// Window : logical. The interior's albedo is its own tint and its
+		// relief is the window's, which is what makes a lit shop read as a room
+		// behind glass instead of a flat card.
+		//
+		// A SECOND PASS, AND THE REASON IS THE SORT ORDER. The surfaces are
+		// asked in alphabetical order, so `interior` is reached before `window`
+		// and the window's files are not decoded yet when the interior is
+		// built. Borrowing afterwards reuses the texture the window already
+		// decoded rather than decoding a 2048 square jpeg a second time, and a
+		// borrowed map is recorded in MapBorrowed and NOT in MapFound: one is
+		// "this surface's own candidate answered" and the other is "it is
+		// wearing somebody else's", and mapsFound must keep meaning the first.
+		for (size_t I = 0; I < GBinds.size(); ++I)
+		{
+			const std::string From = LedgerSurface::MapsFrom(GBinds[I].Surface);
+			if (From == GBinds[I].Surface) { continue; }
+			int32 Src = -1;
+			for (size_t J = 0; J < GBinds.size(); ++J)
+			{
+				if (GBinds[J].Surface == From) { Src = (int32)J; break; }
+			}
+			if (Src < 0)
+			{
+				GBinds[I].Reason += "/maps-borrow-asked-for-" + LedgerVignette::NoSpaces(From)
+				                  + "-and-no-such-surface-is-in-this-street";
+				continue;
+			}
+			for (int32 M = 1; M < LedgerSurface::MapCount(); ++M)
+			{
+				UTexture2D* Tex = Maps[Src * LedgerSurface::MapCount() + M];
+				if (Tex == nullptr || !GBinds[(size_t)Src].MapFound[M]) { continue; }
+				Maps[(int32)I * LedgerSurface::MapCount() + M] = Tex;
+				GBinds[I].MapBorrowed[M] = true;
+				GBinds[I].BorrowedFrom = From;
+				GBinds[I].MapFile[M] = GBinds[(size_t)Src].MapFile[M];
+				GBinds[I].MapLoadedAs[M] = GBinds[(size_t)Src].MapLoadedAs[M];
+				GBinds[I].MapW[M] = GBinds[(size_t)Src].MapW[M];
+				GBinds[I].MapH[M] = GBinds[(size_t)Src].MapH[M];
+			}
+		}
+
 		// ONE INSTANCE PER PIECE, because the tiling is the piece's own size
 		// and two pieces of one surface are rarely one size.
+		//
+		// ---- QUEUE 223: EVERY PIECE IS PAINTED BY ONE OF FOUR ROUTES -------
+		//
+		// THE LINE THIS REPLACED WAS THE WHOLE FAULT:
+		//     if (Idx < 0 || GBinds[Idx].Status != "RESOLVED") { continue; }
+		// A piece whose surface did not resolve to a pack file got NO MATERIAL
+		// INSTANCE AT ALL and rendered the engine's default grey: ten card
+		// decals, ten multiply decals, six shop interiors and four runs of
+		// yellow road paint, which is 30 of the pieces and every lettered
+		// fascia, poster, notice, lit interior and road marking in the frame
+		// rung 1 is judged on. The route is decided by RouteFor in the tested
+		// header and EVERY OUTCOME IS COUNTED, so a piece that still goes
+		// unpainted says which rule declined it.
+		//
+		// ONE SHARED ROUGHNESS FOR THE CARDS, BUILT ONCE AND LAZILY. Ten
+		// decals do not need ten identical two-texel textures, and a texture
+		// built before the loop would be built on a run with no decals in it.
+		UTexture2D* CardRough = nullptr;
 		for (size_t P = 0; P < GSpec.Pieces.size(); ++P)
 		{
 			const Piece& Pc = GSpec.Pieces[P];
+			++GPaint.Examined;
 			int32 Idx = -1;
 			for (size_t I = 0; I < GBinds.size(); ++I)
 			{
 				if (GBinds[I].Surface == Pc.Surface) { Idx = (int32)I; break; }
 			}
-			if (Idx < 0 || GBinds[(size_t)Idx].Status != "RESOLVED") { continue; }
+			if (Idx < 0)
+			{
+				// A PIECE WHOSE SURFACE NAME IS IN NO BIND RECORD. The only way
+				// in is an empty surface field, which SurfacesAsked skips.
+				++GPaint.NoBind;
+				continue;
+			}
+			const bool bPackAnswered = LedgerSurface::IsResolved(GBinds[(size_t)Idx]);
+			const LedgerSurface::EPaintRoute Route = LedgerSurface::RouteFor(
+				Pc.Surface, Pc.Shape == "decal", bPackAnswered);
+			if (Route == LedgerSurface::Paint_None) { ++GPaint.NoBind; continue; }
 			AStaticMeshActor** Found = GByName.Find(FString(UTF8_TO_TCHAR(Pc.Name.c_str())));
-			if (Found == nullptr || *Found == nullptr) { continue; }
+			if (Found == nullptr || *Found == nullptr) { ++GPaint.NoActor; continue; }
 			UStaticMeshComponent* Comp = (*Found)->GetStaticMeshComponent();
-			if (Comp == nullptr) { continue; }
+			if (Comp == nullptr) { ++GPaint.NoComponent; continue; }
+
+			// ---- THE DECAL ROUTES, WHICH CARRY THEIR OWN PICTURE ----------
+			//
+			// A DECAL THIS ENGINE CANNOT DRAW IS HIDDEN, AND THAT IS THE UNITY
+			// HOST'S OWN RULE rather than an invention here: EmitDecal returns
+			// before it creates a GameObject when the image does not load, so
+			// an undrawable decal is ABSENT from that scene, not grey in it.
+			// Ten grey rectangles standing in the carriageway and on the
+			// facades are the worse of the two wrongs in a frame a person is
+			// being asked to judge a street by, and every hidden quad is
+			// counted and named.
+			if (Route == LedgerSurface::Paint_DecalCard
+			    || Route == LedgerSurface::Paint_DecalMultiply)
+			{
+				LedgerSurface::DecalResult D;
+				D.Piece = Pc.Name;
+				D.Blend = Pc.Surface;
+				const LedgerSurface::DecalAsset A = LedgerSurface::SplitDecalAsset(Pc.Asset);
+				D.Id = A.Id;
+				D.bCropAsked = A.bCropped;
+				if (Route == LedgerSurface::Paint_DecalMultiply)
+				{
+					// A STAIN NEEDS A MODULATE MATERIAL AND THIS BUILD HAS ONE
+					// OPAQUE BASE. Blend mode is a property of a MATERIAL and
+					// not of an instance, so no parameter on M_LedgerSurface
+					// can turn an opaque card into something that only ever
+					// darkens what is under it. Pasting the grime opaque would
+					// make the count green and the picture worse, which is
+					// exactly what this item forbids.
+					D.Note = "needs-a-modulate-or-deferred-decal-material/"
+					         "make_base_material.py-ships-one-opaque-base";
+					D.bHidden = true;
+					(*Found)->SetActorHiddenInGame(true);
+					++GPaint.DecalNoStainMaterial;
+					++GPaint.Hidden;
+					GDecalResults.push_back(D);
+					continue;
+				}
+				if (!A.bOk)
+				{
+					D.Note = "crop-unparseable/fails-closed-exactly-as-"
+					         "StreetVignette.SplitAsset-does";
+					D.bHidden = true;
+					(*Found)->SetActorHiddenInGame(true);
+					++GPaint.DecalCropRefused;
+					++GPaint.Hidden;
+					GDecalResults.push_back(D);
+					continue;
+				}
+				UTexture2D* Pic = nullptr;
+				FString LoadedAs = TEXT("decal-root-not-found");
+				if (!GDecalRoot.IsEmpty())
+				{
+					const FString Full = GDecalRoot
+						/ FString(UTF8_TO_TCHAR(LedgerSurface::DecalCardLeaf(A.Id).c_str()));
+					int32 FW = 0, FH = 0;
+					LedgerSurface::CropPx Rect;
+					if (IFileManager::Get().FileSize(*Full) > 0)
+					{
+						Pic = ImportTexture(Full, true, FW, FH, LoadedAs, &A, &Rect);
+						D.FullW = FW; D.FullH = FH;
+						D.Crop = Rect;
+					}
+					else
+					{
+						LoadedAs = TEXT("no-png-at-that-path-under-the-decal-root");
+					}
+				}
+				D.LoadedAs = std::string(TCHAR_TO_UTF8(*LoadedAs));
+				if (Pic == nullptr)
+				{
+					D.Note = "image-did-not-load/" + D.LoadedAs;
+					D.bHidden = true;
+					(*Found)->SetActorHiddenInGame(true);
+					++GPaint.DecalImageMissing;
+					++GPaint.Hidden;
+					GDecalResults.push_back(D);
+					continue;
+				}
+				D.bLoaded = true;
+				UMaterialInstanceDynamic* DMid =
+					UMaterialInstanceDynamic::Create(GBaseMaterial, *Found);
+				if (DMid == nullptr)
+				{
+					D.Note = "instance-refused/base-material-" + std::string(
+						GBaseMaterial != nullptr ? "loaded" : "MISSING");
+					D.bHidden = true;
+					(*Found)->SetActorHiddenInGame(true);
+					++GPaint.NoInstance;
+					++GPaint.Hidden;
+					GDecalResults.push_back(D);
+					continue;
+				}
+				DMid->SetTextureParameterValue(
+					FName(UTF8_TO_TCHAR(LedgerSurface::MapParam(0))), Pic);
+				if (CardRough == nullptr)
+				{
+					const int RT = LedgerSurface::DecalCardRoughnessTexel();
+					CardRough = MakeFlatTexture(RT, RT, RT, false, TEXT("card-roughness"));
+				}
+				if (CardRough != nullptr)
+				{
+					DMid->SetTextureParameterValue(
+						FName(UTF8_TO_TCHAR(LedgerSurface::MapParam(2))), CardRough);
+				}
+				// TILING ONE, AND IT IS NOT THE PIECE'S SIZE. The crop IS the
+				// fit: a sign tiled 1.1 times across a fascia would repeat a
+				// tenth of its own lettering, and TilingFor would hand exactly
+				// that for a 2.2 metre band at two metres per tile.
+				DMid->SetScalarParameterValue(FName(TEXT("TilingU")), 1.0f);
+				DMid->SetScalarParameterValue(FName(TEXT("TilingV")), 1.0f);
+				Comp->SetMaterial(0, DMid);
+				++GMidsCreated;
+				++GPaint.DecalCard;
+				++GBinds[(size_t)Idx].PiecesAssigned;
+				GBinds[(size_t)Idx].TileU = 1.0;
+				GBinds[(size_t)Idx].TileV = 1.0;
+				D.bPainted = true;
+				D.Note = "opaque-card/cropped-at-decode/roughness-from-the-host-0.08-smoothness";
+				GDecalResults.push_back(D);
+				continue;
+			}
+
 			UMaterialInstanceDynamic* Mid = UMaterialInstanceDynamic::Create(GBaseMaterial, *Found);
-			if (Mid == nullptr) { continue; }
+			if (Mid == nullptr) { ++GPaint.NoInstance; continue; }
 			for (int32 M = 0; M < LedgerSurface::MapCount(); ++M)
 			{
 				UTexture2D* Tex = Maps[Idx * LedgerSurface::MapCount() + M];
@@ -2993,6 +3458,8 @@ namespace
 			Mid->SetScalarParameterValue(FName(TEXT("TilingV")), (float)T.V);
 			Comp->SetMaterial(0, Mid);
 			++GMidsCreated;
+			if (Route == LedgerSurface::Paint_Tint) { ++GPaint.Tint; }
+			else                                    { ++GPaint.Pack; }
 			++GBinds[(size_t)Idx].PiecesAssigned;
 			GBinds[(size_t)Idx].TileU = T.U;
 			GBinds[(size_t)Idx].TileV = T.V;
@@ -3056,11 +3523,21 @@ namespace
 			}
 		}
 
+		// THE RUN'S PAINT CENSUS RIDES THE MATERIALS DONE LINE, which is the
+		// line a reader already holds when they ask how much of the street is
+		// painted. Appended rather than formatted into that function's buffer
+		// for the same reason texRootTried and the readback totals are: the
+		// buffer is a cap and a cut line reads as a short one. Every number in
+		// the segment is computed in SurfaceBind.h.
 		GMaterialsLine = LedgerSurface::MaterialsDoneLine(
 			GBinds, TCHAR_TO_UTF8(kBaseMaterialPath), GBaseMaterial != nullptr,
 			TCHAR_TO_UTF8(*GTexRoot), GTexRootFiles, GTexRootTried,
 			(int)GSpec.Pieces.size(),
-			GTexturesImported, GMidsCreated, kMetresPerTile);
+			GTexturesImported, GMidsCreated, kMetresPerTile)
+			+ LedgerSurface::PaintRouteSegment(GPaint);
+		GDecalsLine = LedgerSurface::DecalsDoneLine(
+			GDecalResults, std::string(TCHAR_TO_UTF8(*GDecalRoot)),
+			GDecalRootFiles, GDecalRootTried);
 	}
 
 	// ---- THE CONTROL QUADS -------------------------------------------------

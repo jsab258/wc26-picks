@@ -140,7 +140,7 @@
       "route": "GENERATE",
       "make_by": "2D",
       "certainty": "HELD",
-      "source": "decal generator; check the six held RoadLines sets first, they are generic worn white paint",
+      "source": "emitted paint, not a decal: two boxes a side at the town own yellow. CORRECTED 2026-09-10 BY QUEUE 226, and the old sentence said the six held RoadLines sets are generic worn white paint. Five of the six are. RoadLines011 IS YELLOW, measured: Decals/ambientcg/RoadLines011_2K-PNG_Color.png at 2048x2048 means RGB 216.0/180.3/47.7 over its brightest one per cent, yellowness 150.5 (mean of red and green less blue) against 3.4, -0.3, 4.6, 4.6 and 4.8 for 001, 004, 007, 010 and 018. CC0-1.0, ambientCG, already in that directory THIRD-PARTY.md. The route still does not change: paint_yellow is ProceduralOnly in AssetLibrary so Unity renders it from the tint and the Unreal probe paints the same tint, and binding the PNG on one engine only would render one surface from two different inputs.",
       "licence": "generated here, no third-party input",
       "dims": "two 100 mm bands, gap 100 mm, emitted along the kerb path from JSON",
       "priority": "MANDATORY",

@@ -534,6 +534,37 @@ namespace LedgerVignette
 		                      : std::pow((C + 0.055) / 1.055, 2.4);
 	}
 
+	// AND BACK, THE EXACT INVERSE, because a colour this project computes in
+	// LINEAR has to be written into an sRGB texture to be handed to a shader
+	// that will convert it back. The pair exists for one reason: Unity
+	// multiplies a gamma-encoded texel by a gamma-encoded material colour
+	// IN LINEAR SPACE, and the Unreal base material has no colour parameter
+	// to multiply by, so the product is baked into the texel instead. Baking
+	// it needs the product taken in linear and then re-encoded, and an
+	// approximate inverse would shift every one of those surfaces by a
+	// fraction of a stop for no reason. Asserted round-trip in the g++ test.
+	inline double LinearToSrgb(double C)
+	{
+		if (C <= 0.0) return 0.0;
+		if (C >= 1.0) return 1.0;
+		return (C <= 0.0031308) ? (C * 12.92)
+		                        : (1.055 * std::pow(C, 1.0 / 2.4) - 0.055);
+	}
+
+	// A 0..1 COLOUR CHANNEL AS THE BYTE UNITY WOULD HAVE STORED. Unity's
+	// Color32 cast rounds, and the tint tables this project shares are float
+	// literals: 0.78 becomes 199 and 199/255 is 0.78039, so the byte is
+	// taken FIRST and everything downstream reads the same number both
+	// engines actually render. Rounding, not truncation: a truncating cast
+	// would land 198 and the two streets would differ by a byte nobody could
+	// find.
+	inline int ByteOf(double C)
+	{
+		if (C <= 0.0) return 0;
+		if (C >= 1.0) return 255;
+		return (int)(C * 255.0 + 0.5);
+	}
+
 	// VERTICAL FIELD OF VIEW TO HORIZONTAL, WHICH IS THE TRAP IN THIS FILE.
 	// The scene states fov_vertical_deg because Unity's Camera.fieldOfView
 	// is vertical. Unreal's UCameraComponent::FieldOfView is HORIZONTAL.

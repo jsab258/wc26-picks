@@ -115,3 +115,33 @@ and the measurement we built to catch ourselves told us the rest of that run
 cannot be trusted, so we are not going to pretend it told us anything else.
 
 DO NOT SAY THE STREET LOOKS BETTER. It does not yet.
+
+AMENDED 08:20Z. COPPER ROW IS WRITTEN AND NOTHING RUNS IT YET. Jafar ruled the
+remaining six district sheets follow ONE PER DAY IN THE BRIEF, and Fairview was
+today's. Copper Row is tomorrow's and its spec is already on the branch at
+production/art/concept-copper-row-2026-09-10/copper-row-sheet-2026-09-10.json,
+validated at 0 problems of 4 items examined.
+
+TO RUN IT: append the block at that directory's SENTINEL-ENTRY.txt to
+production/d1-probe/RUN-IMAGEGEN and push. The block was proved to parse over a
+copy, and its `only:` line is DELIBERATELY EMPTY, which is not an oversight: the
+sentinel is append-only and last-wins per key, so a block that says nothing
+about `only` INHERITS the four fairview_ ids from the block above it and the run
+then refuses because those ids are in no prompt. The empty line clears it. That
+was measured both ways rather than reasoned about.
+
+IT IS THE CLEAN ORIGINALITY TEST and its provenance table says so as a fact:
+written from a blank file with no Codex text in view, with the two disclosures
+that make the sentence true rather than convenient. Fairview does NOT count as
+that test, because the resident pointed its builder at a spec file embedding
+another model's prompt. When Copper Row goes in the brief beside Codex's Copper
+Row sheet, that caption is the one that can honestly say authored from our own
+sources with nothing of theirs in view.
+
+AND FOUR CARDS ARE WAITING ON A RULING, all with a recommendation and a default,
+all deadlined to this wake: mint the Weighhouse as a canon landmark or leave the
+district without one; name the market days; fill the market-stall and shopfront
+trade research gap once rather than pay it four more times; and mint the two
+owed brand marks, the telephone operator's and the postal cypher, which are now
+blocking a picture rather than just a list. Defaults are recorded in that
+directory's DELIVERY. Take them and log them per his standing order.

@@ -987,6 +987,55 @@ jobs:
             elseif ($texAsked -eq 0) { $texNote = "nothing-staged-the-pack-directory-is-empty" }
           }
 
+          # QUEUE 223: THE DECAL PICTURES, STAGED BY NAME, SUBDIRECTORY AND ALL.
+          #
+          # The twenty decals in the shared file name their image as a path
+          # RELATIVE to StreamingAssets/Decals (`generated/fascia_mickeys`), so
+          # the subdirectory is part of the contract and a flat copy would
+          # answer nothing. The binary looks for a directory called
+          # LedgerDecals beside the staged project and beside the exe, exactly
+          # as it looks for CityPackTextures.
+          #
+          # ONLY `generated` IS STAGED AND THE REASON IS NAMED RATHER THAN LEFT
+          # AS A SILENCE. The ten card decals are single PNGs under generated;
+          # the ten multiply decals are ambientCG SET directories, which this
+          # build cannot draw at all because a stain is a material blend mode
+          # and the cook ships one opaque base material. 288 MB of sets copied
+          # twice for nothing is a cost with no reading at the end of it, so
+          # they are left out and the note says so; they come when the stain
+          # material does.
+          #
+          # EFFECTS READ BACK, NOT THE CALL BELIEVED: each destination is
+          # counted after the copy, and the count ships its denominator so 0
+          # cannot read the same as nobody looked.
+          $decSrc = "ledger/Assets/StreamingAssets/Decals/generated"
+          $decAsked = 0
+          $decStaged = 0
+          $decDests = 0
+          $decNote = "generated-directory-not-in-this-checkout"
+          if (Test-Path $decSrc) {
+            $decNote = "staged/ambientcg-sets-not-staged-because-no-stain-material-exists-yet"
+            $decFiles = @(Get-ChildItem $decSrc -File -Filter "*.png" -ErrorAction SilentlyContinue)
+            $decAsked = $decFiles.Count
+            foreach ($d in @($proj, $binDir)) {
+              if (-not $d -or -not (Test-Path $d)) { continue }
+              $dest = Join-Path $d "LedgerDecals\generated"
+              # CLEARED FIRST, like the pack above: this workspace persists
+              # between runs and a picture left by an older run would be found
+              # and counted as one this commit staged.
+              Remove-Item (Join-Path $dest "*") -Force -Recurse -ErrorAction SilentlyContinue
+              New-Item -ItemType Directory -Force -Path $dest | Out-Null
+              foreach ($f in $decFiles) {
+                Copy-Item $f.FullName (Join-Path $dest $f.Name) -Force -ErrorAction SilentlyContinue
+              }
+              $landed = @(Get-ChildItem $dest -File -ErrorAction SilentlyContinue).Count
+              $decStaged += $landed
+              $decDests++
+            }
+            if ($decDests -eq 0) { $decNote = "nothing-staged-neither-destination-directory-exists" }
+            elseif ($decAsked -eq 0) { $decNote = "nothing-staged-the-generated-directory-is-empty" }
+          }
+
           # NAMED CANDIDATES, CLEARED BEFORE THE RUN. Looking in both places
           # is fine; looking in both without clearing them first is how a
           # previous run's file is collected and reported as this one's.
@@ -1057,6 +1106,11 @@ jobs:
             "stagedTexFrom=$($texSrc -replace ' ','~') " +
             "stagedTexAs=CityPackTextures/beside-the-project-and-beside-the-exe " +
             "stagedTexNote=$texNote " +
+            "stagedDecalFiles=$decStaged/$($decAsked * $decDests) " +
+            "stagedDecalPerDest=$decAsked stagedDecalDests=$decDests/2 " +
+            "stagedDecalFrom=$($decSrc -replace ' ','~') " +
+            "stagedDecalAs=LedgerDecals/generated/beside-the-project-and-beside-the-exe " +
+            "stagedDecalNote=$decNote " +
             "stagedVerdictCandidates=$($vCands.Count) " +
             "stagedVerdictFound=$(if ($vf) { 'yes' } else { 'no' }) " +
             "stagedPngCopied=$copied stagedPngBytes=$pngBytes " +

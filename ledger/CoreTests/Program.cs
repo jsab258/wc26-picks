@@ -20184,8 +20184,13 @@ namespace Ledger.CoreTests
             "E4_pillar_box", "E8_guard_railing", "E13_household_dustbin",
             "G8_litter", "G9_chewing_gum",
             // THE LINES THAT CARRY HELD BYTES, added 2 Sep with queue item
-            // 046. A5 is emitted paint (no yellow-line image exists); the
-            // rest are the base-mesh props and the pictures the bill of
+            // 046. A5 is emitted paint, which is a route decision and not a
+            // shortage: queue 226 corrected the sentence that used to stand
+            // here, because RoadLines011 IS yellow (2048x2048, RGB
+            // 216.0/180.3/47.7 over its brightest one per cent, yellowness
+            // 150.5 against 4.8 at worst for the other five), and
+            // paint_yellow is still ProceduralOnly on both engines so neither
+            // binds it. The rest are the base-mesh props and the pictures the bill of
             // materials assigns to a surface in this scene. A line here that
             // stops emitting fails this test, which is the whole point of
             // writing the list out rather than deriving it from the plan.

@@ -15,6 +15,16 @@ status: READY 2026-09-09 22:05Z. A decayed claim, found while answering a
   4.6 and 4.8 for the other five RoadLines sets, which are white. CC0 1.0 and
   already recorded in that directory's THIRD-PARTY.md.
 
+  CORRECTION, 2026-09-10: IT WAS FOUR SITES AND NOT THREE, and this item's own
+  FILENAME still says three. The fourth is ledger/CoreTests/Program.cs, found by
+  grepping the SENTENCE rather than the site, which is the rule this item was
+  filed under and which the filing itself did not follow. A fifth copy sits in
+  ledger/Assets/StreamingAssets/Vignette/scene.json and is deliberately NOT
+  edited: it is a staged build product of tools/stage-vignette-scene.py, a
+  second writer is how a file drifts, and that file is separately stale because
+  it carries no C15 fascia entries at all. The name is left alone on purpose, so
+  that the undercount stays visible in the index rather than being tidied away.
+
   THE THREE SITES, and the rule about copies is why all three are named:
     ledger/Assets/Scripts/Core/StreetVignette.cs:1409 to 1412
     production/specs/vignette-scene.json, the A5_double_yellow_lines note

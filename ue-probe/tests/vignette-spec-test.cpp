@@ -1509,13 +1509,21 @@ int main(int argc, char** argv)
 		Check(L.find("piecesAssigned=2/2") != std::string::npos,
 		      "the assigned count ships with the piece count that is its denominator");
 
+		// THE REJECTING FIXTURE IS SYNTHETIC, and it changed on 10 September
+		// with queue 223. It used to be `card`, which made this check assert
+		// the exact thing that item found wrong: card is a decal BLEND MODE
+		// and not a library surface, so card.png is a file that by design can
+		// never exist and three candidate filenames beside it were three
+		// filenames nobody should ever have gone looking for. A surface name
+		// that exists nowhere is the honest way to watch the absent case.
 		LedgerSurface::Bound A;
-		A.Surface = "card"; A.Pieces = 10; A.Status = "ABSENT";
+		A.Surface = "brick_blue"; A.Pieces = 10; A.Status = "ABSENT";
 		A.Reason = "no-file-in-citypack-textures/the-unity-host-generates-this-one-procedurally";
 		const std::string AL = LedgerSurface::SurfaceLine(A);
 		std::printf("    %s\n", AL.c_str());
 		Check(AL.find("surfaceStatus=ABSENT") != std::string::npos
-		      && AL.find("albedoTried=card.png/card.jpg/card.jpeg") != std::string::npos
+		      && AL.find("albedoTried=brick_blue.png/brick_blue.jpg/brick_blue.jpeg")
+		         != std::string::npos
 		      && AL.find("procedurally") != std::string::npos,
 		      "an absent surface is named with what was tried and why it is missing");
 		// NO SPACE INSIDE ANY VALUE, on both lines, mechanically.
@@ -1745,6 +1753,365 @@ int main(int argc, char** argv)
 		      "a pass that set no parameter prints the words rather than a clean zero");
 		Check(N.find("midReadbackAsked=0/1") != std::string::npos,
 		      "and the zero still ships the count of what was examined");
+	}
+	// ---- QUEUE 223: EVERY PIECE TAKES EXACTLY ONE PAINT ROUTE -----------
+	//
+	// THE ACCEPTING FIXTURE IS THE LIVE STREET, which is this project's rule
+	// for a check on the project itself. The census below is taken off the
+	// committed piece list with the pack ASSUMED PRESENT for the twelve
+	// surfaces that carry a file, so it answers the question the item is
+	// about: how many pieces the old `continue` left with no material at all.
+	{
+		int Pack = 0, Tint = 0, Card = 0, Multiply = 0, None = 0;
+		for (size_t I = 0; I < S.Pieces.size(); ++I)
+		{
+			const LedgerVignette::Piece& P = S.Pieces[I];
+			// THE TWELVE THAT RESOLVE ARE THE ONES THAT ARE NEITHER A BLEND
+			// NOR IN THE PROCEDURAL TABLE, which is what the run itself
+			// measured: surfacesResolved=12/16 with card, interior, multiply
+			// and paint_yellow absent.
+			const bool bPackAnswered =
+				!LedgerSurface::IsDecalBlend(P.Surface)
+				&& LedgerSurface::ProceduralSurfaceIndex(P.Surface) < 0;
+			switch (LedgerSurface::RouteFor(P.Surface, P.Shape == "decal", bPackAnswered))
+			{
+			case LedgerSurface::Paint_Pack:          ++Pack; break;
+			case LedgerSurface::Paint_Tint:          ++Tint; break;
+			case LedgerSurface::Paint_DecalCard:     ++Card; break;
+			case LedgerSurface::Paint_DecalMultiply: ++Multiply; break;
+			default:                                 ++None; break;
+			}
+		}
+		std::printf("    paint routes over the live street: pack=%d tint=%d "
+		            "card=%d multiply=%d none=%d of %d piece(s)\n",
+		            Pack, Tint, Card, Multiply, None, (int)S.Pieces.size());
+		Check(Pack + Tint + Card + Multiply + None == (int)S.Pieces.size(),
+		      "every piece in the file takes exactly one route and none takes two");
+		Check(None == 0,
+		      "no piece in the committed street is left with no rule to paint it, "
+		      "which is the whole of queue 223");
+		Check(Tint == 10,
+		      "the tint route covers the six interiors and the four yellow bands");
+		Check(Card == 10 && Multiply == 10,
+		      "the twenty decals split ten opaque cards and ten stains");
+		// AND THE REJECTING CASE, PLANTED: a library surface the pack does not
+		// answer for still has no route, because inventing one would be
+		// painting over the gate.
+		Check(LedgerSurface::RouteFor("brick_blue", false, false)
+		      == LedgerSurface::Paint_None,
+		      "a library surface with no pack file is NOT painted by a made-up rule");
+		Check(LedgerSurface::RouteFor("brick_blue", false, true)
+		      == LedgerSurface::Paint_Pack,
+		      "and the same surface with a file takes the pack route");
+		// ProceduralOnly OUTRANKS A PACK FILE, which is the one thing that
+		// stops a paint_yellow.jpg dropped into the pack from making the two
+		// engines render one surface from two different inputs.
+		Check(LedgerSurface::RouteFor("paint_yellow", false, true)
+		      == LedgerSurface::Paint_Tint,
+		      "paint_yellow renders from the tint even when a pack file exists");
+	}
+	// THE TINT ITSELF, WHICH IS A NUMBER THIS FILE CAN CHECK AND THE ENGINE
+	// CANNOT. Both grades, the byte quantisation and the two colour space
+	// conversions, asserted against values computed by hand from the Unity
+	// literals.
+	{
+		Check(LedgerSurface::ProceduralSurfaceCount() == 2,
+		      "two surfaces are painted from the tint, and they are named");
+		Check(std::string(LedgerSurface::ProceduralSurfaceName(0)) == "interior"
+		      && std::string(LedgerSurface::ProceduralSurfaceName(1)) == "paint_yellow",
+		      "interior and paint_yellow, in that order");
+		const LedgerSurface::Texel Y =
+			LedgerSurface::ProceduralAlbedoTexel("paint_yellow");
+		const LedgerSurface::Texel In =
+			LedgerSurface::ProceduralAlbedoTexel("interior");
+		std::printf("    tint texels: paint_yellow %d.%d.%d interior %d.%d.%d\n",
+		            Y.R, Y.G, Y.B, In.R, In.G, In.B);
+		Check(Y.R == 147 && Y.G == 127 && Y.B == 35,
+		      "worn municipal yellow at 0.78/0.66/0.18, quantised as Unity quantises "
+		      "it and multiplied by TextureGrade in linear");
+		Check(In.R == 31 && In.G == 22 && In.B == 14,
+		      "and the shop interior at 0.18/0.13/0.08 through the same arithmetic");
+		// THE GRADE ACTUALLY DARKENS, which is the half a typo would not move:
+		// a grade applied in the wrong direction, or not at all, leaves the
+		// raw byte standing.
+		Check(Y.R < 199 && Y.G < 168 && Y.B < 46,
+		      "the graded texel is darker than the raw tint byte on every channel");
+		Check(LedgerSurface::ProceduralRoughnessTexel("paint_yellow") == 242
+		      && LedgerSurface::ProceduralRoughnessTexel("interior") == 230,
+		      "roughness is the complement of the spec smoothness, as the host's "
+		      "gloss map is");
+		Check(LedgerSurface::DecalCardRoughnessTexel() == 235,
+		      "and an opaque card carries the host's own 0.08 smoothness");
+		// THE TRANSFER PAIR IS AN EXACT ROUND TRIP OVER EVERY BYTE, because a
+		// tint baked through an approximate inverse would shift every
+		// procedural surface by a fraction of a stop.
+		int Bad = 0;
+		for (int V = 0; V <= 255; ++V)
+		{
+			const double L = LedgerVignette::SrgbToLinear((double)V / 255.0);
+			if (LedgerVignette::ByteOf(LedgerVignette::LinearToSrgb(L)) != V) { ++Bad; }
+		}
+		Check(Bad == 0, "sRGB to linear and back is a byte-exact round trip",
+		      "bytes that did not survive: " + std::to_string(Bad) + " of 256");
+		Check(LedgerSurface::MapsFrom("interior") == "window",
+		      "the interior borrows the window's maps, which is AssetLibrary.cs:611");
+		Check(LedgerSurface::MapsFrom("window") == "window"
+		      && LedgerSurface::MapsFrom("asphalt") == "asphalt",
+		      "and every other surface wears its own");
+		Check(LedgerSurface::IsGroundSurface("kerb")
+		      && !LedgerSurface::IsGroundSurface("paint_yellow"),
+		      "the ground family is the host's WetSurfaces, and the road paint is "
+		      "not in it");
+	}
+	// THE DECAL ASSET STRING, SPLIT, AGAINST EVERY DECAL IN THE LIVE FILE.
+	{
+		int Decals = 0, Cropped = 0, Refused = 0;
+		for (size_t I = 0; I < S.Pieces.size(); ++I)
+		{
+			if (S.Pieces[I].Shape != "decal") { continue; }
+			++Decals;
+			const LedgerSurface::DecalAsset A =
+				LedgerSurface::SplitDecalAsset(S.Pieces[I].Asset);
+			if (!A.bOk) { ++Refused; continue; }
+			if (A.bCropped) { ++Cropped; }
+		}
+		std::printf("    decal assets: %d parsed, %d cropped, %d refused\n",
+		            Decals, Cropped, Refused);
+		Check(Decals == 20 && Refused == 0,
+		      "every decal asset string in the committed street parses");
+		Check(Cropped == 10,
+		      "ten carry a crop rectangle and the ten ambientCG sets do not");
+		const LedgerSurface::DecalAsset A =
+			LedgerSurface::SplitDecalAsset("generated/fascia_mickeys#0.0391,0.2773,0.9766,0.7168");
+		Check(A.bOk && A.bCropped && A.Id == "generated/fascia_mickeys",
+		      "the id is everything before the hash and the crop is what follows");
+		Check(std::fabs(A.U0 - 0.0391) < 1e-9 && std::fabs(A.V1 - 0.7168) < 1e-9,
+		      "and all four numbers arrive, u then v, in the file's own order");
+		const LedgerSurface::DecalAsset Whole =
+			LedgerSurface::SplitDecalAsset("ambientcg/Moss001");
+		Check(Whole.bOk && !Whole.bCropped && Whole.U1 == 1.0 && Whole.V1 == 1.0,
+		      "no fragment means the whole image, which is 0,0,1,1");
+		// FAILS CLOSED, BOTH WAYS, exactly as StreetVignette.SplitAsset does.
+		Check(!LedgerSurface::SplitDecalAsset("generated/x#1,2").bOk,
+		      "a fragment that is not four numbers is REFUSED and not guessed at");
+		Check(!LedgerSurface::SplitDecalAsset("generated/x#a,b,c,d").bOk,
+		      "and a fragment that is not numbers at all is refused too");
+		Check(LedgerSurface::DecalCardLeaf("generated/poster_gig_bill")
+		      == "generated/poster_gig_bill.png",
+		      "a card asks for one filename and does not search, as the host does not");
+	}
+	// THE CROP IN TEXELS, AND THE ROW ORDER IS THE WHOLE OF IT.
+	{
+		LedgerSurface::DecalAsset Bottom;
+		Bottom.bOk = true; Bottom.bCropped = true;
+		Bottom.U0 = 0.0; Bottom.V0 = 0.0; Bottom.U1 = 1.0; Bottom.V1 = 0.5;
+		const LedgerSurface::CropPx B = LedgerSurface::CropPixels(Bottom, 100, 100);
+		std::printf("    crop of the bottom half: x%d..%d y%d..%d (%dx%d)\n",
+		            B.X, B.X + B.W, B.Y, B.Y + B.H, B.W, B.H);
+		Check(B.X == 0 && B.W == 100 && B.Y == 50 && B.H == 50 && !B.bClamped,
+		      "v is measured from the BOTTOM and image rows arrive top down, so the "
+		      "bottom half of a picture is the LAST fifty rows");
+		LedgerSurface::DecalAsset Top = Bottom;
+		Top.V0 = 0.5; Top.V1 = 1.0;
+		const LedgerSurface::CropPx T = LedgerSurface::CropPixels(Top, 100, 100);
+		Check(T.Y == 0 && T.H == 50,
+		      "and the top half is the FIRST fifty, which is the flip that would "
+		      "otherwise put a photograph's sky on a fascia");
+		// A REAL ONE, at the size the committed fascia picture is.
+		const LedgerSurface::DecalAsset M = LedgerSurface::SplitDecalAsset(
+			"generated/fascia_mickeys#0.0391,0.2773,0.9766,0.7168");
+		const LedgerSurface::CropPx MC = LedgerSurface::CropPixels(M, 1024, 1024);
+		std::printf("    fascia_mickeys at 1024 square: x%d..%d y%d..%d (%dx%d)\n",
+		            MC.X, MC.X + MC.W, MC.Y, MC.Y + MC.H, MC.W, MC.H);
+		Check(MC.W == 960 && MC.H == 450 && !MC.bClamped,
+		      "the committed crop takes a wide band out of the middle of the picture");
+		Check(MC.Y == 290,
+		      "and it starts 290 rows down, which is (1 - v1) and not v0");
+		// THE REJECTING CASES, PLANTED, because a clamp that is silent cannot
+		// be told from a crop that fitted.
+		LedgerSurface::DecalAsset Over = Bottom;
+		Over.U1 = 1.6;
+		const LedgerSurface::CropPx OC = LedgerSurface::CropPixels(Over, 100, 100);
+		Check(OC.bClamped && OC.X + OC.W == 100,
+		      "a rectangle past the edge is clamped to the image AND says so");
+		LedgerSurface::DecalAsset Inside = Bottom;
+		Inside.U0 = 0.5; Inside.U1 = 0.5; Inside.V0 = 0.5; Inside.V1 = 0.5;
+		const LedgerSurface::CropPx IC = LedgerSurface::CropPixels(Inside, 100, 100);
+		Check(IC.W >= 1 && IC.H >= 1 && IC.bClamped,
+		      "a zero-sized rectangle gives one texel rather than an empty upload");
+		const LedgerSurface::CropPx NoImage = LedgerSurface::CropPixels(Bottom, 0, 0);
+		Check(NoImage.W == 0 && NoImage.H == 0,
+		      "and nothing decoded gives nothing cropped, not a one-texel invention");
+	}
+	// THE CENSUS LINE, ITS IDENTITY, ITS ZERO CASE AND ITS KEYS.
+	{
+		LedgerSurface::PaintTally T;
+		T.Examined = 610; T.Pack = 580; T.Tint = 10; T.DecalCard = 10;
+		T.DecalNoStainMaterial = 10; T.Hidden = 10;
+		const std::string Seg = LedgerSurface::PaintRouteSegment(T);
+		std::printf("   %s\n", Seg.c_str());
+		Check(LedgerSurface::PaintedCount(T) == 600
+		      && LedgerSurface::UnpaintedCount(T) == 10,
+		      "painted plus unpainted is the pieces examined, and neither is derived "
+		      "from the other by subtraction");
+		Check(Seg.find("piecesUnpainted=10/610") != std::string::npos
+		      && Seg.find("piecesPainted=600/610") != std::string::npos,
+		      "both halves ship over the pieces EXAMINED");
+		Check(Seg.find("paintRoutes=pack.580/tint.10/decal-card.10/decal-multiply.0")
+		      != std::string::npos,
+		      "and the routes are named with their own counts, not summed into one");
+		Check(Seg.find("decal-needs-a-stain-material.10") != std::string::npos,
+		      "every unpainted piece says WHICH rule declined it");
+		LedgerSurface::PaintTally Zero;
+		const std::string ZSeg = LedgerSurface::PaintRouteSegment(Zero);
+		Check(ZSeg.find("piecesUnpainted=nothing-measured") != std::string::npos,
+		      "a run that examined no piece prints the words and not a clean zero");
+		// NO KEY MEANS TWO THINGS ON TWO LINES. The census rides the materials
+		// line, so it must share no key with the surface lines or the decal
+		// lines beside it.
+		LedgerSurface::Bound B;
+		B.Surface = "interior"; B.Pieces = 6; B.PiecesAssigned = 6;
+		B.Status = "PROCEDURAL"; B.Route = "tint"; B.bTintBuilt = true;
+		B.Tint = LedgerSurface::ProceduralAlbedoTexel("interior");
+		B.MapBorrowed[1] = true; B.BorrowedFrom = "window";
+		B.MapFile[1] = "window_n.jpg"; B.MapW[1] = 2048; B.MapH[1] = 2048;
+		B.MapLoadedAs[1] = "JPEG-BGRA8/srgb=no";
+		const std::string SurfLine = LedgerSurface::SurfaceLine(B);
+		std::printf("    %s\n", SurfLine.c_str());
+		Check(SurfLine.find("surfaceStatus=PROCEDURAL") != std::string::npos
+		      && SurfLine.find("surfaceRoute=tint") != std::string::npos
+		      && SurfLine.find("tintTexel=31.22.14") != std::string::npos,
+		      "a procedural surface says so, names its route and prints the texel it "
+		      "was painted with");
+		Check(SurfLine.find("albedoFile=BUILT-IN-CODE") != std::string::npos
+		      && SurfLine.find("albedoTried=card.png") == std::string::npos,
+		      "and it never names a candidate file it had no reason to look for");
+		Check(SurfLine.find("normalBorrowedFrom=window") != std::string::npos
+		      && SurfLine.find("normalFile=window_n.jpg") != std::string::npos,
+		      "a borrowed map names the surface it came from");
+		LedgerSurface::Bound Blend;
+		Blend.Surface = "card"; Blend.Pieces = 10; Blend.Status = "DECAL-BLEND";
+		Blend.Route = "decal-card";
+		const std::string BlendLine = LedgerSurface::SurfaceLine(Blend);
+		std::printf("    %s\n", BlendLine.c_str());
+		Check(BlendLine.find("albedoFile=NOT-A-LIBRARY-SURFACE") != std::string::npos,
+		      "a decal blend is not a library surface and stops claiming to be one");
+		Check(BlendLine.find("card.png") == std::string::npos,
+		      "and it names no candidate filename, because card.png can never exist");
+		// EveryTokenIsKeyValue AND NOT THE ONE-EQUALS FORM, and the reason is
+		// a value this project already prints: a decoder's own words are
+		// `JPEG-BGRA8/srgb=no`, so a map line legitimately carries a second
+		// equals inside one value. The rule that matters is the one every
+		// reader here depends on, which is no WHITESPACE inside a value.
+		// FROM surfaceStatus ONWARD, because a surface line opens with the word
+		// `surface` and the surface's name, which are a row label and not keys.
+		// EveryTokenIsKeyValue and not the one-equals form, for a reason this
+		// project's own strings establish: a decoder's words are
+		// `JPEG-BGRA8/srgb=no`, so a map value legitimately carries a second
+		// equals. The rule every reader here depends on is no WHITESPACE in a
+		// value.
+		Check(EveryTokenIsKeyValue(SurfLine.substr(SurfLine.find("surfaceStatus=")))
+		      && EveryTokenIsKeyValue(BlendLine.substr(BlendLine.find("surfaceStatus=")))
+		      && NoSpacePastPrefix(Seg, "piecesPainted="),
+		      "every value on all three is space-free and is a key with a value");
+		std::vector<LedgerSurface::Bound> All;
+		All.push_back(B);
+		std::vector<std::string> Tried;
+		Tried.push_back("C:/staged/LedgerProbe/CityPackTextures");
+		const std::string Done = LedgerSurface::MaterialsDoneLine(
+			All, "/Game/Ledger/M_LedgerSurface", true, "C:/pack", 51, Tried,
+			610, 3, 600, 2.0) + Seg;
+		std::vector<std::string> DoneKeys, SurfKeys;
+		KeysOf(Done, DoneKeys);
+		KeysOf(SurfLine, SurfKeys);
+		std::string Shared;
+		for (size_t I = 0; I < SurfKeys.size(); ++I)
+		{
+			for (size_t J = 0; J < DoneKeys.size(); ++J)
+			{
+				if (SurfKeys[I] == DoneKeys[J])
+				{
+					if (!Shared.empty()) { Shared += "/"; }
+					Shared += SurfKeys[I];
+				}
+			}
+		}
+		Check(Shared.empty(),
+		      "the census on the materials line shares no key with a surface line",
+		      Shared);
+		Check(EveryTokenIsKeyValue(Done),
+		      "and the joined materials line is every token a key with a value");
+	}
+	// ONE LINE PER DECAL, AND THE PASS'S OWN DONE LINE.
+	{
+		LedgerSurface::DecalResult Card;
+		Card.Piece = "decal_00_fascia_mickeys"; Card.Blend = "card";
+		Card.Id = "generated/fascia_mickeys"; Card.bCropAsked = true;
+		Card.bLoaded = true; Card.bPainted = true;
+		Card.FullW = 1024; Card.FullH = 1024;
+		Card.LoadedAs = "PNG-BGRA8/srgb=yes";
+		Card.Crop = LedgerSurface::CropPixels(LedgerSurface::SplitDecalAsset(
+			"generated/fascia_mickeys#0.0391,0.2773,0.9766,0.7168"), 1024, 1024);
+		Card.Note = "opaque-card/cropped-at-decode";
+		const std::string CL = LedgerSurface::DecalLine(Card);
+		std::printf("    %s\n", CL.c_str());
+		Check(CL.find("decalStatus=PAINTED") != std::string::npos
+		      && CL.find("decalCropSize=960x450") != std::string::npos,
+		      "a painted card names its picture, its status and the size it was cut to");
+		Check(CL.find("decalRowOrder=") != std::string::npos,
+		      "and every decal line carries which way round the rows went");
+		LedgerSurface::DecalResult Stain;
+		Stain.Piece = "decal_17_Moss001"; Stain.Blend = "multiply";
+		Stain.Id = "ambientcg/Moss001"; Stain.bHidden = true;
+		Stain.Note = "needs-a-modulate-material";
+		const std::string SL = LedgerSurface::DecalLine(Stain);
+		Check(SL.find("decalStatus=HIDDEN") != std::string::npos
+		      && SL.find("decalLoadedAs=not-loaded") != std::string::npos,
+		      "a stain that could not be drawn says HIDDEN and never prints a size it "
+		      "does not have");
+		Check(EveryTokenIsKeyValue(CL) && EveryTokenIsKeyValue(SL),
+		      "both decal lines are space-free keys with values, the rule every "
+		      "reader of this file depends on");
+		std::vector<LedgerSurface::DecalResult> All;
+		All.push_back(Card); All.push_back(Stain);
+		std::vector<std::string> Tried;
+		Tried.push_back("C:/staged/LedgerProbe/LedgerDecals");
+		const std::string D = LedgerSurface::DecalsDoneLine(All, "C:/staged/LedgerDecals",
+		                                                    40, Tried);
+		std::printf("   %s\n", D.c_str());
+		Check(D.find("decalsPainted=1/2") != std::string::npos
+		      && D.find("decalsHidden=1/2") != std::string::npos
+		      && D.find("decalsByBlend=card.1/multiply.1") != std::string::npos,
+		      "the pass's totals ship over the decal pieces it examined");
+		Check(D.find("decalsStatus=PARTIAL") != std::string::npos,
+		      "one of two painted is PARTIAL and says so");
+		Check(D.find("decalFlip=rows.no/cols.no") != std::string::npos,
+		      "the uv winding lever is printed rather than hidden in the source");
+		const std::vector<LedgerSurface::DecalResult> NoneAtAll;
+		const std::string ND = LedgerSurface::DecalsDoneLine(NoneAtAll, "", 0, Tried);
+		Check(ND.find("decalsPainted=nothing-measured") != std::string::npos
+		      && ND.find("decalRoot=NOT-FOUND") != std::string::npos
+		      && ND.find("decalRootTried=C:/staged/LedgerProbe/LedgerDecals")
+		         != std::string::npos,
+		      "a pass that reached no decal prints the words, and a root it did not "
+		      "find NAMES where it looked");
+		std::vector<std::string> DoneKeys, LineKeys;
+		KeysOf(D, DoneKeys);
+		KeysOf(CL, LineKeys);
+		std::string Shared;
+		for (size_t I = 0; I < LineKeys.size(); ++I)
+		{
+			for (size_t J = 0; J < DoneKeys.size(); ++J)
+			{
+				if (LineKeys[I] == DoneKeys[J])
+				{
+					if (!Shared.empty()) { Shared += "/"; }
+					Shared += LineKeys[I];
+				}
+			}
+		}
+		Check(Shared.empty(),
+		      "the per-decal line and the decal done line share no key name", Shared);
 	}
 	// ---- THE CONTROL QUADS, PLACED AGAINST THE COMMITTED CAMERA ---------
 	//

@@ -3523,3 +3523,53 @@ agents, and because the honest interim is to say what was actually measured.
 NOTHING WAS HARMED THIS TIME: verify came back green with the agent's partial
 file present, so the reading stands on its own, and the commit that followed
 staged only the resident's own paths by name and left the partial file alone.
+
+ADDENDUM, 2026-09-10 09:10Z, AND THE REPAIR PROVED ITSELF ON ITS FIRST USE.
+
+The derived guard was run for the first time on the next verify: the population
+is every tracked file, taken from git's own list rather than from the resident's
+expectations, plus the untracked set, hashed either side of the run. 5000
+tracked files.
+
+IT CAME BACK CONTAMINATED, and verify came back red with no footer. An agent was
+writing during the run, exactly as queue 225 describes, and THE READING WAS
+DISCARDED RATHER THAN DIAGNOSED. The hand-picked version of this guard, run
+ninety minutes earlier under the same conditions, printed UNCONTAMINATED.
+
+So the two versions disagreed on the same class of event and the derived one was
+right. That is the accepting-and-rejecting pair this guard never had: it has now
+printed clean on a quiet tree and dirty on a busy one, which is what makes it a
+measurement rather than a hope.
+
+THE RED IS NOT DIAGNOSED AND MUST NOT BE. Queue 225's whole finding is that
+contention makes verify report failures it did not measure, so a red taken under
+a contaminated snapshot is not evidence of anything. It is re-run when the tree
+is quiet.
+
+--------------------------------------------------------------------------------
+2026-09-10, THE RESIDENT CHANGED THE WORLD UNDER A DIRECTOR IT HAD JUST BRIEFED.
+
+The batch review was spawned with six questions. Question 5 asked it to rule on
+whether a batch may land carrying a comment that promises tools/surface-tint-check.py
+while THAT TOOL DOES NOT EXIST. The resident then wrote the tool, while the
+review was still running, as useful work to fill the wait.
+
+SO THE REVIEW WAS RULING ON A PREMISE THE RESIDENT HAD ALREADY INVALIDATED, and
+was not told. It caught it the only way it could, by opening the file rather
+than ruling on the prose it was handed: the tool exists, 178 lines, with the
+live tree as its accepting fixture. Its own words: ruling on it as asked would
+have ordered work already done.
+
+THE FAULT IS NOT WRITING THE TOOL, WHICH WAS RIGHT. It is that a brief is a
+snapshot of a world, and an agent working from one cannot see the world move.
+Filling a wait with work that touches the subject of a live review is how a
+ruling comes back correct about a state nobody is in any more. The remedy is one
+line: when the premise of a live brief changes, SEND THE CHANGE, which costs one
+message and is the same discipline as telling a builder that a run landed.
+
+AND THE REVIEW'S OWN FINDING WAS SHARPER THAN THE QUESTION. The gap was never
+that the tool did not exist. It was that NOTHING CALLED IT: a grep for its name
+across every py, yml, yaml and sh returned one file, itself. Rule 6 applied to a
+guard, and worse than an unwired feature, because the comment beside the
+constants told a reader they need not check. It is now wired into ledger/verify.py
+as surface_tint_agreement and the grep returns four hits in the gate.
