@@ -53,8 +53,11 @@ the allowance off his own billing page and weigh it against the measured
 1113.2 MB in section 1. If that payload exceeds the included allowance, LFS
 capacity is a PURCHASE, and every purchase is his.
 
-There is a cheaper path if it does: the 18 fbx bodies are 305.2 MB of the
+There is a cheaper path if it does: the 18 fbx bodies are 672.9 MB of the
 1113.2 MB and they are Mixamo downloads, refetchable with his account and token.
+(CORRECTED 2026-09-10: this line first said 305.2 MB, which was the subtotal of
+the largest FIVE files mislabelled as all eighteen. It understated the cost of
+keeping the bodies by more than half.)
 They could stay out of the repo behind a fetch script rather than occupy paid
 LFS. This is not proposed, only costed, and it waits on the open question about
 which bodies are v1.
@@ -174,3 +177,75 @@ default branch to main, and give the Claude GitHub App access to the new
 repository. Without the second, no session can push to it. The runner
 re-registration from section 4 also stands, and it remains the step that
 matters most: the build machine is the only channel the studio can read.
+
+## RULED 2026-09-10, SECOND AND FINAL: no Large File Storage, history unchanged
+
+His words: "No LFS, no data pack. Amend MIGRATE TO LEDGER.bat to push the four
+branches as they are, history unchanged, so every SHA stays identical."
+
+THIS SUPERSEDES EVERY SHAPE ABOVE, including the one recorded an hour earlier
+in this same file. Sections 2 and 3 and the first ruling section are kept as
+they were written, because a plan that quietly rewrites its own history is the
+thing this project has a rule about, but none of them governs now:
+
+- The clean start is not taken.
+- The Large File Storage question is closed and its allowance no longer needs
+  reading, because nothing goes into Large File Storage.
+- The history rewrite is not done.
+
+### The concern that is now VOID
+
+Every earlier shape cost the same thing: a rewrite changes every commit
+identifier, so every sha cited in a decision record would have resolved only in
+the archive. That does not happen. THE IDENTIFIERS ARE IDENTICAL, so all 170
+decision records keep working against the new repository, and the archive stops
+being load-bearing for anything except the branches not carried.
+
+The script proves this rather than asserting it: step 6 compares each branch's
+identifier here against the far end with `git ls-remote` and refuses to print a
+success message unless all four match. An identifier that differs would mean
+something rewrote history on the way, which is exactly what this version must
+not do, so it is treated as a failure and not as a curiosity.
+
+### What it costs, said plainly
+
+The repository stays about 2.6 GB and every clone carries it. That is the price
+of keeping the identifiers, and it is a price paid by machines rather than by
+anybody's judgment, which is the right way round.
+
+### The limit that now matters instead of an allowance
+
+Without Large File Storage, GitHub WARNS above 50 MB and REFUSES above 100 MB
+per file. Measured 2026-09-10 on the tree being pushed:
+
+    filesOver100MB=0    a hard refusal if any, so the push goes through
+    filesOver50MB=8     a warning, not a refusal
+    largest=83.2 MB     ledger/Assets/Characters/Adam.fbx
+
+So there is about 17 MB of headroom under the hard limit. That is the number to
+watch: a future character body larger than 100 MB cannot be committed at all
+without either Large File Storage or the trim below. Nothing today is near it,
+and nothing is blocked.
+
+### OPTIONAL, LATER: trimming the archived Unity bodies
+
+Not part of this move and not recommended now, recorded so the option is not
+rediscovered from scratch.
+
+The 18 fbx bodies over 2MB come to 672.9 MB of the 1113.2 MB, 16 of them
+directly under `ledger/Assets/Characters/`. They are Mixamo downloads,
+refetchable with Jafar's account and token, and the Unity build they belong to
+was archived under D16 when Unreal became the engine. So most of the
+repository's weight is animation data for an engine the project no longer uses.
+
+Trimming them would take the clone from about 2.6 GB to something far smaller.
+
+THE REASON IT IS NOT DONE NOW, AND THE REASON IT NEEDS ITS OWN DECISION: IT
+REWRITES HISTORY. Removing a file from every commit that ever contained it
+changes those commits, which changes every identifier after them, which
+destroys the exact property this move was ruled to preserve. It cannot be done
+quietly as a tidy-up alongside anything else.
+
+If it is ever wanted, it is a separate ruling with its own before-and-after
+measurement, taken when the answer to "which bodies are v1" is known, since
+that answer decides which of the 18 are still wanted at all.

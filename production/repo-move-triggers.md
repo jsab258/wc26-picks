@@ -36,10 +36,15 @@ across unedited:
    or, worse, push to a branch that still exists in the archive.
 2. THE SESSION. `persistent_session_id` names this session. A new trigger must
    bind to the new session, or fire into a session that is no longer working.
-3. THE ARCHIVE SENTENCE. Add one: the old repository is the archive, every
-   commit identifier written in a decision record before 2026-09-10 resolves
-   THERE and not here, because moving the large files through history rewrote
-   every identifier.
+3. THE ARCHIVE SENTENCE, AND IT IS NOT THE ONE THIS FILE FIRST GAVE. The
+   first version of this line said every commit identifier written before
+   2026-09-10 would resolve only in the archive, because moving the large files
+   through history rewrote them. THAT IS NO LONGER TRUE AND WAS NEVER RUN:
+   Jafar ruled a few hours later that there is no Large File Storage and no
+   rewrite, so history is copied unchanged and EVERY IDENTIFIER IS IDENTICAL.
+   Decision records keep resolving against the new repository. The sentence a
+   new prompt needs is the smaller one: the old repository is the archive, and
+   it holds the branches that were not carried.
 4. THE FOUR BRANCHES. `art/atlas-01`, `pc-inbox` and `pc-results` are carried
    across by the migration and are load-bearing: the sheet compositor reads the
    atlas branch directly at `tools/imagegen/sheet-furniture.py:49`, and the
