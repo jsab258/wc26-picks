@@ -1,11 +1,11 @@
-# LEDGER supervisor status as CI read it - 6e72e9e @1789029536
+# LEDGER supervisor status as CI read it - abee15e @1789034701
 # Line 1 names the commit this was read on.
 # Copied verbatim from the supervisor's own file on his PC.
 # It is written there every 60s and was published nowhere until
 # this step existed, which is why a bot that stopped at 11:30 on
 # 2026-09-07 could not say so.
 statusSource=C:\Users\Jafar\wc26-picks\game-design\pc-jobs\supervisor-status.txt
-statusFound=yes statusBytes=903 statusLines=30 statusAgeSec=19
+statusFound=yes statusBytes=904 statusLines=30 statusAgeSec=20
 statusFresh=yes
 
 supervisor=running
@@ -17,8 +17,8 @@ resync=ok/e953e62b
 outboxFiles=17
 outboxReceipts=40
 outboxRefusals=494
-written=2026-09-10T10:38:38
-botSweepPasses=392
+written=2026-09-10T12:04:41
+botSweepPasses=432
 botSweepSent=0
 botSweepRefused=0
 botSweepEverySec=120
@@ -26,15 +26,15 @@ botSweepSecSinceLast=0
 botSweepLastResult=sent0/refused0/of17
 botBriefTapsFiled=0
 botBriefReasonsFiled=0
-botUptimeSec=50641
-botSweepWrittenAt=2026-09-10T10:37:19
-botSweepAgeSec=79
+botUptimeSec=55754
+botSweepWrittenAt=2026-09-10T12:02:31
+botSweepAgeSec=130
 botSweepStatus=read/10-key(s)
 executorState=idle
 executorHandled=1
 executorPending=0
 executorLimitResumeIn=none
-studio-watcher=running studio-watcherUptimeSec=50725 studio-watcherStarts=1 studio-watcherStops=0 studio-watcherLastExit=none
-telegram-bot=running telegram-botUptimeSec=50725 telegram-botStarts=1 telegram-botStops=0 telegram-botLastExit=none
-claude-executor=running claude-executorUptimeSec=50725 claude-executorStarts=1 claude-executorStops=0 claude-executorLastExit=none
+studio-watcher=running studio-watcherUptimeSec=55888 studio-watcherStarts=1 studio-watcherStops=0 studio-watcherLastExit=none
+telegram-bot=running telegram-botUptimeSec=55888 telegram-botStarts=1 telegram-botStops=0 telegram-botLastExit=none
+claude-executor=running claude-executorUptimeSec=55888 claude-executorStarts=1 claude-executorStops=0 claude-executorLastExit=none
 
