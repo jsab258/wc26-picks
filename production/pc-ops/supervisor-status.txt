@@ -1,11 +1,11 @@
-# LEDGER supervisor status as CI read it - fe13e91 @1788986175
+# LEDGER supervisor status as CI read it - a8a4d49 @1789015487
 # Line 1 names the commit this was read on.
 # Copied verbatim from the supervisor's own file on his PC.
 # It is written there every 60s and was published nowhere until
 # this step existed, which is why a bot that stopped at 11:30 on
 # 2026-09-07 could not say so.
 statusSource=C:\Users\Jafar\wc26-picks\game-design\pc-jobs\supervisor-status.txt
-statusFound=yes statusBytes=898 statusLines=30 statusAgeSec=59
+statusFound=yes statusBytes=903 statusLines=30 statusAgeSec=17
 statusFresh=yes
 
 supervisor=running
@@ -17,8 +17,8 @@ resync=ok/e953e62b
 outboxFiles=17
 outboxReceipts=39
 outboxRefusals=494
-written=2026-09-09T22:35:16
-botSweepPasses=57
+written=2026-09-10T06:44:31
+botSweepPasses=283
 botSweepSent=0
 botSweepRefused=0
 botSweepEverySec=120
@@ -26,15 +26,15 @@ botSweepSecSinceLast=0
 botSweepLastResult=sent0/refused0/of17
 botBriefTapsFiled=0
 botBriefReasonsFiled=0
-botUptimeSec=7305
-botSweepWrittenAt=2026-09-09T22:35:03
-botSweepAgeSec=13
+botUptimeSec=36640
+botSweepWrittenAt=2026-09-10T06:43:57
+botSweepAgeSec=34
 botSweepStatus=read/10-key(s)
 executorState=idle
 executorHandled=1
 executorPending=0
 executorLimitResumeIn=none
-studio-watcher=running studio-watcherUptimeSec=7324 studio-watcherStarts=1 studio-watcherStops=0 studio-watcherLastExit=none
-telegram-bot=running telegram-botUptimeSec=7324 telegram-botStarts=1 telegram-botStops=0 telegram-botLastExit=none
-claude-executor=running claude-executorUptimeSec=7324 claude-executorStarts=1 claude-executorStops=0 claude-executorLastExit=none
+studio-watcher=running studio-watcherUptimeSec=36678 studio-watcherStarts=1 studio-watcherStops=0 studio-watcherLastExit=none
+telegram-bot=running telegram-botUptimeSec=36678 telegram-botStarts=1 telegram-botStops=0 telegram-botLastExit=none
+claude-executor=running claude-executorUptimeSec=36678 claude-executorStarts=1 claude-executorStops=0 claude-executorLastExit=none
 
