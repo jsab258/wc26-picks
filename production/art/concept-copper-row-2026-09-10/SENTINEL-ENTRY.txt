@@ -1,0 +1,46 @@
+# COPPER ROW DISTRICT SHEET, 2026-09-10. Four items, one-off spec.
+#
+# THESE LINES ARE NOT LIVE. This file is a block for a resident to APPEND to
+# production/d1-probe/RUN-IMAGEGEN, which this commission never writes to:
+# that path is another agent's and is on the do-not-touch list. The sentinel is
+# append-only and LAST-WINS per key, so appending this block overrides every
+# pair above it and inherits nothing by accident.
+#
+# WHY THERE IS AN EMPTY `only:` LINE, AND IT IS THE ONE LINE NOBODY WOULD
+# THINK TO WRITE. The live sentinel's last block names four fairview_* ids on
+# its own `only:` line. `only` is LAST-WINS like every other key, so a block
+# that sets spec, out, limit and max_minutes and says nothing about `only`
+# inherits those four ids, and imagegen REFUSES a run whose --only names an id
+# that is in no prompt rather than quietly selecting nothing. The empty value
+# clears it: batch_settings reads the key as present with an empty value, the
+# workflow passes --only only when the value is non-empty
+# (.github/workflows/ledger-imagegen.yml line 587), so all four items of the
+# spec below are selected and no id can be mistyped. Measured, not assumed:
+# the proof is in this commission's report, run with --batch-settings over a
+# COPY of the live sentinel with this block appended.
+#
+# VALIDATION BEFORE THE RUN, every number printed by the tool's own functions
+# rather than asserted, re-derivable with
+# production/art/concept-copper-row-2026-09-10/check-copper-row-sheet.py:
+# validate_spec 0 problems of 4 items examined; positive-prompt exclusion words
+# 0 of 375 words scanned on the lane framing and 0 of 344 on the weighhouse
+# framing, with the content-rules clause exempted by identity and said so;
+# forbidden marks 0 of 45 tokens scanned; framing clause present 4 of 4;
+# negative recorded and INERT 4 of 4 at cfg 1.0, which is why every element
+# that must appear is in the positive half.
+#
+# COST. The tool's own estimator says 132.8 s an image at 1024x640 and 8.9
+# minutes for four, on the one card this has ever run on (RX 6700 / Vulkan /
+# Z-Image-Turbo Q4_K / 8 steps, 25 Aug). The measured precedent on the same
+# machine is 8 images at 688x1024 across the two Hook compare runs: mean 158.0
+# s against the estimator's 152.4 s for that size, so the estimator under-read
+# by 3.7 percent there. Scaled by that ratio, expect about 9.2 minutes.
+# max_minutes is 30, which is a backstop at better than three times the
+# estimate rather than a target.
+#
+# THE SETTINGS. Uncommented lines only.
+spec: production/art/concept-copper-row-2026-09-10/copper-row-sheet-2026-09-10.json
+out: production/art/concept-copper-row-2026-09-10/sheets
+only:
+limit: 4
+max_minutes: 30

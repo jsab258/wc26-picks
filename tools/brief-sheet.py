@@ -147,12 +147,52 @@ def selftest():
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("what", nargs="?", choices=["rung1", "hook"])
+    ap.add_argument("what", nargs="?",
+                    choices=["rung1", "hook", "district", "stack"])
     ap.add_argument("--ours")
+    ap.add_argument("--ref", help="the reference sheet for district mode")
+    ap.add_argument("--left", help="label over the left picture")
+    ap.add_argument("--right", help="label over the right picture")
+    ap.add_argument("--name", help="output filename under game-design/sim-shots")
+    ap.add_argument("--stack", nargs="*", default=None,
+                    help="stack these jpgs into one brief picture, in order")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
     if a.selftest:
         return selftest()
+    if a.what == "stack":
+        Image, ImageDraw = _pil()
+        paths = [Path(x) for x in (a.stack or [])]
+        missing = [str(x) for x in paths if not x.exists()]
+        if not paths:
+            sys.exit("brief-sheet: stack needs at least one jpg, none given")
+        if missing:
+            # NAMED, not counted: a picture silently dropped from the brief
+            # is the fault this whole composite exists to avoid.
+            sys.exit("brief-sheet: not on disk, nothing composed: "
+                     + ";".join(missing))
+        W = 1600
+        ims = [Image.open(x).convert("RGB") for x in paths]
+        ims = [i.resize((W, int(i.height * W / i.width)), Image.LANCZOS)
+               for i in ims]
+        GAP = 18
+        H = sum(i.height for i in ims) + GAP * (len(ims) - 1)
+        sheet = Image.new("RGB", (W, H), (16, 16, 16))
+        d = ImageDraw.Draw(sheet)
+        y = 0
+        for n, i in enumerate(ims):
+            sheet.paste(i, (0, y))
+            y += i.height
+            if n < len(ims) - 1:
+                d.line([(0, y + GAP // 2), (W, y + GAP // 2)],
+                       fill=(90, 90, 90), width=2)
+                y += GAP
+        OUT_DIR.mkdir(parents=True, exist_ok=True)
+        out = OUT_DIR / (a.name or "brief_stack.jpg")
+        sheet.save(out, quality=90)
+        print(f"brief-sheet stacked {len(ims)} picture(s) into {out} "
+              f"({out.stat().st_size} bytes, {sheet.size[0]}x{sheet.size[1]})")
+        return 0
     if not a.what:
         ap.error("say what to compose, or pass --selftest")
 
@@ -163,6 +203,20 @@ def main():
                  "composed")
     ref_full = Image.open(tmp).convert("RGB")
 
+    if a.what == "district":
+        # ANY district, not just the Hook. The reference is named on the
+        # command line because there are seven of them and hardcoding one
+        # was what made the hook mode un-reusable.
+        if not a.ref or not Path(a.ref).exists():
+            sys.exit("brief-sheet: district needs --ref naming a reference sheet")
+        if not a.ours or not Path(a.ours).exists():
+            sys.exit("brief-sheet: district needs --ours naming a drawn sheet")
+        out = OUT_DIR / (a.name or "district_theirs_vs_ours.jpg")
+        compose(Image.open(a.ref).convert("RGB"), a.left or "THEIRS",
+                Image.open(a.ours).convert("RGB"), a.right or "OURS", out)
+        tmp.unlink(missing_ok=True)
+        print(f"brief-sheet wrote {out} ({out.stat().st_size} bytes)")
+        return 0
     if a.what == "rung1":
         ours_path = a.ours or OURS_RUNG1
         if not Path(ours_path).exists():
@@ -176,7 +230,7 @@ def main():
             sys.exit("brief-sheet: hook needs --ours pointing at a drawn sheet")
         out = OUT_DIR / "hook_theirs_vs_ours.jpg"
         compose(ref_full, "THEIRS, three passes",
-                Image.open(a.ours).convert("RGB"), "OURS, one pass, the correction pass did not run", out)
+                Image.open(a.ours).convert("RGB"), "OURS, two passes, best of four seeds", out)
     tmp.unlink(missing_ok=True)
     print(f"brief-sheet wrote {out} ({out.stat().st_size} bytes)")
     return 0

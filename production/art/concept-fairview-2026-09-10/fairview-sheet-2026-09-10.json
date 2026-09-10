@@ -1,0 +1,766 @@
+{
+ "_DRAFT": [
+  "DRAFT. Originality UNPROVEN. This sheet was authored with third-party",
+  "prompt text in view: the pass-2 file it was told to copy its shape from",
+  "embeds that prompt verbatim in its source block, and the instruction to use",
+  "that file came from the director, not the author. The verbatim substring",
+  "test reports 0 of 48 rows failing; that test cannot see paraphrase, which is",
+  "the failure mode exposure produces, and it has never been run against a case",
+  "it must catch. Two rows are named by the author as places an echo could be",
+  "suspected. Read 0 of 48 as NOTHING MEASURED about originality until the",
+  "conditions in decision-2026-09-10-ruling-the-four-lane-batch.md section 5",
+  "are met."
+ ],
+ "schema": 2,
+ "batch_name": "fairview-sheet-2026-09-10",
+ "_comment": [
+  "THE SECOND DISTRICT SHEET THIS LANE HAS DRAWN AND THE FIRST ORIGINAL ONE.",
+  "Jafar 2026-09-10: the local image lane is the concept route, the outside",
+  "account is retired from production, and the next sheet's prompt is authored",
+  "from the form bible, the atlas and the research with no use of the outside",
+  "account's prompt files. This is that sheet. It is production, not a",
+  "comparison: it has to stand on its own.",
+  "",
+  "WHAT WAS NOT OPENED, stated because the whole point of the exercise is",
+  "whether the concept is this studio's. production/art/atlas-01/data/",
+  "concept-prompts.json, concept-edit-prompts.json, concept-final-prompts.json,",
+  "concept-period-prompts.json and pilot-image-inputs.json were NOT read. No",
+  "outside prompt text for Fairview or for any other district was read.",
+  "",
+  "WHAT WAS UNAVOIDABLY SEEN, disclosed rather than left for someone to find:",
+  "the file this spec copies its shape from, compare-hook-2026-09-09-pass2.json,",
+  "embeds the outside account's HOOK prompt verbatim in its `source` block, and",
+  "reading that file is what the brief asked for. So the outside phrasing for a",
+  "DIFFERENT district was in view while this was written. What was taken from",
+  "it: the nine top-level keys and nothing else. The provenance rows for the",
+  "paper border and for the closing sentence name the overlap and name it",
+  "exactly.",
+  "",
+  "WHY FAIRVIEW AND NOT ANOTHER DISTRICT. Six district sheets remain after the",
+  "Hook, the outside account has a sheet for every one of them, and the",
+  "deciding rule was which district THIS PROJECT'S OWN RESEARCH can author",
+  "from. Two of the five atlas-02 research files are Fairview files:",
+  "hillside-housing-dated-series.md is the hill's housing as a dated series,",
+  "and household-contents-and-upstairs.md is what is inside those houses. The",
+  "atlas's own Fairview row also names the gap this sheet fills: the existing",
+  "outside concept represents the upper hill, and a wider household and terrain",
+  "study was named as justified but unmade. So this sheet is the district where",
+  "our evidence is thickest AND where their sheet is admittedly partial, which",
+  "is the sharpest available test of whether the lane can author.",
+  "",
+  "THE LETTERING BUDGET, which is measured and not a preference. Three strings:",
+  "FAIRVIEW, CONCEPT PROPOSAL, CHAPEL ROAD. The sheet that worked carried four.",
+  "A residential district has no shop fascias, which is what buys the room for a",
+  "street nameplate, and the nameplate is the one this project's bill of",
+  "materials records as MANDATORY and blocked for want of an image",
+  "(production/specs/vignette-scene.json line 670). If a string has to go, the",
+  "nameplate is the one to drop; the title is what makes the sheet a sheet.",
+  "",
+  "OBJECTS ARE NOT TEXT AND DO NOT SPEND THE SAME BUDGET. The long list of",
+  "domestic gear in the lower panel is there because of the pass-2 finding: a",
+  "negative only vetoes and cannot summon, so the gear a district works with has",
+  "to be named positively or the model fills the frame from its own prettier",
+  "average. The gear here is dustbins, milk bottles, a coal bunker, a washing",
+  "line, coal smoke, a meter box, a handrail and a lamp column. None of it is",
+  "lettering.",
+  "",
+  "THREE THINGS DELIBERATELY LEFT OUT, each a judgement a reviewer may reverse.",
+  "(1) A telephone kiosk, which canon would support and which this district",
+  "wants, because canon's brand-and-law section still owes the telephone",
+  "operator's kiosk mark and lettering, and a kiosk would be a fourth string of",
+  "text in an unminted brand. (2) A bus stop with a timetable case, which the",
+  "atlas's Fairview row names, because a case invites lettering the budget",
+  "cannot pay for. (3) A milk float, because doorstep milk is cited as majority",
+  "behaviour but a float is a vehicle and canon makes every vehicle fictional,",
+  "so the bottles carry the fact and the vehicle does not.",
+  "",
+  "TWO ARMS, NOT FOUR SEEDS OF ONE PROMPT, and this is a deliberate change from",
+  "pass 2 rather than a slip. The authored prompt is 549 words against the 296",
+  "of the Hook draw that worked, and the one adherence fact this lane actually",
+  "measured is that at 296 words the model DROPPED three of the objects the",
+  "prompt asked for, on all four pass-1 draws. So the open question is whether",
+  "cutting the ask improves adherence, and the cheapest place to ask it is this",
+  "run, at no extra cost: items 1 and 2 carry the authored prompt at 549 words,",
+  "items 3 and 4 carry the same concept with the enumeration cut, at 400 words.",
+  "Every source, every object and all three lettering strings are identical",
+  "across the two; what the short arm drops is the four-layer housing",
+  "enumeration, the underbuild clause, the works chimney, the coal bunker and",
+  "some adjectives. WHAT THIS COSTS: two seeds per arm instead of four, which",
+  "halves the hedge against the lettering lottery that lost three of four draws",
+  "in pass 1. The alternative, four seeds of the authored prompt with the length",
+  "question left for the next sheet, is on the card list with this as the",
+  "default.",
+  "",
+  "FOUR SEEDS, none of them an anchor. A changed prompt does not reproduce a",
+  "composition at a given seed, and this prompt is new, so there is no",
+  "lettering-proven seed to lead with. 20260916 to 20260919 are unused by the",
+  "lane: the only 2026-dated seeds in the library and the two compare specs are",
+  "20260909 to 20260915, checked rather than assumed.",
+  "",
+  "THE NEGATIVE IS RECORDED AND INERT. cfg is 1.0 because this model is",
+  "distilled for it, and at cfg 1.0 sd-cli never evaluates the unconditional",
+  "branch, so every noun in `negative` does nothing on this run and the",
+  "manifest's inert_at_cfg1 count is what says so. It is written correctly",
+  "anyway, for the day an item raises cfg."
+ ],
+ "content_rules": {
+  "_comment": [
+   "COPIED BYTE FOR BYTE from tools/imagegen/prompts.json content_rules, and",
+   "verified equal by comparing the loaded values rather than by eye:",
+   "rules_clause identical True, forbidden_tokens identical True at 45 tokens",
+   "each. Carried rather than hand-listed because writing one of these files",
+   "from scratch last night dropped this block, and the only thing that caught",
+   "it was the tool's own dry run.",
+   "",
+   "The renderer appends rules_clause to every positive prompt and refuses to",
+   "build a prompt that does not carry it. It is the one exclusion clause",
+   "allowed in a positive prompt, because at cfg 1.0 the negative channel is",
+   "inert and moving it there would delete the only anti-brand instruction the",
+   "model receives."
+  ],
+  "rules_clause": "invented fictional shop name only, no real company names, no real brand logos, no trade marks, no real person, no recognisable faces, no celebrity likeness",
+  "forbidden_tokens": [
+   "coca-cola",
+   "coca cola",
+   "pepsi",
+   "guinness",
+   "carlsberg",
+   "heineken",
+   "bass ",
+   "watneys",
+   "courage",
+   "whitbread",
+   "tetley",
+   "boddingtons",
+   "woolworths",
+   "marks and spencer",
+   "tesco",
+   "sainsbury",
+   "wimpy",
+   "british rail",
+   "royal mail",
+   "bt ",
+   "british telecom",
+   "post office",
+   "walkers",
+   "cadbury",
+   "mcvitie",
+   "hovis",
+   "bovril",
+   "oxo",
+   "silk cut",
+   "benson and hedges",
+   "embassy",
+   "regal",
+   "players",
+   "castella",
+   "ford ",
+   "vauxhall",
+   "austin rover",
+   "leyland",
+   "shell",
+   "esso",
+   "bp ",
+   "thatcher",
+   "princess diana",
+   "the queen",
+   "elizabeth ii"
+  ]
+ },
+ "style": {
+  "_comment": [
+   "framing_required is copied verbatim from tools/imagegen/prompts.json line",
+   "172. The library's default prefix and suffix are deliberately NOT",
+   "inherited: they ask for a flat orthographic texture sheet with uniform",
+   "lighting on one single flat surface, which is right for a decal and wrong",
+   "for a two-panel concept sheet with two different cameras in it.",
+   "by_kind.concept.prefix is the shortest wording that satisfies",
+   "build_prompt's framing check, which reads the PREFIX and not the composed",
+   "text, while describing nothing the prompt does not already ask for: a",
+   "printed sheet filling the frame is what this is.",
+   "by_kind.concept.suffix is PRESENT AND EMPTY. Omitting the key would",
+   "inherit the library suffix, which ends `one single flat surface`."
+  ],
+  "framing_required": "filling the frame edge to edge",
+  "by_kind": {
+   "concept": {
+    "prefix": "one printed sheet filling the frame edge to edge,",
+    "suffix": ""
+   }
+  }
+ },
+ "defaults": {
+  "steps": 8,
+  "cfg": 1.0,
+  "sampler": "unset - sd-cli picks its model-specific default",
+  "seed_base": 8025,
+  "_comment": [
+   "steps and cfg are the library's measured settings, unchanged. cfg 1.0 is",
+   "where this distilled model is measured and where the negative channel is",
+   "inert; raising it is a named next rung and not this run. seed_base is never",
+   "reached because every item carries its own seed.",
+   "width and height are 688 by 1024, which is where this lane has banked 8 of",
+   "8 non-blank concept sheets (4 in production/art/compare/hook-2026-09-09 and",
+   "4 in hook-2026-09-09-pass2, blank 0 of 4 checked in the pass-2 manifest).",
+   "The outside Fairview sheet is 1024 by 1536, aspect 0.6667; ours is 0.6719,",
+   "which is the same 0.005 difference the Hook pair already sits at, so the",
+   "two sheets still read as a pair side by side."
+  ]
+ },
+ "source": {
+  "what": "THERE IS NO EXTERNAL PROMPT SOURCE. This prompt was authored from this project's own documents, and this block is the audit trail for that claim: every meaningful phrase of the prompt with the file it came from, the line or key, and a label. A phrase with label INVENTED came from nobody and says so.",
+  "authored_by": "the art lane, in-house, 2026-09-10",
+  "ruling": "Jafar 2026-09-10: our sheets are produced by the three-pass method, the next sheet's prompt is authored from the form bible, the atlas and the research with no use of the outside account's prompt files, and the brief says which words came from which source.",
+  "labels": {
+   "CANON": "canon.md, which outranks every other document",
+   "FORM-BIBLE": "production/art/atlas-01/TOWN-FORM-BIBLE.md, the D13 rider-1 form bible",
+   "ATLAS": "production/art/atlas-01/data/atlas.json, the authored coordinates",
+   "ATLAS-SHEET-FORMAT": "production/art/atlas-01/DISTRICTS.md, which states what a district sheet contains",
+   "PROJECT-DOC": "a game-design document whose observations survive D14",
+   "PROJECT-SPEC": "a production spec in this repository",
+   "RESEARCH-CITED": "production/art/atlas-02/research/, a fact with a dated source",
+   "RESEARCH-DERIVED": "production/art/atlas-02/research/, arithmetic from a cited fact",
+   "RESEARCH-ASSUMED": "production/art/atlas-02/research/, labelled ASSUMED or a HOLE in the research file itself",
+   "OURS-MEASURED": "a measurement this image lane made on its own earlier draws",
+   "LIBRARY-VERBATIM": "copied byte for byte from tools/imagegen/prompts.json",
+   "TOOL-REQUIREMENT": "a clause the renderer refuses to run without",
+   "INVENTED": "came from no source. Allowed, and listed so it can never be mistaken for research"
+  },
+  "provenance": [
+   {
+    "phrase": "FAIRVIEW, the residential hills of Meridian, a fictional British port town",
+    "label": "CANON",
+    "source": "canon.md",
+    "where": "lines 9 to 11",
+    "note": "canon names the seven districts and calls this one Fairview (residential hills)."
+   },
+   {
+    "phrase": "in 1990",
+    "label": "CANON+DERIVED",
+    "source": "canon.md",
+    "where": "line 32",
+    "note": "canon gives the window 1988 to 1992. 1990 is its middle year, chosen so that every dated object in the research resolves to one year instead of a range."
+   },
+   {
+    "phrase": "Two stacked photoreal panels inside a pale paper border: top an orientation view, bottom the same district at standing eye height / Two small rows along the bottom of the sheet",
+    "label": "ATLAS-SHEET-FORMAT",
+    "source": "production/art/atlas-01/DISTRICTS.md",
+    "where": "line 3",
+    "note": "the atlas states what a district sheet contains: an establishing image, a player-height image, materials and characteristic objects. That is the format requirement, and it is where the four-part structure comes from."
+   },
+   {
+    "phrase": "inside a pale paper border",
+    "label": "INVENTED",
+    "source": "",
+    "where": "",
+    "note": "a margin so the sheet reads as a printed sheet rather than a photograph. DISCLOSURE: the pass-2 Hook spec I was told to model the file shape on embeds the outside sheet's own prompt, which asks for restrained cream margins, so I had seen that a margin was wanted before I chose these words. The wording here is mine and the colour is different; the idea of a margin is not solely mine."
+   },
+   {
+    "phrase": "camera at 1.6 m",
+    "label": "PROJECT-SPEC",
+    "source": "game-design/art-collaboration.md",
+    "where": "line 106",
+    "note": "1.6 m is this project's own eye height for the built street, and the judgement rule in game-design/town-plan.md lines 48 to 51 is that every phase is judged on player-height stills."
+   },
+   {
+    "phrase": "from the crest road at 40 m, looking south and downhill",
+    "label": "ATLAS+DERIVED",
+    "source": "production/art/atlas-01/data/atlas.json",
+    "where": "routes id=crest (School Brow), contours 35 and 45, districts id=fairview height_m [18,46]",
+    "note": "the crest height is interpolated from the atlas contours at School Brow's own coordinates: at east 320 the 35 m line runs at north 880.6 and the 45 m line at 947.9, and the road is at north 915, which is 40.1 m. South is downhill because the atlas land polygon puts the water at low north."
+   },
+   {
+    "phrase": "the grey water of the harbour basin, dock cranes in silhouette, a tall brick works chimney further right",
+    "label": "ATLAS+DERIVED",
+    "source": "production/art/atlas-01/data/atlas.json",
+    "where": "landmarks H2 Old Basin [370,245] and I2 Retort works [125,380]",
+    "note": "from School Brow [445,940] the basin is 699 m away and about 40 m below, bearing south and slightly west; the works chimney is 645 m away on a wider southwest bearing, which puts it further right in a view facing south. Bearings and distances computed from those coordinates, printed in the delivery."
+   },
+   {
+    "phrase": "dock cranes in silhouette / a tall brick works chimney further right",
+    "label": "PROJECT-DOC",
+    "source": "game-design/town-plan.md",
+    "where": "lines 67 to 71",
+    "note": "the surviving urban observations ask for landmarks for orientation, crane silhouettes over the dock district and a chapel mass. D14 retires that document's visual ceiling, which is why nothing of its stylised target is used here."
+   },
+   {
+    "phrase": "from the crest road at 40 m, looking south and downhill",
+    "label": "FORM-BIBLE",
+    "source": "production/art/atlas-01/TOWN-FORM-BIBLE.md",
+    "where": "line 29, morphology rule 7",
+    "note": "rule 7 reserves long views for work and orientation, which is WHY the upper panel is a long view down the hill to the docks rather than a pretty skyline, and why the lower panel is closed in by the terrace instead."
+   },
+   {
+    "phrase": "Contour-following terraces / Stone retaining walls and flights of steps between streets",
+    "label": "FORM-BIBLE",
+    "source": "production/art/atlas-01/TOWN-FORM-BIBLE.md",
+    "where": "line 28, morphology rule 6",
+    "note": "rule 6 makes Fairview's hills canon-required fiction expressed by contour-following terraces, retaining walls and stair shortcuts."
+   },
+   {
+    "phrase": "grow older as they descend",
+    "label": "RESEARCH-DERIVED",
+    "source": "production/art/atlas-02/research/hillside-housing-dated-series.md",
+    "where": "lines 9 to 12",
+    "note": "our own research states the build order as a design tool: byelaw terraces at the bottom near the work, interwar on the middle slopes, council at the top, 1980s infill in what was left, and the higher the camera climbs the later the century."
+   },
+   {
+    "phrase": "rendered council cottage pairs in groups of four",
+    "label": "RESEARCH-CITED",
+    "source": "production/art/atlas-02/research/hillside-housing-dated-series.md",
+    "where": "lines 62 to 67",
+    "note": "Tudor Walters, October 1918: two-storey cottages in groups of four to six."
+   },
+   {
+    "phrase": "bay-fronted semis with hipped roofs and pebbledash upper storeys on the middle slopes",
+    "label": "RESEARCH-CITED",
+    "source": "production/art/atlas-02/research/hillside-housing-dated-series.md",
+    "where": "lines 84 to 88",
+    "note": "cited interwar speculative semi: steep hipped roof in plain clay tile, render at first floor, a two-storey bay, pebbledash to the upper storey only."
+   },
+   {
+    "phrase": "soot-darkened brick terraces lowest near the work",
+    "label": "RESEARCH-ASSUMED",
+    "source": "production/art/atlas-02/research/hillside-housing-dated-series.md",
+    "where": "lines 54 to 58",
+    "note": "the file labels its own 1990 eye for the byelaw layer as ASSUMED, and so is this phrase."
+   },
+   {
+    "phrase": "one short cul-de-sac of small thin-brick 1980s houses on the last plot",
+    "label": "RESEARCH-CITED+ASSUMED",
+    "source": "production/art/atlas-02/research/hillside-housing-dated-series.md",
+    "where": "lines 128 to 141",
+    "note": "CITED: homes built in England 1981 to 1990 average 83.9 m2 and post-1991 homes are larger, so the newest houses in Meridian in 1990 are the smallest. The file itself labels the cul-de-sac, the thin brick skin and the shallow pitch as ASSUMED."
+   },
+   {
+    "phrase": "party-wall chimney stacks with clay pots",
+    "label": "PROJECT-DOC",
+    "source": "game-design/town-plan.md",
+    "where": "lines 54 to 58",
+    "note": "contiguous rows with shared party walls and chimney stacks on the party walls."
+   },
+   {
+    "phrase": "a television aerial on every stack",
+    "label": "INVENTED",
+    "source": "",
+    "where": "",
+    "note": "our household research (lines 175 to 179) labels the four-channel line-up itself ASSUMED and HOLE 4, and nothing in our files counts aerials. The aerial on every roof is my inference from a country with four terrestrial channels and no cable."
+   },
+   {
+    "phrase": "one round satellite dish on a gable end",
+    "label": "RESEARCH-CITED+DERIVED",
+    "source": "production/art/atlas-02/research/hillside-housing-dated-series.md",
+    "where": "lines 174 to 185",
+    "note": "CITED: 750,000 dishes placed by April 1990, a million sold by late 1990, the flat square antenna rare at about 100,000. DERIVED density: roughly one dish per twenty to thirty households, stated in that file as an order of magnitude. One dish in a view of many roofs is that density, and the round dish rather than the square one is the common case."
+   },
+   {
+    "phrase": "A slate-roofed chapel and a railed school yard mid-slope",
+    "label": "ATLAS",
+    "source": "production/art/atlas-01/data/atlas.json and production/art/atlas-01/DISTRICTS.md",
+    "where": "landmarks F1 Chapel / school gate [330,835]; DISTRICTS.md line 51",
+    "note": "F1 is Fairview's named landmark and the atlas types it church with venue true; DISTRICTS.md line 51 calls the school chapel and steps the named landmark. The slate roof is my choice and is unsourced."
+   },
+   {
+    "phrase": "Chapel Road",
+    "label": "ATLAS",
+    "source": "production/art/atlas-01/data/atlas.json",
+    "where": "routes id=hill, name Chapel Road (proposal)",
+    "note": "an atlas-authored route through Fairview. It is marked a proposal in the atlas and is not in canon's minted street list, which names only Quay Street, Weighhouse Lane and Tannery Row."
+   },
+   {
+    "phrase": "gradient 1 in 9",
+    "label": "ATLAS+DERIVED",
+    "source": "production/art/atlas-01/data/atlas.json",
+    "where": "routes id=hill points [[270,700],[320,820]] against contours 10 and 20",
+    "note": "the lower length climbs from about 9.5 m to about 23.9 m over 130.0 m, which is 1 in 9.0. Cross-checked against hillside-housing-dated-series.md lines 197 to 201, whose cited residential range is 8 to 12 percent; 1 in 9 is 11.1 percent, inside it. That citation is American and shape-only, and HOLE 5 of that file says no British gradient limit could be found."
+   },
+   {
+    "phrase": "chapel gate 60 m up",
+    "label": "ATLAS+DERIVED",
+    "source": "production/art/atlas-01/data/atlas.json",
+    "where": "landmark F1 [330,835] against a camera at about [300,780]",
+    "note": "62.6 m by Pythagoras, rounded down to 60 m."
+   },
+   {
+    "phrase": "ONE ROW UNDER TWO MAINTENANCE REGIMES",
+    "label": "RESEARCH-CITED",
+    "source": "production/art/atlas-02/research/hillside-housing-dated-series.md",
+    "where": "lines 148 to 164",
+    "note": "CITED: over 1 million council houses sold under Right to Buy by 1990, 1.5 million quoted in the same source set, the right created by the Housing Act 1980. Our file's own sentence is One row, two maintenance regimes, visible from the street, line 160, and that sentence is what this clause compresses."
+   },
+   {
+    "phrase": "a new hardwood door with a sunburst glass panel, a brick porch added to the front, white plastic casement windows, stone cladding across the ground floor and a front garden paved over with a mass-market saloon on it",
+    "label": "RESEARCH-ASSUMED",
+    "source": "production/art/atlas-02/research/hillside-housing-dated-series.md",
+    "where": "lines 153 to 164, flagged there as HOLE 4",
+    "note": "THE MECHANISM IS CITED AND THIS ALTERATION LIST IS NOT. Our own file says the specific alterations are ASSUMED period knowledge that no source it could reach confirms, and names it HOLE 4. Carried because it is the most legible way to draw a sold house beside a rented one, and carried with the label visible."
+   },
+   {
+    "phrase": "painted timber windows",
+    "label": "RESEARCH-CITED+DERIVED",
+    "source": "production/art/atlas-02/research/hillside-housing-dated-series.md",
+    "where": "lines 165 to 173",
+    "note": "CITED: plastic frames were 75 percent of the 12 million windows sold a year by the mid-1980s and double glazing rose from about 16 percent of homes around 1979 to over 60 percent by the end of the 1990s. DERIVED: a 1990 street is MIXED, somewhere between 30 and 45 percent replaced, so one house plastic and the next timber is the sourced reading."
+   },
+   {
+    "phrase": "Party walls step up in half-storey jumps as the ground climbs and the end house sits on an underbuild, a cellar at one end and a garage at the other",
+    "label": "RESEARCH-DERIVED",
+    "source": "production/art/atlas-02/research/hillside-housing-dated-series.md",
+    "where": "lines 206 to 211",
+    "note": "geometry rather than citation: at 1 in 10 a 6.0 m module drops 600 mm, close to two risers, so a terrace on a hill either steps its party walls or grows an underbuild. Our file derives both and calls both worth a kit piece."
+   },
+   {
+    "phrase": "Kerb and pavement run unbroken uphill",
+    "label": "PROJECT-DOC",
+    "source": "game-design/town-plan.md",
+    "where": "lines 59 to 66",
+    "note": "pavements as continuous strips at constant width with kerb lines unbroken through the run."
+   },
+   {
+    "phrase": "the pavement stepped with a steel handrail",
+    "label": "INVENTED",
+    "source": "",
+    "where": "",
+    "note": "the steps are sourced (form bible rule 6, stair shortcuts). The handrail and its material are mine; HOLE 5 of the hillside file says it could find no British source on hillside layout, stepped terraces or retaining wall heights."
+   },
+   {
+    "phrase": "Galvanised steel dustbins with lids against the wall by a side door",
+    "label": "PROJECT-SPEC",
+    "source": "production/specs/vignette-scene.json",
+    "where": "line 347",
+    "note": "the built street's own spec: the galvanised British dustbin of this period is about 18 in across and 24 in tall, 0.46 by 0.61 m, set back 1.60 m from the kerb against the wall by the side door, because that is where a household bin waits. Our household research line 192 separately forbids a wheeled bin until its adoption can be dated."
+   },
+   {
+    "phrase": "a wire crate of glass milk bottles on a doorstep",
+    "label": "ATLAS+RESEARCH-CITED",
+    "source": "production/art/atlas-01/data/atlas.json and production/art/atlas-02/research/household-contents-and-upstairs.md",
+    "where": "districts id=fairview objects includes milk bottle; household lines 50 to 55",
+    "note": "CITED: doorstep milk was 45 percent of the retail market as late as 1995, so in 1990 it is at or above that and is majority behaviour rather than nostalgia. The wire crate is my object choice."
+   },
+   {
+    "phrase": "a concrete coal bunker in the side passage / a thread of coal smoke from one chimney",
+    "label": "RESEARCH-CITED",
+    "source": "production/art/atlas-02/research/hillside-housing-dated-series.md",
+    "where": "lines 186 to 193",
+    "note": "CITED: at the 1991 Census 18.5 percent of households had no central heating. Our file turns that into roughly one house in five with a coal or gas fire, chimneys in use and a coal bunker. One smoking chimney in a terrace is that rate drawn."
+   },
+   {
+    "phrase": "sheets on a wire washing line in the back yard seen through the passage",
+    "label": "ATLAS+FORM-BIBLE",
+    "source": "production/art/atlas-01/data/atlas.json and production/art/atlas-01/TOWN-FORM-BIBLE.md",
+    "where": "districts id=fairview objects includes wire washing line; form bible line 24, morphology rule 2",
+    "note": "rule 2 separates public frontage from working depth and gives passages named destinations, so the washing is seen THROUGH a passage rather than on the street. DISTRICTS.md line 13 also names a washing court in lower Fairview."
+   },
+   {
+    "phrase": "a pressed metal street nameplate on a garden wall reading CHAPEL ROAD in black capitals on white",
+    "label": "PROJECT-SPEC+INVENTED",
+    "source": "production/specs/vignette-scene.json",
+    "where": "line 670",
+    "note": "the bill of materials carries E10_street_name_plate as MANDATORY and BLOCKED ON AN IMAGE THAT DOES NOT EXIST, because no street name plate is in the generated directory or in the prompt library. Putting one legible plate in this sheet answers an open, named, mandatory gap, which is why it earns a third string of lettering. The plate's colours and the pressed metal are mine and unsourced."
+   },
+   {
+    "phrase": "a steel lamp column",
+    "label": "INVENTED",
+    "source": "",
+    "where": "",
+    "note": "nothing in our files describes period street lighting. Named as a research gap in the delivery, and the lamp is deliberately described without a lantern type so the sheet does not assert one."
+   },
+   {
+    "phrase": "three nonidentifiable people in ordinary British clothes of 1990",
+    "label": "CANON+OURS",
+    "source": "canon.md",
+    "where": "line 71",
+    "note": "canon forbids real people. The count of three is ours, carried from the Hook sheet this lane drew, and is a composition choice rather than a sourced density."
+   },
+   {
+    "phrase": "one in a black donkey jacket with leather shoulder panels walking uphill",
+    "label": "RESEARCH-CITED",
+    "source": "production/art/atlas-02/research/adult-clothing-by-occupation.md",
+    "where": "lines 39 to 49",
+    "note": "CITED: medium-length unlined jacket in black or dark blue thick Melton wool with the shoulders reinforced front and back in leather or PVC, in wide use through the 1980s among dockers, builders, miners and binmen. The same file's HOLE 1 forbids hi-vis on this authority, which is why nobody in this sheet wears any."
+   },
+   {
+    "phrase": "EXACTLY THREE PIECES OF LETTERING IN THE WHOLE SHEET / each crisp and correctly spelled, every other surface plain unlettered render, brick, paint and glass",
+    "label": "OURS-MEASURED",
+    "source": "tools/imagegen/compare-hook-2026-09-09-pass2.json and production/d1-probe/RUN-IMAGEGEN",
+    "where": "pass-2 _comment block; the sentinel's run-6 note",
+    "note": "this lane's own measurement: of four pass-1 Hook draws the pub fascia was legible on one seed and garbled on three, and every secondary fascia was an illegible smear on all four, so pass 2 named exactly two strings and made the rest plain. Three is one fewer than the four strings the sheet that worked carried."
+   },
+   {
+    "phrase": "an upper row of four flat material swatches, light warm grey pebbledash, dull red clay roof tile, dark green privet, grey-brown coursed retaining stone",
+    "label": "ATLAS+DERIVED",
+    "source": "production/art/atlas-01/data/atlas.json",
+    "where": "districts id=fairview materials [[pebbledash,#bcb6a5],[red tile,#89564c],[privet,#50624c],[retaining stone,#88877c]]",
+    "note": "the four materials are the atlas's four for this district, in its order. The colour words are my reading of its four hex values: 188,182,165 light warm grey; 137,86,76 dull red; 80,98,76 dark muted green; 136,135,124 warm mid grey."
+   },
+   {
+    "phrase": "three objects against the paper border, a wire crate of glass milk bottles, a low timber garden gate, a leather school satchel",
+    "label": "ATLAS",
+    "source": "production/art/atlas-01/data/atlas.json",
+    "where": "districts id=fairview objects [wire washing line, garden gate, milk bottle, school satchel]",
+    "note": "three of the atlas's own four characteristic objects for Fairview. The fourth, the wire washing line, is placed in the lower panel instead of the objects row, so all four appear."
+   },
+   {
+    "phrase": "Both rows plain and unlabelled",
+    "label": "OURS-MEASURED",
+    "source": "tools/imagegen/compare-hook-2026-09-09-pass2.json",
+    "where": "_comment block",
+    "note": "the swatch labels were conceded on the Hook sheet for the measured reason that at 8 steps every extra string degrades the lettering that works. Same concession here, same reason, and it is a judgement Jafar can reverse."
+   },
+   {
+    "phrase": "Flat overcast light after rain, wet tarmac, damp render / Slate-grey overcast sky",
+    "label": "CANON",
+    "source": "canon.md",
+    "where": "line 42",
+    "note": "photoreal, wet, overcast, grimy Britain; weather and grime are the strategy. The form bible line 36 offers dry diffuse daylight as a verification condition, and canon outranks it, so this sheet is wet."
+   },
+   {
+    "phrase": "soot streaks below the gutters, moss in the kerb joints",
+    "label": "FORM-BIBLE",
+    "source": "production/art/atlas-01/TOWN-FORM-BIBLE.md",
+    "where": "line 36",
+    "note": "grime follows water paths, hands, deliveries and heating, and does not cover every surface equally. Both placements are water paths."
+   },
+   {
+    "phrase": "Photoreal throughout, everything period-correct for 1990",
+    "label": "CANON+OURS",
+    "source": "canon.md",
+    "where": "lines 32 to 36 and 42",
+    "note": "POSITIVE FORMS OF EXCLUSIONS, which is this lane's rule: a diffusion model reads the noun and draws it, so the corresponding nouns sit in the negative field instead. See the translation list."
+   },
+   {
+    "phrase": "a mass-market saloon on it",
+    "label": "CANON+INVENTED",
+    "source": "canon.md",
+    "where": "line 71",
+    "note": "canon makes every vehicle fictional, so no model, marque or shape is named. The phrase is mine."
+   },
+   {
+    "phrase": "the title FAIRVIEW, the small subtitle CONCEPT PROPOSAL",
+    "label": "ATLAS-SHEET-FORMAT+INVENTED",
+    "source": "production/art/atlas-01/DISTRICTS.md",
+    "where": "line 3",
+    "note": "the atlas states that these sheets are concept proposals and not reference photographs or rendered geometry, so the sheet says so on its face. The two words are mine."
+   },
+   {
+    "phrase": "A proposal drawn for review.",
+    "label": "INVENTED",
+    "source": "",
+    "where": "",
+    "note": "my own closing sentence, in place of the outside sheet's This is proposed art, which I deliberately did not reuse."
+   },
+   {
+    "phrase": "one printed sheet filling the frame edge to edge,",
+    "label": "TOOL-REQUIREMENT",
+    "source": "tools/imagegen/prompts.json",
+    "where": "line 172",
+    "note": "style.framing_required is copied verbatim from our own prompt library and build_prompt refuses any prompt whose kind prefix lacks it, by id, before the download. The rest of the prefix wording is mine."
+   },
+   {
+    "phrase": "invented fictional shop name only, no real company names, no real brand logos, no trade marks, no real person, no recognisable faces, no celebrity likeness",
+    "label": "LIBRARY-VERBATIM",
+    "source": "tools/imagegen/prompts.json",
+    "where": "content_rules.rules_clause",
+    "note": "copied byte for byte from our own library, together with all 45 forbidden_tokens, and verified equal by comparison rather than by eye. This is the one exclusion clause allowed in a positive prompt and the renderer appends it to every prompt."
+   }
+  ],
+  "counts": {
+   "provenance_rows": 48,
+   "by_label": {
+    "ATLAS": 3,
+    "ATLAS+DERIVED": 5,
+    "ATLAS+FORM-BIBLE": 1,
+    "ATLAS+RESEARCH-CITED": 1,
+    "ATLAS-SHEET-FORMAT": 1,
+    "ATLAS-SHEET-FORMAT+INVENTED": 1,
+    "CANON": 2,
+    "CANON+DERIVED": 1,
+    "CANON+INVENTED": 1,
+    "CANON+OURS": 2,
+    "FORM-BIBLE": 3,
+    "INVENTED": 5,
+    "LIBRARY-VERBATIM": 1,
+    "OURS-MEASURED": 2,
+    "PROJECT-DOC": 3,
+    "PROJECT-SPEC": 2,
+    "PROJECT-SPEC+INVENTED": 1,
+    "RESEARCH-ASSUMED": 2,
+    "RESEARCH-CITED": 5,
+    "RESEARCH-CITED+ASSUMED": 1,
+    "RESEARCH-CITED+DERIVED": 2,
+    "RESEARCH-DERIVED": 2,
+    "TOOL-REQUIREMENT": 1
+   },
+   "invented_rows": 8,
+   "note": "invented_rows counts every row whose label contains INVENTED, including the mixed labels where part of a phrase is sourced and part is not."
+  },
+  "their_sheet": {
+   "why_recorded": "the ruling asks for ours to be sent beside theirs for the same district. This is the file the brief will carry, measured, so the pair can be assembled without opening anything of theirs that is prompt text.",
+   "file": "production/art/atlas-01/concepts/fairview.png",
+   "branch": "origin/art/atlas-01",
+   "commit": "46d7d7592a38ceeecff7954d404fcce555a6d5c9",
+   "width": 1024,
+   "height": 1536,
+   "bytes": 3250510,
+   "sha256": "6bb00cd7c640fd048ce30193d0230bcd1547b6637258ca1d85124e05365eba00",
+   "measured": "PNG IHDR and sha256 read from the bytes on that branch in this session",
+   "read_scope": "the IMAGE's header and hash only. No prompt file of theirs was opened for this or any district."
+  }
+ },
+ "translation": [
+  {
+   "exclusion_wanted": "no sunshine, no blue sky, no hard shadows",
+   "positive_written": "flat overcast light after rain, wet tarmac with standing puddles, Slate-grey overcast sky",
+   "moved_to_negative": [
+    "sunshine",
+    "bright sunlight",
+    "blue sky",
+    "hard shadows",
+    "golden hour"
+   ],
+   "why": "canon asks for wet and overcast. The positive form is the weather itself; the nouns that would summon the opposite are vetoes only."
+  },
+  {
+   "exclusion_wanted": "not the pretty average British residential street",
+   "positive_written": "galvanised steel dustbins with lids, a wire crate of glass milk bottles, a concrete coal bunker, sheets on a wire washing line, a thread of coal smoke, a grey gas meter box, soot streaks below the gutters, moss in the kerb joints",
+   "moved_to_negative": [
+    "thatched cottage",
+    "village green",
+    "leafy suburb",
+    "flower beds in bloom",
+    "hanging baskets",
+    "manicured lawn",
+    "tourist postcard"
+   ],
+   "why": "THE LESSON OF PASS 2, and it is the reason this list is long. On the Hook sheet the negative successfully kept the yachts out and the working port never arrived, because a veto cannot summon: the model filled the water from its own average and the average British waterside is prettier than a working dock. Fairview's equivalent of the working gear is the domestic gear, so it is named as objects in the positive half. These are OBJECTS, not lettering, so they do not spend the text budget."
+  },
+  {
+   "exclusion_wanted": "no modern vehicles and no modern technology",
+   "positive_written": "everything period-correct for 1990",
+   "moved_to_negative": [
+    "modern car",
+    "contemporary car",
+    "modern tech",
+    "mobile phone",
+    "computer screen",
+    "flat panel display"
+   ],
+   "why": "one positive umbrella for several exclusions that share one intent, and it is WEAKER than naming them, which is recorded rather than hidden. A positive naming of a car or a screen would place one."
+  },
+  {
+   "exclusion_wanted": "no wheeled bins",
+   "positive_written": "galvanised steel dustbins with lids waiting against the wall by a side door",
+   "moved_to_negative": [
+    "wheelie bin",
+    "wheeled bin",
+    "plastic recycling box"
+   ],
+   "why": "AND THIS ONE IS A CONFLICT BETWEEN TWO OF OUR OWN DOCUMENTS, carried to the card list rather than decided silently. The form bible line 36 withdraws the blanket exclusion of wheeled bins as unsupported; our household research line 192 and the hillside file's HOLE 6 say the adoption date could not be found at all and that a wheeled bin must not be placed until it can be dated. Undated loses, so the bin here is the one the built street's own spec already dimensions."
+  },
+  {
+   "exclusion_wanted": "no illustration, no painterly rendering",
+   "positive_written": "photoreal throughout, photographic material plausibility",
+   "moved_to_negative": [
+    "illustration",
+    "stylised illustration",
+    "cartoon",
+    "painterly",
+    "digital painting",
+    "watercolour"
+   ],
+   "why": "positive form, in canon's own word. D8 and D14 retire the stylised ceiling."
+  },
+  {
+   "exclusion_wanted": "no real brands, no real people",
+   "positive_written": "a mass-market saloon, a fictional British port town, and the appended content_rules clause",
+   "moved_to_negative": [
+    "real brand logo",
+    "trade mark",
+    "real company name"
+   ],
+   "why": "the rules clause rides in the positive prompt by the tool's own design and is exempted from the exclusion scan by name; the nouns are mirrored into the negative where they will start acting the day an item raises cfg above 1.0."
+  },
+  {
+   "exclusion_wanted": "no lettering anywhere except the three strings",
+   "positive_written": "EXACTLY THREE PIECES OF LETTERING IN THE WHOLE SHEET, each one crisp and correctly spelled; every other surface in the sheet is plain unlettered render, brick, paint and glass. Both rows plain and unlabelled.",
+   "moved_to_negative": [
+    "lettering on doors",
+    "shop fascia lettering",
+    "captions under the swatches",
+    "label text",
+    "handwriting",
+    "watermark",
+    "signature"
+   ],
+   "why": "THIS IS THE FAULT THAT REFUSED RUN 6 AND IT IS NOT REPEATED. The correction pass written to fix lettering asked for no text twice in the half of the prompt that cannot express no. Here the positive half says what every other surface IS, which is plain, and every anti-text noun sits in the negative."
+  },
+  {
+   "exclusion_wanted": "no interface overlay, no screenshot framing",
+   "positive_written": "",
+   "moved_to_negative": [
+    "HUD",
+    "heads-up display",
+    "game interface overlay",
+    "screenshot",
+    "game screenshot"
+   ],
+   "why": "NO HONEST POSITIVE EQUIVALENT: the positive of no overlay is nothing to draw, and naming a HUD in a positive prompt asks for one. Negative only, where the manifest's inert_at_cfg1 count records that it did nothing at cfg 1.0."
+  },
+  {
+   "exclusion_wanted": "no crowd, no event",
+   "positive_written": "Three nonidentifiable people in ordinary British clothes of 1990, one of them walking uphill",
+   "moved_to_negative": [
+    "crowd",
+    "street festival",
+    "bunting"
+   ],
+   "why": "positive form: an ordinary wet weekday on a hill street, with a count instead of a density word."
+  }
+ ],
+ "items": [
+  {
+   "kind": "concept",
+   "probe": true,
+   "binds_to": "CONCEPT SHEET - reviewed by eye, bound to no mesh, no material and no bill-of-materials row. Fairview, the second of seven district sheets drawn by this lane, and the first whose prompt was authored from this project's own sources. Jafar 2026-09-10.",
+   "width": 688,
+   "height": 1024,
+   "prompt": "A concept sheet for FAIRVIEW, the residential hills of Meridian, a fictional British port town, in 1990. Two stacked photoreal panels inside a pale paper border: top an orientation view, bottom the same district at standing eye height. TOP: from the crest road at 40 m, looking south and downhill. Contour-following terraces step down the slope in ranks of dull red clay tile and grow older as they descend: rendered council cottage pairs in groups of four on the high ground, bay-fronted semis with hipped roofs and pebbledash upper storeys on the middle slopes, soot-darkened brick terraces lowest near the work, one short cul-de-sac of small thin-brick 1980s houses on the last plot. Party-wall chimney stacks with clay pots, a television aerial on every stack, one round satellite dish on a gable end. Stone retaining walls and flights of steps between streets. A slate-roofed chapel and a railed school yard mid-slope. Beyond the last roofs and 40 m below, the grey water of the harbour basin, dock cranes in silhouette, a tall brick works chimney further right. Slate-grey overcast sky. BOTTOM: camera at 1.6 m on the steep lower length of Chapel Road, gradient 1 in 9, looking uphill along a terrace of council cottages, chapel gate 60 m up. ONE ROW UNDER TWO MAINTENANCE REGIMES, house by house: the near house, bought from the council, has a new hardwood door with a sunburst glass panel, a brick porch added to the front, white plastic casement windows, stone cladding across the ground floor and a front garden paved over with a mass-market saloon on it; its neighbour, still rented, keeps the council's plain painted door, painted timber windows, a low chain-link fence and a clipped privet hedge. Party walls step up in half-storey jumps as the ground climbs and the end house sits on an underbuild, a cellar at one end and a garage at the other. Kerb and pavement run unbroken uphill, the pavement stepped with a steel handrail. Galvanised steel dustbins with lids against the wall by a side door, a wire crate of glass milk bottles on a doorstep, a concrete coal bunker in the side passage, sheets on a wire washing line in the back yard seen through the passage, a thread of coal smoke from one chimney, a steel lamp column. Flat overcast light after rain, wet tarmac, damp render, soot streaks below the gutters, moss in the kerb joints. Three nonidentifiable people in ordinary British clothes of 1990, one in a black donkey jacket with leather shoulder panels walking uphill. EXACTLY THREE PIECES OF LETTERING IN THE WHOLE SHEET: the title FAIRVIEW, the small subtitle CONCEPT PROPOSAL, and a pressed metal street nameplate on a garden wall reading CHAPEL ROAD in black capitals on white; each crisp and correctly spelled, every other surface plain unlettered render, brick, paint and glass. Two small rows along the bottom of the sheet: an upper row of four flat material swatches, light warm grey pebbledash, dull red clay roof tile, dark green privet, grey-brown coursed retaining stone; below it three objects against the paper border, a wire crate of glass milk bottles, a low timber garden gate, a leather school satchel. Both rows plain and unlabelled. Photoreal throughout, everything period-correct for 1990. A proposal drawn for review.",
+   "negative": "sunshine, bright sunlight, blue sky, hard shadows, golden hour, thatched cottage, village green, leafy suburb, flower beds in bloom, hanging baskets, manicured lawn, tourist postcard, illustration, stylised illustration, cartoon, painterly, digital painting, watercolour, modern car, contemporary car, modern tech, mobile phone, computer screen, flat panel display, wheelie bin, wheeled bin, plastic recycling box, crowd, street festival, bunting, HUD, heads-up display, game interface overlay, screenshot, game screenshot, real brand logo, trade mark, real company name, lettering on doors, shop fascia lettering, captions under the swatches, label text, handwriting, watermark, signature",
+   "id": "fairview_sheet",
+   "seed": 20260916
+  },
+  {
+   "kind": "concept",
+   "probe": true,
+   "binds_to": "CONCEPT SHEET - reviewed by eye, bound to no mesh, no material and no bill-of-materials row. Fairview, the second of seven district sheets drawn by this lane, and the first whose prompt was authored from this project's own sources. Jafar 2026-09-10.",
+   "width": 688,
+   "height": 1024,
+   "prompt": "A concept sheet for FAIRVIEW, the residential hills of Meridian, a fictional British port town, in 1990. Two stacked photoreal panels inside a pale paper border: top an orientation view, bottom the same district at standing eye height. TOP: from the crest road at 40 m, looking south and downhill. Contour-following terraces step down the slope in ranks of dull red clay tile and grow older as they descend: rendered council cottage pairs in groups of four on the high ground, bay-fronted semis with hipped roofs and pebbledash upper storeys on the middle slopes, soot-darkened brick terraces lowest near the work, one short cul-de-sac of small thin-brick 1980s houses on the last plot. Party-wall chimney stacks with clay pots, a television aerial on every stack, one round satellite dish on a gable end. Stone retaining walls and flights of steps between streets. A slate-roofed chapel and a railed school yard mid-slope. Beyond the last roofs and 40 m below, the grey water of the harbour basin, dock cranes in silhouette, a tall brick works chimney further right. Slate-grey overcast sky. BOTTOM: camera at 1.6 m on the steep lower length of Chapel Road, gradient 1 in 9, looking uphill along a terrace of council cottages, chapel gate 60 m up. ONE ROW UNDER TWO MAINTENANCE REGIMES, house by house: the near house, bought from the council, has a new hardwood door with a sunburst glass panel, a brick porch added to the front, white plastic casement windows, stone cladding across the ground floor and a front garden paved over with a mass-market saloon on it; its neighbour, still rented, keeps the council's plain painted door, painted timber windows, a low chain-link fence and a clipped privet hedge. Party walls step up in half-storey jumps as the ground climbs and the end house sits on an underbuild, a cellar at one end and a garage at the other. Kerb and pavement run unbroken uphill, the pavement stepped with a steel handrail. Galvanised steel dustbins with lids against the wall by a side door, a wire crate of glass milk bottles on a doorstep, a concrete coal bunker in the side passage, sheets on a wire washing line in the back yard seen through the passage, a thread of coal smoke from one chimney, a steel lamp column. Flat overcast light after rain, wet tarmac, damp render, soot streaks below the gutters, moss in the kerb joints. Three nonidentifiable people in ordinary British clothes of 1990, one in a black donkey jacket with leather shoulder panels walking uphill. EXACTLY THREE PIECES OF LETTERING IN THE WHOLE SHEET: the title FAIRVIEW, the small subtitle CONCEPT PROPOSAL, and a pressed metal street nameplate on a garden wall reading CHAPEL ROAD in black capitals on white; each crisp and correctly spelled, every other surface plain unlettered render, brick, paint and glass. Two small rows along the bottom of the sheet: an upper row of four flat material swatches, light warm grey pebbledash, dull red clay roof tile, dark green privet, grey-brown coursed retaining stone; below it three objects against the paper border, a wire crate of glass milk bottles, a low timber garden gate, a leather school satchel. Both rows plain and unlabelled. Photoreal throughout, everything period-correct for 1990. A proposal drawn for review.",
+   "negative": "sunshine, bright sunlight, blue sky, hard shadows, golden hour, thatched cottage, village green, leafy suburb, flower beds in bloom, hanging baskets, manicured lawn, tourist postcard, illustration, stylised illustration, cartoon, painterly, digital painting, watercolour, modern car, contemporary car, modern tech, mobile phone, computer screen, flat panel display, wheelie bin, wheeled bin, plastic recycling box, crowd, street festival, bunting, HUD, heads-up display, game interface overlay, screenshot, game screenshot, real brand logo, trade mark, real company name, lettering on doors, shop fascia lettering, captions under the swatches, label text, handwriting, watermark, signature",
+   "id": "fairview_sheet_s2",
+   "seed": 20260917
+  },
+  {
+   "kind": "concept",
+   "probe": true,
+   "binds_to": "CONCEPT SHEET - reviewed by eye, bound to no mesh, no material and no bill-of-materials row. Fairview, the second of seven district sheets drawn by this lane, and the first whose prompt was authored from this project's own sources. Jafar 2026-09-10.",
+   "width": 688,
+   "height": 1024,
+   "prompt": "A concept sheet for FAIRVIEW, the residential hills of Meridian, a fictional British port town, in 1990. Two stacked photoreal panels inside a pale paper border: top an orientation view, bottom the same district at standing eye height. TOP: from the crest road at 40 m, looking south and downhill. Contour-following terraces step down the slope in ranks of dull red clay tile and grow older as they descend, rendered council cottage pairs high and soot-darkened brick terraces lowest near the work. Chimney stacks with clay pots, a television aerial on every stack, one round satellite dish. Stone retaining walls and flights of steps between streets. A slate-roofed chapel and a railed school yard mid-slope. Beyond the last roofs and 40 m below, the grey harbour basin and dock cranes in silhouette. Slate-grey overcast sky. BOTTOM: camera at 1.6 m on the steep lower length of Chapel Road, gradient 1 in 9, looking uphill along a terrace of council cottages. ONE ROW UNDER TWO MAINTENANCE REGIMES, house by house: the near house, bought from the council, has a new door with a sunburst glass panel, a brick porch, white plastic casement windows, stone cladding across the ground floor and a front garden paved over with a mass-market saloon on it; its neighbour, still rented, keeps the council's plain painted door, painted timber windows and a clipped privet hedge. The pavement steps uphill with a steel handrail. Galvanised steel dustbins with lids by a side door, a wire crate of glass milk bottles on a doorstep, sheets on a wire washing line seen through the passage, a thread of coal smoke from one chimney. Overcast light after rain, wet tarmac, soot streaks below the gutters. Three nonidentifiable people in ordinary 1990 British clothes, one in a black donkey jacket with leather shoulder panels. EXACTLY THREE PIECES OF LETTERING IN THE WHOLE SHEET: the title FAIRVIEW, the small subtitle CONCEPT PROPOSAL, and a street nameplate reading CHAPEL ROAD in black capitals on white; each crisp and correctly spelled, every other surface plain unlettered render, brick and paint. Two small rows along the bottom: four flat material swatches, pebbledash, dull red clay roof tile, dark green privet, grey-brown retaining stone; below them three objects against the paper border, a crate of glass milk bottles, a low timber garden gate, a leather school satchel. Both rows plain and unlabelled. Photoreal throughout, period-correct for 1990.",
+   "negative": "sunshine, bright sunlight, blue sky, hard shadows, golden hour, thatched cottage, village green, leafy suburb, flower beds in bloom, hanging baskets, manicured lawn, tourist postcard, illustration, stylised illustration, cartoon, painterly, digital painting, watercolour, modern car, contemporary car, modern tech, mobile phone, computer screen, flat panel display, wheelie bin, wheeled bin, plastic recycling box, crowd, street festival, bunting, HUD, heads-up display, game interface overlay, screenshot, game screenshot, real brand logo, trade mark, real company name, lettering on doors, shop fascia lettering, captions under the swatches, label text, handwriting, watermark, signature",
+   "id": "fairview_sheet_short",
+   "seed": 20260918
+  },
+  {
+   "kind": "concept",
+   "probe": true,
+   "binds_to": "CONCEPT SHEET - reviewed by eye, bound to no mesh, no material and no bill-of-materials row. Fairview, the second of seven district sheets drawn by this lane, and the first whose prompt was authored from this project's own sources. Jafar 2026-09-10.",
+   "width": 688,
+   "height": 1024,
+   "prompt": "A concept sheet for FAIRVIEW, the residential hills of Meridian, a fictional British port town, in 1990. Two stacked photoreal panels inside a pale paper border: top an orientation view, bottom the same district at standing eye height. TOP: from the crest road at 40 m, looking south and downhill. Contour-following terraces step down the slope in ranks of dull red clay tile and grow older as they descend, rendered council cottage pairs high and soot-darkened brick terraces lowest near the work. Chimney stacks with clay pots, a television aerial on every stack, one round satellite dish. Stone retaining walls and flights of steps between streets. A slate-roofed chapel and a railed school yard mid-slope. Beyond the last roofs and 40 m below, the grey harbour basin and dock cranes in silhouette. Slate-grey overcast sky. BOTTOM: camera at 1.6 m on the steep lower length of Chapel Road, gradient 1 in 9, looking uphill along a terrace of council cottages. ONE ROW UNDER TWO MAINTENANCE REGIMES, house by house: the near house, bought from the council, has a new door with a sunburst glass panel, a brick porch, white plastic casement windows, stone cladding across the ground floor and a front garden paved over with a mass-market saloon on it; its neighbour, still rented, keeps the council's plain painted door, painted timber windows and a clipped privet hedge. The pavement steps uphill with a steel handrail. Galvanised steel dustbins with lids by a side door, a wire crate of glass milk bottles on a doorstep, sheets on a wire washing line seen through the passage, a thread of coal smoke from one chimney. Overcast light after rain, wet tarmac, soot streaks below the gutters. Three nonidentifiable people in ordinary 1990 British clothes, one in a black donkey jacket with leather shoulder panels. EXACTLY THREE PIECES OF LETTERING IN THE WHOLE SHEET: the title FAIRVIEW, the small subtitle CONCEPT PROPOSAL, and a street nameplate reading CHAPEL ROAD in black capitals on white; each crisp and correctly spelled, every other surface plain unlettered render, brick and paint. Two small rows along the bottom: four flat material swatches, pebbledash, dull red clay roof tile, dark green privet, grey-brown retaining stone; below them three objects against the paper border, a crate of glass milk bottles, a low timber garden gate, a leather school satchel. Both rows plain and unlabelled. Photoreal throughout, period-correct for 1990.",
+   "negative": "sunshine, bright sunlight, blue sky, hard shadows, golden hour, thatched cottage, village green, leafy suburb, flower beds in bloom, hanging baskets, manicured lawn, tourist postcard, illustration, stylised illustration, cartoon, painterly, digital painting, watercolour, modern car, contemporary car, modern tech, mobile phone, computer screen, flat panel display, wheelie bin, wheeled bin, plastic recycling box, crowd, street festival, bunting, HUD, heads-up display, game interface overlay, screenshot, game screenshot, real brand logo, trade mark, real company name, lettering on doors, shop fascia lettering, captions under the swatches, label text, handwriting, watermark, signature",
+   "id": "fairview_sheet_short_s2",
+   "seed": 20260919
+  }
+ ]
+}

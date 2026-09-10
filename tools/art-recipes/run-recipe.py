@@ -32,6 +32,7 @@ first real run on the Windows runner is the first time those lines execute.
 """
 import contextlib
 import io
+import json
 import os
 import re
 import shutil
@@ -420,10 +421,48 @@ def _selftest(root=ROOT):
               "mickeysBay=0/6-bays" in d and "bayDefaultFrom=fascia-decal/" in d)
         check("accept/and-the-two-hints-in-the-file-are-reported-as-conflicting",
               "bayHintConflict=bar-back-card-at-bay2" in d)
-        check("accept/all-593-pieces-are-planned-with-no-silent-skip",
-              "piecesPlanned=593/593-read" in d and "piecesSkipped=0/593-read" in d)
-        check("accept/all-16-named-mesh-assets-are-found-on-disk",
-              "meshAssetsFound=16/16-named" in d)
+        # THESE THREE READ THE COUNT RATHER THAN PINNING IT, 2026-09-10. They
+        # said 593 pieces and 16 mesh assets, and the fascia package moved the
+        # street to 610 and 18, so three checks went red on a layout change
+        # that was correct. What they are FOR is that nothing is silently
+        # skipped and nothing named is missing, and neither of those is a
+        # number: both are an equality between two numbers the recipe itself
+        # printed. Read as a relation they also keep holding as the street
+        # grows, where a literal has to be re-typed by whoever grows it and
+        # every re-typing is a chance to widen a guard by accident.
+        # AND THE DENOMINATOR COMES FROM THE DATA, NOT FROM THE RECIPE.
+        # Without this line the pair above is self-consistent and blind to the
+        # one failure the old literal could see: a recipe that reads 606 of 610
+        # pieces and reports 606/606-read is internally honest and externally
+        # wrong. Two numbers derived from one variable are one number twice, so
+        # the third number is read off the spec file here, independently.
+        spec_pieces = None
+        try:
+            with open(os.path.join(root, "production", "specs",
+                                   "vignette-pieces.json"), "r", encoding="utf-8") as fh:
+                spec_pieces = int(json.load(fh)["counts"]["pieces"])
+        except (OSError, ValueError, KeyError, TypeError):
+            spec_pieces = None
+        planned = re.search(r"piecesPlanned=(\d+)/(\d+)-read", d)
+        check("accept/the-recipe-read-every-piece-the-spec-file-says-it-has",
+              spec_pieces is not None and planned is not None
+              and int(planned.group(2)) == spec_pieces,
+              "specCountsPieces=%s recipeRead=%s"
+              % (spec_pieces if spec_pieces is not None else "nothing-measured",
+                 planned.group(2) if planned else "no-piecesPlanned-key"))
+        skipped = re.search(r"piecesSkipped=(\d+)/(\d+)-read", d)
+        check("accept/every-piece-the-recipe-read-is-planned-with-no-silent-skip",
+              planned is not None and skipped is not None
+              and planned.group(1) == planned.group(2)
+              and int(planned.group(1)) > 0
+              and skipped.group(1) == "0" and skipped.group(2) == planned.group(2),
+              "%s | %s" % (planned.group(0) if planned else "no-piecesPlanned-key",
+                           skipped.group(0) if skipped else "no-piecesSkipped-key"))
+        meshes = re.search(r"meshAssetsFound=(\d+)/(\d+)-named", d)
+        check("accept/every-named-mesh-asset-is-found-on-disk",
+              meshes is not None and meshes.group(1) == meshes.group(2)
+              and int(meshes.group(1)) > 0,
+              meshes.group(0) if meshes else "no-meshAssetsFound-key")
         check("accept/the-camera-height-agrees-with-the-slab-geometry",
               re.search(r"groundCrossCheck=agree/0\.\d+mm", d) is not None,
               re.search(r"groundCrossCheck=\S+", d).group(0))
@@ -437,8 +476,12 @@ def _selftest(root=ROOT):
         zeros = [t for t in pairs if re.match(r"^[A-Za-z]+=0(?!\.)", t)]
         check("accept/every-zero-on-the-done-line-carries-a-denominator",
               all("/" in t for t in zeros), zeros)
+        built = re.search(r"piecesBuilt=(\d+)/(\d+)-planned", d)
         check("accept/a-plan-that-rendered-nothing-says-nothing-was-built",
-              "piecesBuilt=0/593-planned" in d and "nothing-built" in d, d[:120])
+              built is not None and built.group(1) == "0"
+              and planned is not None and built.group(2) == planned.group(2)
+              and "nothing-built" in d,
+              (built.group(0) if built else "no-piecesBuilt-key") + " | " + d[:120])
 
     # ---- REJECT: a recipe nobody wrote is refused BY NAME ----
     p_missing, e_missing = resolve(root, "no-such-recipe-anywhere")

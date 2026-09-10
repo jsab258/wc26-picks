@@ -133,12 +133,23 @@ except Exception:                                                # noqa: BLE001
 NOTHING = CAPSAY.NOTHING_MEASURED if CAPSAY else "nothing-measured"
 NOTHING_WORDS = "nothing measured"
 
-# WHERE THE PICTURES ARE, measured rather than assumed: on 2026-09-09 there
-# were 49 image files, 18 png under production/d1-probe (the Unreal frames,
-# the newest in the repository) and 31 jpg under game-design/sim-shots;
-# production/frames exists in tools/glance.py's list and holds nothing yet. A
-# directory that does not exist is counted and named, never silently skipped.
-SOURCES = ("production/d1-probe", "production/frames", "game-design/sim-shots")
+# WHERE THE PICTURES ARE, measured rather than assumed and RE-MEASURED on
+# 2026-09-10 because the previous count decayed inside two days: 72 image
+# files, 27 under production/d1-probe (the Unreal frames), 37 under
+# game-design/sim-shots and 8 under production/art. production/frames is in
+# tools/glance.py's list and DOES NOT EXIST here, which is counted and named
+# rather than silently skipped.
+#
+# production/art JOINED THE LIST ON 2026-09-10 AND IT IS A REAL GAP CLOSING.
+# The concept boards this studio draws land under production/art/compare and
+# production/art/concept-<district>-<date>/sheets, and NEITHER WAS UNDER ANY
+# SOURCE, so the gallery could not see a single one of them. Found while a
+# builder was authoring a district sheet and checked what would surface it.
+# The walk is rglob, so naming the root covers every board directory made
+# since and every one made hereafter, which is the point of naming the root
+# rather than the two directories that happen to exist today.
+SOURCES = ("production/d1-probe", "production/frames", "game-design/sim-shots",
+           "production/art")
 IMAGE_SUFFIXES = GLANCE.IMAGE_SUFFIXES
 # NOT PUBLISHED, COUNTED. The day a clip lands, this prints a non-zero beside
 # its denominator and the foot line says how many were not shown, rather than

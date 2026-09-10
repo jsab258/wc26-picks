@@ -1,4 +1,4 @@
-# Third-party models — The Base Mesh
+# Third-party models: The Base Mesh
 
 37 of the 39 .glb in this directory are CC0 1.0 from The Base Mesh
 (https://thebasemesh.com), fetched via the M3-org GitHub mirror
