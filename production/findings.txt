@@ -3682,3 +3682,48 @@ denominator and not a distribution over runs. And wet_000 against wet_060 reads
 -0.0002 while wet_000 against wet_100 reads +0.0213, on frames whose only
 differing field is unread in this engine and which are adjacent in shot order,
 so some of the residual is drift within a settled stretch rather than a floor.
+
+--------------------------------------------------------------------------------
+2026-09-10, THE PIN WORKS. ADAPTATION IS GONE WHERE IT IS APPLIED.
+
+Run 41 built and rendered: sceneStatus=WHOLE, shotsWrote=37/37, captureStatus=ALL,
+lightAimStatus=AGREES, expPinStatus=ALL-HELD at 8 of 8 shots asking for a pin.
+
+THE MEASUREMENT THE LADDER EXISTED TO MAKE. Each pin value was rendered twice,
+once after a night frame and once after a day frame, which is the pairing that
+tests the actual fault:
+
+    pin      after-night   after-day    clipped
+    0.030    0.9579        0.9579       206373/921600
+    0.300    0.6590        0.6590       0/921600
+    3.000    0.1892        0.1892       0/921600
+    10.000   0.0610        0.0610       0/921600
+
+IDENTICAL TO FOUR DECIMALS AT EVERY RUNG. A frame following darkness now renders
+the same as a frame following daylight, which is exactly the contamination that
+voided run 38 and run 39. The exposure snap fixed the rate and did not fix this;
+pinning the value did.
+
+WHY rigDeterminism STILL READS DIFFERS, AND IT IS NOT A CONTRADICTION. It reads
+-0.5582 on vign_camA_day, and that condition is shotExposurePin=AUTO with
+shotExposurePinAsked=0.0000. THE DETERMINISM TEST MEASURES A CONDITION THE FIX
+WAS NEVER APPLIED TO. Queue 235's acceptance cannot be met until the repeat sits
+on a pinned condition, which is a change to the test and not to the fix, and the
+sentinel predicted DIFFERS before the dispatch for a weaker reason than the true
+one.
+
+THE VALUE IS BRACKETED AND IS NOT SET. The reference street photograph reads
+0.4102 mean luma on this project's own ruler, and it sits between pin 0.300 at
+0.6590 and pin 3.000 at 0.1892. Rule 2 forbids setting the constant from an
+interpolation across two rungs; the next rung is a finer ladder inside that
+bracket, or a chosen value verified by a run, and either is one dispatch.
+
+AND 0.030 IS REFUTED AS A CANDIDATE by its own row rather than by argument: it
+holds perfectly and blows 206373 pixels of 921600 while doing it. A pin that is
+deterministic and clipped is deterministically wrong.
+
+TWO THINGS THIS DOES NOT YET BUY. It does not put a shadow in the street: the
+sun is in the right place and the exposure is now steady, and neither of those
+is a contact shadow. And matching the reference's MEAN was never the goal; its
+ratio is 3.65 against our 1.61, and a pin moves both frames together without
+changing a ratio at all.
