@@ -250,3 +250,33 @@ out: production/art/compare/hook-2026-09-09-pass2
 only: hook_pass2,hook_pass2_s2,hook_pass2_s3,hook_pass2_s4
 limit: 4
 max_minutes: 30
+
+# RUN 7: THE FAIRVIEW SHEET, AND THE FIRST CONCEPT THIS STUDIO AUTHORED.
+# Jafar 2026-09-10: the local image lane is the concept route, the outside
+# account is retired from production, and this sheet's prompt is authored from
+# the form bible, the atlas, canon and the atlas-02 research with no use of the
+# outside account's prompt files. Provenance table is in the spec's `source`
+# block, 48 rows, and in production/art/concept-fairview-2026-09-10/DELIVERY.md.
+#
+# WHY FAIRVIEW. Two of the five atlas-02 research files are Fairview files, and
+# the atlas's own Fairview row records that the existing outside concept covers
+# the upper hill only. Thickest evidence, admitted gap.
+#
+# FOUR ITEMS, TWO ARMS, same concept and same sources: two draws of the authored
+# prompt at 549 words, two of the same concept with the enumeration cut at 400
+# words. The one adherence fact this lane has measured is that at 296 words the
+# model dropped three requested objects on all four pass-1 draws, so this run
+# also answers whether cutting the ask helps.
+#
+# VALIDATION BEFORE THE RUN, each number printed rather than asserted:
+# validate_spec 0 problems of 4 items examined; positive-prompt exclusion words
+# 0 of 542 and 0 of 387 words scanned; forbidden marks 0 of 45 tokens scanned;
+# framing clause present 4 of 4; negative recorded and inert 4 of 4 at cfg 1.0.
+#
+# THE SETTINGS. Uncommented lines only, last-wins, so these five override every
+# pair above and nothing at all is inherited by accident.
+spec: production/art/concept-fairview-2026-09-10/fairview-sheet-2026-09-10.json
+out: production/art/concept-fairview-2026-09-10/sheets
+only: fairview_sheet,fairview_sheet_s2,fairview_sheet_short,fairview_sheet_short_s2
+limit: 4
+max_minutes: 30
