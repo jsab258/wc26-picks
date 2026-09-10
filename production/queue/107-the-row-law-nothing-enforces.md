@@ -2,7 +2,7 @@ line: infrastructure (the roadmap)
 spec: game-design/decision-2026-09-05-ruling-build-batch-and-roadmap-fold.md, section 11 item C
 acceptance: a checker prints, per roadmap row, the word count against the 80 cap, whether an instrument link is present, whether a verified date is present, and the systems column against the tool's own per-phase census; red on any row over the cap, missing either field, or whose column disagrees with production/systems-inventory.json; both outcomes with the accepting case first, the accepting fixture being the live roadmap
 max_sessions: 1
-status: READY 2026-09-05. NOT STARTED THIS WEEK by Jafar's rule that after item 4 the studio stops building studio.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-05. NOT STARTED THIS WEEK by Jafar's rule that after item 4 the studio stops building studio.
 
 ## The row law nothing enforces
 

@@ -2,7 +2,7 @@ line: infrastructure (the measurement surface)
 spec: external audit 2026-09-06, P2, filed as a GROUP because the instances share one shape
 acceptance: every self-rated score is marked as JUDGEMENT wherever it is cited, by grep with a printed count; no self-rated score is used to justify reduced investment anywhere; and the judge has negative cases in its calibration before any further deployment, with the pass and fail counts printed side by side
 max_sessions: 2
-status: P2, ready 2026-09-06. Grouped deliberately: fixing one instance and leaving the shape is what produced the group.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work2, ready 2026-09-06. Grouped deliberately: fixing one instance and leaving the shape is what produced the group.
 
 ## The shape, which is the point of grouping these
 

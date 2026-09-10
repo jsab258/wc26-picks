@@ -2,7 +2,7 @@ line: production (the moat: information layer, Core)
 spec: ledger-v2/respec/decision-register/D12-information-surfaces.md, D11-player-progression.md; game-design/decision-2026-09-02-tiebreak-reversed-and-the-moat-item.md, Ruling 3
 acceptance: (1) production/specs/d12-ledger-core.md, LIVE, one row per D12 and D11 clause naming the Core type and line that carries it or MISSING, with the CoreTests names that prove each carried one and the counts printed; (2) a call-site list, by grep with the pattern quoted, of every Game-layer read of NPC memory, Fact or GossipMill state that reaches a player-facing surface, each marked allowed (through PlayerKnowledge) or D12-violating, with the number examined; (3) the guard's shape named as the spec's next rung (a verify.py lint over Game files), NOT built
 max_sessions: 1
-status: READY 2026-09-02. systems-builder, one session, engine-neutral C#. FIRST UE-WAIT FILLER: the second builder slot of a day, ahead of every governance item, never the first slot, which is 027's.
+status: CLOSED 2026-09-10, not on the ladder and untouched for 7 days 2026-09-02. systems-builder, one session, engine-neutral C#. FIRST UE-WAIT FILLER: the second builder slot of a day, ahead of every governance item, never the first slot, which is 027's.
 
 ## Why this item exists, and it is the finding
 

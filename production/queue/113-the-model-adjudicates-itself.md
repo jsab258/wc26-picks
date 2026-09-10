@@ -2,7 +2,7 @@ line: simulation (Core, the law the project is named for)
 spec: external audit by a different model family, 2026-09-06, verified by Jafar and re-verified by the resident in the code
 acceptance: no model-selected effect can alter state without a check that CAN refuse; the rejecting case is a test that fails if the branch is restored; and the CoreTests case that skips Checks.None while proving checks can fail either covers it or is deleted as a false certificate
 max_sessions: 2
-status: P0 STOP-THE-LINE, ready 2026-09-06. Ahead of every other item. systems-builder, then a director review because this is Core.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work0 STOP-THE-LINE, ready 2026-09-06. Ahead of every other item. systems-builder, then a director review because this is Core.
 
 ## The hole, read in the code rather than taken on report
 

@@ -2,7 +2,7 @@ line: infrastructure (the console)
 spec: game-design/decision-2026-09-05-ruling-build-batch-and-roadmap-fold.md, section 3 and section 11 item A
 acceptance: dashboard.html built fresh by the publish step and STATUS.md rendered as HTML, both named in SITE_FILES and both requested after deploy with their own pageResult; the glance's AUDIT taps come back and a served tap on each returns 200 with the expected body, proven against a local server; and a missing audit file is REFUSED by the publisher rather than shipped as a dead link
 max_sessions: 1
-status: READY 2026-09-05. NOT STARTED THIS WEEK by Jafar's rule that after item 4 the studio stops building studio.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-05. NOT STARTED THIS WEEK by Jafar's rule that after item 4 the studio stops building studio.
 
 ## The fault, measured rather than argued
 

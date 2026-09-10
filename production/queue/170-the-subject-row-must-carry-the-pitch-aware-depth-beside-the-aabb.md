@@ -6,7 +6,7 @@ spec: propBurialSubject carries the PITCH-AWARE depth beside the AABB depth on i
 acceptance: the subject row cannot be read as saying a flush piece is 40 percent
   buried, and moving the pitch moves one of the two figures and not the other
 max_sessions: 1
-status: READY 2026-09-09. Amendments A4 and A5 of
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09. Amendments A4 and A5 of
   game-design/decision-2026-09-09-the-grate-rises-flush.md.
   WHY THEY ARE NOT ONE NUMBER TWICE, which is the test this project applies before
   printing a pair: move the pitch and the AABB figure moves while the pitch-aware one

@@ -2,7 +2,7 @@ line: production (the Unreal emitter, Phase C)
 spec: game-design/decision-2026-09-03-texture-staging-and-the-still-gate-ratchet.md, ruling E
 acceptance: materialConnections=14/14 with materialStatus=MADE on a LANDED run, or 14/14 with materialStatus=WIRED-BY-PROPERTY-WRITE plus the four frames read by a verifier and showing tiling; never a local claim
 max_sessions: 1
-status: DISCHARGED 2026-09-06 AND NOT SUFFICIENT. Its acceptance is MET on
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-06 AND NOT SUFFICIENT. Its acceptance is MET on
   landed run 21 (commit 372fd95): ue-build.txt line 12 reads
   materialStatus=MADE materialScriptReturn=0 materialConnections=14/14
   materialUvHeadVia=both.out.empty..in.empty. The UV head is wired and the

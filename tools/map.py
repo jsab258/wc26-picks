@@ -6637,15 +6637,34 @@ def selftest():
        sum(hm["greenWhere"].values()) == hm["counts"].get("exists", 0)
        and ("Of the %d tiles typed exists" % hm["counts"].get("exists", 0))
        in heat_source_slice(page), hm["greenWhere"])
-    # THE DATE PAIR, BOTH BRANCHES, ruled 2026-09-09. The live file is the
-    # ACCEPTING fixture for the collapsed branch (all 69 typed on one day);
-    # the two-day case is planted, because no file in this checkout has one.
+    # THE DATE PAIR, BOTH BRANCHES, ruled 2026-09-09. BOTH FIXTURES ARE NOW
+    # PLANTED, changed 2026-09-10. Until today the live file was the accepting
+    # fixture for the COLLAPSED branch, on the standing fact that all 69 tiles
+    # were typed on one day. 22 tiles were added under Jafar's ruling of
+    # 2026-09-10 and the file became a two-day file, so this check went red
+    # while nothing was wrong with the tool or the page. That is a selftest
+    # pinned to an asset the project is meant to change, and the project's own
+    # instrument rule says doing the work a tool prompts must never break the
+    # tool. So each branch gets a planted reading, and the live file is asserted
+    # against WHICHEVER branch its own dates warrant, which is a claim that
+    # stays true however many days the census comes to span.
+    one_day = heat_typed_words({"tiles": 9, "roleCounts": {"director": 9},
+                                "untyped": 0, "typedOldest": "2026-09-01",
+                                "typedNewest": "2026-09-01"})
     ok("the attribution line collapses the date pair when every tile was "
-       "typed on one day (%s..%s in the file)"
-       % (hm["typedOldest"], hm["typedNewest"]),
-       hm["typedOldest"] == hm["typedNewest"]
-       and ("on %s" % hm["typedOldest"]) in heat_typed_words(hm)
-       and ".." not in heat_typed_words(hm), heat_typed_words(hm))
+       "typed on one day: '%s'" % one_day,
+       "on 2026-09-01" in one_day and ".." not in one_day, one_day)
+    live_words = heat_typed_words(hm)
+    live_span = hm["typedOldest"] != hm["typedNewest"]
+    ok("and the LIVE file takes the branch its own dates warrant: %s in the "
+       "file (%s..%s over %d tile(s)), so the sentence %s the pair"
+       % ("two or more days" if live_span else "one day",
+          hm["typedOldest"], hm["typedNewest"], hm["tiles"],
+          "keeps" if live_span else "collapses"),
+       (("%s..%s" % (hm["typedOldest"], hm["typedNewest"])) in live_words)
+       if live_span else
+       (("on %s" % hm["typedOldest"]) in live_words and ".." not in live_words),
+       live_words)
     two_days = heat_typed_words({"tiles": 9, "roleCounts": {"director": 9},
                                  "untyped": 0, "typedOldest": "2026-09-01",
                                  "typedNewest": "2026-09-09"})

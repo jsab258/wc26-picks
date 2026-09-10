@@ -11,7 +11,7 @@ crime sim × slice-of-life social RPG (§1, §4 outer loop, §6.5 empire). This
 spec puts the open game in one place: the campaign reframe, Empire v1, the
 generation pipeline that buys density, and the reconciled roadmap position.
 DRAFT ONLY — nothing here is wired until approved. Companions:
-`act1-draft.md` (the on-ramp), `tier2-pipeline-spec.md` (the people half of
+`legacy/v1-era/act-drafts/act1-draft.md` (the on-ramp), `tier2-pipeline-spec.md` (the people half of
 the generation engine), `design-doc.md` §6.5/§6.7/§7 (the systems this
 builds toward).
 
@@ -27,7 +27,7 @@ empire while growing the life; acts are pressure points that fire on
 conditions, not a sequence of levels.
 
 **The fix.** The week campaign is demoted to what it always secretly was:
-**Act I's skeleton** (per `act1-draft.md`, the sandbox week IS arrival →
+**Act I's skeleton** (per `legacy/v1-era/act-drafts/act1-draft.md`, the sandbox week IS arrival →
 discovery → collision → verdict). At PP7 — the verdict and the posture
 answer — the campaign controller switches modes:
 

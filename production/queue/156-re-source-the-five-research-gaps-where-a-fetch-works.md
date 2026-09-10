@@ -6,7 +6,7 @@ acceptance: every hole is either closed with a DATED, CITED primary source or
   re-filed with the host that refused and the reason, and no hole quietly becomes a
   plausible period detail
 max_sessions: 1
-status: READY 2026-09-08. Filed by the director ruling
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-08. Filed by the director ruling
   game-design/decision-2026-09-08-the-lookup-that-lied-and-the-art-line-in-house.md,
   section 2, and named as the next rung in production/art/atlas-02/REVIEW.md.
   WHY IT IS A SEPARATE ITEM RATHER THAN A REDO: the research is accepted as a

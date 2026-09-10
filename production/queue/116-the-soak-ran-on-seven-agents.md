@@ -2,7 +2,7 @@ line: infrastructure (the measurement surface)
 spec: external audit 2026-09-06, P1
 acceptance: no document, gate, brief or public claim cites the soak as evidence for hundreds of residents; each citation either states the real denominator or is removed; and the soak's own output states plainly what it does and does not support, with the count of citations found and changed printed
 max_sessions: 1
-status: P1, ready 2026-09-06, after the P0 pair. Small, and mostly a grep and a sentence.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work1, ready 2026-09-06, after the P0 pair. Small, and mostly a grep and a sentence.
 
 ## The fault
 

@@ -9,7 +9,7 @@ acceptance: the vignette verdict carries quadChroma* and
   printed series, so that a run whose quad reads grey (max 6) prints
   nothing measured or failing and never harness only
 max_sessions: 1
-status: READY 2026-09-06. Monday, after the weekend's two game items.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-06. Monday, after the weekend's two game items.
 
 ## Why presence is not an answer
 

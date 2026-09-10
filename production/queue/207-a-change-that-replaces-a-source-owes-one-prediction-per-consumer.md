@@ -7,7 +7,7 @@ acceptance: the sky change of 2026-09-09 is the accepting fixture and must FAIL 
   it was written, because it named four predictions and no consumer; a rewritten entry naming
   the sun as a consumer passes.
 max_sessions: 1
-status: READY 2026-09-09, item D of
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09, item D of
   game-design/decision-2026-09-09-ruling-the-sun-the-bootstrap-and-the-board.md section 3.4.
   THE INCIDENT IS ITS OWN BEST ARGUMENT. The sky dispatch carried four predictions written
   before the run and ALL FOUR HELD. It was still a miss, because the prediction SET was

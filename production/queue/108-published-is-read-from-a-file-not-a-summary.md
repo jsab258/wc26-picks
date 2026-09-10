@@ -2,7 +2,7 @@ line: infrastructure (the evidence channel)
 spec: game-design/decision-2026-09-05-ruling-build-batch-and-roadmap-fold.md, section 11 item D; CLAUDE.md rule 12
 acceptance: the publish workflow's pageResult lines land in the tree as a committed file keyed by short sha, so "published" is read from a file rather than from a step summary; a run that measured nothing writes the words "nothing measured" under its own sha and never carries a previous run's file forward under its name
 max_sessions: 1
-status: READY 2026-09-05. NOT STARTED THIS WEEK by Jafar's rule that after item 4 the studio stops building studio.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-05. NOT STARTED THIS WEEK by Jafar's rule that after item 4 the studio stops building studio.
 
 ## Why this exists at all
 

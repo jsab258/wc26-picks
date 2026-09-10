@@ -7,7 +7,7 @@ acceptance: the piece exists in the street's piece list, the grate route imports
   as a real mesh with collision, and a frame shows it in the footway in front of
   the pub's door rather than somewhere in the carriageway
 max_sessions: 1
-status: BLOCKED on two taste cards, and the block is the point. 2026-09-08.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work on two taste cards, and the block is the point. 2026-09-08.
   Filed from the atlas-02 research finding (production/art/atlas-02/DELIVERY.md,
   "One finding the street's bill of materials should hear"): the 593 pieces have a
   gully grate in the channel and two manholes in the carriageway and NOTHING in the

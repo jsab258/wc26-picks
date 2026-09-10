@@ -4,6 +4,6 @@ spec: SecondsWatching is the probe's own count and RungFloor is fed 0, both prin
 acceptance: SecondsWatching and RungFloor come from the ported accumulator and the golden
   table carries rows for it
 max_sessions: 1
-status: READY 2026-09-08. Filed by the director ruling
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-08. Filed by the director ruling
   game-design/decision-2026-09-08-crimeprobe-the-grate-and-the-art-line.md,
   section 7, which files names rather than work.

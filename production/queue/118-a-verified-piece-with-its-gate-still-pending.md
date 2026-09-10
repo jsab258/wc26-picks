@@ -2,7 +2,7 @@ line: production (the assembly line)
 spec: external audit 2026-09-06, P2
 acceptance: the count of verified pieces equals the count that PASSED VERIFY, proven by a check that refuses a piece whose gate is pending; and the dialogue bank in question is either passed through its tone gate or removed from the count
 max_sessions: 1
-status: P2, ready 2026-09-06. Small, and it decides what a number in the phase gate means.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work2, ready 2026-09-06. Small, and it decides what a number in the phase gate means.
 
 ## The fault
 

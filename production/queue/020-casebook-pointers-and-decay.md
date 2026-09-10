@@ -2,7 +2,7 @@ line: infrastructure (instruments)
 spec: game-design/decision-2026-09-02-constitution-cut-attribution-pc-channel.md, Ruling 2 and Ruling 9
 acceptance: every path under CLAUDE.md's "Where the rest of this file went" exists and carries at least one "moved verbatim from CLAUDE.md" marker, with the per-file marker count printed; docs-check walks the casebooks, the three carried framework docs and legacy/ for the banner and verified-date rules, printing its walked count beside the game-design/ one; the 400-line cap is NOT applied to a casebook and the code says why; accepting case the live tree, rejecting case a pointer to a path with no marker
 max_sessions: 1
-status: READY 2026-09-02. One instrument-builder. This is the condition the CLAUDE.md cut landed UNDER, not a nice-to-have.
+status: CLOSED 2026-09-10, not on the ladder and untouched for 8 days 2026-09-02. One instrument-builder. This is the condition the CLAUDE.md cut landed UNDER, not a nice-to-have.
 
 The cut is safer than the file it replaced and IT IS NOT YET SAFE. It is
 quietly undone if either of two things happens, and tonight neither has an

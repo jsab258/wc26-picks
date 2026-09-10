@@ -3,7 +3,7 @@ spec: this file. One near-miss, 2026-09-06, caught before it was pushed.
 acceptance: none to build. This is a standing lesson looking for the right
   home, probably `.claude/rules/` rather than a queue item.
 max_sessions: 1
-status: READY 2026-09-06, and NOT for this weekend. Jafar ruled the weekend
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-06, and NOT for this weekend. Jafar ruled the weekend
   game work only and this is process. Filed so it is not lost.
 
 ## What happened

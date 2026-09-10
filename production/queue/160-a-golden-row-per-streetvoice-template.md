@@ -4,7 +4,7 @@ spec: A street_voice block in ledger/PerceptionGolden emitting one row per
   proper noun, consumed by the container so a changed template goes red.
 acceptance: changing one character of one template in either engine turns a check red
 max_sessions: 1
-status: READY 2026-09-08. Filed by the director ruling
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-08. Filed by the director ruling
   game-design/decision-2026-09-08-queue-147-the-composed-telling-and-the-clause-the-bank-never-had.md
   section 6.
   THE HOLE IT CLOSES, stated plainly because the header now says so too: the 98 lines

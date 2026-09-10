@@ -7,7 +7,7 @@ spec: If the engine cannot translate glTF headlessly, the smallest route is Blen
 acceptance: the sixteen assets reach uassets by whichever route the measurement chose, and
   the verdict names the route
 max_sessions: 1
-status: DEAD. 2026-09-08. Closed by the reading it was blocked on, which is the
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work. 2026-09-08. Closed by the reading it was blocked on, which is the
   outcome a blocked-on-a-measurement item is supposed to have.
   production/d1-probe/ue-mesh-import.txt on f3f395c printed
   propGltfCanTranslate=3/3 and propGltfImporter=PRESENT/engine-says-it-can-translate/3-of-3,

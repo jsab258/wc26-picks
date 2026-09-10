@@ -6,7 +6,7 @@ acceptance: `NoSpacePastPrefix` exercised on a surface line carrying the real
   exists to refuse and passing on the shape it exists to pass; both outcomes
   watched, accepting case first
 max_sessions: 1
-status: READY 2026-09-06. NOT this weekend, and not urgent: nothing is
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-06. NOT this weekend, and not urgent: nothing is
   currently broken by it. Filed because a guard nobody has watched reject is a
   guard nobody has watched.
 

@@ -2,7 +2,7 @@ line: infrastructure (the imagegen evidence channel) and production (the scene's
 spec: this file, ordered by game-design/decision-2026-09-03-night-batch-of-2-september.md decision C, which keeps queue 056 OPEN until this lands
 acceptance: (1) a usableFraction per image on the imagegen verdict, over a denominator of the batch, answering "does the artwork reach the edge of the frame" rather than "is it blank", with NO BOUND until a series has been printed; (2) the four wrong crop rectangles in production/specs/vignette-scene.json recomputed from the regenerated plates by measuring the artwork's extent, not by guessing
 max_sessions: 1
-status: READY 2026-09-03. engine-specialist. Carries the half of 056 that was not met.
+status: CLOSED 2026-09-10, not on the ladder and untouched for 7 days 2026-09-03. engine-specialist. Carries the half of 056 that was not met.
 
 ## Why the crops are four and not ten
 

@@ -5,7 +5,7 @@ spec: tools/dialogue-verify.py scores the `clause` field alongside `text`: the r
 acceptance: a clause that repeats another clause, names a rung it has not reached, or
   says "player" turns the tool red, and the clean line says how many clauses it read
 max_sessions: 1
-status: READY 2026-09-08. Filed from a builder's own declaration while landing the
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-08. Filed from a builder's own declaration while landing the
   twelve clauses of queue 157.
   THE GAP: the tool scores ln["text"] only. Twelve clause values now sit on the
   witness_summary rows and the tool reports "clean - 0 finding(s) over 24 line(s), 276

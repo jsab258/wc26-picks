@@ -10,7 +10,7 @@ acceptance: one run prints both the claimed path and the measured path with a sa
   differs word between them, and a planted disagreement prints as a difference rather than
   as a refusal.
 max_sessions: 1
-status: READY 2026-09-09. FOUND BY A FAILED RENDER, and the fault it cost was exactly this
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09. FOUND BY A FAILED RENDER, and the fault it cost was exactly this
   shape: ledger-setup-msvc.yml unpacked the portable zip to C:\LedgerTools\blender on 1
   September and wrote the path down; the art lane looked under Program Files and on PATH,
   found nothing, and printed candidatesTried=3/3, which is a count of our guesses and never

@@ -6,7 +6,7 @@ spec: tools/gallery.py's rights table carries the EXACT cleared names as they st
 acceptance: a planted new file under a cleared pattern is withheld and named, and the
   live 43 cleared of 62 still clear, both in one run
 max_sessions: 1
-status: READY 2026-09-09. Dictated as A3 by the batch ruling of 2026-09-09.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09. Dictated as A3 by the batch ruling of 2026-09-09.
   THE HOLE. The table clears by NAME PATTERN against a MOVING REF. Today it reads 43
   cleared of 62 examined, 19 withheld, 0 unclassified, at 8ce8173, and that is correct.
   But a later commit on the art branch adding, say, previews/mesh-photo.png would match a

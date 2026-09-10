@@ -221,6 +221,24 @@ ASSET_SUFFIXES = {".fbx", ".png", ".jpg", ".jpeg", ".tga", ".psd", ".wav",
                   # else's, and must therefore be classified rather
                   # than waved through.
                   ".gif",
+                  # .svg ADDED 10 SEP 2026, caught on the first run that
+                  # produced one, same as .gif before it. An SVG is markup
+                  # rather than pixels, which is the argument for the other
+                  # set, and it is refused here for the reason .gif was
+                  # accepted: it is A PICTURE, it can embed raster data or
+                  # somebody else's line work, and a kind that CAN carry
+                  # third-party content is classified rather than waved
+                  # through. The seven in the tree today are ours, drawn by
+                  # production/art/mickeys-cars/author/draw_cab_office.py and
+                  # draw_parade_night.py from this project's own data, and
+                  # the production/art OURS row covers them BY PREFIX.
+                  # Read that row's own words before trusting it: on
+                  # 2026-09-10 it said "Blender previews only, under
+                  # production/art/*/previews" and covered 28 files of which
+                  # ZERO were under previews. Queue 153 owns that. If an SVG
+                  # ever arrives from outside, this side of the union is
+                  # where it has to declare itself.
+                  ".svg",
                   ".mp3", ".ogg", ".ttf", ".otf", ".bundle", ".obj", ".blend",
                   # RADIANCE AND OPENEXR, ADDED 24 AUG BECAUSE THEY WERE
                   # MISSING AND THE CHECK WAS SILENT ABOUT IT. 23MB of Poly

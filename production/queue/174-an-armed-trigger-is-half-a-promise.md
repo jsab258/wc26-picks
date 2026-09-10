@@ -6,7 +6,7 @@ spec: Something checks that a fired trigger's WORK happened, not only that its w
 acceptance: a wake that fires into a busy session and is absorbed is DETECTED rather
   than reported as SUCCEEDED, and the detection names what was not produced
 max_sessions: 1
-status: READY 2026-09-09, filed from a live instance the same morning.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09, filed from a live instance the same morning.
   THE INSTANCE: trig_01Lb3XS3RcsAEDTgTfXpwmma fired at 2026-09-09T04:00:57Z with
   last_run.status ROUTINE_RUN_STATUS_SUCCEEDED and ended_reason run_once_fired. The
   turn never arrived, because the session was mid-turn and the wake was absorbed;

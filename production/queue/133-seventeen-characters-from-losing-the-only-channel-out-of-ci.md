@@ -5,7 +5,7 @@ acceptance: headroom on the largest workflow step stated as a SERIES over
   recent commits rather than a single reading, and a bound set from it; or the
   build step split so no single step is within a comment line of the ceiling
 max_sessions: 1
-status: READY 2026-09-06. NOT this weekend. Filed because the number is
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-06. NOT this weekend. Filed because the number is
   frightening and nobody had printed it.
 
 ## The reading

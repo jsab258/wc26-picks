@@ -30,8 +30,8 @@ what a period a town of this kind actually had.
   survive and whose visual bar does not. Wet, overcast, grimy. The bar is the
   Meridian Test in `ledger-v2/respec/vision-pillars-v2.md`.
 - **THE PERIOD IS 1988 TO 1992 AND IT IS NOT DECORATIVE.** Landlines, phone
-  boxes, answering machines, cash, paper. No mobiles, no internet; CCTV rare,
-  the bank and the off-licence, as canon says. Any
+  boxes, answering machines, cash, paper. No mobiles, no internet; CCTV rare, at
+  the sites canon names and no others. Any
   1950s or 1970s framing is wrong and is corrected on sight; both drifts have
   happened here, one of them four times in one conversation across four sources
   that were each correct.

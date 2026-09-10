@@ -2,7 +2,7 @@ line: simulation (Core)
 spec: game-design/decision-2026-09-06-ruling-113-the-model-does-not-adjudicate.md, section 10 item A
 acceptance: a printed series of Clean, Dirty, Hour and Heat at the moment a novel action is adjudicated, plus the amounts the model names per check, from real runs; then floors set FROM that series with the statistic named; a floor set before the series is printed fails this item
 max_sessions: 1
-status: READY 2026-09-06. Depends on queue 114's inventory naming the amount field. Core, so a director review is mandatory.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-06. Depends on queue 114's inventory naming the amount field. Core, so a director review is mandatory.
 
 ## The residue queue 113 deliberately did not close
 

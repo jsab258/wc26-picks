@@ -2,7 +2,7 @@ line: production (the roadmap)
 spec: Jafar's Director's Console rulings, 2026-09-03
 acceptance: dated, confidence-rated show-moment rows in ledger-v2/respec/roadmap-v2.md, each with a definition of done a non-technical viewer can judge BY LOOKING; the first row is "first textured Unreal street" and it is already ruled
 max_sessions: 1
-status: READY 2026-09-03, after the Monday reset. planner then instrument-builder.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-03, after the Monday reset. planner then instrument-builder.
 
 ## The rows, in Jafar's order
 

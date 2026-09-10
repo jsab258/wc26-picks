@@ -5,7 +5,7 @@ acceptance: propFullyBuried back to its pre-fascia count with the fascia
   pieces present, and propBurialWorst naming something other than a fascia
   piece covering another fascia piece
 max_sessions: 1
-status: READY 2026-09-09 22:40Z. Caught by a test rather than by an eye, on
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09 22:40Z. Caught by a test rather than by an eye, on
   work that was reverted before it landed, so the finding is preserved here
   and the placement is not.
 

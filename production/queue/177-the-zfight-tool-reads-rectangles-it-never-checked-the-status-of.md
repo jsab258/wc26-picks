@@ -9,7 +9,7 @@ acceptance: an OFF-FRAME pair refuses with OFF-FRAME named rather than with a
   mismatched-area message, and a 1-px integer-rounding difference no longer refuses,
   proved by a fixture in both directions
 max_sessions: 1
-status: READY 2026-09-09. Amendment A5 of
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09. Amendment A5 of
   game-design/decision-2026-09-09-the-railing-in-the-line.md, filed here for the same
   reason as queue 176.
   ITEM (iii) IS ON ITS THIRD RECORD WITHOUT EVER BEING CARRIED OUT. It was amendment 4

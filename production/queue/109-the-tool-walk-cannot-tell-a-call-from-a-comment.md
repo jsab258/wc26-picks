@@ -2,7 +2,7 @@ line: infrastructure (the guards)
 spec: found 2026-09-05 when a commit went red on a file that has never existed and that nothing calls
 acceptance: the tool walk refuses a path that is genuinely referenced and missing, and ACCEPTS a path that appears only inside a comment or a string that names a proposal; both fixtures synthetic, accepting case first, and the live tree is the accepting case for the whole walk
 max_sessions: 1
-status: READY 2026-09-05. NOT STARTED THIS WEEK by Jafar's rule that after item 4 the studio stops building studio. instrument-builder, small.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-05. NOT STARTED THIS WEEK by Jafar's rule that after item 4 the studio stops building studio. instrument-builder, small.
 
 ## What happened
 

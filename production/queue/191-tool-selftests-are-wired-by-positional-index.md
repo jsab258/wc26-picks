@@ -4,7 +4,7 @@ spec: ledger/verify.py's `_tool_selftest_run` takes a NAME, not a positional ind
 acceptance: renaming or reordering a row makes the wrong-tool case RED rather than green,
   proved on a planted reorder, and every existing row still runs its own tool
 max_sessions: 1
-status: READY 2026-09-09. Found by making the mistake it describes.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09. Found by making the mistake it describes.
   MEASURED: three rows added the same morning were each off by one, so
   checkout_gate_selftest ran the wake queue, brief_selftest ran the checkout gate, and
   producer_day_selftest ran the brief. ALL THREE RETURNED TRUE. One tool would have been

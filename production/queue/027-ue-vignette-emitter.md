@@ -2,7 +2,7 @@ line: production (D1 comparison, the critical path)
 spec: game-design/decision-2026-09-02-vignette-batch-canon-crews-d1-timebox.md, Ruling 10
 acceptance: phase by phase below; each phase is ONE dispatch and its DISPATCH line names what that run will prove
 max_sessions: 3
-status: PHASES A, A2, B AND C LANDED. A and the piece list on 2026-09-02; A2 (vignette-feet.json, 910 probes) and B (four frames at 1280x720, run 17, 593/593 pieces, captureStatus=ALL) in commit c1311ea7; C (the script-generated base material, the surface binder, albedoResolved=12/16) in commit e6676ec6, dispatched as run 18 and UNVERIFIED until it lands. PHASE D, the clothed character body, is the remaining phase and D1b says a scene without one is not admissible. Was: READY 2026-09-02.
+status: CLOSED 2026-09-10, not on the ladder and untouched for 7 days A, A2, B AND C LANDED. A and the piece list on 2026-09-02; A2 (vignette-feet.json, 910 probes) and B (four frames at 1280x720, run 17, 593/593 pieces, captureStatus=ALL) in commit c1311ea7; C (the script-generated base material, the surface binder, albedoResolved=12/16) in commit e6676ec6, dispatched as run 18 and UNVERIFIED until it lands. PHASE D, the clothed character body, is the remaining phase and D1b says a scene without one is not admissible. Was: READY 2026-09-02.
 
 ## Phase A: a flat piece list, so the two engines cannot disagree on layout
 

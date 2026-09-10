@@ -464,6 +464,13 @@ namespace Ledger.Game
         /// older build still cannot reach the street. Accepts either spelling
         /// ("X Bot" the model, "Body_XBot" the prefab) so the two callers
         /// cannot drift apart on normalisation.
+        /// How many prefabs the D18 screen refused on the first pick, and how
+        /// many it was offered. THE PAIR IS THE READING: `0` refused beside
+        /// `18` offered is a clean pool, and `0` beside `0` is a pool that
+        /// never loaded. Whole-pool numbers, set once, on the first pick.
+        public static int BodiesRefusedUnderage = -1;
+        public static int BodiesOffered = -1;
+
         public static bool IsMannequin(string modelOrPrefabName)
         {
             if (string.IsNullOrEmpty(modelOrPrefabName)) return false;
@@ -479,9 +486,27 @@ namespace Ledger.Game
             {
                 var all = Resources.LoadAll<GameObject>("Characters");
                 var list = new System.Collections.Generic.List<GameObject>();
+                int refusedUnderage = 0;
                 foreach (var g in all)
-                    if (g != null && g.name.StartsWith("Body_") && !IsMannequin(g.name))
-                        list.Add(g);
+                {
+                    if (g == null || !g.name.StartsWith("Body_")) continue;
+                    if (IsMannequin(g.name)) continue;
+                    // D18, canon: NO CHILDREN ANYWHERE, none rendered, none
+                    // in the crowd. The PREDICATE is Core's, where the tests
+                    // run; this layer supplies only membership. Nothing in
+                    // today's eighteen-model pool is refused here, which is
+                    // why the count is printed rather than assumed: a body
+                    // silently dropped looks exactly like a body that was
+                    // never in Resources.
+                    if (Ledger.Core.ContentRule.IsUnderageModel(StemOf(g.name)))
+                    {
+                        refusedUnderage++;
+                        continue;
+                    }
+                    list.Add(g);
+                }
+                BodiesRefusedUnderage = refusedUnderage;
+                BodiesOffered = all != null ? all.Length : 0;
                 list.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
                 _bodies = list.ToArray();
                 BodyChoices = _bodies.Length;

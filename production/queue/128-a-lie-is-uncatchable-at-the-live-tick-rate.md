@@ -4,7 +4,7 @@ acceptance: a scenario at the build's own cadence in which the player lies and
   the contradiction is detected; today the count is 0 of 5 player-rumour
   events at live cadence
 max_sessions: 1
-status: READY 2026-09-06. Blocks queue 127's acceptance.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-06. Blocks queue 127's acceptance.
 
 ## The finding
 

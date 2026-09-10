@@ -2,7 +2,7 @@ line: production (the moat, and the cheapest test of it)
 spec: Jafar 2026-09-06: "the cheapest test of our differentiator. One crime, the existing build, and a way for three unbriefed people to play it."
 acceptance: three UNBRIEFED people each play one crime scenario twice, once against real propagation and once against fixed canned responses, in an order that varies; each says which felt more alive and why, without being told which was which; and the result is reported whichever way it comes out
 max_sessions: 2
-status: READY 2026-09-06. AHEAD OF ANY REMAINING CONSOLE WORK, by Jafar's order. This outranks the glance, the map, the cards and the brief.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-06. AHEAD OF ANY REMAINING CONSOLE WORK, by Jafar's order. This outranks the glance, the map, the cards and the brief.
 
 ## Why this is the most important item on the board
 

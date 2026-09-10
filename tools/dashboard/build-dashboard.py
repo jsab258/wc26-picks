@@ -425,6 +425,12 @@ SOURCES = {
     "tokens": "production/token-ledger.md",
     "decisions": "production/decision-queue.md",
     "register": "ledger-v2/respec/decision-register",
+    # THE LIGHTER HALF MOVED, 2026-09-10. Jafar ruled one decision
+    # register; the queue file now holds OPEN cards only, so the lighter
+    # RULED entries it used to carry live here. Named as its own source so
+    # that a moved file shows up as an absent source and not as a zero.
+    "card_rulings":
+        "ledger-v2/respec/decision-register/queue-rulings-2026-09.md",
     "learning": "ledger-v2/studio-v2/learning.md",
     "brief": "production/briefs/latest.md",
     "verdict_sim": "game-design/sim-shots/verdict.txt",
@@ -986,6 +992,25 @@ def read_decisions(repo):
     text = read(src(repo, "decisions"))
     reg = src(repo, "register")
     dfiles = sorted(p.name for p in reg.glob("D*.md")) if reg.is_dir() else []
+    # THE LIGHTER HALF, AFTER THE FOLD OF 2026-09-10. It used to be the RULED
+    # sections of the queue file; those moved into the register and the queue
+    # keeps open cards only. Both are still counted: `ruled` below reads the
+    # queue file, so a card ruled in place tomorrow is not lost, and this reads
+    # the register file they moved to. Neither may stand in for the other.
+    cardtext = read(src(repo, "card_rulings"))
+    cardsec = queue_sections(cardtext) if cardtext is not None else {}
+    cardruled = sum(len(c) for n, c in cardsec.items()
+                    if n.startswith(QUEUE_RULED))
+    # THE SAME SCOPE AS BEFORE THE FOLD, ON PURPOSE. This counts the RULED
+    # sections and nothing else, which is exactly what the queue file's own
+    # RULED sections used to contribute, so the fold of 2026-09-10 moved a file
+    # and moved no number. A card logged under TAKEN BY THE STUDIO is a decision
+    # the studio took at its default, and by Jafar's ruling of 2026-09-09 those
+    # are decisions; the old code never counted them because the heading does
+    # not begin with the word RULED. Whether they should count is a change to a
+    # number on his page, so it is NAMED here and in the note rather than made.
+    cardtaken = sum(len(c) for n, c in cardsec.items()
+                    if not n.startswith(QUEUE_RULED))
     if text is None:
         return {"count": Reading.unavailable(
             "open decisions", "%s does not exist" % SOURCES["decisions"],
@@ -1035,16 +1060,25 @@ def read_decisions(repo):
         "%d sit under %s" % (sum(len(c) for c in sections.values()),
                              len(sections), len(items), QUEUE_WAITING))
     decided = Reading.measured(
-        "decided", len(ruled) + len(dfiles),
-        "the register in BOTH its halves: %d lighter RULED entr(y/ies) in %s "
-        "plus %d D-record file(s) in %s. A ruling goes to one half or the "
-        "other by the queue file's own rule, so a count of either alone would "
-        "understate it" % (len(ruled), SOURCES["decisions"], len(dfiles),
-                           SOURCES["register"]),
-        [SOURCES["decisions"], SOURCES["register"]],
-        "%d RULED card(s) read plus %d file(s) matching D*.md%s"
-        % (len(ruled), len(dfiles),
-           "" if reg.is_dir() else " (the register directory does not exist)"))
+        "decided", len(ruled) + cardruled + len(dfiles),
+        "the register in ALL THREE of its halves: %d lighter RULED entr(y/ies) "
+        "still in %s, %d moved card ruling(s) in %s, plus %d D-record file(s) "
+        "in %s. A ruling goes to one half by the register's own rule, so a "
+        "count of any one alone would understate it; the second half exists "
+        "because the lighter entries moved out of the queue file on 2026-09-10"
+        % (len(ruled), SOURCES["decisions"], cardruled,
+           SOURCES["card_rulings"], len(dfiles), SOURCES["register"]),
+        [SOURCES["decisions"], SOURCES["card_rulings"], SOURCES["register"]],
+        "%d RULED card(s) read in the queue file, %d RULED card(s) read in "
+        "the moved file%s, plus %d file(s) matching D*.md%s. %d further card(s) "
+        "in the moved file sit under headings that do not begin with RULED "
+        "(TAKEN BY THE STUDIO) and are NOT counted, which is the scope this "
+        "number has always had"
+        % (len(ruled), cardruled,
+           "" if cardtext is not None else " (which is not in this checkout)",
+           len(dfiles),
+           "" if reg.is_dir() else " (the register directory does not exist)",
+           cardtaken))
     return {"count": count, "items": items, "verified": v.group(1) if v else None,
             "decided": decided, "classes": classes,
             "unclassified": unclassified}

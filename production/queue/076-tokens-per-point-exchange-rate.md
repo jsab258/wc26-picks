@@ -2,7 +2,7 @@ line: infrastructure (the budget instrument)
 spec: Jafar's Director's Console rulings, 2026-09-03, area B item 5
 acceptance: either a printed tokens-per-point figure derived from at least two of Jafar's readings with the token totals that span them, or the words "nothing measured" plus the named reason the totals could not be read
 max_sessions: 1
-status: READY 2026-09-03. RESEARCH ON THE PC, cannot be answered from the build container.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-03. RESEARCH ON THE PC, cannot be answered from the build container.
 
 ## The question
 

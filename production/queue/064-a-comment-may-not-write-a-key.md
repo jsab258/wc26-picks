@@ -2,7 +2,7 @@ line: infrastructure (instruments, the evidence channel)
 spec: game-design/decision-2026-09-03-texture-staging-and-the-still-gate-ratchet.md, rulings A and E
 acceptance: a lint refusing any key=value inside a COMMENT line of a verdict-shaped file, run over the emitters AND over the committed evidence; shipped with its selftest, accepting case first per the standing rule; it carries the rejecting case ruling A could not run
 max_sessions: 1
-status: READY 2026-09-03. instrument-builder. This is the item that stops the ratchet recurring.
+status: CLOSED 2026-09-10, not on the ladder and untouched for 7 days 2026-09-03. instrument-builder. This is the item that stops the ratchet recurring.
 
 ## The incident that paid for it
 

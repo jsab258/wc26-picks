@@ -2,7 +2,7 @@ line: simulation (Core, and canon)
 spec: external audit 2026-09-06, P1. canon.md outranks every document and every agent, so this is a canon conflict rather than a bug report
 acceptance: a stated ruling on which is true, the OTHER one changed to match, and the change recorded; if pruning stays, canon.md and every public claim about permanent memory change with it, and the claims are found by grep rather than by memory
 max_sessions: 1
-status: P1, ready 2026-09-06, after the P0 pair. MANDATORY DIRECTOR RULING: this touches canon, which outranks everything.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work1, ready 2026-09-06, after the P0 pair. MANDATORY DIRECTOR RULING: this touches canon, which outranks everything.
 
 ## The conflict
 

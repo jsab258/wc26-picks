@@ -5,7 +5,7 @@ spec: ledger-v2/research/license-allowlist.md gains an image-generation line nam
 acceptance: the allowlist either names the model and its licence, or names the document
   that does, so a reader of the law alone can answer the question
 max_sessions: 1
-status: READY 2026-09-09. Found while building the Hook comparison spec.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09. Found while building the Hook comparison spec.
   THE ALLOWLIST IS LAW and it names NO image-generation line at all: its ship-safe
   entries are voices, 3D, characters, faces, music and geodata. The lane that produces
   shippable pixels is not on it by name.

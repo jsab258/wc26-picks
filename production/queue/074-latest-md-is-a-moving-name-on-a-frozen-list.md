@@ -2,7 +2,7 @@ line: production (the channel)
 spec: game-design/decision-2026-09-03-batch-review-register-banner-spawnlog-uvsweep.md, ruling 1(b)
 acceptance: no path on the frozen PRE_REGISTER list can change content without the gate noticing; the night runner's brief either passes the register for its kind or lands outside the gated trees; both cases shipped as gate fixtures, accepting first; and if option A is taken, the gate INHERITS THE CLOCK from the matched dated brief as well as the verdict, or a faithful copy comes out UNPINNED and red
 max_sessions: 1
-status: READY 2026-09-03. instrument-builder, small. Predictable red on the first night run after 3 September; the night runner has never yet written a log in this tree, so it has not bitten.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-03. instrument-builder, small. Predictable red on the first night run after 3 September; the night runner has never yet written a log in this tree, so it has not bitten.
 
 ## The hole
 

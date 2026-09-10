@@ -6,7 +6,7 @@ acceptance: a record under ledger-v2/respec/decision-register/ names the tool an
   licence, and tools/gallery.py's rights table clears or withholds the eight files by
   citing it rather than by defaulting
 max_sessions: 1
-status: READY 2026-09-09. Found by tools/gallery.py's rights pass while building the
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09. Found by tools/gallery.py's rights pass while building the
   world page: atlasCleared=43/62-examined atlasWithheld=19 atlasUnclassified=0.
   THE EIGHT CONCEPT BOARDS ARE THE BEST-LOOKING PICTURES IN THE ATLAS AND THEY DO NOT
   SHIP. PROVENANCE.md names the generating tool ("Built-in OpenAI image_gen service")

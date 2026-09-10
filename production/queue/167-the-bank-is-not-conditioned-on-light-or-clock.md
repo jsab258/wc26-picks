@@ -6,7 +6,7 @@ acceptance: no picked line describes a lighting or time-of-day state the run did
   stage, proved by a key that names the staged state beside the picked line's
   assumptions
 max_sessions: 1
-status: READY 2026-09-09. Amendment A11 of
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09. Amendment A11 of
   game-design/decision-2026-09-09-the-twelve-clauses-and-the-buried-grate.md.
   MEASURED, at the probe's own seed: the rung-1 pick names a STREETLIGHT ("all there
   was to see was a shape against the streetlight") while the run stages OVERCAST NOON

@@ -4,7 +4,7 @@ spec: sub-finding of queue 127, and it is about the experiment rather than the
 acceptance: a five-night scenario built to the shape below, with the re-tell
   guard (queue 129) fixed first
 max_sessions: 1
-status: READY 2026-09-06. Supersedes queue 119's design. 119's harness is kept
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-06. Supersedes queue 119's design. 119's harness is kept
   and is the thing this builds on.
 
 ## The finding, and it is uncomfortable

@@ -1,3 +1,4 @@
+status: CLOSED 2026-09-10, not on the ladder and untouched for 7 days
 line: verification (weekly process audit; CHEAP MODEL per the routing law)
 spec: ledger-v2/studio-v2/learning.md and this file
 acceptance: every check below reports a number or a named violation; violations become queue items; findings summarized for the morning brief

@@ -7,7 +7,7 @@ acceptance: a card whose deadline passed unruled turns the check red until eithe
   default is applied and recorded or the deadline is deliberately moved, and the clean
   line prints how many cards were read and how many carry a deadline at all
 max_sessions: 1
-status: READY 2026-09-09. Filed from a live instance found while inventorying the
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09. Filed from a live instance found while inventorying the
   cards for a morning brief.
   THE INSTANCE: "How close should strangers stand?" carries DEFAULT B if unruled by
   2026-09-07, the Monday reset. That Monday came and went. Two days later the card

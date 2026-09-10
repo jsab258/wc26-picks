@@ -2,7 +2,7 @@ line: infrastructure (governance)
 spec: this file
 acceptance: a commit whose subject is a verification-footer line is REFUSED; the accepting case (an ordinary subject) still passes; both outcomes fixtured
 max_sessions: 1
-status: READY 2026-09-02. Small. Found by committing one.
+status: CLOSED 2026-09-10, not on the ladder and untouched for 7 days 2026-09-02. Small. Found by committing one.
 
 `.githooks/commit-msg` refuses a subject identical to HEAD's, which was
 written after two commits carried the previous commit's message. It does

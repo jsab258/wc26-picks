@@ -6,7 +6,7 @@ spec: tools/map.py's `above_tiles` helper degrades to a presence check when its 
 acceptance: the live page passes with the anchor found and counted, and a planted page whose
   first-tile marker is renamed prints the missing-anchor outcome rather than yes.
 max_sessions: 1
-status: READY 2026-09-09. FOUND BY THE DIRECTOR WHO HAD INVERTED THAT GUARD EIGHT HOURS
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09. FOUND BY THE DIRECTOR WHO HAD INVERTED THAT GUARD EIGHT HOURS
   EARLIER, reading its code rather than its output. The guard's whole job since the 14:24
   ruling is to keep one sentence ABOVE the tiles; a restyle that renames the tile marker
   would leave the guard green while the sentence sank below the fold, which is the exact

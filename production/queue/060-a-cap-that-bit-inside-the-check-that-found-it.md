@@ -2,7 +2,7 @@ line: infrastructure (the evidence channel)
 spec: this file
 acceptance: (1) the attribution check's failure text announces its own cap in the standing form, `(+N more not shown)`, with N measured rather than implied; (2) the same sweep over every check whose text reaches the verification footer: any that can truncate a list must announce it, and the sweep reports how many checks were examined and how many could truncate, so a zero here carries its denominator; (3) a rejecting fixture with more offending files than the cap allows, watched to print the notice, and an accepting fixture under the cap, watched to print no notice, accepting case run first
 max_sessions: 1
-status: READY 2026-09-03. instrument-builder, small. Found 3 September when the check went red on the Unreal frames.
+status: CLOSED 2026-09-10, not on the ladder and untouched for 7 days 2026-09-03. instrument-builder, small. Found 3 September when the check went red on the Unreal frames.
 
 ## The finding
 

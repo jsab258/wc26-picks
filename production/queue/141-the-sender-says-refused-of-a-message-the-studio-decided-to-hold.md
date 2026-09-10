@@ -10,7 +10,7 @@ acceptance: tools/runner/outbox.py treats a file named on
   it is neither sent nor counted as refused, and plants an unlisted
   over-cap name and asserts it still is refused
 max_sessions: 1
-status: READY 2026-09-06. Monday. Ruled in game-design/decision-2026-09-06-
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-06. Monday. Ruled in game-design/decision-2026-09-06-
   ruling-delivery-batch-map-availability-and-outbox.md section 6: the two
   files are NOT sent, by decision. This item makes the sender say so in
   the right word.

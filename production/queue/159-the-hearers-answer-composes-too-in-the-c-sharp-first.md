@@ -5,7 +5,7 @@ spec: StreetVoice.Exchange composes the HEARER'S ANSWER as well as the telling, 
 acceptance: overheardBeatsComposed reads 2/2 rather than 1/2, and the two engines
   still agree line for line
 max_sessions: 2
-status: READY 2026-09-08. The next rung for the overheard beat, filed by the director
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-08. The next rung for the overheard beat, filed by the director
   ruling game-design/decision-2026-09-08-queue-147-the-composed-telling-and-the-clause-the-bank-never-had.md
   section 2. NOT A DEFECT IN QUEUE 147: StreetVoice.cs 285 to 295 marks only the
   TELLING as Composed and says in the same comment why marking both would put a false

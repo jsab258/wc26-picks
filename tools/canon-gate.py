@@ -49,7 +49,7 @@ MODERNITY = {
     "social media": "no internet (canon, Era)",
     "selfie": "no camera phones (canon, Era); one camcorder in town",
     "google": "no internet (canon, Era), and a real brand besides",
-    "cctv everywhere": "CCTV is rare: the bank, the off-licence (canon, Era)",
+    "cctv everywhere": "CCTV is rare: the bank, the ferry terminal (canon, Era)",
 }
 
 #: Paths whose text may legitimately DISCUSS banned things: the law itself,
@@ -75,14 +75,55 @@ EXEMPT = ("canon.md", "ledger-v2/", "legacy/", "tools/canon-gate.py",
 
 
 def forbidden_brands():
-    """The imagegen forbidden-token list, read from the one place it lives.
+    """The imagegen forbidden-token list MINUS the content-rule tokens.
+
     An empty list is a FAILURE here, not a pass: a brand gate with no brands
-    would wave everything through and look identical to a clean run."""
+    would wave everything through and look identical to a clean run.
+
+    WHY THE SUBTRACTION, ADDED 2026-09-10. Until D18 every token in that
+    list was a real trade mark and this gate could say "contains X - real
+    brand" about any of them. D18 put 62 content-rule tokens in the same
+    list, because imagegen's substring check is the mechanism that refuses a
+    prompt, and the first run afterwards reported eleven findings in the
+    brand bible: the bible's own contentRule block NAMES the kinds it
+    refuses, so `bookmaker` and `bingo` were reported as real brands in the
+    file whose job is to ban them.
+
+    So: one list still, read from one place, and the two halves separated by
+    asking tools/content-gate.py which tokens are its own rather than by
+    keeping a second copy here. Both counts are printed on the done line, so
+    a subtraction that ate too much is a number somebody can see.
+    """
     p = REPO / "tools" / "imagegen" / "prompts.json"
     toks = json.loads(p.read_text(encoding="utf-8"))["content_rules"]["forbidden_tokens"]
     if not toks:
         raise SystemExit("canon-gate: the forbidden-token list is EMPTY; refusing to run")
-    return toks
+    content = content_rule_tokens()
+    brands = [t for t in toks if t.strip().lower() not in content]
+    if not brands:
+        raise SystemExit(
+            "canon-gate: subtracting the content-rule tokens left NO brand "
+            "tokens at all (%d in, %d subtracted). That is a fault in the "
+            "subtraction, not a clean list." % (len(toks), len(content)))
+    return brands
+
+
+def content_rule_tokens():
+    """The D18 tokens, asked of the tool that owns them. Empty on failure,
+    which is the SAFE direction here: this gate then screens everything it
+    used to, and the worst case is a false refusal a reader can act on,
+    never a silent pass."""
+    gate = REPO / "tools" / "content-gate.py"
+    if not gate.exists():
+        return set()
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("_cg", gate)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return {t.strip().lower() for _id, _k, t in mod.PROMPT_TOKENS}
+    except Exception:                                        # noqa: BLE001
+        return set()
 
 
 def gate(paths):
@@ -194,6 +235,24 @@ def selftest():
         with contextlib.redirect_stdout(buf):
             rc_bt = gate([str(bt)])
         check("BOUNDARY: 'BT' alone still refuses", rc_bt == 1, buf.getvalue())
+
+    # D18, THE SUBTRACTION. ACCEPTING FIRST: the live list still yields the
+    # trade marks this gate has always screened, and a content-rule token is
+    # no longer among them. Both counts, so a subtraction that ate the wrong
+    # half is visible rather than quiet.
+    all_toks = json.loads((REPO / "tools" / "imagegen" / "prompts.json")
+                          .read_text(encoding="utf-8"))["content_rules"]["forbidden_tokens"]
+    brands = forbidden_brands()
+    content = content_rule_tokens()
+    check("ACCEPTING: the live list still yields trade marks (%d of %d, "
+          "%d content-rule token(s) subtracted)"
+          % (len(brands), len(all_toks), len(content)),
+          len(brands) >= 40 and "coca-cola" in [b.strip().lower() for b in brands])
+    check("rejecting: 'bingo' is NOT screened here as a real brand - it is "
+          "the content gate's, and the brand bible's own rule block names it",
+          "bingo" not in [b.strip().lower() for b in brands])
+    check("and the content token set is not empty, so the subtraction "
+          "actually happened (%d)" % len(content), len(content) > 0)
     print("-" * 60)
     print(f"  {ok} passed, {fail} failed")
     return 1 if fail else 0

@@ -7,7 +7,7 @@ acceptance: one committed run prints a camera key on every shot line with its de
   tools/frame-shadow-probe.py binds strictly against any shot in that run regardless of the
   order they were taken, and a planted run whose shot order is reversed reads identically.
 max_sessions: 1
-status: READY 2026-09-09, item E of game-design/decision-2026-09-09-ruling-the-sun-ladder.md.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09, item E of game-design/decision-2026-09-09-ruling-the-sun-ladder.md.
   MEASURED, NOT ARGUED: running the committed probe against today's frames gives
   camBind=REFUSED probeStatus=REFUSED probe=nothing-measured on cam_A, because the last
   camera placed in that run was cam_hook. The tool fails closed, which is correct; the

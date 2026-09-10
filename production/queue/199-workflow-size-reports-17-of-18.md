@@ -8,7 +8,7 @@ acceptance: the done line carries examined, dropped and the dropped names, and a
   workflow with only single-line run steps prints as dropped rather than vanishing. A run
   that examined nothing prints the words "nothing measured".
 max_sessions: 1
-status: READY 2026-09-09. MEASURED, not inferred: files=18 reported=17
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09. MEASURED, not inferred: files=18 reported=17
   dropped=ledger-core-tests.yml. Found by a builder reading the other workflows while fixing
   the art lane's missing PATH bootstrap, which was the same fault one level up: a count that
   cannot tell "17 of 17" from "17 of 18".

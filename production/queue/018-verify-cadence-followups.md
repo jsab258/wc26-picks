@@ -2,7 +2,7 @@ line: infrastructure (instruments)
 spec: game-design/decision-2026-09-01-cadence-bound-and-batch-review.md, "Queue items"
 acceptance: (a) a rule count printed beside the label breakdown, asserted by a17 and a19; (b) one selftest-count parser covering four checks, each with its own accept and reject fixture, and the "0 of N FAILED" string fixed on a non-zero exit; (c) the largest untracked work path named when untracked_files > 0, capped and announced; (d) --cadence-series prints label:lines per commit beside the total
 max_sessions: 1
-status: READY 2026-09-01, created from the ruling's text. One instrument-builder, one session. Blocks nothing; (d) is the instrument the bound's next rung waits on.
+status: CLOSED 2026-09-10, not on the ladder and untouched for 8 days 2026-09-01, created from the ruling's text. One instrument-builder, one session. Blocks nothing; (d) is the instrument the bound's next rung waits on.
 
 Four follow-ups on `ledger/verify.py`, all named by the director ruling of
 1 September after it read the cadence batch. None of them is a fault in what

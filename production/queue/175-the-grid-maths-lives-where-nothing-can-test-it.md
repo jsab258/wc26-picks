@@ -7,7 +7,7 @@ acceptance: the same checks run inside ledger/verify.py's ue_probe_tests, and th
   planted case where the five-ray vote reads 5/5 while the 81-cell grid reads 72/81
   is one of them
 max_sessions: 1
-status: READY 2026-09-09, and it is a KNOWN gap against a standing rule rather than a
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09, and it is a KNOWN gap against a standing rule rather than a
   discovery. The rule, ruled 25 August after a third instance: measurement arithmetic
   and formatting live where the tests run, because a formatter written in a layer that
   does not compile locally ships UNRUN.

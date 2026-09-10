@@ -7,7 +7,7 @@ spec: The register's gate reads the served commit and its age, from
 acceptance: two outcomes watched, a fixture with a fresh reading and one with a reading
   older than a day, both printing, neither refusing
 max_sessions: 1
-status: READY 2026-09-09. Dictated as C2 by
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09. Dictated as C2 by
   game-design/decision-2026-09-09-the-hook-comparison-the-ruled-link-and-the-stale-pages.md
   section 3.4.
   WHY IT EXISTS. The register enforces a link floor: every message that speaks must

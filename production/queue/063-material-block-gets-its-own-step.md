@@ -2,7 +2,7 @@ line: infrastructure (the Unreal workflow)
 spec: game-design/decision-2026-09-03-texture-staging-and-the-still-gate-ratchet.md, ruling C and E
 acceptance: tools/workflow-size.py prints BOTH blocks under the watermark AND a landed run still carries materialStatus into ue-build.txt; plus materialScriptMinutes measures the script rather than the editor process
 max_sessions: 1
-status: READY 2026-09-03. engine-specialist, small. BINDING: this is the NEXT edit to that run block, ahead of any other change to it.
+status: CLOSED 2026-09-10, not on the ladder and untouched for 7 days 2026-09-03. engine-specialist, small. BINDING: this is the NEXT edit to that run block, ahead of any other change to it.
 
 ## Why it is next and not now
 

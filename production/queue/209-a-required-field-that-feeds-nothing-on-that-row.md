@@ -7,7 +7,7 @@ acceptance: every condition's required fields are either used on that condition 
   written note saying they are not, and the count of inert-by-design values prints with its
   denominator.
 max_sessions: 1
-status: READY 2026-09-09, item F of game-design/decision-2026-09-09-ruling-the-sun-ladder.md,
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09, item F of game-design/decision-2026-09-09-ruling-the-sun-ladder.md,
   FOUND BY THE DIRECTOR READING THE DATA rather than by any check.
   IT IS THE SHAPE THE SAME CHANGE JUST CURED ONE LAYER UP. kSkyIntensityDay and
   kSkyIntensityNight were deleted in that change precisely because a constant that still

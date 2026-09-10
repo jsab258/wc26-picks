@@ -1,7 +1,7 @@
 line: world (D1 probe, measurement b, Unity half)
 spec: production/d1-probe/plan.md, measurement b
 acceptance: the reference street built to the Unity ceiling under the budget (the timebox was retired 2026-09-02); paired stills committed per dispatch; no hand-edited binary scenes
-status: STARTED 2026-09-02 as the vignette's Unity half (queue 025, 027, 028): production/specs/vignette-scene.json and StreetVignetteHost.cs are this item's build; done when the four Unity vign_* stills have landed and been opened.
+status: CLOSED 2026-09-10, not on the ladder and untouched for 8 days 2026-09-02 as the vignette's Unity half (queue 025, 027, 028): production/specs/vignette-scene.json and StreetVignetteHost.cs are this item's build; done when the four Unity vign_* stills have landed and been opened.
 max_sessions: 4
 
 Build the agreed reference street to the Unity ceiling under the budget,

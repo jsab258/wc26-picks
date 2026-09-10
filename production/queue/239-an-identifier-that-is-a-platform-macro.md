@@ -5,7 +5,7 @@ acceptance: the lint red on a planted "const int PI = 0;" in the ue-probe tree
   and green on the live tree, with the macro list DERIVED rather than hand-typed
   where that is possible
 max_sessions: 1
-status: READY 2026-09-10 13:10Z. Cost one full PC round trip today, measured.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-10 13:10Z. Cost one full PC round trip today, measured.
 
   WHAT HAPPENED. The exposure ladder was built, reviewed, gated and dispatched.
   The run came back with sceneStatus=NOTHING-EMITTED,

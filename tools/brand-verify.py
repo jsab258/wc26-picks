@@ -95,12 +95,53 @@ def minted_from_canon(path=CANON):
     return names, "read %d minted name(s) from canon.md" % len(names)
 
 
+# D18, 2026-09-10. THE BIBLE CARRIES THE CONTENT RULE and this refuses a copy
+# that has drifted from the gate's. Read from tools/content-gate.py rather
+# than restated here, for the same reason MINTED_PREFIX reads canon.md: a
+# second copy of a rule decays in the direction of agreeing with whatever it
+# is checking. A MISSING clause is a FAILURE, never a pass, because a bible
+# with no content rule and a bible whose rule nobody checked look identical.
+def content_clause():
+    """The clause every content file must carry. (clause, note)."""
+    gate = os.path.join(REPO, "tools", "content-gate.py")
+    if not os.path.exists(gate):
+        return None, "tools/content-gate.py is not there, so the clause could not be read"
+    src = open(gate, encoding="utf-8").read()
+    m = re.search(r'^CLAUSE = \((.*?)\)$', src, re.M | re.S)
+    if not m:
+        return None, "tools/content-gate.py has no CLAUSE assignment"
+    parts = re.findall(r'"([^"]*)"', m.group(1))
+    if not parts:
+        return None, "the CLAUSE assignment held no string"
+    return "".join(parts), "read from tools/content-gate.py"
+
+
 def check_bible(data, minted, window=(1988, 1992)):
     """Return a list of problem strings. Empty means clean."""
     problems = []
     brands = data.get("brands")
     if not isinstance(brands, list) or not brands:
         return ["the file holds no 'brands' list, or it is empty"]
+
+    clause, note = content_clause()
+    cr = data.get("contentRule") or {}
+    if clause is None:
+        problems.append("REFUSED: %s. This run cannot tell a bible that "
+                        "carries the content rule from one that does not." % note)
+    elif cr.get("clause") != clause:
+        problems.append(
+            "contentRule.clause is missing or has drifted from the gate's "
+            "(%s). D18 makes the brand bible one of the five enforcement "
+            "sites, and a site whose copy disagrees with the gate is the "
+            "hole." % note)
+    for f in ("whatThisMeansForABrand", "kindsRefused"):
+        if not cr.get(f):
+            problems.append("contentRule.%s is missing or empty" % f)
+    refused = [k.lower() for k in cr.get("kindsRefused") or []]
+    for k in KINDS:
+        if k.lower() in refused:
+            problems.append("kind '%s' is both allowed by this tool and "
+                            "refused by contentRule.kindsRefused" % k)
 
     seen = {}
     for i, b in enumerate(brands):
@@ -149,7 +190,14 @@ def selftest():
             fail += 1
             print("  FAIL %s" % name)
 
-    good = {"brands": [{
+    # The fixture carries the LIVE clause rather than a copy, so that
+    # rewording the rule cannot quietly turn this accepting case red for a
+    # reason that has nothing to do with the entry it is testing.
+    _clause, _ = content_clause()
+    good = {"contentRule": {"clause": _clause,
+                            "whatThisMeansForABrand": ["x"],
+                            "kindsRefused": ["brewery"]},
+            "brands": [{
         "id": "x", "name": "The Meridian Argus", "kind": "paper", "founded": 1871,
         "register": "the Argus", "says": "s", "neverConfuse": "n", "license": "l",
         "physical": "a masthead, yellow vendor boards, and a late edition with the results",
@@ -208,6 +256,26 @@ def selftest():
               live is not None and len(live) == 4 and not any("." in n for n in live))
         check("rejecting: a missing canon.md returns None",
               minted_from_canon(os.path.join(d, "gone.md"))[0] is None)
+
+    # D18. ACCEPTING FIRST: the live bible carries the live clause.
+    clause, note = content_clause()
+    live_bible = json.load(open(BIBLE, encoding="utf-8")) if os.path.exists(BIBLE) else {}
+    check("ACCEPTING: the clause reads out of the gate (%s), %d chars"
+          % (note, len(clause or "")), bool(clause))
+    check("ACCEPTING: the live brand bible carries that exact clause",
+          (live_bible.get("contentRule") or {}).get("clause") == clause)
+    check("rejecting: a bible whose clause has drifted by one word is refused",
+          any("drifted" in p for p in check_bible(
+              {**live_bible,
+               "contentRule": {**(live_bible.get("contentRule") or {}),
+                               "clause": (clause or "") + " and no seagulls"}},
+              ["Mickey's", "the Tivoli", "Meridian Harbour Board",
+               "Meridian Ferry"])))
+    check("rejecting: a bible with no contentRule at all is refused",
+          any("drifted" in p or "missing" in p for p in check_bible(
+              {k: v for k, v in live_bible.items() if k != "contentRule"},
+              ["Mickey's", "the Tivoli", "Meridian Harbour Board",
+               "Meridian Ferry"])))
 
     print("brand-verify selftest: %d ok, %d failed" % (ok, fail))
     return 1 if fail else 0

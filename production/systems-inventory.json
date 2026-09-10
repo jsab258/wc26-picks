@@ -6,11 +6,36 @@
   "typedOn": "2026-09-09",
   "typedAgainst": "this checkout at commit 42af6769",
   "areas": [
-    {"key": "moat", "label": "the moat", "order": 1, "asks": "do people perceive, remember, gossip and hold it against you"},
-    {"key": "world", "label": "the world", "order": 2, "asks": "does Meridian run whether or not you are looking at it"},
-    {"key": "player-facing", "label": "what the player touches", "order": 3, "asks": "can somebody pick this up and not bounce off it"},
-    {"key": "content", "label": "content", "order": 4, "asks": "is there enough authored material for the systems to say anything"},
-    {"key": "studio", "label": "the studio", "order": 5, "asks": "can the studio see what it built and tell you about it"}
+    {
+      "key": "moat",
+      "label": "the moat",
+      "order": 1,
+      "asks": "do people perceive, remember, gossip and hold it against you"
+    },
+    {
+      "key": "world",
+      "label": "the world",
+      "order": 2,
+      "asks": "does Meridian run whether or not you are looking at it"
+    },
+    {
+      "key": "player-facing",
+      "label": "what the player touches",
+      "order": 3,
+      "asks": "can somebody pick this up and not bounce off it"
+    },
+    {
+      "key": "content",
+      "label": "content",
+      "order": 4,
+      "asks": "is there enough authored material for the systems to say anything"
+    },
+    {
+      "key": "studio",
+      "label": "the studio",
+      "order": 5,
+      "asks": "can the studio see what it built and tell you about it"
+    }
   ],
   "howToRead": [
     "area is the layer a system mostly lives in, and the five are Jafar's own, in his order: the moat (social memory, consequence persistence, information), the world (the simulation that runs whether you look or not), what the player touches (the surfaces and inputs a player meets in a session), content (authored material), the studio (its tools and its process). The keys are stable and the labels the page shows are in the areas block above.",
@@ -247,7 +272,6 @@
       ],
       "note": "Loose ends, summonses and notoriety carry across days: six ends fed, two with the law and four owed, one summons placed and one missed over seventeen days, notoriety peaking at 1.000. Nothing blocks it but the run it has never survived, which the law entry owns."
     },
-
     {
       "name": "the what-they-know HUD for wanted states",
       "short": "what-they-know HUD",
@@ -539,7 +563,6 @@
       ],
       "note": "Typed down for one reason: no budget for the Unreal street at a resident count is set in this checkout, which is phase 1's gate. The Unity sim's 0.24 ms against its own 4.00 ms over 24702 samples is carried from the builder's read of the last landed run. CORRECTED 2026-09-09 by the director: Core/FrameRate.cs IS called from the Game layer every frame, at Game/DialogueUI.cs:1354 inside Update, and Line() and Hitching feed the F1 panel."
     },
-
     {
       "name": "menus",
       "area": "player-facing",
@@ -954,7 +977,6 @@
       "typedOn": "2026-09-09",
       "note": "Typed down from partial, because as a thing the PLAYER touches there is nothing in this checkout: no in-game way for anybody to report a bug, a crash or a complaint. The path that does exist carries Jafar's messages from Telegram into the repo, and it is the studio's channel entry, not this one."
     },
-
     {
       "name": "dialogue banks",
       "area": "content",
@@ -1002,9 +1024,9 @@
       "typedBy": "builder/tier3",
       "typedOn": "2026-09-09",
       "evidence": [
-        "game-design/act1-draft.md",
-        "game-design/act2-draft.md",
-        "game-design/act3-draft.md",
+        "legacy/v1-era/act-drafts/act1-draft.md",
+        "legacy/v1-era/act-drafts/act2-draft.md",
+        "legacy/v1-era/act-drafts/act3-draft.md",
         "ledger/Assets/Scripts/Core/ActThree.cs"
       ],
       "note": "Three act drafts, their beats and their endings run in the sim, including the Fall and the audit with a date. Narrative v2 is phase 3 and unwritten, and no record committed here says any of it has been read by somebody playing."
@@ -1061,7 +1083,6 @@
       ],
       "note": "The voice bank maps a speaker to a clip and a bench proves the bound path on your PC. The corpus is still candidates under the consent rule, no voice is picked for any character in the files committed here, and no record committed here says anybody has heard one in a build."
     },
-
     {
       "name": "radio and TV",
       "area": "content",
@@ -1191,6 +1212,286 @@
         "production/token-ledger.md"
       ],
       "note": "Spend is recorded as dated rows with their denominators and a ceiling, and every reading is typed in by hand from your own screen because nothing can read the meter from here (queue 082). So the number is as fresh as the last time you looked."
+    },
+    {
+      "name": "sprinting and exertion outside a fight",
+      "short": "sprinting",
+      "area": "player-facing",
+      "status": "absent",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "none",
+      "typedBy": "director/resident",
+      "typedOn": "2026-09-10",
+      "note": "Named by Jafar's ruling of 2026-09-10, which added the absent systems to this census. Grepped this day against the 218 source files under ledger/Assets/Scripts and ue-probe/Source. Zero hits for a sprint input: Game/PlayerController.cs names sprint once, in a comment about a constant. Stamina is NOT absent and this tile does not say it is: Core/Combat.cs carries StrikeStamina, ShoveStamina, StaminaRecovery and StaminaCost, so a blow costs wind and a run does not."
+    },
+    {
+      "name": "swimming",
+      "area": "player-facing",
+      "status": "absent",
+      "class": "taste-bound",
+      "phase": "3",
+      "blocker": "none",
+      "typedBy": "director/resident",
+      "typedOn": "2026-09-10",
+      "note": "Named by Jafar's ruling of 2026-09-10, which added the absent systems to this census. Grepped this day against the 218 source files under ledger/Assets/Scripts and ue-probe/Source. Zero hits for swim in 218 files. In a port town the water is the edge of the map until this exists, which is a siting constraint on the harbour, not only a missing verb."
+    },
+    {
+      "name": "sleep and the day boundary",
+      "short": "sleep",
+      "area": "player-facing",
+      "status": "absent",
+      "class": "taste-bound",
+      "phase": "3",
+      "blocker": "none",
+      "typedBy": "director/resident",
+      "typedOn": "2026-09-10",
+      "note": "Named by Jafar's ruling of 2026-09-10, which added the absent systems to this census. Grepped this day against the 218 source files under ledger/Assets/Scripts and ue-probe/Source. The only hit is System.Threading.Thread.Sleep(50) at Game/Audio.cs:1291, a thread call and not a verb. Nothing advances the clock by resting and nothing ends a day."
+    },
+    {
+      "name": "burglary and lockpicking",
+      "short": "burglary",
+      "area": "player-facing",
+      "status": "absent",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "none",
+      "typedBy": "director/resident",
+      "typedOn": "2026-09-10",
+      "note": "Named by Jafar's ruling of 2026-09-10, which added the absent systems to this census. Grepped this day against the 218 source files under ledger/Assets/Scripts and ue-probe/Source. Zero hits for burglar or lockpick. Phase 2's row names petty crime verbs and this is one of them."
+    },
+    {
+      "name": "pickpocketing",
+      "area": "player-facing",
+      "status": "absent",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "none",
+      "typedBy": "director/resident",
+      "typedOn": "2026-09-10",
+      "note": "Named by Jafar's ruling of 2026-09-10, which added the absent systems to this census. Grepped this day against the 218 source files under ledger/Assets/Scripts and ue-probe/Source. Zero hits. Phase 2 petty crime verb."
+    },
+    {
+      "name": "searching a room, a container or a body",
+      "short": "searching",
+      "area": "player-facing",
+      "status": "absent",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "none",
+      "typedBy": "director/resident",
+      "typedOn": "2026-09-10",
+      "note": "Named by Jafar's ruling of 2026-09-10, which added the absent systems to this census. Grepped this day against the 218 source files under ledger/Assets/Scripts and ue-probe/Source. Zero hits for SearchBody, Searchable or Rummage. Doors and who gets in exists as its own tile; what is behind the door holds nothing to look through."
+    },
+    {
+      "name": "court and the cells",
+      "short": "court and cells",
+      "area": "world",
+      "status": "absent",
+      "class": "moat-adjacent",
+      "phase": "3",
+      "blocker": "none",
+      "typedBy": "director/resident",
+      "typedOn": "2026-09-10",
+      "note": "Named by Jafar's ruling of 2026-09-10, which added the absent systems to this census. Grepped this day against the 218 source files under ledger/Assets/Scripts and ue-probe/Source. Court appears only as a street name in Core/StreetMap.cs:243 and cell only as BurialCellRead in the Unreal vignette spec, so both hits are false friends. Consequence persistence is pillar work: an arrest that leads nowhere is a consequence that stops."
+    },
+    {
+      "name": "the tide and the water",
+      "short": "tide and water",
+      "area": "world",
+      "status": "absent",
+      "class": "taste-bound",
+      "phase": "3",
+      "blocker": "none",
+      "typedBy": "director/resident",
+      "typedOn": "2026-09-10",
+      "note": "Named by Jafar's ruling of 2026-09-10, which added the absent systems to this census. Grepped this day against the 218 source files under ledger/Assets/Scripts and ue-probe/Source. The only tide hit is a line of dialogue in Game/Tier2Setup.cs:84, a character saying the tide is wrong. No water level, no tide clock."
+    },
+    {
+      "name": "street lighting at night",
+      "short": "night lighting",
+      "area": "world",
+      "status": "absent",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "none",
+      "typedBy": "director/resident",
+      "typedOn": "2026-09-10",
+      "note": "Named by Jafar's ruling of 2026-09-10, which added the absent systems to this census. Sits beside the existing tile for light and the time of day, which is about the daylight model. This one is lamps, lit windows and what a wet road does with them after dark, and the street has never been rendered at night in a landed run."
+    },
+    {
+      "name": "parked vehicles as street dressing",
+      "short": "parked vehicles",
+      "area": "world",
+      "status": "absent",
+      "class": "cheap-to-author",
+      "phase": "2",
+      "blocker": "none",
+      "typedBy": "director/resident",
+      "typedOn": "2026-09-10",
+      "note": "Named by Jafar's ruling of 2026-09-10, which added the absent systems to this census. Distinct from the existing traffic and vehicles tile, which is about vehicles that move. An empty kerb reads as a film set, and period cars parked badly are the cheapest density in the project."
+    },
+    {
+      "name": "letters and newspapers the player can read",
+      "short": "letters and papers",
+      "area": "content",
+      "status": "absent",
+      "class": "cheap-to-author",
+      "phase": "3",
+      "blocker": "none",
+      "typedBy": "director/resident",
+      "typedOn": "2026-09-10",
+      "note": "Named by Jafar's ruling of 2026-09-10, which added the absent systems to this census. Grepped this day against the 218 source files under ledger/Assets/Scripts and ue-probe/Source. The two Letter hits in Game/WorldBuilder.cs are a lettering call for fascia signs, a false friend. LATE-ANALOG: paper is the information channel, so this is pillar work and not dressing."
+    },
+    {
+      "name": "the local paper and the news reacting to you",
+      "short": "the news reacts",
+      "area": "moat",
+      "status": "absent",
+      "class": "moat-adjacent",
+      "phase": "3",
+      "blocker": "none",
+      "typedBy": "director/resident",
+      "typedOn": "2026-09-10",
+      "note": "Named by Jafar's ruling of 2026-09-10, which added the absent systems to this census. The existing radio and TV tile is the broadcast surface. This is the information pillar: the town's own media repeating something the player did, which is Meridian Test condition 2 arriving through a channel that is not a person's mouth."
+    },
+    {
+      "name": "dialogue staging",
+      "area": "content",
+      "status": "absent",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "none",
+      "typedBy": "director/resident",
+      "typedOn": "2026-09-10",
+      "note": "Named by Jafar's ruling of 2026-09-10, which added the absent systems to this census. Where two people stand, what the camera does and where the eyes go while a line plays. Spoken conversation exists as a tile and the words are not the problem: an unstaged conversation is the single clearest AI slop tell in a game that claims real spoken dialogue."
+    },
+    {
+      "name": "text localisation",
+      "short": "localisation",
+      "area": "player-facing",
+      "status": "absent",
+      "class": "cheap-to-author",
+      "phase": "6",
+      "blocker": "none",
+      "typedBy": "director/resident",
+      "typedOn": "2026-09-10",
+      "note": "Named by Jafar's ruling of 2026-09-10, which added the absent systems to this census. Grepped this day against the 218 source files under ledger/Assets/Scripts and ue-probe/Source. The four localis hits are sound localisation in Game/Perceivers.cs and Game/NpcWalker.cs, a false friend. Zero hits for localiz. Ship-prep, deferred until the quality bar is met."
+    },
+    {
+      "name": "the hardware floor",
+      "short": "hardware floor",
+      "area": "player-facing",
+      "status": "absent",
+      "class": "taste-bound",
+      "phase": "6",
+      "blocker": "none",
+      "typedBy": "director/resident",
+      "typedOn": "2026-09-10",
+      "note": "Named by Jafar's ruling of 2026-09-10, which added the absent systems to this census. The minimum machine the game must hold its frame on. Distinct from the frame budget tile, which measures this build on this machine. Nothing measured: no target hardware has ever been named in a ruling."
+    },
+    {
+      "name": "visual identity in the Unreal build",
+      "short": "visual identity in UE",
+      "area": "player-facing",
+      "status": "absent",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "none",
+      "typedBy": "director/resident",
+      "typedOn": "2026-09-10",
+      "note": "Named by Jafar's ruling of 2026-09-10, which added the absent systems to this census. D16 made Unreal the engine. The probe renders vignettes and carries no title, no typography, no menu and no graphic identity of its own."
+    },
+    {
+      "name": "sound in the Unreal build",
+      "short": "sound in UE",
+      "area": "player-facing",
+      "status": "absent",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "none",
+      "typedBy": "director/resident",
+      "typedOn": "2026-09-10",
+      "note": "Named by Jafar's ruling of 2026-09-10, which added the absent systems to this census. D16 made Unreal the engine. Audio, room tone and foley all live in the C# Game layer; the Unreal side is silent."
+    },
+    {
+      "name": "ambient street life beyond the crowd",
+      "short": "ambient street life",
+      "area": "world",
+      "status": "absent",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "none",
+      "typedBy": "director/resident",
+      "typedOn": "2026-09-10",
+      "note": "Named by Jafar's ruling of 2026-09-10, which added the absent systems to this census. Distinct from the crowd you see, which is people walking. This is the town working: deliveries, a shopkeeper sweeping, washing on a line, a man fixing a van. It is what makes condition 3 of the Meridian Test, alive without being prompted, happen without a single line of dialogue."
+    },
+    {
+      "name": "injury and healing",
+      "area": "player-facing",
+      "status": "partial",
+      "where": "core-csharp",
+      "class": "taste-bound",
+      "phase": "4",
+      "blocker": "none",
+      "typedBy": "director/resident",
+      "typedOn": "2026-09-10",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/Harm.cs#InjuryKind",
+        "ledger/Assets/Scripts/Core/Harm.cs#Injury",
+        "ledger/Assets/Scripts/Game/OperationHost.cs#LastInjury"
+      ],
+      "note": "Named by Jafar's ruling of 2026-09-10, which added the absent systems to this census. NOT ABSENT, and the instruction that named it expected absent. Core/Harm.cs declares an InjuryKind enum and an Injury class, and Game/OperationHost.cs:131 holds LastInjury. Typed partial rather than exists because nothing measured here says an injury heals over time or that any surface shows one."
+    },
+    {
+      "name": "bribes and intimidation",
+      "area": "moat",
+      "status": "partial",
+      "where": "core-csharp",
+      "class": "moat-adjacent",
+      "phase": "2",
+      "blocker": "none",
+      "typedBy": "director/resident",
+      "typedOn": "2026-09-10",
+      "evidence": [
+        "ledger/Assets/Scripts/Core/Gossip.cs#Bribe",
+        "ledger/Assets/Scripts/Core/Gossip.cs#Intimidate",
+        "ledger/Assets/Scripts/Game/DialogueUI.cs#Bribe"
+      ],
+      "note": "Named by Jafar's ruling of 2026-09-10, which added the absent systems to this census. NOT ABSENT, and the instruction that named it expected absent. Core/Gossip.cs:706 Bribe and :738 Intimidate both return a DcResult, and Game/DialogueUI.cs:2214 calls one from the dialogue surface, so these are reached and not only written. Typed partial because nothing measured here says the town REMEMBERS having been bought, which is the half that makes them moat work."
+    },
+    {
+      "name": "foley",
+      "area": "content",
+      "status": "partial",
+      "where": "core-csharp",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "none",
+      "typedBy": "director/resident",
+      "typedOn": "2026-09-10",
+      "evidence": [
+        "ledger/Assets/Scripts/Game/Audio.cs#Foley",
+        "ledger/Assets/Scripts/Game/DialogueUI.cs#Foley"
+      ],
+      "note": "Named by Jafar's ruling of 2026-09-10, which added the absent systems to this census. NOT ABSENT. Game/Audio.cs:830 declares Foley(string kind, float volume) and Game/DialogueUI.cs:1546 calls it on a coat verb, so there is a foley channel with at least one live caller. Typed partial because the kinds it answers to have never been counted."
+    },
+    {
+      "name": "ambient beds and room tone",
+      "short": "ambient beds",
+      "area": "content",
+      "status": "partial",
+      "where": "core-csharp",
+      "class": "taste-bound",
+      "phase": "2",
+      "blocker": "none",
+      "typedBy": "director/resident",
+      "typedOn": "2026-09-10",
+      "evidence": [
+        "ledger/Assets/Scripts/Game/RoomTone.cs",
+        "ledger/Assets/Scripts/Game/Audio.cs#OutsideBleed"
+      ],
+      "note": "Named by Jafar's ruling of 2026-09-10, which added the absent systems to this census. NOT ABSENT indoors. Game/RoomTone.cs holds a room-tone authority and Game/Audio.cs:335 gains it through Core.Acoustics.OutsideBleed, so an interior has a tone and a door muffles it. Typed partial because the tokens ambientBed, ambientLoop and BackgroundLoop return zero in 218 files: outdoors there is no bed."
     }
   ]
 }

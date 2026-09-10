@@ -6,7 +6,7 @@ spec: A generated page from the five research files under
 acceptance: the served page answers with this branch's stamp AND the RULED_LINKS entry
   is gone in the same commit
 max_sessions: 1
-status: READY 2026-09-09. Dictated as C3 by
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09. Dictated as C3 by
   game-design/decision-2026-09-09-the-hook-comparison-the-ruled-link-and-the-stale-pages.md
   section 3.4, and it is the rung that RETIRES the exception ruled in section 2.
   THE EXCEPTION IS MEANT TO DIE. Jafar asked for the atlas-02 digest "with the link",

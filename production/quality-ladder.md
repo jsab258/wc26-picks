@@ -1,6 +1,25 @@
 # The quality ladder
 
-STATUS: LIVE. Verified 2026-09-01.
+STATUS: LIVE. Verified 2026-09-10.
+
+THIS IS NOT A PLAN, AND SINCE 2026-09-10 IT DOES NOT PRETEND TO BE ONE. Jafar
+ruled one plan that day: `production/ladder.md` plus `production/queue/`. This
+file is an INSTRUMENT OF that plan and nothing else. It holds one question, asked
+at close, about work the plan already scheduled: is this the best available
+result, or the first working one. It schedules nothing and it sequences nothing.
+
+WHY IT STAYED AT THIS PATH rather than folding into `production/ladder.md`. Two
+readers name it and both belong to a lane this batch may not touch: `CLAUDE.md`
+line 205 names this file as the place the close question is asked, and
+`.claude/agents/world-designer.md` line 90 repeats the same clause to the
+world-designer. A third reason is mechanical: `production/ladder.md` is parsed by
+`tools/map.py`, whose `visual_ladder` takes `table_rows(text)` (line 1884,
+measured 2026-09-10) over the WHOLE file
+and treats the FIRST table's header as the rung contract, so the aspect tables
+below cannot be pasted into that file without breaking the project overview's
+first screen. Measured 2026-09-10: zero code readers of this path across every
+tracked `.py`, `.yml`, `.yaml`, `.sh` and `.json` in the repository, so the only
+thing holding it here is the two documents above.
 
 CLAUDE.md's standing order is "the best possible result, not the first
 working one", and it says plainly that a rule with no trigger point decays.

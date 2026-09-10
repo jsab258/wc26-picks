@@ -4,7 +4,7 @@ spec: found in passing by the agent running the sweep, while checking its own
 acceptance: the gate fails when the study selftest fails, proven on both
   outcomes with the accepting case first
 max_sessions: 1
-status: READY 2026-09-06. One line, and it is the shape this project keeps
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-06. One line, and it is the shape this project keeps
   finding: a gate that reads a string and ignores the verdict.
 
 ## The finding

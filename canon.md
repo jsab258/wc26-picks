@@ -31,9 +31,10 @@ agent; violating it is a gate failure.
 ## Era
 - Late 1980s to early 1990s. Working window 1988 to 1992.
 - Late-analog: landlines, phone boxes, answering machines, pagers for dealers and
-  fixers, cash and paper. CCTV rare: the bank and the off-licence, tape recycled
-  weekly. One camcorder in town, a rare witness type. No internet, no mobiles in
-  ordinary pockets.
+  fixers, cash and paper. CCTV rare: the bank, and a second site that is
+  Jafar's to name (the off-licence was struck 2026-09-10 under D18 and
+  nothing was minted in its place), tape recycled weekly. One camcorder in
+  town, a rare witness type. No internet, no mobiles in ordinary pockets.
 - Any 1950s or 1970s framing is wrong, corrected on sight. Both drifts have happened.
 
 ## Tone
@@ -56,6 +57,40 @@ agent; violating it is a gate failure.
   Fixer (broker between all three rivals).
 - What the town calls you reads out your standing: the new owner, then Novak, then
   Tom, then Toma. The gate is knowing, not liking.
+
+## The content rule (D18, permanent)
+
+APPROVED 2026-09-10 by Jafar, recorded at
+ledger-v2/respec/decision-register/D18-content-rule.md, which extends D17.
+This is a RULE, not a note: it governs what may exist in this work at all, in
+image and in speech, and it voids decisions already taken.
+
+- Alcohol and gambling are out ENTIRELY: never shown, served, drunk or spoken
+  of, in image or speech. PUBS MAY EXIST AS PLACES. What the pub is for
+  without drink is a design task, not a subtraction.
+- Tobacco stays.
+- Violence stays, including blood and light gore. No torture and no cruelty
+  as spectacle.
+- Killing is possible, rare, permanent, and the town remembers it forever.
+- Full period swearing is allowed. NO SLURS OF ANY KIND.
+- Drugs exist as an off-screen economy other people run: never shown, never
+  used, never a player verb.
+- No prostitution and no sexual content. Seaside-postcard innuendo under Tone
+  is not sexual content and stays.
+- NO CHILDREN ANYWHERE: none rendered, none in the crowd, none in dialogue or
+  image prompts. THE SCHOOL STANDS CLOSED for the game's window; the building
+  is there and nobody is in it.
+- Racism and sectarianism may exist as FACTS ABOUT CHARACTERS, never voiced
+  as slurs, never rewarded.
+- Religion is present as part of life, never mocked, never a mechanic.
+- Police are corruptible as individuals, never as a thesis.
+
+Enforced at five sites: this rule; every image spec's content clause; the
+word-list gate `tools/content-gate.py` over dialogue and spoken lines; crowd
+generation, which is the one site that is code; and the brand bible. Half of
+this rule permits a FACT and forbids the DEPICTION or the REWARD, and no word
+list can read intent: `python3 tools/content-gate.py --enforceable` prints
+which clauses the gate checks and which it does not claim to.
 
 ## The moat (unchangeable)
 - Every act exposes seven perceivable slots.

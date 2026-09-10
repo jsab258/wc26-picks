@@ -2,7 +2,7 @@ line: production (the reporting channel Jafar reads)
 spec: this file
 acceptance: an open decision on the dashboard carries enough to answer it there: the plain-terms framing, the options with what each costs, and the studio's recommendation, rendered from production/decision-queue.md rather than retyped; a card whose source has no options renders the heading and says which part is missing rather than looking complete; any truncation announces itself through tools/capsay.py, which is the one implementation of that idea in this repo
 max_sessions: 1
-status: READY 2026-09-02. instrument-builder, small. Found when Jafar read the inbox and had to ask the chat "any more details about this decision?"
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-02. instrument-builder, small. Found when Jafar read the inbox and had to ask the chat "any more details about this decision?"
 
 ## The finding
 

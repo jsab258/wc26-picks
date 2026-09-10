@@ -2,7 +2,7 @@ line: infrastructure (content pipeline)
 spec: game-design/decision-2026-09-02-constitution-cut-attribution-pc-channel.md, Ruling 4 and Ruling 8
 acceptance: a STATE "running" entry written at job START, stale by that job's own JOB_TIMEOUT, both outcomes fixtured; a probe-the-vignette-library TABLE row with its own JOB_TIMEOUT and ambientcg-types.json in publish's named list; the spec's C10 sentences reconciled to say one thing
 max_sessions: 1
-status: READY 2026-09-02. One engine-specialist. Item 1 matters the first time Jafar double-clicks while a window is already open.
+status: CLOSED 2026-09-10, not on the ladder and untouched for 8 days 2026-09-02. One engine-specialist. Item 1 matters the first time Jafar double-clicks while a window is already open.
 
 1. TWO WATCHERS. The refusal of a naive lock file is ENDORSED for the reason
    the builder gave: a crashed window leaves a stale lock and the machine then

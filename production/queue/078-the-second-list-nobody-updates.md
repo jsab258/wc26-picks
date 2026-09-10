@@ -2,7 +2,7 @@ line: infrastructure (the guards)
 spec: three instances on 2026-09-03, the third of which blocked a fully verified commit
 acceptance: one printed inventory of every path any guard treats as machine-written evidence, showing for each guard whether it exempts that path and WHY the answer differs where it differs; plus a selftest that fails when a path is added to one list and not considered for the others
 max_sessions: 1
-status: READY 2026-09-03. instrument-builder. SCOPE CEILING: the inventory and the selftest. Do NOT re-decide any individual exemption; that is a director call and anything you find beyond the list is a reported next step, not more build time.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-03. instrument-builder. SCOPE CEILING: the inventory and the selftest. Do NOT re-decide any individual exemption; that is a director call and anything you find beyond the list is a reported next step, not more build time.
 
 ## The pattern, three times in one day
 

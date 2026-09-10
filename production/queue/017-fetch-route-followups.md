@@ -1,3 +1,4 @@
+status: CLOSED 2026-09-10, not on the ladder and untouched for 8 days
 line: infrastructure (content pipeline)
 spec: production/specs/vignette-fetch-01.json; the fetch-route report of 2026-09-01
 acceptance: all three named below closed, each with the check that proves it

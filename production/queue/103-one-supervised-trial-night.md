@@ -2,7 +2,7 @@ line: production (the night rhythm)
 spec: production/NOW.md, "JAFAR'S STANDING ORDER, 2026-09-05", item 8
 acceptance: the STOP file is proven on BOTH outcomes before the night starts (present, the loop exits at its check having spawned nothing; absent, one iteration runs), then one night runs unattended against a queue named in the ruling that authorises it, and a morning report lands on a TRACKED path naming per iteration what ran, what landed and what broke, with iterationsRun=N/maxIterations, itemsLanded=K/Q queued, and a budget reading at each end carrying both meters; a night the runner never started produces a report reading iterationsRun=0 and the words "nothing measured" rather than no file; and the first iteration is watched end to end before the machine is left alone
 max_sessions: 1
-status: READY 2026-09-05. Item 8. BLOCKED until queue 094 lands. instrument-builder to prepare, Jafar's PC to run.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-05. Item 8. BLOCKED until queue 094 lands. instrument-builder to prepare, Jafar's PC to run.
 
 ## The claim in the order, checked rather than repeated
 

@@ -2,7 +2,7 @@ line: infrastructure (governance)
 spec: game-design/decision-2026-09-02-constitution-cut-attribution-pc-channel.md, Ruling 9
 acceptance: the session-start hook prints the head of production/NOW.md's "## In flight" rather than game-design/queue.md's "## Now"; the no-file first-fix branch is kept; a session start shows live state
 max_sessions: 1
-status: READY 2026-09-02. Small. Rides the next reviewed batch because .claude/ is a work prefix.
+status: CLOSED 2026-09-10, not on the ladder and untouched for 8 days 2026-09-02. Small. Rides the next reviewed batch because .claude/ is a work prefix.
 
 `.claude/settings.json` line 32 passes `QUEUE_FILE=game-design/queue.md`, and
 `session-start.sh` prints the first item under that file's `## Now`.

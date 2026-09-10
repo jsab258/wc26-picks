@@ -4,7 +4,7 @@ acceptance: steps 3 and 4 of game-design/decision-2026-09-01-production-prep-seq
             namely the CC0 fetch-clean-tag route proven end to end on five items and
             then a first full overnight batch driven from the vignette bill of materials
 max_sessions: 2
-status: BLOCKED 2026-09-01. Hardware, not effort: the machine has an AMD
+status: CLOSED 2026-09-10, not on the ladder and untouched for 8 days 2026-09-01. Hardware, not effort: the machine has an AMD
         Radeon and no NVIDIA card, and TRELLIS kernels are CUDA. Contingent
         on the bill of materials showing a gap the free libraries cannot
         fill; unblocks only by a purchase Jafar has not authorised, or by a

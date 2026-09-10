@@ -7,7 +7,7 @@ spec: The grate camera in ue-probe/Source/LedgerProbe/Private/WalkProbe.cpp trac
 acceptance: a frame whose subject is occluded is REFUSED with the blocker named, and the
   accepting case is a clear line that shoots
 max_sessions: 1
-status: READY 2026-09-09, and it is the reason Jafar's item 2 is still one step short.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09, and it is the reason Jafar's item 2 is still one step short.
   MEASURED, run 35 on 14316ed: grateShotStatus=AIMED, grateRectStatus=MEASURED,
   grateViewRestoreStatus=RESTORED, walkFramesWrote=7/7, and a director had checked the
   camera arithmetic before the run and found it right to two decimals. EVERY KEY IS

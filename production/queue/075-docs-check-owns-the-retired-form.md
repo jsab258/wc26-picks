@@ -2,7 +2,7 @@ line: infrastructure (documents)
 spec: game-design/decision-2026-09-03-batch-review-register-banner-spawnlog-uvsweep.md, ruling 2(b)
 acceptance: `OLD_RE`, the definition of the retired em-dash banner at banner position, lives in `tools/docs-check.py`; `tools/migrate-status-banner.py` imports it from there; deleting the migration script leaves docs-check and verify green; docs-check.py carries zero literal em-dash characters, the Python unicode escape for U+2014 (backslash, u, 2014) being the only permitted spelling; both selftests and the live corpus pass unchanged
 max_sessions: 1
-status: READY 2026-09-03. instrument-builder, small.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-03. instrument-builder, small.
 
 ## Why
 

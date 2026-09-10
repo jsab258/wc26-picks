@@ -8,7 +8,7 @@ spec: Rename the street-side collision reading in ue-probe VignetteShot to
 acceptance: a placed mesh collidable by a complex-as-simple flag reads YES and not NO,
   a mesh with no body setup reads UNKNOWN and not NO, and both rows run in the container
 max_sessions: 1
-status: READY 2026-09-08, and it BLOCKS THE WALK CLIP DISPATCH. Amendment A5 of
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-08, and it BLOCKS THE WALK CLIP DISPATCH. Amendment A5 of
   game-design/decision-2026-09-08-queue-147-the-composed-telling-and-the-clause-the-bank-never-had.md
   section 7.
   THREE FAULTS IN ONE EIGHT-LINE FUNCTION. PropCollisionPrims returns 0 both when

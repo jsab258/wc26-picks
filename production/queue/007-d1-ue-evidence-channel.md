@@ -2,7 +2,7 @@ line: instrument (D1 probe, the deciding unknown)
 spec: production/d1-probe/evidence-channel-spec.md
 acceptance: a UE run commits a verdict file naming its commit on line 1 and at least one still, both staged by name; a run that rendered nothing says so and carries nothing forward; tools/verdict-read.py reads the UE verdict unchanged
 max_sessions: 3
-status: STEP 1 DONE 2026-09-01 (run 14). The UE side commits a traceable
+status: CLOSED 2026-09-10, not on the ladder and untouched for 8 days 1 DONE 2026-09-01 (run 14). The UE side commits a traceable
         verdict and tools/verdict-read.py opens it with every refusal intact:
         same-line keys accepted with line numbers, cross-line keys refused,
         a missing file refused as nothing measured. The reader needed a --file

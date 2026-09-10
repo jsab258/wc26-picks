@@ -2,7 +2,7 @@ line: production (the channel)
 spec: game-design/decision-2026-09-03-batch-review-register-banner-spawnlog-uvsweep.md, ruling 1(c)
 acceptance: a NEEDS YOU body that is not a recognised nothing-form and parses to zero items is refused by the `options` rule, naming what it could not find; `NEEDS YOU: nothing today.` still passes; both shipped as --selftest fixtures, accepting case first; the live gate stays green
 max_sessions: 1
-status: READY 2026-09-03. instrument-builder, small. Lands before the next unprompted Producer message is sent.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-03. instrument-builder, small. Lands before the next unprompted Producer message is sent.
 
 ## The hole
 

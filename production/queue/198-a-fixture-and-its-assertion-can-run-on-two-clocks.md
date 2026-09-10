@@ -9,7 +9,7 @@ acceptance: each of the five names the clock its fixtures run on, in a comment o
   variable name, and any pair that disagreed is fixed with the disagreement recorded.
   The count of pairs examined ships with the count of pairs changed.
 max_sessions: 1
-status: READY 2026-09-09. FOUND BY A GREEN SUITE TURNING RED WITH NOTHING CHANGED.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09. FOUND BY A GREEN SUITE TURNING RED WITH NOTHING CHANGED.
   tools/wake-queue.py went from 63 passed to 62 passed at one o'clock in the afternoon,
   on a working tree whose wake-queue.py was byte-identical to the last commit that
   touched it. Its `loop` fixture is armed at `past`, which is REAL now minus an hour,

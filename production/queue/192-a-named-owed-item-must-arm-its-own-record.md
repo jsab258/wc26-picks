@@ -6,7 +6,7 @@ spec: Nothing lets a turn end having NAMED owed work without a wake record cover
 acceptance: a turn that names owed work and arms nothing is caught, and a turn that
   names owed work and arms a record passes, both watched, the passing case first
 max_sessions: 1
-status: READY 2026-09-09. Filed because it happened, and it happened to the session that
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09. Filed because it happened, and it happened to the session that
   built the mechanism against it that same morning.
   THE INCIDENT: the turn ended with three things owed and written out plainly in its own
   closing message (the sky undispatched, the Mickey's render undispatched, the bot on his

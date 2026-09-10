@@ -2,7 +2,7 @@ line: infrastructure (instruments)
 spec: game-design/decision-2026-09-02-rotation-fix-lands.md, Ruling 3
 acceptance: Foot5 rotates its corner offsets by the piece's actual yaw; the litter footprints probed at their true corners; the print shows what changed
 max_sessions: 1
-status: READY 2026-09-02. Not a landing condition, ruled a queue item.
+status: CLOSED 2026-09-10, not on the ladder and untouched for 8 days 2026-09-02. Not a landing condition, ruled a queue item.
 
 `Foot5` swaps the footprint half-extents at yaw 90 and probes every other
 yaw UNROTATED. Its comment claimed "yaw is 0 or 90 for everything this

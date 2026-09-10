@@ -2,7 +2,7 @@ line: narrative (canon, brand bible)
 spec: game-design/decision-2026-09-02-vignette-batch-canon-crews-d1-timebox.md, Ruling 4 and Ruling 10
 acceptance: one proposal file shaped like the crews proposal; enters canon by the same delegated route; then the kiosk and the pillar box each gain a decal line
 max_sessions: 1
-status: READY 2026-09-02. dialogue-writer, one session.
+status: CLOSED 2026-09-10, not on the ladder and untouched for 8 days 2026-09-02. dialogue-writer, one session.
 
 The vignette ships a telephone kiosk with no lettering and a pillar box with
 no crown, and that is CORRECT rather than unfinished-by-accident: canon mints

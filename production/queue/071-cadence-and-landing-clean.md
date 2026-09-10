@@ -2,7 +2,7 @@ line: production (how the week is spent)
 spec: Jafar's Director's Console rulings, 2026-09-03
 acceptance: the week burns as fast as good visible progress allows with NO FLATTENING; it lands clean at the ceiling estimate with the reserve intact; Sunday evening is Jafar's notes deadline; the weekly show-and-tell is the reel plus his notes, and his notes feed the D7 judges
 max_sessions: 1
-status: READY 2026-09-03, after the Monday reset. Folds queue 026.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-03, after the Monday reset. Folds queue 026.
 
 ## Land clean, which is a procedure and not an intention
 

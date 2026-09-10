@@ -1,3 +1,4 @@
+status: CLOSED 2026-09-10, not on the ladder and untouched for 8 days
 line: signage/brand
 spec: production/specs/brand-bible-v1.md, the fields register and physical
 acceptance: at least three brands named by something the game runs; a reach check that fails when a brand entry has no consumer; the throughput ledger's W36 zero replaced by a real count

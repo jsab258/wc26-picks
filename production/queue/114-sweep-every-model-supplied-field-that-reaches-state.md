@@ -2,7 +2,7 @@ line: simulation (Core)
 spec: external audit 2026-09-06, second half of the P0 order: "then audit every other place a model-supplied field reaches state unchecked"
 acceptance: a printed inventory of every field that arrives from model JSON and can influence state, each with the check that constrains it or the words "nothing constrains it", counted against the total; every unconstrained one either gets a check that can refuse or a recorded ruling saying why it is safe
 max_sessions: 1
-status: P0, ready 2026-09-06, immediately after queue 113. Do not start before it: 113 sets the shape a constraint has to take.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work0, ready 2026-09-06, immediately after queue 113. Do not start before it: 113 sets the shape a constraint has to take.
 
 ## Why a sweep and not just the one fix
 

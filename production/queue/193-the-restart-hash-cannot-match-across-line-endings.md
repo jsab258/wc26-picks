@@ -5,7 +5,7 @@ spec: The restart job's evidence prints, beside botSourceSha256, that the value 
 acceptance: a reader with only the evidence file and the repository can reproduce the
   value, proved by doing it in the selftest for both line-ending forms
 max_sessions: 1
-status: READY 2026-09-09. Found by predicting the wrong hash in a commit message.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09. Found by predicting the wrong hash in a commit message.
   MEASURED: the file's LF hash here is DE848FBA7B1E8348, its CRLF hash is
   C0EA5105AFDB5BEE, and his machine reported C0EA5105AFDB5BEE. Git translates line
   endings on checkout for Windows, so THE TWO PARTIES CAN NEVER AGREE ON THIS VALUE and

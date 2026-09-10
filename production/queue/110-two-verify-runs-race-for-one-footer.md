@@ -2,7 +2,7 @@ line: infrastructure (the guards)
 spec: caused by the resident 2026-09-05, noticed before it did harm
 acceptance: a second verify started while one is running either refuses with the running one named, or writes to its own file and the reader is told which run it is reading; proven by starting two deliberately, accepting case first (one run alone still writes the footer normally)
 max_sessions: 1
-status: READY 2026-09-05. NOT STARTED THIS WEEK by Jafar's rule that after item 4 the studio stops building studio. instrument-builder, small.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-05. NOT STARTED THIS WEEK by Jafar's rule that after item 4 the studio stops building studio. instrument-builder, small.
 
 ## What happened
 

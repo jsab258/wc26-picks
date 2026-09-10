@@ -1,51 +1,62 @@
 # Roadmap v2 (2026-08-31)
 
+FOLDED 2026-09-10, AND THIS IS NOT THE PLAN ANY MORE. Jafar ruled one plan in
+the cleanup batch of 2026-09-10: `production/ladder.md` plus
+`production/queue/`. The phase rows below and their exit gates were copied into
+`production/ladder.md` under "The phases, and the exit gate each one gets out
+on", which is where they are now maintained. Change a gate THERE.
+
+WHY THIS FILE STILL EXISTS AT THIS PATH rather than under `legacy/`. Three live
+readers name it and two of them belong to a lane this batch may not touch:
+`CLAUDE.md` line 133 calls it the plan, `.claude/agents/planner.md` line 3 tells
+the planner to decompose its milestones, and
+`tools/dashboard/build-dashboard.py` PARSES the phase table below
+(`SOURCES["roadmap"]` at line 417, read by `read_phases` at line 577 and parsed
+by `parse_roadmap` at line 311, all measured 2026-09-10) to derive the current
+phase for the dashboard. Moving the file would break all three, so the
+path stays and the table stays parseable. When CLAUDE.md and the planner brief
+are repointed, this file can move and the dashboard source moves with it.
+
 Row law: each milestone row stays under 80 words, carries an instrument link and a verified date; detail lives in a milestone file; landed rows move to roadmap-history. Rows over the cap, or stale against code changes touching their area, fail the doc-decay gate.
 
-| Phase | Milestone | Exit gate (instrumented) | Systems carried (production/systems-inventory.json, typed census read 2026-09-09) |
+| Phase | Milestone | Exit gate (instrumented) | Systems carried (READ IT, NEVER COPY IT: see below) |
 |---|---|---|---|
-| R | Respec landed, canon written and approved | Jafar approves canon.md and this package | 0 of 69, by design |
-| 0 | Studio v2 scaffold; D1 engine probe; one assembly line piloted (dialogue bank); judge calibration | D1 decision recorded with measurements; pilot line yields a verified piece; judge agreement at or above threshold in studio-v2/verification.md | 7 of 69 |
-| 1 | Engine of consequence: Core on chosen engine (perception, memory, gossip, schedules, save), largely transliteration guarded by the existing test suite | Gossip instrument green: witnessed crime reaches a second and third NPC within one in-game week; sim holds frame budget at target resident count; Core tests pass; arrest reachable from live play: the arrest outcome's callers outside Core counted and printed, not zero | 12 of 69 |
-| 2 | A street that lives: one street at the visual bar; kit and decal density; moving faces; live voice loop; the Ledger (D12); what-they-know HUD only for law enforcement in wanted states; petty crime verbs; witness-to-phone-box chase; 30 to 50 residents | Jafar feel check passed; screenshot bar met per D7 judges; conversation latency within budget; phase has a time budget set at kickoff | 23 of 69 |
-| 3 | The town: full Phase A scope; interior tiers; economy and cash; factions; narrative v2; radio, TV and brand bible; venues | Hours-of-content instrument; repetition blind test passed (no detectable line repetition in a 2-hour session); Meridian Test conditions 2 and 3 sampled | 13 of 69 |
-| 4 | Fists: melee combat, improvised weapons, scarce firearms as events | Core combat resolves a blow from a call site outside Core, callers counted and printed, in a landed run; feel check; a gunshot produces a measured town-wide perception event | 2 of 69 |
-| 5 | The region: Phase B land, driving, traffic | Gated on 3 and 4; gates set at kickoff | 2 of 69 |
-| 6 | Ship-prep (deferred until quality bar met) | The Meridian Test, all four conditions | 10 of 69 |
+| R | Respec landed, canon written and approved | Jafar approves canon.md and this package | read the validator |
+| 0 | Studio v2 scaffold; D1 engine probe; one assembly line piloted (dialogue bank); judge calibration | D1 decision recorded with measurements; pilot line yields a verified piece; judge agreement at or above threshold in studio-v2/verification.md | read the validator |
+| 1 | Engine of consequence: Core on chosen engine (perception, memory, gossip, schedules, save), largely transliteration guarded by the existing test suite | Gossip instrument green: witnessed crime reaches a second and third NPC within one in-game week; sim holds frame budget at target resident count; Core tests pass; arrest reachable from live play: the arrest outcome's callers outside Core counted and printed, not zero | read the validator |
+| 2 | A street that lives: one street at the visual bar; kit and decal density; moving faces; live voice loop; the Ledger (D12); what-they-know HUD only for law enforcement in wanted states; petty crime verbs; witness-to-phone-box chase; 30 to 50 residents | Jafar feel check passed; screenshot bar met per D7 judges; conversation latency within budget; phase has a time budget set at kickoff | read the validator |
+| 3 | The town: full Phase A scope; interior tiers; economy and cash; factions; narrative v2; radio, TV and brand bible; venues | Hours-of-content instrument; repetition blind test passed (no detectable line repetition in a 2-hour session); Meridian Test conditions 2 and 3 sampled | read the validator |
+| 4 | Fists: melee combat, improvised weapons, scarce firearms as events | Core combat resolves a blow from a call site outside Core, callers counted and printed, in a landed run; feel check; a gunshot produces a measured town-wide perception event | read the validator |
+| 5 | The region: Phase B land, driving, traffic | Gated on 3 and 4; gates set at kickoff | read the validator |
+| 6 | Ship-prep (deferred until quality bar met) | The Meridian Test, all four conditions | read the validator |
 
 Standing rule: every phase with a taste gate also gets a time or attempt budget at kickoff, set while calm. M17.10's lesson: instrumented phases, bounded milestones.
 
-## The systems column: what it counts, and what it does not
+## The systems column: why its cells no longer carry a number
 
-A whole-file census of `production/systems-inventory.json`, grouped by
-its `phase` field, copied by hand from the validator's printed `byPhase`
-line on 2026-09-09 and carried here as phase totals only. The eight
-cells sum to 69 of 69, so every system names a row and every row can say
-what it carries. Phase R carries 0 by design: it is the respec and holds
-no system. The per-phase status breakdown these cells used to carry is
-GONE and is not replaced by hand: no tool prints a status-by-phase
-cross-tab, and a breakdown assembled from two separate tallies is a
-number nobody measured. The cross-tab, and a checker that compares this
-column to the file, are the queued row-law item.
+THE PER-PHASE CELLS ARE GONE AND ARE NOT REPLACED BY HAND. They were a whole-file
+census of `production/systems-inventory.json` copied by hand from the validator's
+printed `byPhase` line, and they went stale inside a day, twice: the file moved
+from 27 entries to 69 on 2026-09-09 and from 69 to 91 on 2026-09-10, measured by
+`python3 tools/systems-inventory-check.py`, which printed `accepted
+problems=0/checks=2594` on the 91-entry file. Every cell that read "of 69" was
+therefore false within hours of being written. A plan carrying a hand-copied
+census is a plan that lies about its own size, so the cells now say to read the
+validator.
 
-Read the entries through the validator, never around it. A refused
-inventory exits non-zero and emits nothing, so a broken file cannot be read
-as a plan:
+Read the entries through the validator, never around it. A refused inventory
+exits non-zero and emits nothing, so a broken file cannot be read as a plan:
 
     python3 tools/systems-inventory-check.py --emit-json > inv.json
     python3 -c "import json;[print(e['phase'],e['status'],e['name']) for e in json.load(open('inv.json'))]" | sort
 
-IT IS NOT A GATE READING, AND SINCE 2026-09-09 IT IS NOT EVEN A PATH.
-Jafar ruled on 2026-09-09 that status on that page is a TYPED JUDGEMENT,
-attributable to a person and a date and changed by a ruling rather than
-by a grep; `exists` no longer means that a path resolves. The standard
-the typing follows: a tile is green only if the thing its name promises
-can happen to a player in a build that exists today. So a count of
-`exists` is a reading of somebody's judgement, never a gate reading, and
-never a floor a gate may stand on. Phase 2 now carries 23 entries, among
-them the what-they-know HUD its own milestone clause names, typed
-absent. Ruling:
-game-design/decision-2026-09-09-ruling-typed-systems-inventory.md.
+IT IS NOT A GATE READING. Jafar ruled on 2026-09-09 that status on that page is a
+TYPED JUDGEMENT, attributable to a person and a date and changed by a ruling
+rather than by a grep; `exists` no longer means that a path resolves. The standard
+the typing follows: a tile is green only if the thing its name promises can happen
+to a player in a build that exists today. So a count of `exists` is a reading of
+somebody's judgement, never a gate reading, and never a floor a gate may stand on.
+Ruling: `game-design/decision-2026-09-09-ruling-typed-systems-inventory.md`.
 
 ## The fold of 2026-09-05: two gates repaired, four findings open
 

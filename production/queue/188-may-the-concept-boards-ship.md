@@ -5,7 +5,7 @@ spec: A builder reads the image service's terms AS OF THE DATE the eight concept
 acceptance: a record under ledger-v2/respec/decision-register/ names the tool, the date,
   the account and the terms, and a card with two to four options reaches him
 max_sessions: 1
-status: READY 2026-09-09. Dictated as A4 by the batch ruling of 2026-09-09, and it
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09. Dictated as A4 by the batch ruling of 2026-09-09, and it
   supersedes the half of queue 185 that asked the same question without saying who
   answers it.
   THE EIGHT BOARDS ARE THE BEST-LOOKING PICTURES THE PROJECT HAS and they do not ship:

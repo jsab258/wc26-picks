@@ -2,7 +2,7 @@ line: production (the Unreal emitter)
 spec: this file, ordered by the 3 September ruling
 acceptance: the emitter can light a flat as well as a shop bay, and the verdict distinguishes "no flats asked for" from "flats asked for and not lit"; today it prints flatsLit=0/0 nothing-to-light, which is correct now and becomes a lie the moment a flat is added
 max_sessions: 1
-status: READY 2026-09-03. engine-specialist, small.
+status: CLOSED 2026-09-10, not on the ladder and untouched for 7 days 2026-09-03. engine-specialist, small.
 
 ## The finding
 

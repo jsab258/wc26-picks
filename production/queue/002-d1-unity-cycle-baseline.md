@@ -1,3 +1,4 @@
+status: CLOSED 2026-09-10, not on the ladder and untouched for 9 days
 line: instrument (D1 probe, measurement a)
 spec: production/d1-probe/plan.md, measurement a
 acceptance: cycles.tsv holds at least 20 Unity rows written AS THE EDITS HAPPEN; median and failed-edit rate computed from the file, never from memory

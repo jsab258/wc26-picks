@@ -6,7 +6,7 @@ acceptance: a set_in prop whose centre is over the channel and whose footprint h
   over the kerb is either accepted with the overhang NAMED or refused, and the guard's
   message says which of those two things it is doing
 max_sessions: 1
-status: READY 2026-09-09. Amendment A8 of
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09. Amendment A8 of
   game-design/decision-2026-09-09-the-grate-rises-flush.md.
   THE GUARD, added the same night, throws by name if a set_in prop sits over anything
   but the carriageway or the channel, which is right and fail-closed. IT READS THE EDGE

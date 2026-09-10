@@ -5,7 +5,7 @@ acceptance: a director's banner cannot place NOT CURRENT outside the window
   docs-check reads, either because the checker says where it looked or because
   the shape is given once and reused
 max_sessions: 1
-status: READY 2026-09-06. Small, and it is the third time a fixed window has
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-06. Small, and it is the third time a fixed window has
   cost this project a red for a document that was correct.
 
 ## What happened, twice in one day

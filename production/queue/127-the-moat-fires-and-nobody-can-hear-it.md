@@ -7,7 +7,7 @@ acceptance: a landed change after which a player who is seen committing a
   who told the truth would not hear; measured over the same sweep, so the
   number that moves is lieHeard, today 0 of 90
 max_sessions: 2
-status: READY 2026-09-06. P0 on the moat. THE SUPPORTED FINDING, in Jafar's
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-06. P0 on the moat. THE SUPPORTED FINDING, in Jafar's
   own words and no stronger: "In the tested scenarios, caught lies did not
   change the spoken responses, and recognition stayed below threshold.
   Overheard gossip provides a separate working route to audible consequences."

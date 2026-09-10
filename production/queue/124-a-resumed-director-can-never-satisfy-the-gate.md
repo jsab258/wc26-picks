@@ -2,7 +2,7 @@ line: studio (the gate that blocks commits)
 spec: this file. Filed 2026-09-06 and REFUTED the same day.
 acceptance: none. There is nothing here to build.
 max_sessions: 0
-status: REFUTED 2026-09-06, by the director spawned to rule the register batch,
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-06, by the director spawned to rule the register batch,
   and confirmed by the resident against the code and against a run that was
   already in hand. KEPT, not deleted, because the way it was wrong is the
   useful part.

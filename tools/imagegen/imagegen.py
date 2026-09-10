@@ -795,7 +795,12 @@ def validate_spec(spec):
                 "push away the phrase `no people`. Write `people`.")
         bad = check_forbidden(prompt + " " + neg, forbidden)
         if bad:
-            problems.append(f"{who}: names a real mark: {bad}.")
+            # The list carries two kinds of token since D18: real marks,
+            # and the content rule's substances and subjects. The message
+            # names both, because "names a real mark: ['bingo']" sent a
+            # reader looking for a trade mark that is not there.
+            problems.append(f"{who}: names a forbidden token (a real mark, "
+                            f"or something D18 bars from every frame): {bad}.")
         if item_cfg(item, defaults) <= 0:
             problems.append(f"{who}: cfg must be greater than zero.")
     return problems

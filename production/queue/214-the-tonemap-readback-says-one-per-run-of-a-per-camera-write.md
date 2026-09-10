@@ -8,7 +8,7 @@ acceptance: every shot line carries its own override readback, the run line carr
   a planted run where one camera's override fails to land reads as one shot differing rather
   than as a whole run.
 max_sessions: 1
-status: READY 2026-09-09, ruled in game-design/decision-2026-09-09-ruling-the-settled-exposure-and-the-two-lanes.md as the FIFTH instance in one batch of the fault that
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09, ruled in game-design/decision-2026-09-09-ruling-the-settled-exposure-and-the-two-lanes.md as the FIFTH instance in one batch of the fault that
   batch was fixing. The same session split the sun's four reads correctly into whole-run and
   per-sample, split the camera correctly under queue 208, and left the tonemap readback
   one-per-run one bracket away from both.

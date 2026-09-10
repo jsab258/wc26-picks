@@ -6,7 +6,7 @@ acceptance: a person other than Jafar can start something on his PC, commit one
   crime on the textured Meridian street, be seen, and HEAR the town react,
   without reading any instructions from this repository
 max_sessions: 3
-status: READY 2026-09-06. THE NEXT MILESTONE. Everything below is assembly of
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-06. THE NEXT MILESTONE. Everything below is assembly of
   parts that now exist separately; almost nothing here is new invention, and
   that is the point.
 

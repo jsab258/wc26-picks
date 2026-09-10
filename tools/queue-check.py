@@ -76,6 +76,12 @@ STANDING_NAME = "900-process-audit.md"
 # effort` and `status: WAITS 2026-09-02 behind 027` are the two live forms.
 BLOCKED_WORDS = ("BLOCKED", "WAITS", "WAITING")
 LANDED_WORDS = ("LANDED",)
+#: CLOSED is a PRUNE OUTCOME and not a completion: the item was open, nobody
+#: did it, and Jafar's prune of 2026-09-10 shut it with a written reason. It is
+#: counted apart from LANDED and DONE on purpose, because folding a prune into
+#: a completion would let a queue emptied by giving up read exactly like a
+#: queue emptied by working. 183 items carry it as of that prune.
+CLOSED_WORDS = ("CLOSED",)
 
 STATUS_RE = re.compile(r"^status:\s*(\S+)", re.M | re.I)
 
@@ -107,7 +113,7 @@ def count_queue(root=ROOT):
     c = {
         "queue_dir": QUEUE_REL, "exists": qdir.is_dir(),
         "walked": 0, "exempt": 0, "ready": 0, "blocked": 0, "landed": 0,
-        "unstatused": 0, "done": 0,
+        "unstatused": 0, "done": 0, "closed": 0,
         "blocked_dir": False, "done_dir": False,
         "status_words": {}, "ready_names": [], "blocked_names": [],
         # The retired file is NOT read. Its presence is reported so that a
@@ -137,6 +143,8 @@ def count_queue(root=ROOT):
             c["blocked_names"].append(p.name)
         elif word in LANDED_WORDS:
             c["landed"] += 1
+        elif word in CLOSED_WORDS:
+            c["closed"] += 1
         else:
             c["ready"] += 1
             c["ready_names"].append(p.name)
@@ -212,12 +220,13 @@ def report(c, floor=FLOOR):
     # THE DONE LINE. Whole-walk numbers only, no spaces inside any value, one
     # instant: everything here comes from the single walk above.
     print("queue-check: %s queueReady=%d/%d queueBlocked=%d/%d queueDone=%d "
-          "queueLanded=%d/%d queueUnstatused=%d/%d queueExempt=%d queueFloor=%d "
-          "retiredNotRead=%s"
+          "queueLanded=%d/%d queueClosed=%d/%d queueUnstatused=%d/%d "
+          "queueExempt=%d queueFloor=%d retiredNotRead=%s "
+          "closedStat=pruned-and-not-done/an-item-nobody-did/reason-written-in-place"
           % ("PASS" if not problems else "THIN",
              c["ready"], c["walked"], c["blocked"], c["walked"], c["done"],
-             c["landed"], c["walked"], c["unstatused"], c["walked"],
-             c["exempt"], floor, c["retired"]))
+             c["landed"], c["walked"], c["closed"], c["walked"],
+             c["unstatused"], c["walked"], c["exempt"], floor, c["retired"]))
     return 1 if problems else 0
 
 

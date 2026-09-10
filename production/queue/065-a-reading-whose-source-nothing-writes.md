@@ -2,7 +2,7 @@ line: infrastructure (instruments)
 spec: game-design/decision-2026-09-03-directors-console-step-2.md, ruling C
 acceptance: a check that fails when any live reader derives a value from a file nothing writes any more; it names the reader, the dead source and the date the source was retired; shipped with its selftype fixtures, accepting case first (a reader pointed at a written file passes) and rejecting (a reader pointed at a retired one fails)
 max_sessions: 1
-status: READY 2026-09-03. instrument-builder. Found by one repoint leaving three readers behind.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-03. instrument-builder. Found by one repoint leaving three readers behind.
 
 ## The finding
 

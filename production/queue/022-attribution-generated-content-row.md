@@ -2,7 +2,7 @@ line: infrastructure (instruments)
 spec: game-design/decision-2026-09-02-constitution-cut-attribution-pc-channel.md, Ruling 3
 acceptance: a WATCHED row for the generated decals with a token not already in THIRD-PARTY.md; a THIRD-PARTY.md section per content-sourcing.md 4.6 (model, weights licence, training-data claim, review state, and that 14 images are review=pending); a fixture proving a generated PNG under the ambientCG row is REFUSED without that section; plus the printed sub-source reading below
 max_sessions: 1
-status: READY 2026-09-02. One instrument-builder. Instance THREE of the same fault.
+status: CLOSED 2026-09-10, not on the ladder and untouched for 8 days 2026-09-02. One instrument-builder. Instance THREE of the same fault.
 
 `ledger/Assets/StreamingAssets/Decals/generated/` holds 14 model-generated
 PNGs (Z-Image-Turbo, Apache-2.0 weights per `tools/imagegen/README.md`), every

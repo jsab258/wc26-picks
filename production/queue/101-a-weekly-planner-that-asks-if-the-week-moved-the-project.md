@@ -2,7 +2,7 @@ line: infrastructure (the studio split)
 spec: production/NOW.md, "JAFAR'S STANDING ORDER, 2026-09-05", item 5
 acceptance: one agent definition on the cheapest tier already in use, read-only, proven by one real run over the week's landed items that prints moved=N maintained=M mixed=K of T examined with the path sets it classified by printed beside them, and prints the consecutive-maintenance run-length series rather than a flag; a week with nothing landed prints the words "nothing measured" with T=0 and does NOT report the week as maintenance; an item touching both trees is printed as mixed and never split by guess; and the report names the roadmap rows it read, because a planner that never opened the plan is a reviewer of diffs
 max_sessions: 1
-status: READY 2026-09-05. After item 4. planner writes the definition; the first run proves it.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-05. After item 4. planner writes the definition; the first run proves it.
 
 ## Why the role exists, in the evidence Jafar cites
 

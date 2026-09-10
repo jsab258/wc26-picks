@@ -2,7 +2,7 @@ line: production (Phase 0)
 spec: production/NOW.md, "JAFAR'S STANDING ORDER, 2026-09-05", item 7. Phase 0 exit gate in ledger-v2/respec/roadmap-v2.md.
 acceptance: one content type is chosen by a recorded director ruling against the two stated criteria BEFORE any authoring, then run spec to author to verify to integrate to record, reporting piecesAuthored=M piecesVerified=N/M and pointsPerVerifiedPiece=X split by step with the free-lane steps named, resting on two meter readings named by date carrying BOTH meters; if the measurement window contains work of Jafar's own the number is REFUSED and labelled contaminated rather than published; if nothing verified, the cost line reads the words "nothing measured" with verified=0/M and the authoring cost is not quoted in its place; and with N of 1 the file says sample, never rate
 max_sessions: 2
-status: READY 2026-09-05. Item 7. The choice is a director call; the run is a builder. Resumable state under production/scratch/.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-05. Item 7. The choice is a director call; the run is a builder. Resumable state under production/scratch/.
 
 ## The number this whole plan rests on, and nobody has measured it
 

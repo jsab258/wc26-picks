@@ -1,3 +1,4 @@
+status: CLOSED 2026-09-10, not on the ladder and untouched for 8 days
 line: infrastructure
 spec: this file
 acceptance: one implementation of the self-hosted PATH bootstrap called by both workflows; both dispatched once and green; the duplicated blocks gone

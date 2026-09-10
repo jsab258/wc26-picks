@@ -2,7 +2,7 @@ line: infrastructure (governance)
 spec: this file
 acceptance: a stop condition holding costs at most one wake to establish, not one per hour; the back-off is visible in the repo rather than only in the trigger system; resumption when Jafar posts a number is not slowed
 max_sessions: 1
-status: READY 2026-09-02. Found by the resident during the stop it describes. Needs a decision on cadence, so a director row before it lands.
+status: CLOSED 2026-09-10, not on the ladder and untouched for 8 days 2026-09-02. Found by the resident during the stop it describes. Needs a decision on cadence, so a director row before it lands.
 
 THE GOVERNOR SPENDS BUDGET TO SAY THE BUDGET IS UNKNOWN.
 

@@ -2,7 +2,7 @@ line: infrastructure (the PC launchers)
 spec: game-design/decision-2026-09-04-ruling-067-telegram-bot-first-pass.md, section 7
 acceptance: HTTP 403 and HTTP 409 each print their own sentence naming the real cause; proven by two planted responses against the scripted stand-in, plus the five existing failure phrases still printing unchanged
 max_sessions: 1
-status: READY 2026-09-04. instrument-builder, small. THE LIKELIEST FIRST-RUN FAILURE IS IN HERE, so it outranks its size if the first double-click goes wrong.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-04. instrument-builder, small. THE LIKELIEST FIRST-RUN FAILURE IS IN HERE, so it outranks its size if the first double-click goes wrong.
 
 ## The fault
 

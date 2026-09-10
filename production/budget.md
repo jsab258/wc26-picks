@@ -72,6 +72,22 @@ to stop. The stopping conditions are the ones CLAUDE.md rule 13 names: a reading
 FROM JAFAR at or over the ceiling, a session or model limit, or a genuine
 blocker. A count of turns, calls, readings or tokens is none of those.
 
+THE CEILING IS 85 ON THE HIGHER METER, STANDING, ruled by Jafar 2026-09-10.
+
+IT IS NOT PER SESSION. Earlier ceilings were given with a reading and expired
+with it, so a session that had no fresh reading had no ceiling it could name.
+This one stands until he changes it, and it is recorded here FROM HIS READING
+rather than restated in a prompt, because this file is the authority and a
+prompt is not.
+
+The ceiling ... is 85 on the governing meter.
+
+WHAT HAS NOT CHANGED. The meters are percentages only he can read; nothing in
+the container can read them, estimate them, or count toward them. A session
+stops when HIS READING is at or over 85, at a session or model limit, or at a
+genuine blocker. A count of turns, calls or tokens is none of those, which is
+the misread recorded below.
+
 HOW TO WRITE A PER-SESSION CEILING SO A MACHINE READS IT, added 2026-09-09 after
 it went wrong once. When Jafar sets a ceiling for a session, his number wins over
 the standing 80 above, and `tools/glance.py` reads it OUT OF THE ROW'S OWN NOTE.

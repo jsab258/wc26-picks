@@ -9,7 +9,7 @@ acceptance: the live tree passes with the row's coverage counted and printed, an
   file under production/art that the row's sentence does not describe is UNCLASSIFIED rather
   than silently covered.
 max_sessions: 1
-status: READY 2026-09-09. FOUND TWICE IN ONE EVENING by two builders working on different
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09. FOUND TWICE IN ONE EVENING by two builders working on different
   files, which is itself the argument: a row whose text and whose glob disagree will be
   rediscovered by whoever next puts a file under that prefix.
   NOTHING IS BEING HIDDEN TODAY. The compare pictures are genuinely ours, drawn on this

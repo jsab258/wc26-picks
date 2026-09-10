@@ -1510,6 +1510,60 @@ def docs_shape():
     return True, "docs %s" % m.group(0)
 
 
+def content_rule():
+    """D18: no alcohol, no gambling, no children, no slurs, over every bank.
+
+    canon.md, "The content rule (D18, permanent)". Site 3 of five is a word
+    list over dialogue and spoken lines, and D18 asks for it wired here
+    rather than beside the tool, because an unwired guard is the fault this
+    project has paid for twice this week: `docs_shape` and
+    `producer_register` above are both tools that existed, passed their own
+    tests, and ran only when somebody remembered to type them.
+
+    GATES THE SELFTEST AND ANY NEW HIT; REPORTS THE BASELINE. The same split
+    as `ref_bench` and for the same reason. The baseline is the 222 hits that
+    already existed on 2026-09-10 when D18 was ruled, keyed on the sha1 of
+    the offending text: rewrite one of those lines and its key changes, so
+    the rewrite is gated like new writing and the baseline can only shrink.
+    The count rides in the footer of every commit, which is what makes it a
+    number somebody watches go down rather than a file nobody opens.
+    """
+    tool = ROOT.parent / "tools" / "content-gate.py"
+    code, out = run(["python3", str(tool), "--selftest"])
+    if code != 0:
+        bad = [l.strip() for l in out.splitlines() if "FAILED" in l]
+        return False, "D18 SELFTEST: " + _cap(bad, strip=8, width=100,
+                                              tail="see content-gate").strip()
+    m = re.search(r"selftest: (\d+) ok, (\d+) failed", out)
+    fixtures = m.group(1) if m else "?"
+    code, out = run(["python3", str(tool)])
+    done = next((l for l in out.splitlines()
+                 if l.startswith("content-gate:")), "")
+    if code == 2:
+        return False, "D18: NOTHING MEASURED - " + done[-90:]
+    if code == 3:
+        bad = [l.strip() for l in out.splitlines() if "CLAUSE " in l]
+        return False, "D18 CLAUSE DRIFT: " + _cap(bad, strip=7, width=100,
+                                                  tail="see content-gate").strip()
+    if code == 4:
+        return False, "D18 STALE BASELINE: a line was rewritten and its entry "
+    if code != 0:
+        # `rule=` rather than a channel prefix: the per-spec clause lines
+        # begin with "spec " too, and the first version of this filter put
+        # nine clean clause reports in the footer under the word D18 while
+        # the actual planted hit was truncated away.
+        bad = [l.strip() for l in out.splitlines() if "rule=" in l]
+        return False, "D18: " + _cap(bad, strip=6, width=110,
+                                     tail="see content-gate").strip()
+    nums = re.search(r"hitsBaselined=(\d+).*stringsScanned=(\d+) "
+                     r"filesOpened=(\d+)", done)
+    if not nums:
+        return False, "content-gate did not report its done line"
+    return True, ("D18 clean (%s fixtures, %s string(s) in %s file(s), "
+                  "%s baselined)"
+                  % (fixtures, nums.group(2), nums.group(3), nums.group(1)))
+
+
 def producer_register():
     """Every Producer message, against the ruled register, before it commits.
 
@@ -6354,7 +6408,7 @@ def main():
     parts, all_ok = [], True
     for fn in (director_cadence, footer_strings,
                lint, shape, shadow, tools_tracked, reach, stranger_test, shape_files, voice_cast, voice_gen, barks_current, voice_live, voice_assets, voices_into_build, pc_watcher, slop,
-               card_writing, shipped_cards, convo_probe, queue_depth, docs_shape, producer_register, claude_md_size,
+               card_writing, shipped_cards, convo_probe, queue_depth, docs_shape, content_rule, producer_register, claude_md_size,
                inbox_selftest, inbox_read_selftest, bot_config_selftest, outbox_selftest, supervise_selftest, executor_selftest, wake_queue_selftest, checkout_gate_selftest, brief_selftest, producer_day_selftest, systems_inventory, inbox_tracked,
                template_sync,
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,

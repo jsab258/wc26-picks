@@ -2,7 +2,7 @@ line: infrastructure (the PC channel)
 spec: found 2026-09-04 when UPDATE FROM CLAUDE.bat aborted a pull for Jafar
 acceptance: a pull on the PC after a local generation run succeeds without a human moving files by hand; proven by planting the exact collision (an untracked generated file that an incoming commit also carries) and watching the update path survive it
 max_sessions: 1
-status: READY 2026-09-04. engine-specialist, small. THIS BLOCKS JAFAR AT THE MOMENT HE MOST WANTS THE PULL, so it outranks its size.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-04. engine-specialist, small. THIS BLOCKS JAFAR AT THE MOMENT HE MOST WANTS THE PULL, so it outranks its size.
 
 ## What happened, verbatim from his screen
 

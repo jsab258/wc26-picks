@@ -1,3 +1,4 @@
+status: CLOSED 2026-09-10, not on the ladder and untouched for 8 days
 line: infrastructure (governance)
 spec: this file
 acceptance: the stop hook stops demanding a clean tree while a builder agent is running, or the resident has a supported way to mark a path as agent work in progress; the constitution's rule is unchanged and the hook stops contradicting it

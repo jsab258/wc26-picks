@@ -2,7 +2,7 @@ line: infrastructure (the budget instrument)
 spec: found 2026-09-06 by the first daily wake; the daily trigger's own instruction says "if a stop condition holds, say so in the brief and do not start work"
 acceptance: the brief states the stop condition in words when one holds, naming which, and states plainly that it does not hold when it does not; both outcomes fixtured, accepting case first, with the newest reading's age and the session count since it printed beside the words
 max_sessions: 1
-status: READY 2026-09-06. instrument-builder, small, and it rides with queue 111 since both are the BUDGET section.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-06. instrument-builder, small, and it rides with queue 111 since both are the BUDGET section.
 
 ## The gap
 

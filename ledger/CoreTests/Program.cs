@@ -113,6 +113,7 @@ namespace Ledger.CoreTests
                 TestAdjudicator();
                 TestModelCannotChooseAnUnrefusableCheck();
                 TestEconomy();
+                TestContentRule();
                 TestPopulationDistricts();
                 TestPhones();
                 TestEveryApproachIsADifferentPlan();
@@ -5230,6 +5231,86 @@ namespace Ledger.CoreTests
 
             Check(StreetMap.Route("nowhere", "stop_bar_door").Count == 0, "a route from nowhere is empty, not null");
             Check(StreetMap.Route("stop_bar_door", "stop_bar_door").Count == 1, "and a route to where you stand is one stop");
+        }
+
+        // ---------------------------------------------------------------
+        // D18, the content rule, at the one enforcement site that is code
+        // ---------------------------------------------------------------
+
+        static void TestContentRule()
+        {
+            Console.WriteLine("ContentRule — D18 at the generator:");
+
+            // ACCEPTING FIRST, AND ON THE LIVE TABLES. A validator nothing
+            // survives is the expensive failure, so before any refusal is
+            // checked, the crowd this project actually ships has to pass.
+            var refused = Population.TradesRefused;
+            Check(refused.Count == 0,
+                  "ACCEPTING: the live trade table is clean",
+                  $"refused {refused.Count} of {Population.TradesScreened}: "
+                  + string.Join(", ", refused));
+            Check(Population.TradesScreened >= 30,
+                  "and the screen looked at the whole table",
+                  $"screened {Population.TradesScreened}");
+
+            // The live cast: 60 tier-2 cards, none under the floor. Read off
+            // the ages the generator would have to honour rather than a
+            // number typed here.
+            Check(ContentRule.IsShowableAge(24) && ContentRule.IsShowableAge(58),
+                  "ACCEPTING: the live cast's youngest and oldest ages pass");
+            foreach (var stem in new[] { "Adam", "Kate", "SportyGranny",
+                                         "BigVegas", "TheBoss", "Michelle" })
+                Check(!ContentRule.IsUnderageModel(stem),
+                      $"ACCEPTING: the live model '{stem}' is not refused");
+
+            // AND THE WORDS THAT MUST NOT BE REFUSED. British usage: a boy
+            // is a grown man, the lads are dockers, a son can be forty.
+            foreach (var stem in new[] { "Boyer", "Childers", "Sonya",
+                                         "Kidman", "Ladd" })
+                Check(!ContentRule.IsUnderageModel(stem),
+                      $"ACCEPTING: '{stem}' is a name, not a child");
+            foreach (var trade in new[] { "barber", "bartender", "waitress",
+                                          "nurse", "dock hand" })
+                Check(ContentRule.IsShowableTrade(trade),
+                      $"ACCEPTING: trade '{trade}' is allowed");
+
+            // REJECTING, on synthetic values that exist nowhere in the repo,
+            // so doing the work this rule asks for can never break its test.
+            Check(!ContentRule.IsShowableAge(17), "17 is refused");
+            Check(!ContentRule.IsShowableAge(0), "0 is refused");
+            Check(!ContentRule.IsShowableAge(-4),
+                  "a negative age is refused, not accepted by arithmetic");
+            Check(ContentRule.AdultFloorYears == 18, "the floor is eighteen");
+            foreach (var stem in new[] { "ChildModel", "school_boy",
+                                         "Teenager", "toddler_walk", "Kid" })
+                Check(ContentRule.IsUnderageModel(stem),
+                      $"REJECTING: model '{stem}' is refused");
+            foreach (var trade in new[] { "brewer", "bookmaker",
+                                          "turf accountant", "croupier",
+                                          "bingo caller" })
+                Check(!ContentRule.IsShowableTrade(trade),
+                      $"REJECTING: trade '{trade}' is refused");
+
+            // AND THE RUN WHERE THE THING IT ASSERTS CAN HAPPEN. Plant a
+            // refused trade in a table and prove the screen sees it, so this
+            // is a guard rather than a ratchet that only ever says zero.
+            var planted = ContentRule.Screen(new[]
+                { "dock hand", "bookmaker", "clerk", "brewer" });
+            Check(planted.Count == 2,
+                  "PLANTED: a table with two refused trades screens to two",
+                  $"screened out {planted.Count}: {string.Join(", ", planted)}");
+
+            // THE GENERATOR CANNOT PRODUCE ONE, which is the point of the
+            // site: not that the table is clean today, but that a resident
+            // drawn three thousand times is drawn from the screened wheel.
+            var city = Population.Generate(3000, 20260726,
+                new[] { "the Hook", "Copper Row", "Ironside" });
+            int bad = 0;
+            foreach (var r in city.Residents)
+                if (!ContentRule.IsShowableTrade(r.Trade)) bad++;
+            Check(bad == 0,
+                  $"3000 generated residents, 0 refused trades among them",
+                  $"{bad} of {city.Residents.Count}");
         }
 
         // ---------------------------------------------------------------

@@ -2,7 +2,7 @@ line: infrastructure (the Producer register)
 spec: game-design/decision-2026-09-04-ruling-077-deadline-clock-pin.md, section 2
 acceptance: a message accepted by the pre-send check carries a machine-written accepting instant, the gate measures its deadlines from that instant rather than from midnight, and a message with no stamp is refused by the gate with the reason named; both cases as fixtures, accepting first
 max_sessions: 1
-status: READY 2026-09-04. instrument-builder, small.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-04. instrument-builder, small.
 
 ## The gap the pin does not close
 

@@ -2,7 +2,7 @@ line: infrastructure (the PC launchers)
 spec: game-design/decision-2026-09-04-ruling-067-telegram-bot-first-pass.md, section 5
 acceptance: one shared tools/runner/find-python.cmd, all five launchers calling it, and a two-sided lint that fails when a .bat inlines its own finder and passes on the shared call; the accepting case is the five live launchers
 max_sessions: 1
-status: READY 2026-09-04. Low priority, real debt, no drift yet. engine-specialist, small.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-04. Low priority, real debt, no drift yet. engine-specialist, small.
 
 ## The count, and the correction to my own premise
 

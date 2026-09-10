@@ -5,7 +5,7 @@ spec: A writer's pass over cw-ws-r1-03, cw-ws-r3-01, cw-ws-r3-03 and cw-ws-r4-03
 acceptance: the four no longer close on the same shape as each other, and r4-02's
   sentence no longer puts the wrong trade in the speaker's mouth
 max_sessions: 1
-status: READY 2026-09-09. Amendment A12 of
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09. Amendment A12 of
   game-design/decision-2026-09-09-the-twelve-clauses-and-the-buried-grate.md.
   THE CADENCE: four of the twelve close on the same shape, a clause that resolves into
   a flat declarative about being known. Individually each is fine. Read as a bank, a

@@ -2,7 +2,7 @@ line: infrastructure (asset routing)
 spec: this file, ordered by the 3 September ruling decision A
 acceptance: wall_soot_brick and wall_salt_render are resolved through AssetLibrary as SURFACES rather than stamped as decals; the decal path no longer names them; a frame shows them tiling across a wall rather than as a patch of different masonry
 max_sessions: 1
-status: READY 2026-09-03. engine-specialist, small.
+status: CLOSED 2026-09-10, not on the ladder and untouched for 7 days 2026-09-03. engine-specialist, small.
 
 ## The finding
 

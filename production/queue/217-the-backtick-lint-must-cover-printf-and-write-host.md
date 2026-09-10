@@ -5,7 +5,7 @@ spec: A backticked identifier inside a double-quoted shell string is executed by
 acceptance: the live tree passes with the count of strings examined printed, and a planted
   backticked identifier inside a double-quoted echo, printf and Write-Host each go red.
 max_sessions: 1
-status: READY 2026-09-09, ruled in game-design/decision-2026-09-09-ruling-the-settled-exposure-and-the-two-lanes.md after the third instance: a guard's own error message
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09, ruled in game-design/decision-2026-09-09-ruling-the-settled-exposure-and-the-two-lanes.md after the third instance: a guard's own error message
   read "Add an `out:` line" and the shell ran out: and printed "out:: command not found".
   THE THIRD INSTANCE BUYS A LINT, NOT ANOTHER PARAGRAPH. CLAUDE.md already carries the
   sentence, the sentence has been read by every session since, and the fault happened again

@@ -5,7 +5,7 @@ spec: The art lane's queue step waits on all five game workflows. Wait only on t
 acceptance: a poll prints all five statuses while the wait count names only the pc ones, and
   a planted in-progress reading on a hosted workflow does NOT extend the wait.
 max_sessions: 1
-status: READY 2026-09-09, ruled in game-design/decision-2026-09-09-ruling-the-settled-exposure-and-the-two-lanes.md and QUEUED RATHER THAN APPLIED because that ruling
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09, ruled in game-design/decision-2026-09-09-ruling-the-settled-exposure-and-the-two-lanes.md and QUEUED RATHER THAN APPLIED because that ruling
   permitted it in the landing commit only if it were literally one line. It is not: the busy
   accumulation, the per-poll print and the series string all carry the count, so narrowing
   means splitting "seen" from "waited on" in three places.

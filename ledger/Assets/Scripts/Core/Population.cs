@@ -157,6 +157,45 @@ namespace Ledger.Core
             "cashier", "machinist", "usher", "scrap hauler", "bartender", "ferry hand", "forklift driver", "sign painter",
         };
 
+        /// THE TRADES THIS GENERATOR MAY ACTUALLY DRAW FROM, screened
+        /// through `ContentRule` (canon: The content rule, D18). Computed
+        /// once at type load, so a refused trade is not merely unlikely, it
+        /// is NOT IN THE WHEEL: the generator cannot produce it however many
+        /// residents it is asked for.
+        ///
+        /// D18 names crowd generation as the one enforcement site that is
+        /// code rather than text, on the ground that a text site can be
+        /// reviewed by reading and a generator cannot. This is that site.
+        /// Today it refuses nothing, because no entry in `Trades` above is
+        /// a brewer or a bookmaker, and `TradesRefused` prints that zero
+        /// beside the count it screened so a clean screen cannot be mistaken
+        /// for a screen that never ran.
+        static readonly string[] ShowableTrades = BuildShowableTrades();
+        /// What the screen removed, by name. Empty is the expected state and
+        /// it ships its denominator through `TradesScreened`.
+        public static readonly List<string> TradesRefused =
+            ContentRule.Screen(Trades);
+        /// How many trades the screen looked at. The denominator that makes
+        /// `TradesRefused.Count == 0` mean something.
+        public static int TradesScreened => Trades.Length;
+
+        static string[] BuildShowableTrades()
+        {
+            var keep = new List<string>();
+            foreach (var t in Trades)
+                if (ContentRule.IsShowableTrade(t)) keep.Add(t);
+            // A screen that removed EVERYTHING would leave the crowd with no
+            // trades at all and a generator that produces nobody, which is a
+            // worse failure than the one being prevented and would look like
+            // a population bug rather than a rule. Fail loudly instead.
+            if (keep.Count == 0)
+                throw new InvalidOperationException(
+                    "ContentRule refused every trade in Population.Trades. " +
+                    "That is a fault in the rule or in the table, not a " +
+                    "crowd with no jobs.");
+            return keep.ToArray();
+        }
+
         /// Everybody in the district, deterministically. The same seed always
         /// produces the same city — which is what lets a save file store a seed
         /// and a handful of exceptions instead of ten thousand people.
@@ -223,7 +262,7 @@ namespace Ledger.Core
                     Index = i,
                     Name = name,
                     District = district,
-                    Trade = Trades[rng.Next(Trades.Length)],
+                    Trade = ShowableTrades[rng.Next(ShowableTrades.Length)],
                     Circle = night ? (rng.NextDouble() < 0.3 ? "both" : "night") : "day",
                     Greed = Round2(0.2 + rng.NextDouble() * 0.6),
                     Nerve = Round2(0.2 + rng.NextDouble() * 0.6),

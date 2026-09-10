@@ -2,7 +2,7 @@ line: infrastructure (the Producer register)
 spec: game-design/decision-2026-09-04-ruling-077-deadline-clock-pin.md, section 5 a and b
 acceptance: all seven rejecting gate fixtures assert the RULE TEXT that refused them, not merely that something was refused; and check() derives linked_sections once
 max_sessions: 1
-status: READY 2026-09-04. instrument-builder, small. Two small items deliberately folded into one task so they cost one round trip.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-04. instrument-builder, small. Two small items deliberately folded into one task so they cost one round trip.
 
 ## (a) Five fixtures assert only that something was refused
 

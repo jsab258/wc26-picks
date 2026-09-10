@@ -7,7 +7,7 @@ acceptance: every token on the scene line is a key=value with no space in its va
   proved by a walk over the line rather than by a spot check, and the two engines still
   print comparable strings
 max_sessions: 1
-status: READY 2026-09-09. Amendment A10 of
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-09. Amendment A10 of
   game-design/decision-2026-09-09-the-twelve-clauses-and-the-buried-grate.md,
   declared by the builder that found it while landing something else.
   THE FAULT IS THE ONE THE STUDIO HAS ALREADY BEEN BITTEN BY: every reader splits on

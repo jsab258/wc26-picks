@@ -2,7 +2,7 @@ line: infrastructure (the budget instrument)
 spec: found 2026-09-06 by the first daily wake, reading its own generated brief
 acceptance: the studio-versus-game split is computed from WHAT a pass changed, not from which agent type ran it, and a day whose engine-specialists built console plumbing reports as studio; proven by recomputing 2026-09-05 and getting a game figure near one rather than twelve, with the classification rule printed and both outcomes fixtured
 max_sessions: 1
-status: READY 2026-09-06. THIS BLOCKS THE BRIEF'S BUDGET SECTION BEING TRUSTED. instrument-builder.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-06. THIS BLOCKS THE BRIEF'S BUDGET SECTION BEING TRUSTED. instrument-builder.
 
 ## The fault
 

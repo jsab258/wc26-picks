@@ -2,7 +2,7 @@ line: production (the vignette's own geometry)
 spec: this file, ordered by the 3 September ruling decision A
 acceptance: decided from a rendered cam_B frame rather than from the numbers alone: either the pot narrows to sit within its stack, or the stack widens, or the pot becomes procedural; whichever is chosen, the frame is opened and the overhang is measured again after
 max_sessions: 1
-status: READY 2026-09-03. engine-specialist, small. Ordered fourth: it is real and it is one object.
+status: CLOSED 2026-09-10, not on the ladder and untouched for 7 days 2026-09-03. engine-specialist, small. Ordered fourth: it is real and it is one object.
 
 ## The finding
 

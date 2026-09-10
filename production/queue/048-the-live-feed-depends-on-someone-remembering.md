@@ -2,7 +2,7 @@ line: production (the reporting channel Jafar reads)
 spec: this file
 acceptance: the live status document is written to the store on every landing without the resident remembering, by a mechanism that is itself observable; the page's own age line is the check, and a deliberate skipped write must show as a stopped feed within its stale window rather than as calm numbers; the mechanism names what it could NOT write and why, and a run that wrote nothing says so in those words
 max_sessions: 1
-status: READY 2026-09-02. instrument-builder. Filed at the moment the hosted page went up, because the fault it replaces is the fault it can grow back into.
+status: CLOSED 2026-09-10, not on the ladder and untouched for 7 days 2026-09-02. instrument-builder. Filed at the moment the hosted page went up, because the fault it replaces is the fault it can grow back into.
 
 ## The finding, filed before it happens rather than after
 

@@ -2,7 +2,7 @@ line: production (the console)
 spec: Jafar's Director's Console rulings, 2026-09-03
 acceptance: a health panel carrying laws and gates red/amber/green from the weekly process audit; lessons this week AND HOW EACH TERMINATED; Blocking pushes this week; Producer versus resident disagreements; and the studio-versus-game split of points
 max_sessions: 1
-status: READY 2026-09-03, after the Monday reset. instrument-builder.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-03, after the Monday reset. instrument-builder.
 
 ## Three of the five inputs already exist
 

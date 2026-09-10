@@ -2,7 +2,7 @@ line: production (the plan's foundation)
 spec: Jafar 2026-09-06, folded into item 7 and queue 102: "Produce the equivalent numbers from our own data as part of item 7 and put the scope decision to me."
 acceptance: a cost per verified piece measured from OUR data with the calibration it rests on named and dated, the same arithmetic applied to the stated town size, and both set beside the audit's figures with the differences explained rather than averaged
 max_sessions: 1
-status: READY 2026-09-06, and it is part of queue 102 rather than a rival to it. The scope DECISION goes to Jafar as a card; this item produces the numbers the card needs.
+status: CLOSED 2026-09-10, not on the ladder; filed as a finding rather than as ladder work 2026-09-06, and it is part of queue 102 rather than a rival to it. The scope DECISION goes to Jafar as a card; this item produces the numbers the card needs.
 
 ## What the audit said, and it is a claim about us
 
