@@ -1,0 +1,13 @@
+receipt: sent
+file: production/briefs/2026-09-10.md
+kind: brief
+fileCommit: none
+fileCommitEpoch: none
+sent: 2026-09-10T04:44:37+00:00
+sentEpoch: 1789015477
+messageId: 63
+chars: 874
+outboundLatencySec: nothing-measured
+outboundLatencySecFrom: fileCommitInstant
+outboundLatencySecTo: sendInstant
+note: one sample of one message, not a rate. the brief is not committed yet
