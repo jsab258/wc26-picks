@@ -878,3 +878,183 @@ with the key named, the five rungs, the one control row, and both formatters,
 CoreTests. NO PLAYER LOG in the verdict means the sim did not run and reads
 identically to a compile error and to a lost licence seat; read the verdict
 before the run's colour.
+
+================================================================================
+RUN 39, 2026-09-09: THE SUN ARRIVES WHERE THE SPEC SENT IT, AND THE LADDER
+BECOMES A GRID WITH ITS OWN NULL CELL
+================================================================================
+Ordered by game-design/decision-2026-09-09-ruling-the-grid-not-the-ladder.md,
+sections 4 and 8. THIS RUN SETS NO CONSTANT. It repairs one defect and prints
+three series; queue 206 sets values from them, in that order.
+
+THE DEFECT, AND IT IS THE LARGEST THING ON THIS BOARD. The spec has asked for a
+sun 36 degrees above the horizon since it was written. Every run this rig has
+ever done rendered one at 82.
+  production/specs/vignette-pieces.json   sun elevation_deg 36 azimuth_deg 205
+  VignetteSpec.h SunPitchDeg(36) = -36.0  VignetteSpec.h SunYawDeg(205) = 25.0
+  the committed verdict, every shot line   sunPitchYawRead=-82.0/25.0
+YAW AGREES TO THE DECIMAL AND PITCH IS OFF BY EXACTLY 46.0. 25.0 is no engine
+default, so the ask reached the ACTOR and died between the actor and the
+COMPONENT: SpawnDirectional handed its FRotator to SpawnActor as the actor
+rotation and never set the light component's rotation, and a directional
+light's direction IS the forward axis of that component's world transform,
+which is also what the readback reads. A 4 m lamp post casts 4/tan(36) = 5.5 m
+at the asked elevation and 4/tan(82) = 0.56 m at the rendered one, A FACTOR OF
+TEN, which is queue 197 (nothing casts a contact shadow) explained rather than
+described, and it is why a HUNDREDFOLD of sun intensity on run 38 blew
+highlights by three orders of magnitude and moved the dark end by 1.06 nulls:
+the light was very nearly straight down the whole time.
+
+THE FIX IS ONE LINE AND IT DOES NOT DEPEND ON THE MECHANISM. C->SetWorldRotation
+states the world rotation absolutely, so the asked value arrives whatever
+relative rotation the component was carrying. NOTHING HERE SUBTRACTS 46 and
+nothing assumes -46 is Unreal's shipped default, because nobody has confirmed
+that it is.
+
+AND THE REASON IT SURVIVED, which is what the new keys are for. CLAUDE.md rule
+6: vignette-spec-test.cpp:404 tested the ARITHMETIC, :2058 tested the FORMAT
+STRING, and nothing tested that the number reached the light. The same rig
+already differenced asked against read for the camera (shotCamAskedPitchYaw
+beside shotCamReadPitchYaw) and for 22 props (propCentreWorstMm against the
+file's own coordinates). THE LIGHTS WERE THE ONE ACTOR POPULATION NOBODY EVER
+DIFFERENCED.
+
+WHAT THE VERDICT GAINS, ALL OF IT FORMATTED IN THE TESTED LAYER:
+  lightAim*        one whole-run line: asked, read and SIGNED RESIDUAL on both
+                   axes for all four directional lights, with
+                   lightAimAgreeing=N/of=M and lightAimWorstResidualDeg naming
+                   the light and axis it was worst on. lightAimStatus=AGREES is
+                   THE ONLY PASSING WORD and the step exits non-zero on
+                   anything else WITH THE VERDICT STILL COMMITTED. The bound is
+                   1.0 degree and the line says in its own value that this is
+                   NOT a measured tolerance: it separates the 46.0 fault from a
+                   float round trip of order 1e-4. If any run prints a residual
+                   between 0.001 and 1.0, THAT is the series a real bound comes
+                   off.
+  shotSunIntensityAsked / shotSkyIntensityAsked / shotCellAgrees
+                   per frame, and cellAgree=N/of=M once per run. Run 38 printed
+                   five rungs that all read sky 1.000 and one control row that
+                   read 0.350 and NEVER PRINTED THE CROSS, so the cell that
+                   mattered had never been rendered and nothing said so.
+  band.ground.p95OverP05
+                   a ROBUST within-frame ratio, and its stat string says
+                   ROBUST-NOT-INVARIANT because a tonemap is MONOTONE, NOT
+                   LINEAR: under a monotone map a ratio moves and only ORDER
+                   survives. Quotable across cells only if the null cell held.
+  band.ground.darkerThanSkyMedianPct
+                   the EXACTLY INVARIANT one: the share of ground-band pixels
+                   strictly darker than the skyCentre band's MEDIAN PIXEL OF
+                   THE SAME FRAME. Its Ties and Rails ship beside it always,
+                   because ties and the two rails are where the curve stops
+                   being strictly monotone and the invariance claim stops being
+                   true. The stat string names bloom, vignette, grain and local
+                   tonemapping as the exceptions, which the ruling requires.
+  fogMaxOpacityRead
+                   asked beside read, now that the cap is a field.
+
+THE GRID REPLACES THE LADDER, 12 CELLS AT cam_hook: sky 1.00 / 0.70 / 0.50 /
+0.35 crossed with sun 3 / 10 / 30. THE CAMERA IS AN INSTRUMENT REPAIR as much
+as it is Jafar's judging camera: the three control quads are HIDDEN on cam_hook
+(run 38's controlQuadHidden=3/11 named vign_hook_day), so no whole-frame key on
+a probe row photographs the instrument, and at fovV 39.0 band.skyCentre is sky
+rather than the rooftops it holds at fovV 60.0.
+
+THE SHOT ORDER, AND IT IS NOT MONOTONE IN SKY, which is condition C6:
+  sky0.50 sky1.00 sky0.35 sky0.70 sky1.00 sky0.50 sky0.35 sky0.70 sky1.00
+  sky0.50 sky0.35 sky0.70
+The retired ladder rendered in INCREASING order, so a drift ordered by shot was
+perfectly confounded with a response to the light. CoreTests and
+vignette-spec-test both print this sequence and both assert that it rises
+somewhere and falls somewhere.
+
+THE NULL CELL IS THE FIRST THING READ, AND IT IS BLOCKING. grid_null_repeat is
+a field-for-field duplicate of grid_sky100_sun003, the grid's reference cell,
+and it is THE LAST SHOT IN THE RUN while its twin is the second grid shot: every
+other shot, every condition change and every light probe stands between them.
+Both test layers assert the duplicate field by field, so a typo cannot make the
+pair differ by an input. IF THE PAIR'S DIFFERENCE AT shotMeanLuma,
+band.ground.p05 AND band.ground.p50 IS NOT SMALLER THAN THE SMALLEST SKY STEP
+IN THE GRID ON ALL THREE, THE GRID IS A NO-READ: no cell is quoted and the
+resident escalates. Run 38 carried this same test as ladder_sun003, IT FAILED
+at 0.1106 of mean luma and 0.1172 at band.ground.p05, and nobody read it.
+
+THE OTHER TWO SERIES, both at the reference cell:
+  fog_max_opacity  0.450 / 0.250 / 0.100 / 0.000, four rows. The cap was the
+                   hardcoded kFogMaxOpacityWithSky 0.45f and is now a REQUIRED
+                   field on every condition in both readers, so a row that does
+                   not name it refuses the parse with the key named. Every
+                   pre-existing condition carries 0.450, so nothing moved.
+  wetness          0.00 / 0.60 / 1.00, three rows, AND THEY MEASURE AN ABSENCE
+                   TODAY. `wetness` is parsed by both readers and read by
+                   NEITHER renderer: three hits in the whole ue-probe tree, all
+                   in VignetteSpec.h, none in VignetteShot.cpp, and the base
+                   material has no parameter for it. These three frames are the
+                   BEFORE half of condition C10's grep and the read site is
+                   queue 186's work. If the three frames differ, something
+                   other than wetness moved them and the null cell is how that
+                   is read.
+
+NO ELEVATION ROWS, AND THE RULING IS WHY. Section 4.6 withdrew them: "You
+repair a defect, you do not probe a series to rediscover a number the spec
+already names." Section 9's row count is the same arithmetic: 12 cells, 1 null,
+4 fog, 3 wetness, 20 rows.
+
+PREDICTIONS, WRITTEN BEFORE THE RUN SO THE RUN JUDGES THEM:
+1. lightAimStatus=AGREES with lightAim.sun.readPitchYaw=-36.0/25.0 and a
+   residual of 0.0000 on both axes. A run whose sun still reads -82.0 HAS NOT
+   LANDED THIS FIX however green the build is, and that is condition C15.
+2. The three fills print rotations for the first time in this project's
+   history. NO NUMBER IS PREDICTED FOR THEM: their rendered direction has never
+   been measured, they are retired to zero intensity when the sky is whole, and
+   any number written here would be a prediction wearing a reading's clothes.
+3. Shadows appear. The sun moves 46 degrees toward the horizon, so a 4 m post
+   casts ten times the length it did, and tools/frame-shadow-probe.py should
+   clear the historical series: +0.0270 with three fills and no skylight
+   (3768 out / 1645 in), -0.0003 with the captured sky on the same pixels,
+   -0.0035 on the rung-1 hook frame.
+4. cellAgree=25/of=25 and every shotCellAgrees=yes. A middle sky reading back
+   1.000 means the field is not reaching the component and NOTHING BELOW IT IS
+   EVIDENCE.
+5. band.ground.p05 at sky 0.35 falls well below the 0.5785 the hook frame
+   carries today. The reference street reads 0.1932.
+
+READ IN THIS ORDER:
+1. captureStatus and shotsWrote=N/25. Twenty-five, not eleven.
+2. lightAimStatus and the four lightAim.*.residualPitchYawDeg pairs. If the sun
+   is not at -36.0/25.0, stop: every frame in the run was lit by a direction
+   nobody chose and no cell means anything.
+3. cellAgree=N/of=M and then each shot line's shotCellAgrees. A cell that did
+   not get the numbers it asked for is not a cell.
+4. THE NULL PAIR: vign_grid_sky100_sun003 against vign_grid_null_repeat at
+   shotMeanLuma, band.ground.p05 and band.ground.p50, against the smallest sky
+   step in the grid. NO-READ if it fails, and escalate.
+5. THEN OPEN ALL TWENTY-FIVE FRAMES, before any other number is read. Queue
+   180's acceptance is explicit: HIS EYE IS THE GATE and no number passes this
+   rung.
+6. Then the grid, read for WHERE THE PICTURE GAINS A DARK END and not for where
+   a mean matches: band.ground.darkerThanSkyMedianPct first, because it is the
+   only key here that survives the exposure moving, then p95OverP05 if and only
+   if the null cell held, then the absolute percentiles LAST and only inside one
+   frame.
+7. Then the two series, fog and wetness, against the reference cell.
+8. Then tools/frame-shadow-probe.py per frame, whose measurement code is
+   UNCHANGED in this commit by the 14:24 ruling's condition, quoting its three
+   instrument checks per frame before any step is quoted.
+
+WHAT THIS RUN CANNOT SETTLE. It cannot set any constant, by rule 2 and by the
+ruling. It cannot say what wetness looks like, because nothing reads it yet. It
+cannot separate a sky response from an exposure response if the null cell fails.
+It does not snap the exposure, which is queue 219's pinned value, so every
+cross-frame number in it is conditional on the null cell. And it cannot say
+whether the fills point anywhere sensible, only where they point.
+
+WHAT IS UNVERIFIED UNTIL THIS RUN. The Unreal layer does not compile in the
+container. UNVERIFIED UNTIL CI: the SetWorldRotation call and the API it uses;
+the LightAimNow readback over GSun/GFillA/GFillB/GFillC; the lightAim line
+reaching the verdict; the cellAgree counters and the per-shot asked values; the
+fog cap coming off the condition; and the workflow step's new refusal on
+lightAimStatus. Everything in the tested layer RAN HERE: 275 checks in
+ue-probe/tests/vignette-spec-test.cpp, 108 in frame-stats-test.cpp, 4310 in
+CoreTests. NO PLAYER LOG in the verdict means the sim did not run and reads
+identically to a compile error and to a lost licence seat; read the verdict
+before the run's colour.
