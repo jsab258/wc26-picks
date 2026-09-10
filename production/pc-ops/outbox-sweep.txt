@@ -1,4 +1,4 @@
-# LEDGER one outbox sweep - a8a4d49 @1789015469
+# LEDGER one outbox sweep - 665e530 @1789026141
 # Line 1 names the commit this was run on. This step SENDS: it runs
 # tools/runner/telegram-bot.py --send-outbox once, which is the same
 # pass the bot's own loop makes. Streamed, so a timeout still leaves
@@ -12,12 +12,12 @@ sweepPython=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\python
 # commits its own evidence, so sweepCheckoutAheadCommits above 0 is normal.
 # sweepCheckoutBehindSecByCommitTime is the run's committer time minus the
 # checkout head's, so positive means his files are older.
-sweepCheckoutRunSha=a8a4d498e086aada66bf0c4f3f4a9c58dc626c35 sweepCheckoutPcHeadSha=a636d82de088b0abd826dc9e87ef87c202604125 sweepCheckoutContains=yes sweepCheckoutOutcome=contains sweepCheckoutDecision=send
-sweepCheckoutBehindCommits=0 sweepCheckoutAheadCommits=1 sweepCheckoutBehindSecByCommitTime=-678 sweepCheckoutPcHeadCommitIso=2026-09-10T06:44:03+02:00
-sweepCheckoutWaitedSec=0/90 sweepCheckoutPolls=1 sweepCheckoutPollSec=5 sweepCheckoutSeries=0s/a636d82de0 sweepCheckoutSeriesShown=1/1
+sweepCheckoutRunSha=665e530032191a11dedf3b4c9ec8f75a8c5744ab sweepCheckoutPcHeadSha=83dec33680c88bef7671c86bec8bf9760017a031 sweepCheckoutContains=yes sweepCheckoutOutcome=contains sweepCheckoutDecision=send
+sweepCheckoutBehindCommits=0 sweepCheckoutAheadCommits=1 sweepCheckoutBehindSecByCommitTime=-26 sweepCheckoutPcHeadCommitIso=2026-09-10T07:42:22Z
+sweepCheckoutWaitedSec=15/90 sweepCheckoutPolls=4 sweepCheckoutPollSec=5 sweepCheckoutSeries=0s/eec2490672,15s/83dec33680 sweepCheckoutSeriesShown=2/2
 sweepCheckoutReason=his-checkout-contains-this-runs-commit/the-files-this-step-reads-are-at-or-ahead-of-the-push
 sweepStatus=EXITED sweepWaitedSec=3 sweepExitCode=0
 sweepStream=sweep-raw.txt sweepLines=2
-06:44:31  outbox done: outboxFiles=17 sent=0 captionedSent=0 captionedClipsSent=0 refused=0 unsent=0 alreadySent=17 held=0 sendFailed=0 receiptRefused=0 recordsWritten=0 latencySamples=0/0 outboundLatencySecAtWorst=nothing-measured
-06:44:31  nothing measured: all 17 file(s) in production/outbox already carry a receipt, so no message was checked or sent this pass.
+09:42:38  outbox done: outboxFiles=17 sent=0 captionedSent=0 captionedClipsSent=0 refused=0 unsent=0 alreadySent=17 held=0 sendFailed=0 receiptRefused=0 recordsWritten=0 latencySamples=0/0 outboundLatencySecAtWorst=nothing-measured
+09:42:38  nothing measured: all 17 file(s) in production/outbox already carry a receipt, so no message was checked or sent this pass.
 sweepStream=sweep-raw.txt.err sweepLines=0
