@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="1000" viewBox="0 0 1240 1000">
+<rect width="1240" height="1000" fill="rgb(236, 232, 222)"/>
+<rect x="24.0" y="24.0" width="1192.0" height="952.0" fill="none" stroke="rgb(108, 102, 94)" stroke-width="1"/>
+<text x="40.0" y="56.0" font-family="DejaVu Sans, sans-serif" font-size="22" fill="rgb(28, 26, 24)" text-anchor="start" font-weight="bold">THE RANK ON QUAY STREET</text>
+<text x="40.0" y="78.0" font-family="DejaVu Sans, sans-serif" font-size="12" fill="rgb(108, 102, 94)" text-anchor="start">the cars stand on the street, because the yard measured too small</text>
+<text x="1200.0" y="56.0" font-family="DejaVu Sans, sans-serif" font-size="13" fill="rgb(28, 26, 24)" text-anchor="end" font-weight="bold">MICKEY&apos;S CARS</text>
+<text x="1200.0" y="74.0" font-family="DejaVu Sans, sans-serif" font-size="11" fill="rgb(108, 102, 94)" text-anchor="end">Quay Street, the Hook</text>
+<text x="1200.0" y="90.0" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(150, 48, 40)" text-anchor="end">ART PROPOSAL for ruling 6. Not canon.</text>
+<text x="40.0" y="962.0" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(108, 102, 94)" text-anchor="start">1 metre = 25 px. Street plan, x north to the right, z east downward. All street geometry read from vignette-scene.json.</text>
+<text x="1200.0" y="962.0" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(108, 102, 94)" text-anchor="end">drawn from data/cab-office.json by author/draw_cab_office.py</text>
+<rect x="80.0" y="405.0" width="1050.0" height="150.0" fill="rgb(150, 148, 146)" stroke="rgb(108, 102, 94)" stroke-width="1"/>
+<rect x="80.0" y="555.0" width="1050.0" height="3.1" fill="rgb(186, 182, 176)" stroke="rgb(108, 102, 94)" stroke-width="1"/>
+<rect x="80.0" y="558.1" width="1050.0" height="50.0" fill="rgb(206, 202, 194)" stroke="rgb(108, 102, 94)" stroke-width="1"/>
+<rect x="80.0" y="401.9" width="1050.0" height="3.1" fill="rgb(186, 182, 176)" stroke="rgb(108, 102, 94)" stroke-width="1"/>
+<rect x="80.0" y="351.9" width="1050.0" height="50.0" fill="rgb(206, 202, 194)" stroke="rgb(108, 102, 94)" stroke-width="1"/>
+<rect x="155.0" y="608.1" width="900.0" height="200.0" fill="rgb(204, 176, 162)" stroke="rgb(28, 26, 24)" stroke-width="2"/>
+<text x="162.5" y="633.1" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(108, 102, 94)" text-anchor="start">east_parade</text>
+<rect x="155.0" y="151.9" width="450.0" height="200.0" fill="rgb(188, 186, 180)" stroke="rgb(28, 26, 24)" stroke-width="2"/>
+<text x="162.5" y="326.9" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(108, 102, 94)" text-anchor="start">west_south</text>
+<rect x="680.0" y="151.9" width="450.0" height="200.0" fill="rgb(188, 186, 180)" stroke="rgb(28, 26, 24)" stroke-width="2"/>
+<text x="687.5" y="326.9" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(108, 102, 94)" text-anchor="start">west_north</text>
+<rect x="155.0" y="608.1" width="300.0" height="200.0" fill="none" stroke="rgb(150, 48, 40)" stroke-width="3"/>
+<text x="180.0" y="640.0" font-family="DejaVu Sans, sans-serif" font-size="13" fill="rgb(150, 48, 40)" text-anchor="start" font-weight="bold">MICKEY&apos;S CARS</text>
+<text x="180.0" y="665.0" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(150, 48, 40)" text-anchor="start">bays 0 and 1</text>
+<rect x="80.0" y="546.2" width="1050.0" height="2.5" fill="rgb(214, 188, 72)" stroke="rgb(196, 170, 60)" stroke-width="1"/>
+<rect x="80.0" y="541.2" width="1050.0" height="2.5" fill="rgb(214, 188, 72)" stroke="rgb(196, 170, 60)" stroke-width="1"/>
+<rect x="80.0" y="411.2" width="1050.0" height="2.5" fill="rgb(214, 188, 72)" stroke="rgb(196, 170, 60)" stroke-width="1"/>
+<rect x="80.0" y="416.2" width="1050.0" height="2.5" fill="rgb(214, 188, 72)" stroke="rgb(196, 170, 60)" stroke-width="1"/>
+<rect x="317.5" y="514.4" width="107.5" height="42.5" fill="rgb(150, 170, 196)" stroke="rgb(52, 74, 104)" stroke-width="2"/>
+<text x="371.2" y="538.6" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(52, 74, 104)" text-anchor="middle">car 1</text>
+<rect x="440.0" y="514.4" width="107.5" height="42.5" fill="rgb(150, 170, 196)" stroke="rgb(52, 74, 104)" stroke-width="2"/>
+<text x="493.7" y="538.6" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(52, 74, 104)" text-anchor="middle">car 2</text>
+<rect x="562.5" y="514.4" width="107.5" height="42.5" fill="rgb(150, 170, 196)" stroke="rgb(52, 74, 104)" stroke-width="2"/>
+<text x="616.2" y="538.6" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(52, 74, 104)" text-anchor="middle">car 3</text>
+<text x="317.5" y="498.1" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(52, 74, 104)" text-anchor="start" font-weight="bold">3 cars nose to tail = 14.10 m, and the premises is 12.00 m: THE RANK IS LONGER THAN THE SHOP</text>
+<rect x="374.0" y="544.0" width="12.0" height="12.0" fill="rgb(90, 88, 84)" stroke="rgb(28, 26, 24)" stroke-width="2"/>
+<text x="380.0" y="572.0" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(28, 26, 24)" text-anchor="middle">gully x=12, under car 2</text>
+<rect x="605.0" y="151.9" width="75.0" height="200.0" fill="rgb(198, 206, 190)" stroke="rgb(72, 96, 64)" stroke-width="2"/>
+<text x="690.0" y="304.4" font-family="DejaVu Sans, sans-serif" font-size="11" fill="rgb(72, 96, 64)" text-anchor="start" font-weight="bold">WEST COURT</text>
+<rect x="621.2" y="239.4" width="42.5" height="107.5" fill="rgb(150, 176, 144)" stroke="rgb(72, 96, 64)" stroke-width="2"/>
+<text x="690.0" y="276.9" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(72, 96, 64)" text-anchor="start">3.00 m wide, 8.00 m deep, dropped crossover at x=22.5</text>
+<text x="690.0" y="251.9" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(72, 96, 64)" text-anchor="start" font-weight="bold">ONE car nose-in fits and not two: 2 x 4.30 = 8.60 is more than 8.00</text>
+<text x="40.0" y="942.0" font-family="DejaVu Sans, sans-serif" font-size="11" fill="rgb(28, 26, 24)" text-anchor="start" font-weight="bold">Double yellow lines on both sides at z = 2.500 and 2.700, 4 pieces, read from the piece list. A waiting cab is parked on them, and the firm&apos;s answer is that a car with a driver in it is not parked.</text>
+</svg>

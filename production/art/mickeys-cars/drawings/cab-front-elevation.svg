@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1420" height="820" viewBox="0 0 1420 820">
+<rect width="1420" height="820" fill="rgb(236, 232, 222)"/>
+<rect x="24.0" y="24.0" width="1372.0" height="772.0" fill="none" stroke="rgb(108, 102, 94)" stroke-width="1"/>
+<text x="40.0" y="56.0" font-family="DejaVu Sans, sans-serif" font-size="22" fill="rgb(28, 26, 24)" text-anchor="start" font-weight="bold">FRONT ELEVATION</text>
+<text x="40.0" y="78.0" font-family="DejaVu Sans, sans-serif" font-size="12" fill="rgb(108, 102, 94)" text-anchor="start">the frontage D17 leaves standing, and the one word that changes</text>
+<text x="1380.0" y="56.0" font-family="DejaVu Sans, sans-serif" font-size="13" fill="rgb(28, 26, 24)" text-anchor="end" font-weight="bold">MICKEY&apos;S CARS</text>
+<text x="1380.0" y="74.0" font-family="DejaVu Sans, sans-serif" font-size="11" fill="rgb(108, 102, 94)" text-anchor="end">Quay Street, the Hook</text>
+<text x="1380.0" y="90.0" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(150, 48, 40)" text-anchor="end">ART PROPOSAL for ruling 6. Not canon.</text>
+<text x="40.0" y="782.0" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(108, 102, 94)" text-anchor="start">1 metre = 62 px. Heights are y above the carriageway crown, read from production/specs/vignette-pieces.json.</text>
+<text x="1380.0" y="782.0" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(108, 102, 94)" text-anchor="end">drawn from data/cab-office.json by author/draw_cab_office.py</text>
+<line x1="50.8" y1="683.4" x2="949.8" y2="683.4" stroke="rgb(108, 102, 94)" stroke-width="2"/>
+<text x="53.9" y="675.6" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(108, 102, 94)" text-anchor="start">footway +0.075</text>
+<rect x="150.0" y="297.4" width="744.0" height="384.4" fill="rgb(204, 176, 162)" stroke="rgb(28, 26, 24)" stroke-width="2"/>
+<line x1="150.0" y1="471.0" x2="894.0" y2="471.0" stroke="rgb(108, 102, 94)" stroke-width="1" stroke-dasharray="5,4"/>
+<text x="903.3" y="469.8" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(108, 102, 94)" text-anchor="start">first floor +3.500</text>
+<line x1="150.0" y1="297.4" x2="894.0" y2="297.4" stroke="rgb(28, 26, 24)" stroke-width="2"/>
+<text x="900.2" y="296.2" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(108, 102, 94)" text-anchor="start">eaves +6.300</text>
+<rect x="150.0" y="511.3" width="21.7" height="170.5" fill="rgb(192, 164, 150)" stroke="rgb(28, 26, 24)" stroke-width="1"/>
+<rect x="500.3" y="511.3" width="21.7" height="170.5" fill="rgb(192, 164, 150)" stroke="rgb(28, 26, 24)" stroke-width="1"/>
+<rect x="522.0" y="511.3" width="21.7" height="170.5" fill="rgb(192, 164, 150)" stroke="rgb(28, 26, 24)" stroke-width="1"/>
+<rect x="872.3" y="511.3" width="21.7" height="170.5" fill="rgb(192, 164, 150)" stroke="rgb(28, 26, 24)" stroke-width="1"/>
+<rect x="279.5" y="644.6" width="220.8" height="37.2" fill="rgb(180, 176, 168)" stroke="rgb(28, 26, 24)" stroke-width="1"/>
+<rect x="651.5" y="644.6" width="220.8" height="37.2" fill="rgb(180, 176, 168)" stroke="rgb(28, 26, 24)" stroke-width="1"/>
+<text x="53.9" y="601.2" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(108, 102, 94)" text-anchor="start">pilasters read: 4</text>
+<text x="53.9" y="616.1" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(108, 102, 94)" text-anchor="start">stallrisers read: 2</text>
+<rect x="171.7" y="559.0" width="52.0" height="122.8" fill="rgb(128, 96, 84)" stroke="rgb(28, 26, 24)" stroke-width="2"/>
+<rect x="223.7" y="555.3" width="55.8" height="126.5" fill="rgb(128, 96, 84)" stroke="rgb(28, 26, 24)" stroke-width="2"/>
+<rect x="279.5" y="533.0" width="220.8" height="111.6" fill="rgb(146, 158, 164)" stroke="rgb(28, 26, 24)" stroke-width="2"/>
+<rect x="543.7" y="559.0" width="52.0" height="122.8" fill="rgb(128, 96, 84)" stroke="rgb(28, 26, 24)" stroke-width="2"/>
+<rect x="595.7" y="555.3" width="55.8" height="126.5" fill="rgb(160, 128, 120)" stroke="rgb(28, 26, 24)" stroke-width="2"/>
+<line x1="595.7" y1="660.7" x2="651.5" y2="660.7" stroke="rgb(110, 84, 78)" stroke-width="2"/>
+<line x1="595.7" y1="639.6" x2="651.5" y2="639.6" stroke="rgb(110, 84, 78)" stroke-width="2"/>
+<line x1="595.7" y1="618.6" x2="651.5" y2="618.6" stroke="rgb(110, 84, 78)" stroke-width="2"/>
+<line x1="595.7" y1="597.5" x2="651.5" y2="597.5" stroke="rgb(110, 84, 78)" stroke-width="2"/>
+<line x1="595.7" y1="576.4" x2="651.5" y2="576.4" stroke="rgb(110, 84, 78)" stroke-width="2"/>
+<text x="623.6" y="546.6" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(150, 48, 40)" text-anchor="middle" font-weight="bold">SEALED</text>
+<rect x="651.5" y="533.0" width="220.8" height="111.6" fill="rgb(146, 158, 164)" stroke="rgb(28, 26, 24)" stroke-width="2"/>
+<rect x="651.5" y="588.8" width="220.8" height="55.8" fill="rgb(196, 196, 190)" stroke="rgb(28, 26, 24)" stroke-width="1"/>
+<text x="655.2" y="582.6" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(150, 48, 40)" text-anchor="start" font-weight="bold">NET TO 1.500</text>
+<text x="655.2" y="595.0" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(150, 48, 40)" text-anchor="start">heads visible, hands not</text>
+<line x1="197.7" y1="691.7" x2="197.7" y2="696.6" stroke="rgb(170, 163, 150)" stroke-width="1"/>
+<text x="197.7" y="706.6" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(108, 102, 94)" text-anchor="middle">private_entry</text>
+<text x="197.7" y="718.6" font-family="DejaVu Sans, sans-serif" font-size="8" fill="rgb(170, 163, 150)" text-anchor="middle">east_parade_sidedoor0</text>
+<line x1="251.6" y1="691.7" x2="251.6" y2="723.9" stroke="rgb(170, 163, 150)" stroke-width="1"/>
+<text x="251.6" y="733.9" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(108, 102, 94)" text-anchor="middle">public_entry</text>
+<text x="251.6" y="745.9" font-family="DejaVu Sans, sans-serif" font-size="8" fill="rgb(170, 163, 150)" text-anchor="middle">east_parade_shopdoor0</text>
+<line x1="389.9" y1="691.7" x2="389.9" y2="696.6" stroke="rgb(170, 163, 150)" stroke-width="1"/>
+<text x="389.9" y="706.6" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(108, 102, 94)" text-anchor="middle">office_glass</text>
+<text x="389.9" y="718.6" font-family="DejaVu Sans, sans-serif" font-size="8" fill="rgb(170, 163, 150)" text-anchor="middle">east_parade_glass0</text>
+<line x1="569.7" y1="691.7" x2="569.7" y2="696.6" stroke="rgb(170, 163, 150)" stroke-width="1"/>
+<text x="569.7" y="706.6" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(108, 102, 94)" text-anchor="middle">drivers_entry</text>
+<text x="569.7" y="718.6" font-family="DejaVu Sans, sans-serif" font-size="8" fill="rgb(170, 163, 150)" text-anchor="middle">east_parade_sidedoor1</text>
+<line x1="623.6" y1="691.7" x2="623.6" y2="723.9" stroke="rgb(170, 163, 150)" stroke-width="1"/>
+<text x="623.6" y="733.9" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(108, 102, 94)" text-anchor="middle">second_shop_door</text>
+<text x="623.6" y="745.9" font-family="DejaVu Sans, sans-serif" font-size="8" fill="rgb(170, 163, 150)" text-anchor="middle">east_parade_shopdoor1</text>
+<line x1="761.9" y1="691.7" x2="761.9" y2="696.6" stroke="rgb(170, 163, 150)" stroke-width="1"/>
+<text x="761.9" y="706.6" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(108, 102, 94)" text-anchor="middle">drivers_glass</text>
+<text x="761.9" y="718.6" font-family="DejaVu Sans, sans-serif" font-size="8" fill="rgb(170, 163, 150)" text-anchor="middle">east_parade_glass1</text>
+<text x="903.3" y="726.4" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(150, 48, 40)" text-anchor="start">labelsPlaced=6/6 movedOffRowZero=2 rowsUsed=2</text>
+<rect x="150.0" y="477.2" width="372.0" height="34.1" fill="rgb(96, 34, 32)" stroke="rgb(28, 26, 24)" stroke-width="2"/>
+<rect x="522.0" y="477.2" width="372.0" height="34.1" fill="rgb(96, 34, 32)" stroke="rgb(28, 26, 24)" stroke-width="2"/>
+<text x="171.7" y="506.6" font-family="DejaVu Sans, sans-serif" font-size="30" fill="rgb(214, 182, 108)" text-anchor="start" font-weight="bold">MICKEY&apos;S</text>
+<text x="370.1" y="509.1" font-family="DejaVu Sans, sans-serif" font-size="23" fill="rgb(222, 214, 196)" text-anchor="start" font-weight="bold">CARS</text>
+<text x="540.6" y="504.2" font-family="DejaVu Sans, sans-serif" font-size="19" fill="rgb(222, 214, 196)" text-anchor="start" font-weight="bold">PRIVATE HIRE  .  TEL. 52641</text>
+<text x="367.0" y="454.9" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(150, 48, 40)" text-anchor="start">CARS IS A SECOND HAND AND A SECOND DECADE: plainer letter, a shade small, baseline 12 mm low</text>
+<rect x="150.0" y="467.9" width="744.0" height="9.3" fill="rgb(150, 122, 108)" stroke="rgb(28, 26, 24)" stroke-width="1"/>
+<text x="903.3" y="498.3" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(108, 102, 94)" text-anchor="start">C15 cornice, 17 pieces</text>
+<rect x="216.7" y="322.2" width="52.7" height="93.0" fill="rgb(150, 158, 160)" stroke="rgb(28, 26, 24)" stroke-width="1"/>
+<rect x="402.6" y="322.2" width="52.7" height="93.0" fill="rgb(150, 158, 160)" stroke="rgb(28, 26, 24)" stroke-width="1"/>
+<rect x="588.6" y="322.2" width="52.7" height="93.0" fill="rgb(150, 158, 160)" stroke="rgb(28, 26, 24)" stroke-width="1"/>
+<rect x="774.6" y="322.2" width="52.7" height="93.0" fill="rgb(150, 158, 160)" stroke="rgb(28, 26, 24)" stroke-width="1"/>
+<text x="165.5" y="433.8" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(108, 102, 94)" text-anchor="start">4 upper windows, D8, read from the street and unchanged: THE FLAT ABOVE IS atlas-01&apos;s AND D17 DOES NOT TOUCH IT</text>
+<line x1="522.0" y1="297.4" x2="522.0" y2="198.2" stroke="rgb(28, 26, 24)" stroke-width="3"/>
+<line x1="494.1" y1="210.6" x2="549.9" y2="210.6" stroke="rgb(28, 26, 24)" stroke-width="2"/>
+<line x1="503.4" y1="224.2" x2="540.6" y2="224.2" stroke="rgb(28, 26, 24)" stroke-width="2"/>
+<text x="559.2" y="204.4" font-family="DejaVu Sans, sans-serif" font-size="11" fill="rgb(150, 48, 40)" text-anchor="start" font-weight="bold">THE RADIO MAST</text>
+<text x="559.2" y="218.0" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(28, 26, 24)" text-anchor="start">a second mast beside the television aerials, and the only thing</text>
+<text x="559.2" y="230.4" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(28, 26, 24)" text-anchor="start">on the outside of this building that says what the trade is</text>
+<text x="40.0" y="762.0" font-family="DejaVu Sans, sans-serif" font-size="11" fill="rgb(150, 48, 40)" text-anchor="start" font-weight="bold">D17: the siting, the two bays and the fascia STAND. What changes is one word of lettering, one net curtain, one sealed door and one mast.</text>
+</svg>

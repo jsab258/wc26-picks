@@ -1,0 +1,184 @@
+{
+  "schema": "mickeys-cars.operations/1",
+  "status": "Authored operational proposal. Not a simulation schedule, not a live clock, and it alters no geometry.",
+  "snapshot": "An ordinary Tuesday and an ordinary Friday in autumn 1990, one design scenario inside canon's 1988 to 1992 window.",
+  "governs": "D17: nothing here is drink and nothing here is played for money.",
+  "hours": {
+    "label": "AUTHORED, and the shape is DERIVED from two sourced facts: bus deregulation from 26 October 1986 thinned evenings and Sundays, and the studio ruled 2026-09-09 that the last bus out of Meridian goes about half past ten. After that the only way home is a car.",
+    "office": {
+      "mon_to_wed": [
+        "07:00",
+        "01:00"
+      ],
+      "thu": [
+        "07:00",
+        "02:00"
+      ],
+      "fri_sat": [
+        "07:00",
+        "03:00"
+      ],
+      "sun": [
+        "09:00",
+        "01:00"
+      ]
+    },
+    "why_it_matters_more_than_it_looks": "A pub in 1990 shuts at eleven, with twenty minutes to drink up. THIS ROOM IS OPEN AT ONE IN THE MORNING FIVE NIGHTS A WEEK AND UNTIL THREE ON TWO OF THEM. The hours a crime sim is about are the hours a pub is shut and this room is busiest.",
+    "shifts": [
+      [
+        "07:00-15:00",
+        "The day controller. She has been here longer than the cars and knows every account by voice."
+      ],
+      [
+        "15:00-23:00",
+        "The evening man, who is also on the rota to drive if a car goes off."
+      ],
+      [
+        "23:00-03:00",
+        "The night man, Thursday to Saturday only. On the other four nights the evening man stays on and the answering machine takes the rest."
+      ]
+    ]
+  },
+  "day_tuesday": [
+    [
+      "06:40",
+      "Tom comes down the private stair, unlocks the yard, puts the kettle on in the drivers' room.",
+      "private stair, drivers' room"
+    ],
+    [
+      "07:00",
+      "Office opens. First bookings are the hospital car and two works runs to the cold stores.",
+      "counter, radio"
+    ],
+    [
+      "07:30",
+      "Two drivers wash their cars at the kerb with buckets carried through the building. The wet patch outside the door is there until nine.",
+      "yard tap, footway"
+    ],
+    [
+      "08:15-09:15",
+      "THE MORNING PEAK: the six o'clock shift coming off at the cold stores, the Exchange offices filling, and the first ferry. Four cars out, the board nearly empty, the loudspeaker never quiet.",
+      "control side"
+    ],
+    [
+      "09:30-11:00",
+      "The quiet hour. The day controller does yesterday's dockets and the drivers play darts.",
+      "control side, drivers' room"
+    ],
+    [
+      "11:00-15:00",
+      "Pensioners to the market, hospital appointments, an account job to the Harbour Board. One booking is a woman who will not give a name and will only be picked up from the corner.",
+      "counter, radio"
+    ],
+    [
+      "15:00-16:00",
+      "The afternoon hospital list comes back and the shift changes over. Both controllers in the room for ten minutes is the only time the whole day's book is open at two pages.",
+      "control side"
+    ],
+    [
+      "17:00-19:00",
+      "The evening peak. The cold stores late shift, the Exchange offices emptying, three cars standing at the kerb and Rita complaining about it.",
+      "rank, counter"
+    ],
+    [
+      "19:00-22:30",
+      "Slack, then the cinema. The Tivoli turns out and the telephone does not stop for twenty minutes.",
+      "counter, radio"
+    ],
+    [
+      "22:30",
+      "THE LAST BUS. Everything after this is a fare.",
+      "the whole town"
+    ],
+    [
+      "22:30-01:00",
+      "The best money and the worst behaviour. Somebody sleeps on the bench. Somebody leaves a bag in car 6.",
+      "waiting room, yard"
+    ],
+    [
+      "01:00",
+      "Doors bolted, cash counted in the money room with the door shut, the book left open at the page for the morning.",
+      "money room"
+    ]
+  ],
+  "day_friday_difference": "The same until seven, then it does not stop until three. Two extra cars come on that are not on the plate list every week. The bench is full at eleven and there are people standing. The night man keeps the counter flap bolted from half past midnight, which is the only time the screen is doing the job it was fitted for.",
+  "returns": {
+    "label": "AUTHORED. Three different things in this trade are called a return and the design uses all three on purpose.",
+    "money": {
+      "what": "THE WEEKLY SETTLE. Each driver's sheet: jobs taken off the radio, cash taken, account jobs, and the week's radio rent against it. Settled on a named day, called weigh-in day in the trade.",
+      "label": "CITED-VIA-SEARCH-MODERN in the research file, row D1, and NOT dated to 1990. It is used because it is the only description found.",
+      "object": "Nine paper sheets on a clipboard hanging on a nail beside the notice board, and a list on the board with nine names and a figure against each that every driver can read and does.",
+      "why_it_is_gameplay": "Nine people owe the player money every week, in public, in pencil, on a wall. That is a standing relationship with a number on it and a visible history, and it costs one prop."
+    },
+    "dockets": {
+      "what": "Account work is invoiced monthly against a docket signed by the passenger at the end of the journey.",
+      "object": "A carbon pad in every car, a spike behind the counter, and month bundles in the money room held with bulldog clips.",
+      "why_it_is_gameplay": "A signed docket is a piece of paper with a person's name, a date, a route and their own handwriting on it, and it lives in a room the player owns. It is the book's evidence in portable form."
+    },
+    "lost_property": {
+      "what": "FOUR CARDBOARD BOXES IN THE MONEY ROOM, labelled by week in marker. A card taped to the counter screen reads LOST PROPERTY, ENQUIRE AT COUNTER, WE KEEP IT FOUR WEEKS.",
+      "why_it_is_gameplay": "THIS IS THE BEST OF THE THREE AND IT IS ALMOST FREE. A cab office is where a town's lost property accumulates. It is a reason for any NPC in the game to come back to the player's building, on their own initiative, days later, and ask a question. It is an item pipeline with a built-in excuse, a built-in delay and a built-in conversation, and the four-week rule means it also has a deadline.",
+      "the_thing_in_box_three": "A holdall left in car 6 on a Friday that nobody has come for in three weeks. The design does not say what is in it. It says that on the twenty-eighth day somebody will."
+    }
+  },
+  "accounts": {
+    "label": "AUTHORED, and every name is one this project already owns.",
+    "customers": [
+      [
+        "Old Basin Cold Stores",
+        "shift runs at 06:00 and 22:00, six days",
+        "atlas-01 working_town WT_COLD"
+      ],
+      [
+        "Meridian Harbour Board",
+        "officers and visitors, invoiced monthly",
+        "canon.md, minted"
+      ],
+      [
+        "The Meridian Argus",
+        "a reporter to a court or a fire, at any hour",
+        "brand bible, minted"
+      ],
+      [
+        "the Tivoli",
+        "staff home after the last showing",
+        "canon.md, minted"
+      ],
+      [
+        "the borough council",
+        "the hospital car and the social services list",
+        "PROPOSAL, the authority is not minted in canon"
+      ],
+      [
+        "Meridian Ferry",
+        "crew changes and a standing booking for the late sailing",
+        "canon.md, minted"
+      ]
+    ],
+    "why_no_new_brands": "Five of the six already exist in canon or the brand bible. The sixth is flagged as owed rather than minted here. THE SCHOOL CONTRACT THAT WAS HERE IS REMOVED under D18."
+  },
+  "cars": {
+    "count": 9,
+    "board": "Nine numbered hooks in three rows of three on the rear wall, a 60 mm brass disc on every hook whose car is in.",
+    "envelope_m": [
+      4.3,
+      1.7
+    ],
+    "envelope_label": "AUTHORED. No measured vehicle envelope in metres exists in this repository.",
+    "what_they_look_like": "Five-year-old mass-market four-door saloons in four different colours, one estate, and no two the same age. NO ROOF LIGHT AND NO METER, because the word taxi is unlawful on the vehicle and a meter is optional and not fitted. A council plate on the back, a small door sign with the firm's name and the telephone number, and nothing else.",
+    "car_3": "The one with the exhaust. Everybody in the Hook knows it is coming before they see it, which is a perception fact the game gets for free."
+  },
+  "people": {
+    "label": "AUTHORED SKETCHES, not cast cards. They exist so the room is populated by somebody rather than by an archetype, and they defer to whatever Phase 1 planning does with the cast.",
+    "day_controller": "Been on the counter since the beer house closed. Knows every account by voice and half the town by the sound of the telephone. Writes the book in a hand nobody else can read, which is either carelessness or the opposite.",
+    "night_man": "Thursday to Saturday. Keeps the flap bolted and a length of hose under the ledge that he has never used and would not know how to.",
+    "the_woman_on_car_2": "Nine years on the road, the only one who will take a fare to Ironside after midnight, and the only one who reads the settle list carefully.",
+    "the_lockup_tenant": "Repairs television sets behind a partition that stops 0.700 m short of the ceiling. Hears everything, says nothing, and pays his rent in cash on a Friday."
+  },
+  "not_decided_here": [
+    "Whether any of this is simulated. It is a design scenario and not a schedule.",
+    "Fares, rents and wages: research rows M4 and D6 are UNSOURCED and no number is invented.",
+    "Whether the cast sketches survive Phase 1 planning, which owns the cast."
+  ],
+  "d18_correction": "D18, ruled 2026-09-10, says NO CHILDREN ANYWHERE and THE SCHOOL STANDS CLOSED for the game's window. THE FIRST DRAFT OF THIS FILE HAD A SCHOOL RUN IN IT TWICE AND A SCHOOL CONTRACT IN THE ACCOUNTS, and that is a break, not a wording problem: a school run needs children. All three are replaced below with work the same office would have at the same hours. The correction is recorded here rather than made silently because a reader comparing this file with the drawings would otherwise find a peak with no cause."
+}

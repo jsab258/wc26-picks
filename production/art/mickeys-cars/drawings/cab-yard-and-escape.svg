@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="1020" viewBox="0 0 1360 1020">
+<rect width="1360" height="1020" fill="rgb(236, 232, 222)"/>
+<rect x="24.0" y="24.0" width="1312.0" height="972.0" fill="none" stroke="rgb(108, 102, 94)" stroke-width="1"/>
+<text x="40.0" y="56.0" font-family="DejaVu Sans, sans-serif" font-size="22" fill="rgb(28, 26, 24)" text-anchor="start" font-weight="bold">THE YARD AND THE ESCAPE</text>
+<text x="40.0" y="78.0" font-family="DejaVu Sans, sans-serif" font-size="12" fill="rgb(108, 102, 94)" text-anchor="start">a thoroughfare, half lit, overlooked from above</text>
+<text x="1320.0" y="56.0" font-family="DejaVu Sans, sans-serif" font-size="13" fill="rgb(28, 26, 24)" text-anchor="end" font-weight="bold">MICKEY&apos;S CARS</text>
+<text x="1320.0" y="74.0" font-family="DejaVu Sans, sans-serif" font-size="11" fill="rgb(108, 102, 94)" text-anchor="end">Quay Street, the Hook</text>
+<text x="1320.0" y="90.0" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(150, 48, 40)" text-anchor="end">ART PROPOSAL for ruling 6. Not canon.</text>
+<text x="40.0" y="982.0" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(108, 102, 94)" text-anchor="start">1 metre = 44 px. The yard, the 1.8 m wall, the 1.2 m gate, the 2.4 m rear lane and the WC are atlas-01 values CARRIED unchanged.</text>
+<text x="1320.0" y="982.0" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(108, 102, 94)" text-anchor="end">drawn from data/cab-office.json by author/draw_cab_office.py</text>
+<rect x="239.6" y="562.0" width="528.0" height="264.0" fill="rgb(202, 198, 188)" stroke="rgb(28, 26, 24)" stroke-width="2"/>
+<rect x="233.0" y="559.8" width="541.2" height="2.2" fill="rgb(150, 120, 110)" stroke="rgb(28, 26, 24)" stroke-width="1"/>
+<rect x="233.0" y="562.0" width="6.6" height="264.0" fill="rgb(150, 120, 110)" stroke="rgb(28, 26, 24)" stroke-width="1"/>
+<rect x="767.6" y="562.0" width="6.6" height="264.0" fill="rgb(150, 120, 110)" stroke="rgb(28, 26, 24)" stroke-width="1"/>
+<rect x="233.0" y="826.0" width="209.0" height="6.6" fill="rgb(150, 120, 110)" stroke="rgb(28, 26, 24)" stroke-width="1"/>
+<rect x="494.8" y="826.0" width="279.4" height="6.6" fill="rgb(150, 120, 110)" stroke="rgb(28, 26, 24)" stroke-width="1"/>
+<rect x="442.0" y="826.0" width="52.8" height="6.6" fill="rgb(180, 140, 96)" stroke="rgb(150, 48, 40)" stroke-width="2"/>
+<text x="510.2" y="813.7" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(150, 48, 40)" text-anchor="start" font-weight="bold">1.200 m GATE</text>
+<rect x="98.8" y="832.6" width="675.4" height="99.0" fill="rgb(186, 182, 174)" stroke="rgb(108, 102, 94)" stroke-width="1"/>
+<text x="600.4" y="887.6" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(150, 48, 40)" text-anchor="start" font-weight="bold">REAR LANE 2.400 m. A CAR CANNOT TURN INTO THE GATE.</text>
+<rect x="107.6" y="130.8" width="132.0" height="800.8" fill="rgb(196, 192, 184)" stroke="rgb(108, 102, 94)" stroke-width="1"/>
+<text x="112.0" y="694.0" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(108, 102, 94)" text-anchor="start">SOUTH TERRACE-END PASSAGE</text>
+<text x="112.0" y="713.8" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(108, 102, 94)" text-anchor="start">3.0 m wide, back to Quay Street</text>
+<rect x="239.6" y="210.0" width="528.0" height="352.0" fill="rgb(218, 212, 200)" stroke="rgb(28, 26, 24)" stroke-width="2"/>
+<text x="248.4" y="234.2" font-family="DejaVu Sans, sans-serif" font-size="11" fill="rgb(28, 26, 24)" text-anchor="start" font-weight="bold">THE OFFICE, see the ground floor plan</text>
+<rect x="439.8" y="552.5" width="39.6" height="9.5" fill="rgb(236, 232, 222)" stroke="rgb(108, 102, 94)" stroke-width="2"/>
+<text x="439.8" y="548.8" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(108, 102, 94)" text-anchor="start">control_rear</text>
+<rect x="530.0" y="552.5" width="39.6" height="9.5" fill="rgb(236, 232, 222)" stroke="rgb(108, 102, 94)" stroke-width="2"/>
+<text x="530.0" y="548.8" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(108, 102, 94)" text-anchor="start">drivers_rear</text>
+<rect x="688.4" y="552.5" width="39.6" height="9.5" fill="rgb(236, 232, 222)" stroke="rgb(108, 102, 94)" stroke-width="2"/>
+<text x="688.4" y="548.8" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(108, 102, 94)" text-anchor="start">lockup_rear</text>
+<rect x="239.6" y="562.0" width="96.8" height="114.4" fill="rgb(188, 180, 166)" stroke="rgb(28, 26, 24)" stroke-width="2"/>
+<text x="244.0" y="584.0" font-family="DejaVu Sans, sans-serif" font-size="11" fill="rgb(28, 26, 24)" text-anchor="start" font-weight="bold">1958 WC</text>
+<text x="244.0" y="601.6" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(108, 102, 94)" text-anchor="start">cheaper brick</text>
+<text x="244.0" y="619.2" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(108, 102, 94)" text-anchor="start">one compartment</text>
+<rect x="354.0" y="562.9" width="44.0" height="15.8" fill="rgb(170, 164, 152)" stroke="rgb(28, 26, 24)" stroke-width="2"/>
+<text x="354.0" y="557.6" font-family="DejaVu Sans, sans-serif" font-size="8" fill="rgb(28, 26, 24)" text-anchor="start">dustbins</text>
+<rect x="337.3" y="558.5" width="15.8" height="15.8" fill="rgb(170, 164, 152)" stroke="rgb(28, 26, 24)" stroke-width="2"/>
+<text x="337.3" y="553.2" font-family="DejaVu Sans, sans-serif" font-size="8" fill="rgb(28, 26, 24)" text-anchor="start">standpipe</text>
+<rect x="574.0" y="575.2" width="28.6" height="28.6" fill="rgb(170, 164, 152)" stroke="rgb(28, 26, 24)" stroke-width="2"/>
+<text x="574.0" y="569.9" font-family="DejaVu Sans, sans-serif" font-size="8" fill="rgb(28, 26, 24)" text-anchor="start">tyre_stack</text>
+<rect x="742.1" y="606.0" width="15.8" height="154.0" fill="rgb(170, 164, 152)" stroke="rgb(28, 26, 24)" stroke-width="2"/>
+<text x="742.1" y="600.7" font-family="DejaVu Sans, sans-serif" font-size="8" fill="rgb(28, 26, 24)" text-anchor="start">ladder</text>
+<rect x="618.0" y="570.8" width="52.8" height="30.8" fill="rgb(170, 164, 152)" stroke="rgb(28, 26, 24)" stroke-width="2"/>
+<text x="618.0" y="565.5" font-family="DejaVu Sans, sans-serif" font-size="8" fill="rgb(28, 26, 24)" text-anchor="start">cardboard_bundles</text>
+<rect x="495.7" y="580.5" width="15.8" height="15.8" fill="rgb(170, 164, 152)" stroke="rgb(28, 26, 24)" stroke-width="2"/>
+<text x="495.7" y="575.2" font-family="DejaVu Sans, sans-serif" font-size="8" fill="rgb(28, 26, 24)" text-anchor="start">yard_gully</text>
+<rect x="451.7" y="549.7" width="15.8" height="15.8" fill="rgb(170, 164, 152)" stroke="rgb(150, 48, 40)" stroke-width="2"/>
+<text x="451.7" y="544.4" font-family="DejaVu Sans, sans-serif" font-size="8" fill="rgb(150, 48, 40)" text-anchor="start">bulkhead_dead</text>
+<rect x="700.3" y="549.7" width="15.8" height="15.8" fill="rgb(170, 164, 152)" stroke="rgb(196, 150, 60)" stroke-width="2"/>
+<text x="700.3" y="544.4" font-family="DejaVu Sans, sans-serif" font-size="8" fill="rgb(196, 150, 60)" text-anchor="start">bulkhead_lit</text>
+<circle cx="459.6" cy="606.0" r="83.6" fill="none" stroke="rgb(150, 48, 40)" stroke-width="2"/>
+<text x="459.6" y="606.0" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(150, 48, 40)" text-anchor="middle" font-weight="bold">BULB OUT SINCE AUGUST</text>
+<circle cx="708.2" cy="606.0" r="83.6" fill="none" stroke="rgb(196, 150, 60)" stroke-width="2"/>
+<text x="708.2" y="606.0" font-family="DejaVu Sans, sans-serif" font-size="11" fill="rgb(150, 112, 40)" text-anchor="middle" font-weight="bold">LIT</text>
+<line x1="387.0" y1="430.0" x2="455.2" y2="456.4" stroke="rgb(150, 48, 40)" stroke-width="3" stroke-dasharray="7,4"/>
+<line x1="455.2" y1="456.4" x2="455.2" y2="535.6" stroke="rgb(150, 48, 40)" stroke-width="3" stroke-dasharray="7,4"/>
+<line x1="455.2" y1="535.6" x2="459.6" y2="588.4" stroke="rgb(150, 48, 40)" stroke-width="3" stroke-dasharray="7,4"/>
+<line x1="459.6" y1="588.4" x2="468.4" y2="694.0" stroke="rgb(150, 48, 40)" stroke-width="3" stroke-dasharray="7,4"/>
+<line x1="468.4" y1="694.0" x2="468.4" y2="808.4" stroke="rgb(150, 48, 40)" stroke-width="3" stroke-dasharray="7,4"/>
+<line x1="468.4" y1="808.4" x2="468.4" y2="878.8" stroke="rgb(150, 48, 40)" stroke-width="3" stroke-dasharray="7,4"/>
+<line x1="468.4" y1="878.8" x2="173.6" y2="878.8" stroke="rgb(150, 48, 40)" stroke-width="3" stroke-dasharray="7,4"/>
+<line x1="173.6" y1="878.8" x2="173.6" y2="144.0" stroke="rgb(150, 48, 40)" stroke-width="3" stroke-dasharray="7,4"/>
+<line x1="173.6" y1="144.0" x2="311.7" y2="144.0" stroke="rgb(150, 48, 40)" stroke-width="3" stroke-dasharray="7,4"/>
+<line x1="543.2" y1="544.4" x2="530.0" y2="597.2" stroke="rgb(110, 110, 130)" stroke-width="2" stroke-dasharray="7,4"/>
+<line x1="530.0" y1="597.2" x2="327.6" y2="619.2" stroke="rgb(110, 110, 130)" stroke-width="2" stroke-dasharray="7,4"/>
+<line x1="327.6" y1="619.2" x2="301.2" y2="645.6" stroke="rgb(110, 110, 130)" stroke-width="2" stroke-dasharray="7,4"/>
+<line x1="708.2" y1="518.0" x2="708.2" y2="606.0" stroke="rgb(140, 110, 150)" stroke-width="2" stroke-dasharray="7,4"/>
+<line x1="708.2" y1="606.0" x2="503.6" y2="672.0" stroke="rgb(140, 110, 150)" stroke-width="2" stroke-dasharray="7,4"/>
+<line x1="503.6" y1="672.0" x2="468.4" y2="808.4" stroke="rgb(140, 110, 150)" stroke-width="2" stroke-dasharray="7,4"/>
+<line x1="468.4" y1="808.4" x2="468.4" y2="878.8" stroke="rgb(140, 110, 150)" stroke-width="2" stroke-dasharray="7,4"/>
+<text x="830.0" y="300.0" font-family="DejaVu Sans, sans-serif" font-size="11" fill="rgb(150, 48, 40)" text-anchor="start" font-weight="bold">THE ESCAPE: counter, control door, behind the WC, 1.2 m</text>
+<text x="830.0" y="317.0" font-family="DejaVu Sans, sans-serif" font-size="11" fill="rgb(150, 48, 40)" text-anchor="start" font-weight="bold">gate, south along the lane, west down the terrace-end</text>
+<text x="830.0" y="334.0" font-family="DejaVu Sans, sans-serif" font-size="11" fill="rgb(150, 48, 40)" text-anchor="start" font-weight="bold">passage, back to Quay Street. 383 samples, 0 clashes at a</text>
+<text x="830.0" y="351.0" font-family="DejaVu Sans, sans-serif" font-size="11" fill="rgb(150, 48, 40)" text-anchor="start" font-weight="bold">0.30 m body.</text>
+<text x="830.0" y="396.0" font-family="DejaVu Sans, sans-serif" font-size="11" fill="rgb(28, 26, 24)" text-anchor="start">AND IT IS SEEN. Four rear windows of the flat above</text>
+<text x="830.0" y="413.0" font-family="DejaVu Sans, sans-serif" font-size="11" fill="rgb(28, 26, 24)" text-anchor="start">and the neighbours&apos; upper windows look into this yard.</text>
+<text x="830.0" y="430.0" font-family="DejaVu Sans, sans-serif" font-size="11" fill="rgb(28, 26, 24)" text-anchor="start">The 1.8 m wall stops a view from the lane and nothing</text>
+<text x="830.0" y="447.0" font-family="DejaVu Sans, sans-serif" font-size="11" fill="rgb(28, 26, 24)" text-anchor="start">from above.</text>
+<text x="830.0" y="492.0" font-family="DejaVu Sans, sans-serif" font-size="11" fill="rgb(108, 102, 94)" text-anchor="start">THE SECOND ESCAPE IS A CAR AT THE KERB, and it is the</text>
+<text x="830.0" y="509.0" font-family="DejaVu Sans, sans-serif" font-size="11" fill="rgb(108, 102, 94)" text-anchor="start">one the pub cannot have. It depends on driving,</text>
+<text x="830.0" y="526.0" font-family="DejaVu Sans, sans-serif" font-size="11" fill="rgb(108, 102, 94)" text-anchor="start">traffic and an enterable vehicle, none of which this</text>
+<text x="830.0" y="543.0" font-family="DejaVu Sans, sans-serif" font-size="11" fill="rgb(108, 102, 94)" text-anchor="start">package looked at.</text>
+</svg>

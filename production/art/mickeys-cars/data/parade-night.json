@@ -1,0 +1,344 @@
+{
+  "schema": "mickeys-cars.parade-night/1",
+  "status": "ART PROPOSAL under D17. No canon change. The atlas's own materials and objects are used UNCHANGED; only the district sheet's prose clause changes.",
+  "written": "2026-09-10",
+  "thesis": "THE PARADE IS NOT WHERE PEOPLE DRINK. IT IS WHERE PEOPLE ARE TURNED OUT AND HAVE TO GET HOME. Its rhythm is a sequence of discharges: the last bus at 22:30 leaving people behind, the cinema at 22:50, the music room at 23:30. Everything the street contains either holds people before a discharge (a queue, a foyer, a doorway) or absorbs them after one (hot food, a telephone, a cab). That is a nightlife identity made of PAVEMENT rather than of rooms, which is better for this game than a street of pubs, because a pub's information is inside and a queue's information is in the open where a player walks past it.",
+  "what_the_atlas_already_had": {
+    "note": "This is the important finding of the redesign and it came from re-reading rather than from inventing. The atlas's Parade row already describes a district that works without drink.",
+    "materials_unchanged": [
+      [
+        "glazed tile",
+        "#b8c6c8"
+      ],
+      [
+        "oxblood vinyl",
+        "#5e2a2c"
+      ],
+      [
+        "painted stucco",
+        "#c9c0ae"
+      ],
+      [
+        "small neon",
+        "#e06a4a"
+      ]
+    ],
+    "objects_unchanged": [
+      "queue rope",
+      "cinema poster case",
+      "ashtray",
+      "taxi landline notice"
+    ],
+    "venue_unchanged": "P1 the Tivoli, typed cinema, venue true, at atlas [773, 565]",
+    "route_unchanged": "night: Tivoli Street (proposal)",
+    "what_changes": "ONE CLAUSE of one row of DISTRICTS.md: 'Cinema, drink trade, taxi calls, occasional contemporary cafe/wine-bar refits' loses two of its four items. Nothing else in the atlas is edited by this proposal.",
+    "the_gift": "The atlas's fourth Parade object is a TAXI LANDLINE NOTICE. The town plan put a cab telephone on this street before anybody proposed a cab office."
+  },
+  "the_clock": {
+    "label": "AUTHORED, and hung on two sourced facts and one studio ruling.",
+    "sourced": [
+      "Bus deregulation from 26 October 1986 thinned evening and Sunday services (atlas-02 research, sourced 2026-09-08).",
+      "The studio ruled 2026-09-09 that the last bus out of Meridian goes about half past ten."
+    ],
+    "events": [
+      [
+        "19:30",
+        "The early house goes in. The queue is short and mostly couples.",
+        "Tivoli"
+      ],
+      [
+        "20:00",
+        "The chip shop opens its second fryer. Steam on the inside of the glass from here until it shuts.",
+        "Coley's"
+      ],
+      [
+        "20:45",
+        "The main feature. THE QUEUE IS AT ITS LONGEST AND THE STREET IS AT ITS EMPTIEST.",
+        "Tivoli"
+      ],
+      [
+        "21:00",
+        "The video shop's last hour. Friday, a queue at the counter; Tuesday, one man and the door bell.",
+        "the video shop"
+      ],
+      [
+        "22:00",
+        "The music room's support act finishes and the doorway fills with people who came outside to smoke.",
+        "the Institute Hall"
+      ],
+      [
+        "22:30",
+        "THE LAST BUS. Whoever is not on it is walking or ringing.",
+        "the stop outside the Tivoli"
+      ],
+      [
+        "22:50",
+        "THE CINEMA TURNS OUT. Two hundred people on a wet pavement in ninety seconds.",
+        "Tivoli"
+      ],
+      [
+        "22:52",
+        "The chip shop queue reaches the poster case. The phone box has three people at it and one of them is holding the door open with a foot.",
+        "Coley's, the box"
+      ],
+      [
+        "23:00",
+        "The cab telephone on the wall is in constant use and there is an argument about whose car is whose.",
+        "the wall telephone, the rank"
+      ],
+      [
+        "23:30",
+        "The music room turns out. Smaller, louder, and it goes on down the coast road.",
+        "the Institute Hall"
+      ],
+      [
+        "00:15",
+        "The all-night cafe is the only lit window with people in it. Drivers, two nurses off shift, and a man who is not going anywhere.",
+        "the Anchor Cafe"
+      ],
+      [
+        "03:00",
+        "The street belongs to the gulls and the man who washes the cinema steps.",
+        "everywhere"
+      ]
+    ]
+  },
+  "frontages": {
+    "label": "AUTHORED. Nine units on the east side of Tivoli Street, drawn as a night elevation. Every name is new fiction and none is a real business.",
+    "note": "THE LIGHT IS THE DESIGN. Take the brewery signs out of a 1990 nightlife street and half its illuminated signage goes with them. What is left is FOOD AND FILM, which is warmer, cheaper and more specific: fluorescent tubes behind shop glass, a cinema canopy, one small neon, and sodium overhead. That is a better lighting brief than a street of internally lit drink signs, not a worse one.",
+    "units": [
+      {
+        "id": "tivoli",
+        "name": "THE TIVOLI",
+        "width_m": 12.0,
+        "storeys": 2,
+        "what": "A 1928 picture house twinned in 1974 and cut into three screens in 1983, so the plaster cornice runs into a partition wall halfway across the old circle. A canopy over the pavement with 24 lamps in it and 19 working. Three poster cases in the returns, each lit by one fluorescent tube, one of which flickers. A paybox with a brass grille and a woman in it who has seen everybody in this town.",
+        "light": [
+          "canopy lamps warm",
+          "poster cases cold white",
+          "foyer spill warm through glass doors"
+        ],
+        "period_anchor": "CITED-VIA-SEARCH: United Kingdom cinema admissions bottomed at 54 million in 1984 with 1,246 screens; the first multiplex opened 23 November 1985 with ten screens and took over a million admissions in its first year, and the recovery ran on from there. THE TIVOLI IS WHAT THAT RECOVERY IS HAPPENING TO. It is shabby, cheap and still open, and there is a multiplex out beyond the north edge that took its Saturday.",
+        "signs": [
+          "TIVOLI in raised letters on the fascia, three of them unlit",
+          "NEXT ATTRACTION on a card in the third case"
+        ]
+      },
+      {
+        "id": "coleys",
+        "name": "COLEY'S",
+        "width_m": 6.0,
+        "storeys": 2,
+        "what": "A fish and chip shop with a stainless range along the back wall, a rail for the queue, and a window that has been running with condensation since eight o'clock. Vinegar, salt, wrapped in newspaper against the regulations. The queue goes out of the door at ten to eleven and stands in the wet.",
+        "light": [
+          "shop fluorescent, very bright, spilling 3 m onto the pavement",
+          "the range's own lamps warm behind the counter"
+        ],
+        "signs": [
+          "COLEY'S FISH BAR in white on a red fascia",
+          "a card in the glass: FRYING TONIGHT"
+        ]
+      },
+      {
+        "id": "videoshop",
+        "name": "THE VIDEO SHOP",
+        "width_m": 6.0,
+        "storeys": 2,
+        "what": "Shelves of cases with the covers facing out, a counter with a membership box of index cards, a bell on the door, and a rack of empty display boxes because the tapes are behind the counter. Open until ten, and on a Friday there is a queue at the counter and an argument about a late fee.",
+        "light": [
+          "strip lights, cold, the whole shop visible from the street"
+        ],
+        "period_anchor": "The certificates on the boxes are there because of the Video Recordings Act 1984. UNSOURCED beyond the Act's existence: how a 1990 rental shop laid out its shelves.",
+        "signs": [
+          "VIDEO in cut vinyl across the glass",
+          "MEMBERS ONLY, JOIN HERE"
+        ]
+      },
+      {
+        "id": "institute",
+        "name": "THE INSTITUTE HALL",
+        "width_m": 12.0,
+        "storeys": 2,
+        "what": "A 1908 hall with a sprung floor, run as a live room four nights a week. WHAT THIS FILE DRAWS IS THE DOORWAY: a stamp on the back of the hand, a man on a stool with a cash tin, a bill wall forty layers deep beside the door with only the top layer legible, and a rectangle of light and noise that is the brightest thing on the street when the door opens and black when it shuts. People come out to smoke and go back in, which puts eight or ten of them on the pavement all evening.",
+        "light": [
+          "the doorway is the brightest thing on the street when it opens and black when it shuts",
+          "one small neon over the door, the atlas's own material"
+        ],
+        "period_anchor": "CITED-VIA-SEARCH: the Entertainments (Increased Penalties) Act 1990 received Royal Assent on 13 July 1990 and increased the penalties for holding unlicensed parties. THAT IS THE PERIOD'S OWN NIGHTLIFE STORY AND IT IS NOT ABOUT DRINK. A licensed hall in 1990 is running under a spotlight and an unlicensed one is committing an offence, which is a crime-sim hook the game gets from the calendar.",
+        "signs": [
+          "a hand-bill wall beside the door, forty deep, the top layer legible and the rest a texture"
+        ],
+        "interior": "DEFERRED. A licensed hall's programme belongs to production/specs/the-pub-without-drink.md and to queue 245, not here."
+      },
+      {
+        "id": "anchorcafe",
+        "name": "THE ANCHOR CAFE",
+        "width_m": 6.0,
+        "storeys": 2,
+        "what": "All night, and read from the pavement through a window running with condensation: formica tables, a tea urn, a glass case with three pies in it at two in the morning, a menu board with prices painted over twice. Drivers, shift workers, two nurses, and one man in the corner who is not going anywhere. It is not a licensed room and what it is for is obvious, so it is drawn rather than deferred.",
+        "light": [
+          "one warm bulb per table zone and a cold one over the counter",
+          "steam on the inside of the glass"
+        ],
+        "signs": [
+          "ANCHOR CAFE, painted, unlit",
+          "OPEN ALL NIGHT in the door glass"
+        ]
+      },
+      {
+        "id": "amusements",
+        "name": "THE PENNY ROOMS",
+        "width_m": 6.0,
+        "storeys": 1,
+        "what": "Read from the pavement through an open shopfront: two rows of upright video cabinets with their attract screens running, which is the only MOVING light on the street, a change booth, a table football with a warped rod and a photo booth with a curtain. NO PRIZE MACHINE OF ANY KIND, which is a D17 decision and not a period claim.",
+        "light": [
+          "the cabinets themselves, coloured, moving, and the only moving light on the street",
+          "no ceiling light worth the name"
+        ],
+        "signs": [
+          "AMUSEMENTS in small neon, the S out"
+        ],
+        "interior": "Beyond the first six metres, DEFERRED with the Gullwing arcade question."
+      },
+      {
+        "id": "chemist",
+        "name": "THE NIGHT CHEMIST",
+        "width_m": 6.0,
+        "storeys": 2,
+        "what": "Shut, with a night bell and a brass plate listing the rota of which chemist is open. A window of dressings and a carboy. It is here because a nightlife street needs one shut shop with a reason to knock on it.",
+        "light": [
+          "a single bulb in the back, and the rest is reflection"
+        ],
+        "signs": [
+          "a brass plate: NIGHT ROTA"
+        ]
+      },
+      {
+        "id": "launderette",
+        "name": "THE BRIGHT SPOT",
+        "width_m": 6.0,
+        "storeys": 2,
+        "what": "Open until eleven, empty at ten, and lit like an operating theatre. Two people who do not know each other and forty minutes with nothing to do. It is the Parade's quiet information venue and it costs nothing.",
+        "light": [
+          "the brightest, flattest, coldest window on the street"
+        ],
+        "signs": [
+          "LAUNDERETTE, WASH AND DRY"
+        ]
+      },
+      {
+        "id": "recordshop",
+        "name": "TIDELINE RECORDS",
+        "width_m": 6.0,
+        "storeys": 2,
+        "what": "Shut by six, and it matters at night only as a dark window with a hand-bill wall beside it and the station's own sticker in the corner of the glass. Named for the town's pirate station, which canon already mints as Radio Tideline.",
+        "light": [
+          "none. A dark unit between two lit ones is what makes the lit ones read."
+        ],
+        "signs": [
+          "a Radio Tideline sticker, which is a canon brand and the only one on this street"
+        ]
+      }
+    ]
+  },
+  "street_furniture": {
+    "label": "AUTHORED, and four of the six are objects this project already has.",
+    "items": [
+      {
+        "id": "cab_telephone",
+        "what": "A DIRECT LINE TELEPHONE IN A STEEL HOOD screwed to the wall between the Tivoli and Coley's, at 1.400 m. No dial. Lift it and it rings one office. A painted card above it. THIS IS THE ATLAS'S OWN 'taxi landline notice' MADE INTO AN OBJECT, and it is the physical link between this street and Mickey's Cars.",
+        "new": true
+      },
+      {
+        "id": "phone_box",
+        "what": "A public telephone box, which the project already has as E3_telephone_kiosk on the built street. Three people at it at ten to eleven and one holding the door with a foot.",
+        "new": false
+      },
+      {
+        "id": "queue_rope",
+        "what": "Two posts and a rope outside the Tivoli, the atlas's own object.",
+        "new": false
+      },
+      {
+        "id": "poster_case",
+        "what": "Three lit cases in the cinema returns, the atlas's own object.",
+        "new": false
+      },
+      {
+        "id": "bus_stop",
+        "what": "A flag and a case with a paper timetable in it. The 22:30 is the last one and the timetable says so in a footnote nobody reads until they need to.",
+        "new": true
+      },
+      {
+        "id": "rank",
+        "what": "Four cars nose to tail outside the Tivoli from half past ten. Not a hackney rank: a private hire firm's cars standing where the trade is, which is exactly the arrangement Mickey's Cars runs on Quay Street.",
+        "new": false
+      }
+    ]
+  },
+  "what_this_does_not_decide": [
+    "Nothing here is minted. Nine unit names, one hall and one cafe are PROPOSALS for the brand bible.",
+    "The Parade's geometry. This is an identity and a frontage sequence, not a layout: D13 governs how the street is drawn and no coordinates are authored here.",
+    "Whether a prize machine may ever appear. The Penny Rooms contains none, which is the safe reading of D17 and is flagged rather than assumed."
+  ],
+  "scope_boundary": {
+    "ruled": "Coordinator, 2026-09-10, filed as production/queue/245. A second world-designer lane is authoring production/specs/the-pub-without-drink.md, answering what people do inside a licensed room with no drinking. That file did not exist when this one was started and does not exist on disk yet, checked 2026-09-10.",
+    "mine": "THE STREET AND PUBLIC SPACE. What is open, the queues and what they are for, the cinema, the cab rank and its relationship to Mickey's, the light, the noise, the wet pavement, who is on the street at eleven, and the daytime cleaning and deliveries that precede the night.",
+    "not_mine": "WHAT A LICENSED ROOM IS FOR WHEN NOBODY IS DRINKING, and what a person does in there. Every unit below is therefore written as SEEN FROM THE STREET. Where a unit is a licensed room, this file draws the doorway, the queue and the light coming out of it, and says INTERIOR DEFERRED rather than guessing at a programme another lane is writing this hour.",
+    "the_atlas_row_exactly": "origin/art/atlas-01:production/art/atlas-01/DISTRICTS.md line 12, read 2026-09-10: 'Cinema, drink trade, taxi calls, occasional contemporary cafe/wine-bar refits; daytime cleaning/deliveries precede night queues'. Two of the five clauses are void, 'drink trade' and 'wine-bar refits'. THREE SURVIVE AND ARE THIS FILE'S MATERIAL: the cinema, the taxi calls, and the day-before-night rhythm."
+  },
+  "day_before_night": {
+    "label": "AUTHORED, and commissioned by name: the atlas row's fifth clause, 'daytime cleaning/deliveries precede night queues', is one of the three that survive D17 and it had no material until now.",
+    "why_it_matters": "A nightlife street in daylight is a DIFFERENT STREET and the game gets two for the price of one. In the morning the Parade is a service yard with a pavement: nobody queues, everything is open at the back, and every door that will be locked at midnight is propped open with a crate at nine. That is when a player can walk into places, and it is the only hour a stranger on this street is unremarkable.",
+    "events": [
+      [
+        "07:30",
+        "A man in waders washes the cinema steps and the pavement under the canopy with a hose and a yard brush. The water runs to the channel and the street is wet before it rains.",
+        "Tivoli"
+      ],
+      [
+        "08:15",
+        "The bill-poster pastes the hall's wall: four sheets, a bucket, and last month's bill going up in strips.",
+        "the Institute Hall"
+      ],
+      [
+        "09:00",
+        "Potatoes to the chip shop, in hessian sacks off a flat-bed, through a propped-open front door because there is no back way in.",
+        "Coley's"
+      ],
+      [
+        "09:40",
+        "The poster change at the cinema. Two cases open, glass leaning against the wall, and for twenty minutes anybody can see what is coming.",
+        "Tivoli"
+      ],
+      [
+        "10:30",
+        "The launderette's service call: a man with a toolbox and a machine pulled out from the wall.",
+        "the Bright Spot"
+      ],
+      [
+        "11:00",
+        "Cash collection from the amusements, in a bag, by two men, at the same time every week. THE STREET'S ONE PIECE OF DAYLIGHT INFORMATION WORTH HAVING.",
+        "the Penny Rooms"
+      ],
+      [
+        "12:00",
+        "The all-night cafe changes shift and the night man goes home past the queue for nothing.",
+        "the Anchor Cafe"
+      ],
+      [
+        "16:00",
+        "Deliveries stop. The crates come in off the pavement and the doors that were propped open all morning are shut one by one.",
+        "everywhere"
+      ]
+    ]
+  },
+  "the_rank_at_midnight": {
+    "label": "AUTHORED. Named by the coordinator as the strongest thing available to this half of the commission, and it is.",
+    "thesis": "A CAB OFFICE AND A NIGHTLIFE STREET ARE ONE ECONOMY. The atlas already names taxi calls as part of this district and already lists a taxi landline notice among its four characteristic objects. The Parade is where the fares are; Quay Street is where the book is.",
+    "what_it_is": "Four cars nose to tail outside the Tivoli from half past ten, on the double yellows, engines running for the heater. Not a hackney rank: private hire cars standing where the trade is, which is the same arrangement Mickey's Cars runs on its own street and is the same small illegality.",
+    "why_it_is_an_information_place": "A rank at midnight is one of the very few places in a town where STRANGERS STAND STILL TOGETHER long enough to overhear each other. A queue for a bus disperses; a queue for a cab argues about whose car is whose, in the wet, for ten minutes at a time. And the driver hears all of it, remembers it, and takes it back to a room with a book in it. THAT IS THE MOAT WORKING ON A STREET INSTEAD OF IN A ROOM.",
+    "the_object_that_joins_the_two_halves": "The direct line telephone in a steel hood on the wall between the cinema and the chip shop. No dial. Lift it and it rings the office on Quay Street. Every fare on this street begins with somebody lifting that handset in front of whoever else is queueing behind them, and saying an address out loud.",
+    "what_is_not_claimed": "That any of this is simulated, that a driver has memory yet, or that the two districts are connected by anything but a design intention. No coordinates are authored: D13 governs how the Parade is drawn and this is an identity, not a layout."
+  }
+}

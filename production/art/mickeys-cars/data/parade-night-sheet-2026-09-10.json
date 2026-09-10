@@ -1,0 +1,455 @@
+{
+  "_STATUS": [
+    "SPEC AUTHORED, RUN NOT STARTED, 2026-09-10. NOTHING WAS DISPATCHED and no",
+    "image exists. generationRunsStarted=0 imagesGenerated=0. The run belongs to",
+    "the resident and this commission may not start one.",
+    "",
+    "THE WORD DELIVERED IS NOT USED ANYWHERE ABOUT THIS FILE.",
+    "",
+    "VALIDATED AGAINST THE TOOL, NOT AGAINST AN OPINION. First run of the tool's own",
+    "validate_spec refused this file with 2 problems of 1 item examined: the word 'no'",
+    "in the positive half, and four banned nouns in the negative half. Both are fixed",
+    "and the second run is recorded in 06-PARADE-nightlife-without-drink.md.",
+    "STILL NOT RUN. generationRunsStarted=0 imagesGenerated=0.",
+    "D18 ADDED 2026-09-10 AFTER THE FIRST VALIDATION: the ruling was read late in the commission and its no-children clause reaches every image spec's content clause. The positive prompt now carries it and the spec was validated a third time.",
+    "",
+    "*** DO NOT GENERATE FROM THIS FILE. DO NOT COMPOSITE IT. ***",
+    "",
+    "GATED by the coordinator 2026-09-10, blocked on production/queue/244. The",
+    "compositor tools/imagegen/sheet-furniture.py reads the atlas at line 49 from",
+    "ATLAS_BLOB = origin/art/atlas-01:production/art/atlas-01/data/atlas.json, a",
+    "branch the D18 content gate cannot see, and that atlas still says Copper Row",
+    "has a bookmaker and the Parade a drink trade. The leak is not hypothetical:",
+    "a SCHOOL SATCHEL caption composited from the atlas is in the tree today on",
+    "our own half of fairview_theirs_vs_ours_finished.jpg.",
+    "",
+    "THIS SPEC CARRIES ATLAS STRINGS, so it is exactly the kind of file that would",
+    "trip the leak if it were composited. It is finished AS A SPEC and stops there.",
+    "The gate lifts when queue 244 lands.",
+    "",
+    "WHAT THIS COMMISSION ACTUALLY RAN, measured rather than promised:",
+    "  sheet-furniture.py invocations = 0",
+    "  imagegen dispatches = 0",
+    "  images generated = 0",
+    "  imagegen.py functions called, read-only = 10 (load_spec, spec_line,",
+    "    validate_spec, build_prompt, build_negative, scan_exclusions,",
+    "    check_forbidden, item_cfg, negative_state, estimate_seconds)",
+    "  of those 10, side-effecting = 0/10, and imagegen.py contains zero",
+    "    references to ATLAS_BLOB or to the atlas branch, grepped 2026-09-10.",
+    "  So the validation path and the gated path are disjoint, and that is a",
+    "  reading rather than an assurance.",
+    "",
+    "AND SEPARATELY FROM THE RULE, THIS SPEC'S OWN ATLAS STRINGS WERE SCANNED:",
+    "  atlasStringsCarriedIntoTheSpec=10 d17OrD18Dirty=0/10",
+    "  promptWords=577 alcoholHits=0 gamblingHits=0 childrenWord=False",
+    "The ten are the four Parade materials, the four Parade objects, the venue and",
+    "the route. None is drink, a wager or a child. THAT DOES NOT LIFT THE GATE:",
+    "the rule is about the mechanism, not about this author's judgement, and a",
+    "clean spec composited by a leaking compositor is still a leak."
+  ],
+  "schema": 2,
+  "batch_name": "parade-night-sheet-2026-09-10",
+  "_comment": [
+    "The Parade's nightlife identity redesigned without drink, as the photoreal",
+    "sheet Jafar asked for. It follows the district-sheet format the atlas states",
+    "(production/art/atlas-01/DISTRICTS.md line 3): an establishing image, a",
+    "player-height image, materials and characteristic objects.",
+    "",
+    "WHERE THE WORDS CAME FROM. The four material swatches are the atlas's own",
+    "four for this district, in its order: glazed tile, oxblood vinyl, painted",
+    "stucco, small neon. Three of the four objects along the bottom are the",
+    "atlas's own: queue rope, cinema poster case, and the taxi landline notice",
+    "made into an object. The fourth atlas object, an ashtray, is not drawn",
+    "because tobacco is not banned and the row only has space for three.",
+    "",
+    "THE SCOPE BOUNDARY, ruled by the coordinator 2026-09-10 and filed as",
+    "production/queue/245: this lane owns the street and public space, and a",
+    "second lane owns what a licensed room is for when nobody is drinking. BOTH",
+    "PANELS ARE THEREFORE OUTDOORS. The hall appears as a doorway and a bill",
+    "wall and its interior is never seen.",
+    "",
+    "D17 IN THE POSITIVE HALF, WHICH IS THE ONLY HALF THAT WORKS. A negative",
+    "vetoes and cannot summon, and at cfg 1.0 it is never evaluated at all, so",
+    "the anti-drink instruction is written as a positive statement of what the",
+    "signs and windows DO carry rather than as a list of what they must not.",
+    "That clause is in the prompt above and reads: 'everything on every sign and in every window is food, film, music, laundry, medicine or a telephone number'.",
+    "",
+    "THE LETTERING BUDGET IS THREE STRINGS, which is what the Fairview sheet",
+    "carried when it worked. A nightlife street is the hardest possible case for",
+    "a lettering budget because a real one is covered in signs, so the prompt",
+    "says positively what every other fascia IS, which is a plain painted board.",
+    "",
+    "CONTENT RULES ARE COPIED FROM tools/imagegen/prompts.json BY SCRIPT, not by",
+    "eye, at sha256 8574bb9f144a4421. THAT FILE WAS BEING EDITED BY ANOTHER AGENT",
+    "AT THE MOMENT THIS WAS COPIED: it carried 107 forbidden tokens, where the",
+    "Fairview sheet of the same day recorded 45, so the list is growing under D17",
+    "as this is written. THE RESIDENT MUST RE-VERIFY EQUALITY BEFORE RUNNING and",
+    "must not assume this copy is current."
+  ],
+  "content_rules": {
+    "_comment": [
+      "THESE RIDE IN EVERY PROMPT. They are data, not documentation, so an",
+      "editor adding a thirteenth item cannot forget them: the renderer appends",
+      "`rules_clause` to every positive prompt and refuses to build a prompt",
+      "that does not carry it (imagegen.py: build_prompt / _selftest_rules).",
+      "",
+      "WHY: every 1980s British advert, poster and packet is still in copyright",
+      "for decades yet, and trade mark was the ONLY claim Getty actually won in",
+      "[2025] EWHC 2863 (Ch). A model asked for `a British high street in 1989`",
+      "will happily paint a real brewery's livery on a pub. So we never ask for",
+      "one. In-world brands only, which is better content anyway - MICKEY'S is",
+      "a place in this game and a real brewery is not.",
+      "",
+      "AND THIS IS THE ONE CLAUSE THAT STAYS IN THE POSITIVE PROMPT, 25 Aug.",
+      "Every other exclusion moved to `negatives` below. This one did not, and",
+      "the reason is measured rather than cautious: sd-cli only evaluates the",
+      "unconditional branch when cfg != 1.0 (see `negatives._comment`), and this",
+      "batch runs at cfg 1.0 because Z-Image-Turbo is distilled for it. A",
+      "negative prompt is therefore INERT here - so moving the anti-brand,",
+      "anti-real-person clause into it would have deleted the only instruction",
+      "the model actually receives on the subject. It is mirrored into the",
+      "negative as well, where it will start acting the day an item raises cfg.",
+      "The exclusion scan in imagegen.py exempts this clause BY NAME and prints",
+      "that it did, so the hole is a line of output rather than a silence.",
+      "",
+      "D18, 2026-09-10. THE SECOND HALF OF THIS CLAUSE IS THE CONTENT RULE,",
+      "recorded at ledger-v2/respec/decision-register/D18-content-rule.md and in",
+      "canon.md. Alcohol and gambling out entirely; nobody under eighteen and no",
+      "school in use; nothing sexual. Tobacco, violence and period swearing STAY",
+      "and are deliberately absent from the token list below.",
+      "",
+      "THE CLAUSE IS BYTE-IDENTICAL ACROSS EVERY PROMPT-BEARING SPEC and that is",
+      "now CHECKED rather than hoped for: tools/content-gate.py compares all of",
+      "them against each other and against the token list, and refuses the run if",
+      "one drifts. Before that check existed, three of these files carried a",
+      "comment saying the block had been hand-copied, and one of those comments",
+      "recorded a hand copy that dropped the block entirely.",
+      "",
+      "WHY THE ABSTRACT WORDS INSTRUCT AND THE CONCRETE WORDS REFUSE. This clause",
+      "rides in the POSITIVE prompt and validate_spec scans that composed prompt",
+      "against forbidden_tokens. So the clause says `no alcohol` and the tokens",
+      "say `beer`: a token list containing its own clause's words would refuse",
+      "every item in the library. Measured, not assumed. The first wording said",
+      "`nothing served or drunk` and the token `drunk` inside it would have done",
+      "exactly that; the gate's selftest caught it before it shipped."
+    ],
+    "rules_clause": "invented fictional shop name only, no real company names, no real brand logos, no trade marks, no real person, no recognisable faces, no celebrity likeness, no alcohol and no gambling anywhere in frame, nothing poured or consumed, no games of chance, nobody under eighteen and no school in use, nothing sexual",
+    "forbidden_tokens": [
+      "coca-cola",
+      "coca cola",
+      "pepsi",
+      "guinness",
+      "carlsberg",
+      "heineken",
+      "bass ",
+      "watneys",
+      "courage",
+      "whitbread",
+      "tetley",
+      "boddingtons",
+      "woolworths",
+      "marks and spencer",
+      "tesco",
+      "sainsbury",
+      "wimpy",
+      "british rail",
+      "royal mail",
+      "bt ",
+      "british telecom",
+      "post office",
+      "walkers",
+      "cadbury",
+      "mcvitie",
+      "hovis",
+      "bovril",
+      "oxo",
+      "silk cut",
+      "benson and hedges",
+      "embassy",
+      "regal",
+      "players",
+      "castella",
+      "ford ",
+      "vauxhall",
+      "austin rover",
+      "leyland",
+      "shell",
+      "esso",
+      "bp ",
+      "thatcher",
+      "princess diana",
+      "the queen",
+      "elizabeth ii",
+      "beer",
+      "lager",
+      "stout",
+      "pint of",
+      "whisky",
+      "whiskey",
+      "vodka",
+      "brandy",
+      "sherry",
+      "wine",
+      "cider",
+      "champagne",
+      "cocktail",
+      "liquor",
+      "booze",
+      "shandy",
+      "tankard",
+      "firkin",
+      "cask",
+      "keg",
+      "brewery",
+      "off-licence",
+      "pump clip",
+      "pump handle",
+      "optic",
+      "wine glass",
+      "drunk",
+      "gambling-den",
+      "betting shop",
+      "betting slip",
+      "bookmaker",
+      "wager",
+      "fruit machine",
+      "jackpot",
+      "poker table",
+      "blackjack",
+      "roulette",
+      "bingo",
+      "lottery",
+      "raffle",
+      "dog track",
+      "dice",
+      "child",
+      "kid",
+      "baby",
+      "pram",
+      "schoolchildren",
+      "schoolboy",
+      "schoolgirl",
+      "pupil",
+      "playground",
+      "satchel",
+      "little boy",
+      "little girl",
+      "teenager",
+      "heroin",
+      "cocaine",
+      "cannabis",
+      "syringe",
+      "brothel",
+      "nude",
+      "torture"
+    ]
+  },
+  "style": {
+    "_comment": [
+      "framing_required is copied from prompts.json. The library prefix and suffix",
+      "are deliberately NOT inherited: they ask for a flat orthographic texture",
+      "sheet with uniform lighting on one single flat surface, which is right for a",
+      "decal and wrong for a two-panel night sheet with two cameras in it.",
+      "by_kind.concept.suffix is PRESENT AND EMPTY so the library suffix is not",
+      "inherited."
+    ],
+    "framing_required": "filling the frame edge to edge",
+    "by_kind": {
+      "concept": {
+        "prefix": "one printed sheet filling the frame edge to edge,",
+        "suffix": ""
+      }
+    }
+  },
+  "defaults": {
+    "steps": 8,
+    "cfg": 1.0,
+    "sampler": "unset - sd-cli picks its model-specific default",
+    "seed_base": 9104,
+    "_comment": [
+      "steps and cfg are the library's measured settings, unchanged. cfg 1.0 is",
+      "where this distilled model is measured and where the negative channel is",
+      "inert. 688 by 1024 is where this lane has banked its non-blank concept",
+      "sheets."
+    ]
+  },
+  "source": {
+    "what": "Every meaningful phrase of the prompt with the file it came from.",
+    "authored_by": "the art lane, in-house, 2026-09-10, commission mickeys-cars",
+    "labels": {
+      "ATLAS": "production/art/atlas-01/data/atlas.json on origin/art/atlas-01",
+      "ATLAS-SHEET-FORMAT": "production/art/atlas-01/DISTRICTS.md line 3",
+      "ATLAS-ROW": "production/art/atlas-01/DISTRICTS.md line 12, the Parade row",
+      "RESEARCH-CITED": "a dated fact in this commission's 01-RESEARCH file",
+      "PROJECT-SPEC": "a production spec in this repository",
+      "RULED": "a studio ruling in production/decision-queue.md",
+      "INVENTED": "came from nobody and says so"
+    },
+    "rows": [
+      [
+        "Tivoli Street, the Parade, nightlife",
+        "ATLAS",
+        "routes id=night name 'Tivoli Street (proposal)'; districts id=parade role Nightlife"
+      ],
+      [
+        "the cinema fills the left third",
+        "ATLAS",
+        "landmarks P1 The Tivoli, type cinema, venue true"
+      ],
+      [
+        "a 1928 picture house, shabby and cheap and still open",
+        "RESEARCH-CITED",
+        "01-RESEARCH is silent on cinemas; the dated series is in data/parade-night.json: admissions bottomed at 54 million in 1984 across 1,246 screens and the first multiplex opened 23 November 1985. The 1928 date is INVENTED."
+      ],
+      [
+        "a fish and chip shop, a video rental shop, an all-night cafe",
+        "INVENTED",
+        "the Parade row's surviving clauses name a cinema and taxi calls and nothing else; these are this lane's answer to what a nightlife street contains without drink"
+      ],
+      [
+        "a hall doorway with a bill wall beside it, interior never seen",
+        "RULED",
+        "coordinator 2026-09-10, queue 245: the interior of a licensed room belongs to another lane"
+      ],
+      [
+        "a black telephone in a steel hood with no dial",
+        "ATLAS",
+        "districts id=parade objects includes 'taxi landline notice'"
+      ],
+      [
+        "four saloon cars nose to tail at the kerb",
+        "PROJECT-SPEC",
+        "this commission's own rank, data/cab-office.json rank, 4.30 by 1.70 m AUTHORED envelope"
+      ],
+      [
+        "a red public telephone box, a cast iron street lamp, a pillar box",
+        "PROJECT-SPEC",
+        "E3_telephone_kiosk, E1_lighting_column, E4_pillar_box, all in production/specs/vignette-pieces.json"
+      ],
+      [
+        "sodium street lamps overhead",
+        "PROJECT-SPEC",
+        "E2_sodium_lantern_head on the built street"
+      ],
+      [
+        "wet, overcast, rain just stopped, every light doubled in the road",
+        "PROJECT-SPEC",
+        "canon.md Tone: photoreal, wet, overcast, grimy Britain"
+      ],
+      [
+        "four material swatches: glazed tile, oxblood vinyl, painted stucco, neon",
+        "ATLAS",
+        "districts id=parade materials, in the atlas's own order"
+      ],
+      [
+        "three objects: a rope on two posts, a lit poster case, a telephone handset",
+        "ATLAS",
+        "districts id=parade objects, three of its four"
+      ],
+      [
+        "the title PARADE and the subtitle CONCEPT PROPOSAL",
+        "ATLAS-SHEET-FORMAT",
+        "DISTRICTS.md line 3 states these sheets are concept proposals; the two words are INVENTED"
+      ],
+      [
+        "everything on every sign is food, film, music, laundry, medicine or a telephone number",
+        "RULED",
+        "D17, written positively because a negative cannot summon"
+      ]
+    ]
+  },
+  "translation": [
+    {
+      "exclusion_wanted": "no alcohol and no gambling anywhere in the picture",
+      "positive_written": "everything on every sign and in every window is food, film, music, laundry, medicine or a telephone number, plus a named list of nine units of which none serves drink",
+      "moved_to_negative": [
+        "NONE, AND THE TOOL IS WHY"
+      ],
+      "why": "D17 IS THE WHOLE POINT OF THIS SHEET AND IT CANNOT BE LEFT TO THE NEGATIVE. At cfg 1.0 the negative is inert, and a veto cannot summon: the pass-2 finding on the Hook sheet was that the negative kept the yachts out and the working port never arrived. So the sheet names what the nine units ARE and the model has nothing left to fill the row with. AND THE TOOL REFUSED THE FIRST DRAFT FOR TRYING: check_forbidden scans the positive and the negative together and reported forbiddenTokenHits=4/107 for naming four banned nouns in the veto half. They were removed. The whole of D17's protection in this spec is therefore the positive clause and the named list of nine units, which is the only half that runs."
+    },
+    {
+      "exclusion_wanted": "not the pretty average British night street",
+      "positive_written": "condensation on the inside of the chip shop glass, a hard white pool three metres out, chip papers in the channel, cigarette ends, a running gutter, three canopy lamps dark",
+      "moved_to_negative": [
+        "neon strip everywhere",
+        "christmas lights",
+        "festival",
+        "bunting",
+        "cobblestones",
+        "quaint"
+      ],
+      "why": "the same lesson as the Fairview sheet: the specific grubby objects go in the positive half or the model fills the frame from its own prettier average"
+    },
+    {
+      "exclusion_wanted": "no lettering except the three strings",
+      "positive_written": "every other fascia, card, poster and window is a plain unlettered painted board or an even block of texture",
+      "moved_to_negative": [
+        "shop fascia lettering",
+        "neon lettering",
+        "poster text",
+        "captions",
+        "watermark",
+        "signature"
+      ],
+      "why": "the fault that refused run 6 was asking for no text twice in the half that cannot express no. The positive half says what every other surface IS."
+    },
+    {
+      "exclusion_wanted": "no modern vehicles, no modern technology",
+      "positive_written": "everything period-correct for 1990, saloon cars with their side lights on",
+      "moved_to_negative": [
+        "modern car",
+        "flat panel display",
+        "computer screen",
+        "wheelie bin"
+      ],
+      "why": "one positive umbrella for several exclusions that share one intent, and it is WEAKER than naming them, which is recorded rather than hidden"
+    },
+    {
+      "exclusion_wanted": "no interior of the hall",
+      "positive_written": "a hall doorway with a bill wall forty layers deep beside it",
+      "moved_to_negative": [
+        "concert interior",
+        "stage",
+        "crowd inside a room"
+      ],
+      "why": "the scope boundary at queue 245. The doorway is this lane's; the room is not."
+    },
+    {
+      "exclusion_wanted": "D18: no children anywhere, none rendered and none in the crowd",
+      "positive_written": "every person in the picture is an adult; a queue of eleven adults",
+      "moved_to_negative": [
+        "NONE, DELIBERATELY"
+      ],
+      "why": "D18, ruled 2026-09-10, says NO CHILDREN ANYWHERE and that the school stands closed. It is written positively for the same reason D17 is: at cfg 1.0 the veto half is never evaluated. It is NOT mirrored into the negative because naming the thing in a prompt half that will one day be encoded is the risk the positive clause exists to avoid, and because the tool's forbidden scan reads both halves."
+    }
+  ],
+  "items": [
+    {
+      "kind": "concept",
+      "probe": true,
+      "binds_to": "CONCEPT SHEET, reviewed by eye, bound to no mesh, no material and no bill-of-materials row. The Parade under D17, commission mickeys-cars, 2026-09-10.",
+      "id": "parade_night_sheet",
+      "width": 688,
+      "height": 1024,
+      "seed": 9104,
+      "prompt": "A concept sheet for THE PARADE, the nightlife district of Meridian, a fictional British port town, at ten to eleven at night in 1990. Two stacked photoreal panels inside a pale paper border: top an orientation view along the street, bottom the same street at standing eye height. TOP: from the middle of the wet carriageway at 1.6 m, looking north along Tivoli Street, a terrace of nine narrow shop units under a black sky. The cinema fills the left third: a 1928 picture house with a flat canopy over the pavement carrying a row of small round lamps, three of them dark, and three lit poster cases in the recessed entrance. Beside it a fish and chip shop whose window is running with condensation and whose fluorescent light throws a hard white pool three metres out across the wet flagstones. Then a video rental shop lit by cold strip lights with shelves of cases facing the glass, a hall doorway with a bill wall forty layers deep beside it, an all-night cafe with steam on the inside of the window, an amusement shopfront where the only moving light in the picture comes from the screens of upright cabinets, a dark chemist, a launderette lit flat and cold and empty, and one entirely dark unit at the end. Sodium street lamps overhead make everything orange above head height and the shop windows make everything white and warm below it. Every surface is wet and every light is doubled in the road. everything on every sign and in every window is food, film, music, laundry, medicine or a telephone number, and every person in the picture is an adult. BOTTOM: camera at 1.6 m on the pavement between the cinema and the chip shop, close enough to touch the wall. A queue of eleven adults in ordinary British clothes of 1990 stands along the chip shop window in the wet, collars up, silent, each of them facing the window. On the brick wall at 1.4 m a black telephone handset in a steel hood, its face plain where a dial would be, and a small painted card above it, and a man with his back to the camera holding the handset. Behind him the cinema canopy lamps, a red public telephone box with three people at it and one holding the door open with a foot, a cast iron street lamp, a pillar box, and four saloon cars nose to tail at the kerb with their side lights on and exhaust condensing. Wet flagstones, a running gutter, chip papers in the channel, cigarette ends, a puddle across the whole foreground with the cinema lamps in it. Overcast, moonless, rain just stopped. EXACTLY THREE PIECES OF LETTERING IN THE WHOLE SHEET: the title PARADE, the small subtitle CONCEPT PROPOSAL, and the cinema fascia reading TIVOLI in raised capitals; each crisp and correctly spelled, and every other fascia, card, poster and window in the sheet is a plain unlettered painted board or an even block of texture. Two small rows along the bottom of the sheet: an upper row of four flat material swatches, pale glazed wall tile, dark oxblood vinyl, cream painted stucco, warm orange neon tube; below it three objects against the paper border, a rope on two posts, a lit poster case, and a black telephone handset in a steel hood. Both rows plain and unlabelled. Photoreal throughout, everything period-correct for 1990. A proposal drawn for review.",
+      "negative": "sunshine, daylight, blue sky, hard shadows, neon lettering everywhere, christmas lights, festival, bunting, cobblestones, quaint, modern car, flat panel display, computer screen, wheelie bin, shop fascia lettering, poster text, captions, watermark, signature, concert interior, stage, crowd inside a room, illustration, cartoon, painterly, digital painting, HUD, game interface overlay, screenshot",
+      "_negative_note": "AT cfg 1.0 THIS IS NEVER EVALUATED, and the tool prints that in its own words. IT ALSO NO LONGER NAMES THE THINGS D17 BARS, and that is a correction the tool forced rather than a choice: check_forbidden scans the positive AND the negative together and refused this spec for naming four of them in the veto half. The tool is right and the reason is the same one that governs the whole file: at cfg 1.0 a veto does nothing, so the only protection that works is the positive clause, and writing the banned nouns anywhere is a risk with no benefit."
+    }
+  ],
+  "acceptance": [
+    "OPEN THE IMAGE. A green exit code is not acceptance and neither is a file existing.",
+    "Read at 100 percent: are the three strings correct and correctly spelled, and is every other surface unlettered? Count the letterings and print the count.",
+    "Is any sign, window, glass, pump, bottle, machine or poster in the frame drink or a wager? IF ONE IS, THE SHEET IS REFUSED, whatever else it does well. Print the count examined, not just the finding.",
+    "Is it wet, overcast and at night, per canon's Tone?",
+    "Is the bottom panel at standing eye height and outdoors?",
+    "Record: candidate, prompt hash, model and runtime settings, elapsed GPU time, reviewer decision. A rejection names a correction before a second attempt is requested."
+  ],
+  "_GATE": {
+    "blocked_on": "production/queue/244",
+    "ruled": "coordinator, 2026-09-10",
+    "what_is_gated": "tools/imagegen/sheet-furniture.py and any imagegen dispatch that reads ATLAS_BLOB",
+    "what_is_not_gated": "hand-authored SVG and PNG drawings, and citing the atlas in a document",
+    "state": "SPEC COMPLETE, GENERATION BLOCKED"
+  }
+}

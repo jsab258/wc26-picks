@@ -1,0 +1,1496 @@
+{
+  "schema": "mickeys-cars.layout/1",
+  "status": "ART PROPOSAL for ruling 6. No canon change, no runtime integration, no engine export.",
+  "written": "2026-09-10",
+  "commission": "mickeys-cars",
+  "what": "MICKEY'S CARS, a private hire office on two bays of Quay Street. Every number here is either READ from production/specs/vignette-pieces.json and vignette-scene.json, CARRIED unchanged from production/art/atlas-01/data/mickeys.json on the art/atlas-01 branch, DERIVED by arithmetic stated beside it, or AUTHORED. The label is in the row.",
+  "governs": "canon.md outranks this file. D17 (alcohol and gambling never shown, served, drunk or spoken of) is a content rule over every object named here, and nothing in this file is drink or gambling. D14 requires a designed layout with chosen contents: this is that layout.",
+  "local_frame": {
+    "note": "IDENTICAL to atlas-01/data/mickeys.json so the two packages can be laid over each other. u runs north along the facade, 0 at x=3.0. v runs east into the plot, 0 at the building line z=5.125. h is up, 0 at the ground floor level y=0.100.",
+    "source_from_local": "x = 3.0 + u ; y = 0.100 + h ; z = 5.125 + v",
+    "units": "metres"
+  },
+  "siting": {
+    "label": "READ and RULED",
+    "bays": [
+      "east_parade_bay0",
+      "east_parade_bay1"
+    ],
+    "u_range": [
+      0.0,
+      12.0
+    ],
+    "x_range": [
+      3.0,
+      15.0
+    ],
+    "z_range": [
+      5.125,
+      13.125
+    ],
+    "ruling": "Two bays, 12.0 m by 8.0 m, taken 2026-09-09 by the studio as ruled, production/decision-queue.md line 115. Bay 0 is the fascia bay, taken the same day, line 125. D17 says the siting, the two bays and the fascia STAND.",
+    "consequence_named_not_applied": "Two bays at bay 0 and bay 1 puts Mickey's under decal_00_fascia_mickeys AND decal_01_fascia_fish_market, so the fish market moves to bay 3, which is one field in vignette-scene.json. That consequence belongs to the bay ruling and not to this package, and nothing here edits it."
+  },
+  "carcass": {
+    "label": "READ from vignette-scene.json blocks[0] and vignette-pieces.json east_parade_bay0/1",
+    "bay_width_m": 6.0,
+    "depth_m": 8.0,
+    "wall_m": 0.215,
+    "storey_heights_m": [
+      3.4,
+      2.8
+    ],
+    "ground_floor_level_y_m": 0.1,
+    "ceiling_h_m": 3.3,
+    "ceiling_y_m": 3.4,
+    "clear_height_note": "DERIVED and it carries a disagreement. east_parade_bay0 is y=3.200 sy=6.200, so the carcass runs y 0.100 to 6.300 and the first floor sits at y=3.500. The fascia band top is y=3.400 (fascia_bottom 2.85 plus band 0.550), and vignette-scene.json's shopfront note calls 3.40 the underside of the first floor. Both are true if the floor zone is 0.100 m: underside 3.400, finished floor 3.500. atlas-01/data/mickeys.json says floor_thickness 0.2, which would put the finished floor at 3.600 and contradicts the carcass. THE CARCASS WINS because it is the shipped piece. Clear internal height 3.300 m.",
+    "cross_wall_u_m": [
+      5.8925,
+      6.1075
+    ],
+    "cross_wall_note": "AUTHORED. The party wall between bay 0 and bay 1 is one 0.215 m wall centred on u=6.0 (x=9.0). IT IS NOT REMOVED. A 1.000 m opening is cut in it and nothing else, because taking a structural cross-wall out of a terrace needs a beam and money, and the premises this package describes has never had either. The two rooms that survive are the whole information design.",
+    "inner_faces_u_m": {
+      "south": 0.215,
+      "north": 11.785
+    },
+    "inner_faces_v_m": {
+      "front": 0.215,
+      "rear": 7.785
+    }
+  },
+  "front_openings": {
+    "label": "READ. Every one of these six is an existing street piece and NOT ONE IS MOVED, which is the same promise the fascia package made and the reason this design can be judged against a frame that already exists.",
+    "items": [
+      {
+        "id": "private_entry",
+        "source": "east_parade_sidedoor0",
+        "u": [
+          0.35,
+          1.188
+        ],
+        "width_m": 0.838,
+        "height_m": 1.981,
+        "use": "the private stair to the flat above, unchanged from the pub package",
+        "stateful": true
+      },
+      {
+        "id": "public_entry",
+        "source": "east_parade_shopdoor0",
+        "u": [
+          1.188,
+          2.088
+        ],
+        "width_m": 0.9,
+        "height_m": 2.04,
+        "use": "the customers' door into the waiting room",
+        "stateful": true
+      },
+      {
+        "id": "office_glass",
+        "source": "east_parade_glass0",
+        "u": [
+          2.088,
+          5.65
+        ],
+        "width_m": 3.562,
+        "sill_h_m": 0.6,
+        "head_h_m": 2.4,
+        "use": "the waiting room window, clear, no net",
+        "stateful": true
+      },
+      {
+        "id": "drivers_entry",
+        "source": "east_parade_sidedoor1",
+        "u": [
+          6.35,
+          7.188
+        ],
+        "width_m": 0.838,
+        "height_m": 1.981,
+        "use": "THE DRIVERS' OWN DOOR. Drivers do not come in through the public door.",
+        "stateful": true
+      },
+      {
+        "id": "second_shop_door",
+        "source": "east_parade_shopdoor1",
+        "u": [
+          7.188,
+          8.088
+        ],
+        "width_m": 0.9,
+        "height_m": 2.04,
+        "use": "SEALED. Boarded inside and painted over in the same maroon as the frontage; the letterplate was screwed shut and a card taped over it. The second shop door survives as a door-shaped patch in the elevation because nobody pays a joiner to remove a door they can simply stop using.",
+        "stateful": false
+      },
+      {
+        "id": "drivers_glass",
+        "source": "east_parade_glass1",
+        "u": [
+          8.088,
+          11.65
+        ],
+        "width_m": 3.562,
+        "sill_h_m": 0.6,
+        "head_h_m": 2.4,
+        "use": "the drivers' room window, net curtain over the lower half on a wire at h=1.500",
+        "stateful": true
+      }
+    ],
+    "discrepancy_found_not_smoothed": "atlas-01/data/mickeys.json openings front_glass gives start 2.22 width 3.33. The street's own piece east_parade_glass0 is x=6.869 sx=3.562, which is u 2.088 to 5.650. The two disagree by 0.132 m at the south jamb and 0.232 m at the north. THE STREET PIECE IS USED HERE and the pub blockout's two numbers are recorded as wrong rather than averaged."
+  },
+  "rear_openings": {
+    "label": "AUTHORED",
+    "items": [
+      {
+        "id": "control_rear",
+        "u": [
+          4.55,
+          5.45
+        ],
+        "v": 7.785,
+        "width_m": 0.9,
+        "height_m": 2.04,
+        "use": "the controller's door to the yard. THE ESCAPE STARTS HERE.",
+        "stateful": true
+      },
+      {
+        "id": "drivers_rear",
+        "u": [
+          6.6,
+          7.5
+        ],
+        "v": 7.785,
+        "width_m": 0.9,
+        "height_m": 2.04,
+        "use": "drivers to the yard and the WC",
+        "stateful": true
+      },
+      {
+        "id": "lockup_rear",
+        "u": [
+          10.2,
+          11.1
+        ],
+        "v": 7.785,
+        "width_m": 0.9,
+        "height_m": 2.04,
+        "use": "the sub-let lock-up's own door. A second keyholder crosses the yard.",
+        "stateful": true
+      }
+    ],
+    "count_note": "Three rear doors in 12.0 m of rear wall. The pub package put two in 6.0 m, so this is a lower density, not a higher one."
+  },
+  "cross_wall_opening": {
+    "label": "AUTHORED",
+    "id": "wall_cut",
+    "u": [
+      5.8925,
+      6.1075
+    ],
+    "v": [
+      4.215,
+      5.215
+    ],
+    "width_m": 1.0,
+    "head_h_m": 2.1,
+    "why_here": "It lands BEHIND the counter line (counter back at v=4.015) and NOT in the waiting room. The public and the drivers are therefore never in one room and never see each other, while the controller can speak to both. That is the social fact the whole gameplay sheet rests on.",
+    "fabric": "A cut opening, not a designed one: no architrave, a painted timber lintel, and the plaster scarred and patched on both faces where the bricks came out. Per the form bible rule 5, make alterations readable."
+  },
+  "rooms": [
+    {
+      "id": "stair",
+      "name": "Private stair",
+      "label": "CARRIED UNCHANGED from atlas-01/data/mickeys.json",
+      "u": [
+        0.215,
+        1.088
+      ],
+      "v": [
+        0.215,
+        5.6
+      ],
+      "partition": {
+        "u": [
+          1.088,
+          1.188
+        ],
+        "v": [
+          0.215,
+          5.6
+        ],
+        "thickness_m": 0.1,
+        "height_m": 3.3
+      },
+      "risers": 19,
+      "goings": 18,
+      "going_m": 0.24,
+      "width_m": 0.8,
+      "first_riser_v_m": 0.3,
+      "landing_v_m": [
+        4.62,
+        5.6
+      ],
+      "why_carried": "THE FLAT ABOVE IS UNTOUCHED BY D17 AND IS ALREADY AUTHORED: bedroom, living room, book room, kitchen, bath, nineteen risers, four windows, named proxy furnishings. Choosing the cab office throws away the beer store, the counter, the snug screen and the pump clip. It does not throw away the upstairs, the stair, the carcass, the yard, the WC or the frontage. That is the cheapest true sentence in this package."
+    },
+    {
+      "id": "waiting",
+      "name": "Waiting room",
+      "label": "AUTHORED",
+      "u": [
+        1.188,
+        5.8925
+      ],
+      "v": [
+        0.215,
+        3.415
+      ],
+      "area_m2": 15.05,
+      "floor": "Lino over the old boards, brown marbled pattern, worn through to the hessian in two curves: one from the public door to the counter, one from the door to the bench. The wear is the only evidence in the room of how many people have stood in it.",
+      "contents": [
+        {
+          "id": "window_bench",
+          "u": [
+            2.75,
+            5.588
+          ],
+          "v": [
+            0.215,
+            0.665
+          ],
+          "seat_h_m": 0.45,
+          "what": "Fixed plywood bench under the window with a maroon vinyl pad, split at one end and mended with carpet tape. Seats four at 0.60 m pitch, five in the rain. IT STARTS AT u=2.750 AND NOT AT THE WINDOW'S SOUTH JAMB: the 0.662 m between the public door and the bench end is the standing space at the card rack and it is the clearance the body check needed, which it printed as a 9-sample clash against a bench that ran the full window.",
+          "surface": "wood",
+          "door_swing_note": "The public door is hinged at its south jamb u=1.188 and opens inward against the stair partition, so its 0.900 m leaf sweeps to u=2.088 along the wall and never reaches the bench."
+        },
+        {
+          "id": "stair_bench",
+          "u": [
+            1.188,
+            1.638
+          ],
+          "v": [
+            0.9,
+            2.4
+          ],
+          "seat_h_m": 0.45,
+          "what": "A second bench against the stair partition, seats two, added later and not matching.",
+          "surface": "wood"
+        },
+        {
+          "id": "low_table",
+          "u": [
+            4.6,
+            5.2
+          ],
+          "v": [
+            1.0,
+            1.45
+          ],
+          "top_h_m": 0.5,
+          "what": "A low table in front of the north end of the bench, out of the line between the door and the counter, with yesterday's Argus folded to the results page and a tin ashtray that has not been emptied since the afternoon.",
+          "surface": "wood"
+        },
+        {
+          "id": "coin_box",
+          "u": 1.188,
+          "v": 2.6,
+          "h_m": 1.3,
+          "size_m": [
+            0.23,
+            0.13,
+            0.33
+          ],
+          "what": "A wall coin box on the stair partition so a customer can ring home, with a shelf, a pencil on a string and the local directory hanging on a chain. THE PLAYER CAN OVERHEAR A CUSTOMER'S CALL.",
+          "surface": "metal"
+        },
+        {
+          "id": "gas_fire",
+          "u": 5.8925,
+          "v": 2.4,
+          "h_m": 0.15,
+          "size_m": [
+            0.6,
+            0.25,
+            0.7
+          ],
+          "what": "A gas wall fire on the cross-wall, three bars, one dead, with a scorched oval in the paint above it.",
+          "surface": "metal"
+        },
+        {
+          "id": "town_map",
+          "u": 5.8925,
+          "v": [
+            1.0,
+            2.0
+          ],
+          "h_m": [
+            1.1,
+            1.9
+          ],
+          "what": "THE COUNCIL'S STREET PLAN OF MERIDIAN, pinned flat, foxed, with biro rings round four places and a drawing-pin hole in every district. It is the only map in the building and it faces the public.",
+          "surface": "card"
+        },
+        {
+          "id": "tariff_board",
+          "u": 5.8925,
+          "v": [
+            3.0,
+            3.9
+          ],
+          "h_m": [
+            2.2,
+            2.8
+          ],
+          "what": "A hand-painted price board: named destinations down the left, a figure against each, MINIMUM FARE at the bottom and AFTER MIDNIGHT ADD A HALF under that. A private hire fare is whatever the office says it is, so this board is the firm's law and not the council's.",
+          "surface": "card"
+        },
+        {
+          "id": "card_rack",
+          "u": [
+            2.088,
+            2.5
+          ],
+          "v": 0.215,
+          "h_m": [
+            1.3,
+            1.7
+          ],
+          "what": "A pin-board by the door with the firm's own cards in a dog-eared stack, plus a card for a plumber, one for a chimney sweep and one offering a dog.",
+          "surface": "card"
+        },
+        {
+          "id": "door_mat",
+          "u": [
+            1.188,
+            2.088
+          ],
+          "v": [
+            0.215,
+            0.815
+          ],
+          "what": "Coir mat, laid not sunk, one corner curled, wet from half past seven in the morning to closing.",
+          "surface": "wood",
+          "flush": true
+        }
+      ]
+    },
+    {
+      "id": "counter",
+      "name": "The counter and the screen",
+      "label": "AUTHORED. THIS IS THE ROOM'S INSTRUMENT.",
+      "u": [
+        1.188,
+        5.1425
+      ],
+      "v": [
+        3.415,
+        4.015
+      ],
+      "depth_m": 0.6,
+      "top_h_m": 1.05,
+      "pass_gap": {
+        "u": [
+          5.1425,
+          5.8925
+        ],
+        "width_m": 0.75,
+        "what": "A counter flap on a piano hinge, dropped, with a bolt. The only way between the public side and the control side."
+      },
+      "screen": {
+        "h_m": [
+          1.05,
+          2.1
+        ],
+        "thickness_m": 0.012,
+        "surface": "glass",
+        "what": "A glazed screen in a timber frame from the counter top to 2.100 m, four panes, one of them replaced with a thicker glass that does not match. It does not reach the ceiling: there is 1.200 m of open air above it, which is why it stops hands and never stops sound.",
+        "speaking_gap": {
+          "u": [
+            3.2,
+            3.5
+          ],
+          "h_m": [
+            1.05,
+            1.3
+          ],
+          "size_m": [
+            0.3,
+            0.25
+          ],
+          "what": "A cut-out at the centre pane with a brass-edged dish under it for money. EVERY WORD THE CONTROLLER SAYS GOES THROUGH THIS HOLE."
+        }
+      },
+      "writing_ledge": {
+        "u": [
+          1.188,
+          5.1425
+        ],
+        "v": [
+          4.015,
+          4.265
+        ],
+        "h_m": 0.78,
+        "what": "A plain shelf fixed to the back of the counter, 0.270 m below the counter top, so the open book sits in a well. From the public side you see the controller's forearm and the top of a biro and not one word of what he writes."
+      },
+      "why_it_is_the_instrument": "The pub's snug screen occluded a hand at 1.45 m. This screen occludes the BOOK, which is the thing worth reading, while the speaking gap at 1.05 to 1.30 m is an acoustic hole at mouth height for a seated man. The room therefore gives the player everything by ear and nothing by eye, which is the exact shape of the game's moat."
+    },
+    {
+      "id": "control",
+      "name": "Control side",
+      "label": "AUTHORED",
+      "u": [
+        1.188,
+        5.8925
+      ],
+      "v": [
+        4.015,
+        7.785
+      ],
+      "area_m2": 17.74,
+      "area_note": "DERIVED as the full rectangle 4.7045 by 3.770 = 17.74 m2, less the money room's overlap of u 1.188 to 2.150 by v 5.700 to 7.785 (2.006 m2), so the clear floor is 15.73 m2. Both numbers are printed because one is the room and the other is the floor.",
+      "contents": [
+        {
+          "id": "controller_chair",
+          "u": 3.35,
+          "v": 4.5,
+          "what": "A swivel chair with one castor replaced by a wooden block, set so the man can reach the microphone, the book and both telephones without standing up. THE CONTROLLER IS A SEATED CHARACTER AND HE IS THE MOST INFORMED PERSON IN THE TOWN.",
+          "surface": "metal"
+        },
+        {
+          "id": "radio_shelf",
+          "u": 5.8925,
+          "v": [
+            4.3,
+            5.5
+          ],
+          "h_m": 1.35,
+          "depth_m": 0.3,
+          "what": "A shelf on the cross-wall carrying the base set, 0.450 by 0.350 by 0.160, a desk microphone on a weighted base with a coiled lead, and a cardboard box of fuses.",
+          "surface": "wood"
+        },
+        {
+          "id": "base_set",
+          "u": 5.74,
+          "v": 4.7,
+          "h_m": 1.43,
+          "size_m": [
+            0.45,
+            0.35,
+            0.16
+          ],
+          "what": "The radio base set: a grey steel case, a single illuminated channel lamp, a volume knob worn smooth, a squelch knob nobody touches, and a brass plate on the top where a maker's name goes. THE MAKER'S NAME IS OWED TO THE BRAND BIBLE and is deliberately blank here.",
+          "surface": "metal"
+        },
+        {
+          "id": "loudspeaker",
+          "u": 5.8925,
+          "v": 4.2,
+          "h_m": 2.4,
+          "size_m": [
+            0.25,
+            0.2,
+            0.25
+          ],
+          "what": "An extension loudspeaker on a steel bracket high on the cross-wall, angled down and toward the counter so the controller hears it with his head over the book. THE PUBLIC HEARS IT TOO, AND THAT IS NOT AN ACCIDENT OF THE FITTING: IT IS WHY THE FITTING IS THERE.",
+          "surface": "metal",
+          "audio_source": true
+        },
+        {
+          "id": "book_lectern",
+          "u": [
+            2.8,
+            3.4
+          ],
+          "v": [
+            4.015,
+            4.465
+          ],
+          "h_m": [
+            0.78,
+            0.95
+          ],
+          "what": "A sloped writing desk on the ledge holding the operator's record open at today's page, a biro on a string, and a steel ruler used to draw the next page's columns by hand.",
+          "surface": "wood"
+        },
+        {
+          "id": "telephone_counter",
+          "u": 4.3,
+          "v": 4.15,
+          "h_m": 0.78,
+          "size_m": [
+            0.23,
+            0.2,
+            0.11
+          ],
+          "what": "The booking telephone, a dial instrument in cream plastic gone yellow, the dial's centre card written over twice.",
+          "surface": "plaster"
+        },
+        {
+          "id": "telephone_second",
+          "u": 2.2,
+          "v": 4.15,
+          "h_m": 0.78,
+          "size_m": [
+            0.23,
+            0.2,
+            0.11
+          ],
+          "what": "The second line, for accounts and for when the first is engaged. The two numbers differ by one digit and everybody gets it wrong.",
+          "surface": "plaster"
+        },
+        {
+          "id": "answering_machine",
+          "u": 1.9,
+          "v": 4.15,
+          "h_m": 0.78,
+          "size_m": [
+            0.28,
+            0.2,
+            0.08
+          ],
+          "what": "A cassette answering machine wired to the second line, used only between three and seven in the morning. THE TAPE IS A PHYSICAL RECORD OF WHO RANG IN THE NIGHT and it is ninety minutes long and it is re-used.",
+          "surface": "plaster"
+        },
+        {
+          "id": "car_board",
+          "u": [
+            2.6,
+            4.4
+          ],
+          "v": 7.785,
+          "h_m": [
+            1.3,
+            2.1
+          ],
+          "what": "THE CAR BOARD. A pegboard on the rear wall, nine numbered hooks in three rows of three, a brass disc 60 mm across hanging on each hook that is IN. An empty hook is a car that is OUT. It faces the window.",
+          "surface": "wood"
+        },
+        {
+          "id": "cash_drawer",
+          "u": 3.6,
+          "v": 4.1,
+          "h_m": 0.7,
+          "size_m": [
+            0.35,
+            0.4,
+            0.12
+          ],
+          "what": "A wooden drawer under the ledge with a tin in it, four compartments, no till and no receipt roll. A private hire office in 1990 takes cash in a dish and writes the figure in the book.",
+          "surface": "wood"
+        },
+        {
+          "id": "aerial_riser",
+          "u": 5.7,
+          "v": 7.6,
+          "h_m": [
+            0.0,
+            3.3
+          ],
+          "size_m": [
+            0.04,
+            0.04,
+            3.3
+          ],
+          "what": "The aerial feeder, a black coaxial cable stapled up the corner and through a drilled hole in the ceiling, running to a mast on the chimney stack. IT IS VISIBLE FROM THE STREET AS A SECOND MAST BESIDE THE TELEVISION AERIALS AND IT IS THE ONLY THING ON THE OUTSIDE OF THE BUILDING THAT SAYS WHAT THE TRADE IS.",
+          "surface": "metal"
+        }
+      ]
+    },
+    {
+      "id": "money_room",
+      "name": "The money room",
+      "label": "AUTHORED INTO A ROOM D17 EMPTIED",
+      "u": [
+        0.215,
+        2.15
+      ],
+      "v": [
+        5.7,
+        7.785
+      ],
+      "area_m2": 4.03,
+      "door": {
+        "edge": "u=2.150",
+        "v": [
+          6.05,
+          6.95
+        ],
+        "width_m": 0.9,
+        "height_m": 2.04
+      },
+      "why": "THIS IS THE BEER STORE. atlas-01 reserved exactly this 1.935 by 2.085 room for two stillaged casks and two reserves, and D17 voids it by name. The cab office has a use for the same four square metres that needs no cooling, no drain, no hose run and no insulated line, which were the four things atlas-01 said were unresolved. A room that is refilled rather than deleted is the clearest thing in this package.",
+      "contents": [
+        {
+          "id": "safe",
+          "u": 0.4,
+          "v": 7.4,
+          "size_m": [
+            0.55,
+            0.45,
+            0.6
+          ],
+          "what": "A floor safe on two paving slabs, green, the dial's numbers worn off between 3 and 7.",
+          "surface": "metal"
+        },
+        {
+          "id": "docket_rack",
+          "u": [
+            0.215,
+            0.515
+          ],
+          "v": [
+            5.9,
+            7.3
+          ],
+          "h_m": [
+            0.4,
+            2.0
+          ],
+          "what": "A steel shelf rack of account dockets in month bundles held with bulldog clips, and four cardboard boxes of LOST PROPERTY labelled by week in marker.",
+          "surface": "metal"
+        },
+        {
+          "id": "meter_cupboard",
+          "u": 1.9,
+          "v": 5.8,
+          "h_m": [
+            1.4,
+            2.1
+          ],
+          "size_m": [
+            0.25,
+            0.35,
+            0.7
+          ],
+          "what": "The electricity meter and a coin slot that has not taken coins since 1981, with the card of readings hanging beside it.",
+          "surface": "wood"
+        },
+        {
+          "id": "dead_set",
+          "u": 1.2,
+          "v": 7.5,
+          "size_m": [
+            0.45,
+            0.35,
+            0.16
+          ],
+          "what": "The old radio base set on the bottom shelf, kept because it might come back.",
+          "surface": "metal"
+        },
+        {
+          "id": "infilled_window_scar",
+          "u": 2.15,
+          "v": [
+            6.2,
+            7.2
+          ],
+          "h_m": [
+            0.9,
+            2.1
+          ],
+          "what": "The 1958 infill where the old store window was bricked up, in a paler brick, visible on the inside because nobody plastered it.",
+          "surface": "brick_red",
+          "flush": true
+        }
+      ]
+    },
+    {
+      "id": "drivers",
+      "name": "Drivers' room",
+      "label": "AUTHORED",
+      "u": [
+        6.1075,
+        11.785
+      ],
+      "v": [
+        0.215,
+        4.6
+      ],
+      "area_m2": 24.85,
+      "floor": "The shop's original tongue-and-groove boards, painted dark red round the edges where a carpet used to be and bare in the middle.",
+      "contents": [
+        {
+          "id": "net_curtain",
+          "u": [
+            8.088,
+            11.65
+          ],
+          "v": 0.1,
+          "h_m": [
+            0.6,
+            1.5
+          ],
+          "what": "A diamond net on a wire at 1.500 m, grey rather than white. FROM THE FOOTWAY AT 1.600 m EYE HEIGHT YOU SEE HEADS AND NOT HANDS, which is the exact inverse of the pub's front window and is a second and opposite observation condition in the same building.",
+          "surface": "window"
+        },
+        {
+          "id": "drivers_bench",
+          "u": [
+            8.188,
+            11.588
+          ],
+          "v": [
+            0.215,
+            0.665
+          ],
+          "seat_h_m": 0.45,
+          "what": "A bench under the window, same build as the public one but never re-covered.",
+          "surface": "wood"
+        },
+        {
+          "id": "formica_table",
+          "u": [
+            8.4,
+            9.6
+          ],
+          "v": [
+            1.2,
+            1.95
+          ],
+          "top_h_m": 0.74,
+          "what": "A formica table with a burn scar at every seat and a rubbed patch where four men have leant on the same corner for six years.",
+          "surface": "wood"
+        },
+        {
+          "id": "chairs",
+          "count": 4,
+          "what": "Four chairs and no two the same: a tubular stacking chair, a kitchen chair with a mended leg, a car seat on a pallet, and a swivel chair whose gas strut has gone so it sits at its lowest.",
+          "surface": "metal"
+        },
+        {
+          "id": "kettle_table",
+          "u": [
+            11.2,
+            11.785
+          ],
+          "v": [
+            2.0,
+            2.6
+          ],
+          "top_h_m": 0.85,
+          "what": "An electric kettle furred white, a caddy, seven mugs on nails in a board, a jar of spoons, and a notice in biro about whose tea it is.",
+          "surface": "wood"
+        },
+        {
+          "id": "dartboard",
+          "u": 6.1075,
+          "v": 1.83,
+          "h_m": 1.73,
+          "diameter_m": 0.46,
+          "what": "A bristle board on the cross-wall with the paint gone round it in a 0.9 m halo and a chalk scoreboard beside it. DARTS IS NEITHER DRINK NOR GAMBLING and it is the one thing in the building that two men do together standing up. No oche is marked because the room is not long enough and they throw from the table.",
+          "surface": "card"
+        },
+        {
+          "id": "notice_board",
+          "u": 6.1075,
+          "v": [
+            2.6,
+            3.8
+          ],
+          "h_m": [
+            1.2,
+            2.0
+          ],
+          "what": "THE DRIVERS' BOARD: the week's rota in pencil on squared paper, the settle list with nine names and a figure against each, the council's licensing notice with its corner torn, an insurance reminder, and a photograph of the 1979 cup run pinned over a damp patch.",
+          "surface": "card"
+        },
+        {
+          "id": "wall_clock",
+          "u": 6.1075,
+          "v": 4.3,
+          "h_m": 2.35,
+          "diameter_m": 0.3,
+          "what": "A clock with a red sweep hand, two minutes fast, and it is the instrument of the whole building because every row in the book is a time.",
+          "surface": "plaster"
+        },
+        {
+          "id": "cassette_radio",
+          "u": 11.4,
+          "v": 0.4,
+          "h_m": 0.6,
+          "size_m": [
+            0.4,
+            0.16,
+            0.18
+          ],
+          "what": "A portable radio and cassette player on the window sill, tuned to Radio Tideline, aerial extended and bent.",
+          "surface": "plaster",
+          "audio_source": true
+        }
+      ]
+    },
+    {
+      "id": "desk",
+      "name": "The proprietor's corner",
+      "label": "AUTHORED",
+      "u": [
+        6.1075,
+        8.4
+      ],
+      "v": [
+        4.6,
+        7.785
+      ],
+      "area_m2": 7.3,
+      "why_here": "Tom's desk faces the cross-wall cut, so he hears the radio and sees whoever comes in the drivers' door, AND HE CANNOT SEE THE COUNTER. The owner of the building has partial knowledge of his own premises, which is the game's own doctrine applied to the player's own room.",
+      "contents": [
+        {
+          "id": "tom_desk",
+          "u": [
+            6.3,
+            7.7
+          ],
+          "v": [
+            4.8,
+            5.5
+          ],
+          "top_h_m": 0.75,
+          "what": "A desk that was a shop counter, with a wire tray of dockets, an adding machine with a paper roll, a dial telephone, a desk lamp with a scorched shade, and the uncollectable debts in a hardbacked book that was Mickey's.",
+          "surface": "wood"
+        },
+        {
+          "id": "filing_cabinet",
+          "u": [
+            6.15,
+            6.62
+          ],
+          "v": [
+            6.0,
+            6.62
+          ],
+          "h_m": [
+            0.0,
+            1.32
+          ],
+          "what": "A four-drawer steel cabinet, the top drawer locked: drivers' licence copies, insurance certificates, the operator's licence, and the accounts.",
+          "surface": "metal"
+        },
+        {
+          "id": "coat_hooks",
+          "u": 6.1075,
+          "v": 5.7,
+          "h_m": 1.75,
+          "what": "Four hooks and five coats.",
+          "surface": "metal"
+        }
+      ]
+    },
+    {
+      "id": "lockup",
+      "name": "The lock-up",
+      "label": "AUTHORED. A SECOND OCCUPANT, ON PURPOSE.",
+      "u": [
+        8.4,
+        11.785
+      ],
+      "v": [
+        5.4,
+        7.785
+      ],
+      "area_m2": 8.07,
+      "partitions": [
+        {
+          "edge": "v=5.400",
+          "u": [
+            8.4,
+            11.785
+          ],
+          "thickness_m": 0.1,
+          "height_m": 2.6,
+          "door": {
+            "u": [
+              8.9,
+              9.7
+            ],
+            "width_m": 0.8,
+            "height_m": 2.04,
+            "lock": "hasp, staple and a padlock, and the screws are longer than the ones that came with it"
+          }
+        },
+        {
+          "edge": "u=8.400",
+          "v": [
+            5.4,
+            7.785
+          ],
+          "thickness_m": 0.1,
+          "height_m": 2.6
+        }
+      ],
+      "height_note": "THE PARTITIONS STOP AT 2.600 m AND THE CEILING IS AT 3.300 m. There is 0.700 m of open air over the top of them. That is how the building was cheaply divided and it is why the man in the lock-up hears the radio, the telephone and every argument in the drivers' room, and why he is a witness who was never in the room.",
+      "tenant": "Let weekly for cash to a man who repairs televisions and sets. He has a key to the yard gate and to his own rear door and to nothing else. He is in from about ten to about four, and on Saturday mornings.",
+      "contents": [
+        {
+          "id": "sets_stacked",
+          "what": "Eleven television sets in two stacks with paper labels taped to the screens, two with the backs off.",
+          "surface": "plaster"
+        },
+        {
+          "id": "repair_bench",
+          "u": [
+            8.6,
+            10.1
+          ],
+          "v": [
+            7.2,
+            7.785
+          ],
+          "top_h_m": 0.85,
+          "what": "A bench under the rear wall, 1.500 m long and STOPPING CLEAR OF THE REAR DOOR at u=10.200, which is a correction: the first draft ran it the full width of the room and across its own doorway, and verify/check_cab_office.py caught it as a path clash. A soldering iron in a stand, a box of valves, a roll of solder, a bench light on a spring arm.",
+          "surface": "wood"
+        },
+        {
+          "id": "cardboard",
+          "what": "Flattened cardboard tied in bundles, which is why there is cardboard in the yard and it is not random dressing.",
+          "surface": "card"
+        }
+      ]
+    }
+  ],
+  "yard": {
+    "label": "CARRIED and EXTENDED",
+    "u": [
+      0.0,
+      12.0
+    ],
+    "v": [
+      8.0,
+      14.0
+    ],
+    "width_m": 12.0,
+    "depth_m": 6.0,
+    "wall_height_m": 1.8,
+    "wall_thickness_m": 0.15,
+    "rear_lane_width_m": 2.4,
+    "rear_lane_v_m": [
+      14.0,
+      16.4
+    ],
+    "carried_note": "The 6.0 m depth, the 1.8 m wall, the 0.15 m wall thickness, the 2.4 m rear lane, the 1.2 m gate at u 4.6, the WC annex at u 0 to 2.2 by v 8.0 to 10.6 and its 2.55 m height are all atlas-01/data/mickeys.json yard values, CARRIED UNCHANGED. Only the width doubles, because the premises doubles.",
+    "gate": {
+      "u": [
+        4.6,
+        5.8
+      ],
+      "v": 14.0,
+      "width_m": 1.2,
+      "what": "A close-boarded timber gate 1.2 m wide in the rear wall, hung on two strap hinges, with a hasp and a padlock on the inside and a gap under it big enough for a cat."
+    },
+    "wc_annex": {
+      "u": [
+        0.0,
+        2.2
+      ],
+      "v": [
+        8.0,
+        10.6
+      ],
+      "height_m": 2.55,
+      "wall_m": 0.2,
+      "door": {
+        "offset_m": 0.7,
+        "width_m": 0.8,
+        "height_m": 2.04
+      },
+      "what": "The 1958 brick WC, one compartment, a high cistern, a bulb with no shade, and a bolt that needs lifting. EVERY DRIVER AND THE CONTROLLER CROSS THE YARD TO USE IT, at every hour of the night, which turns the yard from a back space into a thoroughfare and puts a witness in it for free."
+    },
+    "no_vehicle_in_the_yard": "MEASURED AND REFUSED. The rear lane is 2.4 m wide and the gate is 1.2 m. A car cannot be turned from a 2.4 m lane through a 1.2 m gate, and widening either to make the design work would be editing authored data for convenience. SO THE CARS NEVER ENTER THE YARD. That is not a loss: it puts the cars at the kerb in front of the office where the player and every passer-by can see them, which is better for the game than a yard nobody looks into.",
+    "contents": [
+      {
+        "id": "dustbins",
+        "u": [
+          2.6,
+          3.6
+        ],
+        "v": 8.2,
+        "count": 2,
+        "what": "Two galvanised dustbins with lids, the street's own E13_household_dustbin at 0.46 by 0.61.",
+        "surface": "metal"
+      },
+      {
+        "id": "standpipe",
+        "u": 2.4,
+        "v": 8.1,
+        "h_m": 0.6,
+        "what": "A standpipe and a brass tap with a hose bib, and two buckets under it. THE CARS ARE WASHED AT THE KERB WITH BUCKETS CARRIED THROUGH THE BUILDING, which is why there is a wet patch on the footway outside the office at half past seven every morning that the rest of the street does not have.",
+        "surface": "metal"
+      },
+      {
+        "id": "tyre_stack",
+        "u": [
+          7.6,
+          8.25
+        ],
+        "v": [
+          8.3,
+          8.95
+        ],
+        "h_m": 0.8,
+        "what": "Four part-worn tyres stacked, filling with rainwater.",
+        "surface": "metal"
+      },
+      {
+        "id": "ladder",
+        "u": 11.6,
+        "v": [
+          9.0,
+          12.5
+        ],
+        "h_m": 1.4,
+        "what": "An aluminium ladder on two brackets on the yard wall, long enough to reach the aerial mast, which is why it is here.",
+        "surface": "metal"
+      },
+      {
+        "id": "cardboard_bundles",
+        "u": [
+          8.6,
+          9.8
+        ],
+        "v": [
+          8.2,
+          8.9
+        ],
+        "h_m": 0.5,
+        "what": "The lock-up's flattened cardboard, tied, going soft in the rain.",
+        "surface": "card"
+      },
+      {
+        "id": "yard_gully",
+        "u": 6.0,
+        "v": 8.6,
+        "what": "A gully in the low corner of the yard fall, with a patch of newer concrete round it where the 1958 drain was relaid.",
+        "surface": "metal",
+        "flush": true
+      },
+      {
+        "id": "bulkhead_dead",
+        "u": 5.0,
+        "v": 7.9,
+        "h_m": 2.3,
+        "what": "A bulkhead lamp over the control door. THE BULB HAS BEEN OUT SINCE AUGUST.",
+        "surface": "metal",
+        "emissive": false
+      },
+      {
+        "id": "bulkhead_lit",
+        "u": 10.65,
+        "v": 7.9,
+        "h_m": 2.3,
+        "what": "A bulkhead lamp over the lock-up door, which works, because the tenant replaced his own. THE YARD IS HALF LIT AND THE LIT HALF IS NOT THE HALF THE ESCAPE USES.",
+        "surface": "metal",
+        "emissive": true
+      }
+    ],
+    "overlooked_by": "Four rear windows of the flat above this premises, and the upper rear windows of the neighbours on both sides. The 1.8 m wall stops a view from the lane and stops nothing from above. An escape across this yard is a fast escape and a SEEN one, and that difference from the pub is stated rather than hidden."
+  },
+  "rank": {
+    "label": "AUTHORED ONTO EXISTING STREET DATA",
+    "what": "THE RANK IS THE EAST KERB OUTSIDE THE OFFICE, not a yard and not a car park.",
+    "kerb_x_m": [
+      9.5,
+      23.9
+    ],
+    "car_envelope_m": [
+      4.3,
+      1.7
+    ],
+    "car_envelope_label": "AUTHORED. No measured vehicle envelope exists anywhere in this repository in metres; the kit rows in game-design/agent-reports/ carry squash ratios and not dimensions. 4.30 by 1.70 is a 1990 mass-market four-door saloon as authored, and it is labelled so rather than cited.",
+    "cars": 3,
+    "arithmetic": "DERIVED: three cars nose to tail at 4.30 m plus two 0.60 m gaps is 14.10 m, from x=9.5 to x=23.6. The office frontage is 12.0 m, so THE RANK IS LONGER THAN THE PREMISES and it stands across the frontage of bay 2 and part of bay 3.",
+    "consequence_authored_not_hidden": "The neighbours mind. Rita's Pawn at bay 2 and the fish market at bay 3 lose their loading frontage to three cars every evening, and that is a standing grievance, which is a gossip source that costs nothing to build. A card in the drivers' room window reads CARS WAITING ACROSS THE ROAD and is ignored.",
+    "double_yellows": "The street already carries A5_double_yellow_lines on both sides at z plus and minus 2.700. A waiting car on the rank is parked on them. The firm's answer is that a car with a driver in it is not parked, and that argument has been had with the council twice.",
+    "the_gully": "The east gully grate is at x=12.000, directly under the middle car. A cab standing on the grate in the rain is the frame this design wants: the water goes under the car and the exhaust condenses over it.",
+    "west_court": "ONE car will also stand in the west service gap at x 21.0 to 24.0, which the street's own scene file calls the YARD ENTRANCE and gives a 3.0 m dropped crossover at x=22.5 with a 6 mm flush upstand. MEASURED: the court is 3.0 m wide by 8.0 m deep, so it takes ONE 4.30 m car nose-in with 3.70 m behind it and NOT TWO, because 2 by 4.30 is 8.60 and that is more than 8.00. One car, and the number is printed so nobody parks a second one later."
+  },
+  "fascia": {
+    "label": "AUTHORED ONTO EXISTING GEOMETRY. D17 says the fascia stands; the LETTERING is a decal and the lettering is what changes.",
+    "bay0": {
+      "piece": "east_parade_fascia0",
+      "band_m": [
+        2.85,
+        3.4
+      ],
+      "text": "MICKEY'S CARS",
+      "how": "THE WORD CARS WAS ADDED LATER AND IT LOOKS IT. MICKEY'S stays exactly as the existing decal draws it, gold shaded serif capitals on oxblood. CARS is in a plainer sans, a shade too small, set with its baseline 12 mm low, by a different and cheaper hand. One sign, two decades, two signwriters. That is the whole history of the premises in one piece of art and it costs one decal."
+    },
+    "bay1": {
+      "piece": "east_parade_fascia1",
+      "band_m": [
+        2.85,
+        3.4
+      ],
+      "text": "PRIVATE HIRE  .  TEL. 52641",
+      "how": "Oxblood field to match, plain block capitals in cream, a narrow cream rule under. No shading, no gilt: it was painted in one day for the price of the paint."
+    },
+    "why_not_taxi": "IT IS UNLAWFUL AND THAT IS THE INTERESTING PART. A private hire vehicle may not carry a sign with the word taxi, cab or hire on it. The OFFICE may advertise what it likes, so the office says PRIVATE HIRE and the CARS say nothing but the firm's name and a telephone number. Research file row L7 carries the source. The visual consequence is that this building and its cars look nothing like a hackney carriage, with no roof light and no meter, and a player who knows that reads the whole street differently.",
+    "phone_number": "TEL. 52641 is AUTHORED as a local number with NO DIALLING CODE PRINTED, for two reasons that are both checkable: a local sign printed the local number for local customers, and inventing a British dialling code risks matching a real one. PhONEday, which put a 1 into British area codes, was 1995, so no number in Meridian has ever carried one."
+  },
+  "signage_small": {
+    "label": "AUTHORED. Four cards and one plate, all original copy.",
+    "items": [
+      {
+        "id": "card_hours",
+        "where": "public door glass, inside",
+        "size_m": [
+          0.21,
+          0.297
+        ],
+        "text": "MICKEY'S CARS / OFFICE HOURS / MON TO WED 7 am to 1 am / THURS 7 am to 2 am / FRI AND SAT 7 am to 3 am / SUN 9 am to 1 am / ALL JOURNEYS BY TELEPHONE OR AT THIS COUNTER"
+      },
+      {
+        "id": "card_lost",
+        "where": "counter screen, taped",
+        "size_m": [
+          0.15,
+          0.105
+        ],
+        "text": "LOST PROPERTY / ENQUIRE AT COUNTER / WE KEEP IT FOUR WEEKS"
+      },
+      {
+        "id": "card_accounts",
+        "where": "waiting room window, inside, facing out",
+        "size_m": [
+          0.21,
+          0.148
+        ],
+        "text": "ACCOUNTS ARRANGED / WORKS . SCHOOLS . HOSPITAL"
+      },
+      {
+        "id": "card_rank",
+        "where": "drivers' room window, inside, facing out",
+        "size_m": [
+          0.21,
+          0.148
+        ],
+        "text": "CARS WAITING ACROSS THE ROAD"
+      },
+      {
+        "id": "plate_licence",
+        "where": "beside the public door, screwed to the pilaster",
+        "size_m": [
+          0.15,
+          0.1
+        ],
+        "text": "PRIVATE HIRE OPERATOR / LICENCE NO. 41 / BOROUGH OF MERIDIAN",
+        "note": "THE AUTHORITY'S NAME IS A PROPOSAL AND NOT MINTED. canon.md mints Meridian Harbour Board and not a council. BOROUGH OF MERIDIAN is offered for canon and is flagged in the delivery's card list; until it is minted this plate should be drawn with the authority line illegible."
+      }
+    ]
+  },
+  "information": {
+    "label": "AUTHORED. Positions for the gameplay sheet, in local u,v.",
+    "eye_height_m": 1.6,
+    "target_hand_height_m": 0.85,
+    "listen_posts": [
+      {
+        "id": "at_the_counter",
+        "u": 3.35,
+        "v": 3.2,
+        "what": "The player's side of the speaking gap."
+      },
+      {
+        "id": "on_the_bench",
+        "u": 3.9,
+        "v": 0.9,
+        "what": "Sat under the window, 3.5 m from the gap."
+      },
+      {
+        "id": "in_the_drivers_room",
+        "u": 8.4,
+        "v": 2.0,
+        "what": "Through the 1.0 m cut, round a corner."
+      },
+      {
+        "id": "in_the_yard",
+        "u": 6.0,
+        "v": 9.5,
+        "what": "Outside the rear doors, under the dead lamp."
+      },
+      {
+        "id": "on_the_footway",
+        "u": 3.9,
+        "v": -1.625,
+        "what": "Outside the office window on the public pavement."
+      }
+    ],
+    "speakers": [
+      {
+        "id": "loudspeaker",
+        "u": 5.8925,
+        "v": 4.2,
+        "h_m": 2.4
+      },
+      {
+        "id": "controller_mouth",
+        "u": 3.35,
+        "v": 4.35,
+        "h_m": 1.15
+      },
+      {
+        "id": "drivers_table",
+        "u": 9.0,
+        "v": 1.6,
+        "h_m": 1.15
+      },
+      {
+        "id": "lockup_tenant",
+        "u": 10.0,
+        "v": 6.5,
+        "h_m": 1.5
+      }
+    ],
+    "street_readable_target": {
+      "id": "car_board",
+      "u": 3.5,
+      "v": 7.785,
+      "h_m": 1.7
+    },
+    "occluded_target": {
+      "id": "the_book",
+      "u": 3.1,
+      "v": 4.24,
+      "h_m": 0.87
+    },
+    "note": "These are POSITIONS FOR A TEST, not claims about audibility. The pub package's sentence applies unchanged: an architectural sightline grants no witness fact, and acoustics, speaker timing, attention and recognition all remain integration work."
+  },
+  "paths": {
+    "label": "AUTHORED, then CORRECTED from the readings. Checked in verify/check_cab_office.py against a 0.30 m radius body, the same conservative figure the pub package used. The check is run against obstacles whose lowest point is below 1.100 m, because a shelf at 1.350 m and a lamp at 2.300 m are passed under, and it prints that split rather than hiding it. FOUR ITEMS AND FIVE ROUTES MOVED BECAUSE OF WHAT IT PRINTED, one of them a real fault: the lock-up's bench ran across the lock-up's own door.",
+    "customer": [
+      [
+        1.638,
+        -1.6
+      ],
+      [
+        1.638,
+        0.1
+      ],
+      [
+        2.6,
+        1.0
+      ],
+      [
+        3.35,
+        3.1
+      ]
+    ],
+    "driver": [
+      [
+        6.769,
+        -1.6
+      ],
+      [
+        6.769,
+        0.6
+      ],
+      [
+        7.6,
+        1.4
+      ],
+      [
+        8.0,
+        1.6
+      ]
+    ],
+    "controller": [
+      [
+        3.35,
+        5.0
+      ],
+      [
+        5.0,
+        5.6
+      ],
+      [
+        5.0,
+        6.6
+      ],
+      [
+        2.6,
+        6.6
+      ],
+      [
+        2.2,
+        6.5
+      ]
+    ],
+    "escape": [
+      [
+        3.35,
+        5.0
+      ],
+      [
+        4.9,
+        5.6
+      ],
+      [
+        4.9,
+        7.4
+      ],
+      [
+        5.0,
+        8.6
+      ],
+      [
+        5.2,
+        11.0
+      ],
+      [
+        5.2,
+        13.6
+      ],
+      [
+        5.2,
+        15.2
+      ],
+      [
+        -1.5,
+        15.2
+      ],
+      [
+        -1.5,
+        -1.5
+      ],
+      [
+        1.638,
+        -1.5
+      ]
+    ],
+    "yard_cross": [
+      [
+        6.9,
+        7.6
+      ],
+      [
+        6.6,
+        8.8
+      ],
+      [
+        2.0,
+        9.3
+      ],
+      [
+        1.4,
+        9.9
+      ]
+    ],
+    "lockup": [
+      [
+        10.65,
+        7.0
+      ],
+      [
+        10.65,
+        9.0
+      ],
+      [
+        6.0,
+        10.5
+      ],
+      [
+        5.2,
+        13.6
+      ],
+      [
+        5.2,
+        15.2
+      ]
+    ]
+  },
+  "history": [
+    "c.1880: two narrow chandler's shops with households above, built into the east terrace as one build.",
+    "c.1925: the south shop becomes a licensed beer house. The separate household door survives the conversion, which is why the frontage has two doors per bay.",
+    "c.1958: the rear yard WC is built in cheaper brick and the south shop's store window is bricked up.",
+    "c.1976: a counter and a half-height screen are inserted in the south room. The stair stays independent.",
+    "1984: the north shop closes. Its door is boarded inside and painted over, and the two premises are thrown together by cutting one 1.0 m opening in the party wall. Nobody takes the wall out.",
+    "1986: Mickey takes a private hire operator's licence, puts a radio on a shelf and a mast on the stack, and paints the word CARS on the end of his own sign.",
+    "1988 to 1992: a worn two-room office with nine cars, a book, a screen and a yard. ALL OF THIS HISTORY IS PROPOSED ART AND CHANGES NO CANON."
+  ],
+  "cameras": {
+    "label": "AUTHORED, five, matching the pub package's five so the two can be compared frame for frame.",
+    "items": [
+      {
+        "id": "street_approach",
+        "position_uvh": [
+          -8.0,
+          -5.0,
+          1.6
+        ],
+        "target_uvh": [
+          3.0,
+          1.0,
+          2.8
+        ],
+        "lens_mm": 28
+      },
+      {
+        "id": "front",
+        "position_uvh": [
+          6.0,
+          -15.0,
+          4.5
+        ],
+        "target_uvh": [
+          6.0,
+          3.0,
+          4.5
+        ],
+        "lens_mm": 34
+      },
+      {
+        "id": "rear",
+        "position_uvh": [
+          15.0,
+          19.0,
+          5.0
+        ],
+        "target_uvh": [
+          6.0,
+          8.0,
+          3.3
+        ],
+        "lens_mm": 30
+      },
+      {
+        "id": "overhead",
+        "position_uvh": [
+          6.0,
+          6.0,
+          26.0
+        ],
+        "target_uvh": [
+          6.0,
+          6.0,
+          0.0
+        ],
+        "lens_mm": 30,
+        "cutaway": true
+      },
+      {
+        "id": "counter",
+        "position_uvh": [
+          3.35,
+          1.4,
+          1.6
+        ],
+        "target_uvh": [
+          3.5,
+          7.785,
+          1.7
+        ],
+        "lens_mm": 22,
+        "cutaway": true
+      }
+    ],
+    "counter_camera_note": "The fifth camera stands where a customer stands and looks at the car board across the counter, the screen and the control side. IT IS THE ONE FRAME THAT DECIDES WHETHER THIS ROOM WORKS."
+  },
+  "surface_finding": {
+    "what": "atlas-01/data/mickeys.json uses material cloth for window_bench, snug and bed. THE STREET'S INTERFACE HAS NO SUCH SURFACE: production/specs/asset-interface.md line 37 lists sixteen, asphalt concrete kerb sidewalk brick_red brick_grey plaster wood metal glass window interior card roof paint_yellow multiply, and cloth is not one of them, and a new surface ID is a decision record.",
+    "how_this_file_answers": "EVERY surface named in this file is one of the sixteen. The vinyl bench pads are wood, the net is window, the paper is card, and nothing here asks for a new surface. Checked by verify/check_cab_office.py, which prints the count examined beside the count outside the list."
+  },
+  "not_in_this_package": [
+    "NO GLB, NO MESH, NO TEXTURE, NO BLENDER RUN. Blender is not installed in this container and no render was attempted, so every drawing in drawings/ is a measured vector plan drawn from this file and not a render.",
+    "NO EDIT TO vignette-scene.json, vignette-pieces.json, the bill of materials, the fascia decals, canon.md, the brand bible, tools/imagegen/ or anything outside production/art/mickeys-cars/.",
+    "NO UPSTAIRS REDESIGN. The flat above is atlas-01's and is carried by reference, not copied, so it cannot drift.",
+    "NO VEHICLE ASSET. The rank is dimensioned and the cars are not modelled, specified or acquired here.",
+    "NO TRAFFIC OR DRIVING CLAIM. The vehicle escape in the gameplay sheet is conditional on systems this package did not look at."
+  ]
+}

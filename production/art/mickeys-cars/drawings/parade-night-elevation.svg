@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1652" height="720" viewBox="0 0 1652 720">
+<rect width="1652" height="720" fill="rgb(236, 232, 222)"/>
+<rect x="24.0" y="24.0" width="1604.0" height="672.0" fill="none" stroke="rgb(108, 102, 94)" stroke-width="1"/>
+<text x="40.0" y="56.0" font-family="DejaVu Sans, sans-serif" font-size="22" fill="rgb(28, 26, 24)" text-anchor="start" font-weight="bold">THE PARADE AT 22.50, WITHOUT DRINK</text>
+<text x="40.0" y="78.0" font-family="DejaVu Sans, sans-serif" font-size="12" fill="rgb(108, 102, 94)" text-anchor="start">nine units on Tivoli Street, and the light they make between them</text>
+<text x="1612.0" y="56.0" font-family="DejaVu Sans, sans-serif" font-size="13" fill="rgb(28, 26, 24)" text-anchor="end" font-weight="bold">MICKEY&apos;S CARS</text>
+<text x="1612.0" y="74.0" font-family="DejaVu Sans, sans-serif" font-size="11" fill="rgb(108, 102, 94)" text-anchor="end">Quay Street, the Hook</text>
+<text x="1612.0" y="90.0" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(150, 48, 40)" text-anchor="end">ART PROPOSAL for ruling 6. Not canon.</text>
+<text x="40.0" y="682.0" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(108, 102, 94)" text-anchor="start">1 metre = 22.0 px. Frontage sequence and light sources only. NOT A RENDER and not a layout: D13 governs how the street is drawn.</text>
+<text x="1612.0" y="682.0" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(108, 102, 94)" text-anchor="end">drawn from data/parade-night.json by author/draw_parade_night.py</text>
+<rect x="68.0" y="296.0" width="1496.0" height="264.0" fill="rgb(44, 44, 50)" stroke="rgb(44, 44, 50)" stroke-width="0"/>
+<rect x="68.0" y="560.0" width="1496.0" height="57.2" fill="rgb(62, 66, 72)" stroke="rgb(62, 66, 72)" stroke-width="0"/>
+<rect x="90.0" y="397.2" width="264.0" height="162.8" fill="rgb(76, 70, 68)" stroke="rgb(70, 66, 66)" stroke-width="2"/>
+<rect x="98.8" y="494.0" width="246.4" height="50.6" fill="rgb(232, 186, 108)" stroke="rgb(40, 38, 38)" stroke-width="2"/>
+<polygon points="98.8,560.0 345.2,560.0 365.0,612.8 79.0,612.8" fill="rgb(133, 116, 87)" stroke="rgb(232, 186, 108)" stroke-width="0"/>
+<rect x="94.4" y="477.5" width="255.2" height="16.5" fill="rgb(58, 40, 42)" stroke="rgb(36, 34, 34)" stroke-width="2"/>
+<text x="222.0" y="490.9" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(226, 214, 196)" text-anchor="middle" font-weight="bold">TIVOLI</text>
+<rect x="112.0" y="425.8" width="22.0" height="35.2" fill="rgb(60, 58, 62)" stroke="rgb(48, 46, 46)" stroke-width="1"/>
+<rect x="178.0" y="425.8" width="22.0" height="35.2" fill="rgb(60, 58, 62)" stroke="rgb(48, 46, 46)" stroke-width="1"/>
+<rect x="244.0" y="425.8" width="22.0" height="35.2" fill="rgb(60, 58, 62)" stroke="rgb(48, 46, 46)" stroke-width="1"/>
+<rect x="310.0" y="425.8" width="22.0" height="35.2" fill="rgb(60, 58, 62)" stroke="rgb(48, 46, 46)" stroke-width="1"/>
+<rect x="354.0" y="397.2" width="132.0" height="162.8" fill="rgb(76, 70, 68)" stroke="rgb(70, 66, 66)" stroke-width="2"/>
+<rect x="362.8" y="494.0" width="114.4" height="50.6" fill="rgb(232, 186, 108)" stroke="rgb(40, 38, 38)" stroke-width="2"/>
+<polygon points="362.8,560.0 477.2,560.0 497.0,612.8 343.0,612.8" fill="rgb(133, 116, 87)" stroke="rgb(232, 186, 108)" stroke-width="0"/>
+<rect x="358.4" y="477.5" width="123.2" height="16.5" fill="rgb(58, 40, 42)" stroke="rgb(36, 34, 34)" stroke-width="2"/>
+<text x="420.0" y="490.9" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(226, 214, 196)" text-anchor="middle" font-weight="bold">COLEY&apos;S</text>
+<rect x="376.0" y="425.8" width="22.0" height="35.2" fill="rgb(60, 58, 62)" stroke="rgb(48, 46, 46)" stroke-width="1"/>
+<rect x="442.0" y="425.8" width="22.0" height="35.2" fill="rgb(60, 58, 62)" stroke="rgb(48, 46, 46)" stroke-width="1"/>
+<rect x="486.0" y="397.2" width="132.0" height="162.8" fill="rgb(76, 70, 68)" stroke="rgb(70, 66, 66)" stroke-width="2"/>
+<rect x="494.8" y="494.0" width="114.4" height="50.6" fill="rgb(206, 226, 232)" stroke="rgb(40, 38, 38)" stroke-width="2"/>
+<polygon points="494.8,560.0 609.2,560.0 629.0,612.8 475.0,612.8" fill="rgb(122, 133, 139)" stroke="rgb(206, 226, 232)" stroke-width="0"/>
+<rect x="490.4" y="477.5" width="123.2" height="16.5" fill="rgb(58, 40, 42)" stroke="rgb(36, 34, 34)" stroke-width="2"/>
+<text x="552.0" y="490.9" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(226, 214, 196)" text-anchor="middle" font-weight="bold">VIDEO SHOP</text>
+<rect x="508.0" y="425.8" width="22.0" height="35.2" fill="rgb(60, 58, 62)" stroke="rgb(48, 46, 46)" stroke-width="1"/>
+<rect x="574.0" y="425.8" width="22.0" height="35.2" fill="rgb(60, 58, 62)" stroke="rgb(48, 46, 46)" stroke-width="1"/>
+<rect x="618.0" y="397.2" width="264.0" height="162.8" fill="rgb(76, 70, 68)" stroke="rgb(70, 66, 66)" stroke-width="2"/>
+<rect x="626.8" y="494.0" width="246.4" height="50.6" fill="rgb(206, 226, 232)" stroke="rgb(40, 38, 38)" stroke-width="2"/>
+<polygon points="626.8,560.0 873.2,560.0 893.0,612.8 607.0,612.8" fill="rgb(122, 133, 139)" stroke="rgb(206, 226, 232)" stroke-width="0"/>
+<rect x="622.4" y="477.5" width="255.2" height="16.5" fill="rgb(58, 40, 42)" stroke="rgb(36, 34, 34)" stroke-width="2"/>
+<text x="750.0" y="490.9" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(226, 214, 196)" text-anchor="middle" font-weight="bold">INSTITUTE HALL</text>
+<rect x="640.0" y="425.8" width="22.0" height="35.2" fill="rgb(60, 58, 62)" stroke="rgb(48, 46, 46)" stroke-width="1"/>
+<rect x="706.0" y="425.8" width="22.0" height="35.2" fill="rgb(60, 58, 62)" stroke="rgb(48, 46, 46)" stroke-width="1"/>
+<rect x="772.0" y="425.8" width="22.0" height="35.2" fill="rgb(60, 58, 62)" stroke="rgb(48, 46, 46)" stroke-width="1"/>
+<rect x="838.0" y="425.8" width="22.0" height="35.2" fill="rgb(60, 58, 62)" stroke="rgb(48, 46, 46)" stroke-width="1"/>
+<rect x="882.0" y="397.2" width="132.0" height="162.8" fill="rgb(76, 70, 68)" stroke="rgb(70, 66, 66)" stroke-width="2"/>
+<rect x="890.8" y="494.0" width="114.4" height="50.6" fill="rgb(232, 186, 108)" stroke="rgb(40, 38, 38)" stroke-width="2"/>
+<polygon points="890.8,560.0 1005.2,560.0 1025.0,612.8 871.0,612.8" fill="rgb(133, 116, 87)" stroke="rgb(232, 186, 108)" stroke-width="0"/>
+<rect x="886.4" y="477.5" width="123.2" height="16.5" fill="rgb(58, 40, 42)" stroke="rgb(36, 34, 34)" stroke-width="2"/>
+<text x="948.0" y="490.9" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(226, 214, 196)" text-anchor="middle" font-weight="bold">ANCHOR CAFE</text>
+<rect x="904.0" y="425.8" width="22.0" height="35.2" fill="rgb(60, 58, 62)" stroke="rgb(48, 46, 46)" stroke-width="1"/>
+<rect x="970.0" y="425.8" width="22.0" height="35.2" fill="rgb(60, 58, 62)" stroke="rgb(48, 46, 46)" stroke-width="1"/>
+<rect x="1014.0" y="467.6" width="132.0" height="92.4" fill="rgb(76, 70, 68)" stroke="rgb(70, 66, 66)" stroke-width="2"/>
+<rect x="1022.8" y="494.0" width="114.4" height="50.6" fill="rgb(150, 96, 168)" stroke="rgb(40, 38, 38)" stroke-width="2"/>
+<polygon points="1022.8,560.0 1137.2,560.0 1157.0,612.8 1003.0,612.8" fill="rgb(98, 78, 112)" stroke="rgb(150, 96, 168)" stroke-width="0"/>
+<rect x="1018.4" y="477.5" width="123.2" height="16.5" fill="rgb(58, 40, 42)" stroke="rgb(36, 34, 34)" stroke-width="2"/>
+<text x="1080.0" y="490.9" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(226, 214, 196)" text-anchor="middle" font-weight="bold">PENNY ROOMS</text>
+<rect x="1146.0" y="397.2" width="132.0" height="162.8" fill="rgb(76, 70, 68)" stroke="rgb(70, 66, 66)" stroke-width="2"/>
+<rect x="1154.8" y="494.0" width="114.4" height="50.6" fill="rgb(92, 84, 70)" stroke="rgb(40, 38, 38)" stroke-width="2"/>
+<rect x="1150.4" y="477.5" width="123.2" height="16.5" fill="rgb(58, 40, 42)" stroke="rgb(36, 34, 34)" stroke-width="2"/>
+<text x="1212.0" y="490.9" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(226, 214, 196)" text-anchor="middle" font-weight="bold">NIGHT CHEMIST</text>
+<rect x="1168.0" y="425.8" width="22.0" height="35.2" fill="rgb(60, 58, 62)" stroke="rgb(48, 46, 46)" stroke-width="1"/>
+<rect x="1234.0" y="425.8" width="22.0" height="35.2" fill="rgb(60, 58, 62)" stroke="rgb(48, 46, 46)" stroke-width="1"/>
+<rect x="1278.0" y="397.2" width="132.0" height="162.8" fill="rgb(76, 70, 68)" stroke="rgb(70, 66, 66)" stroke-width="2"/>
+<rect x="1286.8" y="494.0" width="114.4" height="50.6" fill="rgb(206, 226, 232)" stroke="rgb(40, 38, 38)" stroke-width="2"/>
+<polygon points="1286.8,560.0 1401.2,560.0 1421.0,612.8 1267.0,612.8" fill="rgb(122, 133, 139)" stroke="rgb(206, 226, 232)" stroke-width="0"/>
+<rect x="1282.4" y="477.5" width="123.2" height="16.5" fill="rgb(58, 40, 42)" stroke="rgb(36, 34, 34)" stroke-width="2"/>
+<text x="1344.0" y="490.9" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(226, 214, 196)" text-anchor="middle" font-weight="bold">BRIGHT SPOT</text>
+<rect x="1300.0" y="425.8" width="22.0" height="35.2" fill="rgb(60, 58, 62)" stroke="rgb(48, 46, 46)" stroke-width="1"/>
+<rect x="1366.0" y="425.8" width="22.0" height="35.2" fill="rgb(60, 58, 62)" stroke="rgb(48, 46, 46)" stroke-width="1"/>
+<rect x="1410.0" y="397.2" width="132.0" height="162.8" fill="rgb(76, 70, 68)" stroke="rgb(70, 66, 66)" stroke-width="2"/>
+<rect x="1418.8" y="494.0" width="114.4" height="50.6" fill="rgb(52, 50, 54)" stroke="rgb(40, 38, 38)" stroke-width="2"/>
+<rect x="1414.4" y="477.5" width="123.2" height="16.5" fill="rgb(58, 40, 42)" stroke="rgb(36, 34, 34)" stroke-width="2"/>
+<text x="1476.0" y="490.9" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(226, 214, 196)" text-anchor="middle" font-weight="bold">TIDELINE RECORDS</text>
+<rect x="1432.0" y="425.8" width="22.0" height="35.2" fill="rgb(60, 58, 62)" stroke="rgb(48, 46, 46)" stroke-width="1"/>
+<rect x="1498.0" y="425.8" width="22.0" height="35.2" fill="rgb(60, 58, 62)" stroke="rgb(48, 46, 46)" stroke-width="1"/>
+<rect x="90.0" y="465.4" width="264.0" height="8.8" fill="rgb(70, 62, 58)" stroke="rgb(40, 38, 38)" stroke-width="2"/>
+<circle cx="98.8" cy="475.1" r="3.0" fill="rgb(232, 186, 108)" stroke="rgb(232, 186, 108)" stroke-width="1"/>
+<circle cx="109.5" cy="475.1" r="3.0" fill="rgb(232, 186, 108)" stroke="rgb(232, 186, 108)" stroke-width="1"/>
+<circle cx="120.2" cy="475.1" r="3.0" fill="rgb(232, 186, 108)" stroke="rgb(232, 186, 108)" stroke-width="1"/>
+<circle cx="130.9" cy="475.1" r="3.0" fill="rgb(70, 66, 66)" stroke="rgb(70, 66, 66)" stroke-width="1"/>
+<circle cx="141.7" cy="475.1" r="3.0" fill="rgb(232, 186, 108)" stroke="rgb(232, 186, 108)" stroke-width="1"/>
+<circle cx="152.4" cy="475.1" r="3.0" fill="rgb(232, 186, 108)" stroke="rgb(232, 186, 108)" stroke-width="1"/>
+<circle cx="163.1" cy="475.1" r="3.0" fill="rgb(232, 186, 108)" stroke="rgb(232, 186, 108)" stroke-width="1"/>
+<circle cx="173.8" cy="475.1" r="3.0" fill="rgb(232, 186, 108)" stroke="rgb(232, 186, 108)" stroke-width="1"/>
+<circle cx="184.5" cy="475.1" r="3.0" fill="rgb(232, 186, 108)" stroke="rgb(232, 186, 108)" stroke-width="1"/>
+<circle cx="195.2" cy="475.1" r="3.0" fill="rgb(232, 186, 108)" stroke="rgb(232, 186, 108)" stroke-width="1"/>
+<circle cx="205.9" cy="475.1" r="3.0" fill="rgb(232, 186, 108)" stroke="rgb(232, 186, 108)" stroke-width="1"/>
+<circle cx="216.6" cy="475.1" r="3.0" fill="rgb(70, 66, 66)" stroke="rgb(70, 66, 66)" stroke-width="1"/>
+<circle cx="227.4" cy="475.1" r="3.0" fill="rgb(232, 186, 108)" stroke="rgb(232, 186, 108)" stroke-width="1"/>
+<circle cx="238.1" cy="475.1" r="3.0" fill="rgb(232, 186, 108)" stroke="rgb(232, 186, 108)" stroke-width="1"/>
+<circle cx="248.8" cy="475.1" r="3.0" fill="rgb(232, 186, 108)" stroke="rgb(232, 186, 108)" stroke-width="1"/>
+<circle cx="259.5" cy="475.1" r="3.0" fill="rgb(232, 186, 108)" stroke="rgb(232, 186, 108)" stroke-width="1"/>
+<circle cx="270.2" cy="475.1" r="3.0" fill="rgb(232, 186, 108)" stroke="rgb(232, 186, 108)" stroke-width="1"/>
+<circle cx="280.9" cy="475.1" r="3.0" fill="rgb(232, 186, 108)" stroke="rgb(232, 186, 108)" stroke-width="1"/>
+<circle cx="291.6" cy="475.1" r="3.0" fill="rgb(232, 186, 108)" stroke="rgb(232, 186, 108)" stroke-width="1"/>
+<circle cx="302.3" cy="475.1" r="3.0" fill="rgb(70, 66, 66)" stroke="rgb(70, 66, 66)" stroke-width="1"/>
+<circle cx="313.1" cy="475.1" r="3.0" fill="rgb(232, 186, 108)" stroke="rgb(232, 186, 108)" stroke-width="1"/>
+<circle cx="323.8" cy="475.1" r="3.0" fill="rgb(232, 186, 108)" stroke="rgb(232, 186, 108)" stroke-width="1"/>
+<circle cx="334.5" cy="475.1" r="3.0" fill="rgb(232, 186, 108)" stroke="rgb(232, 186, 108)" stroke-width="1"/>
+<circle cx="345.2" cy="475.1" r="3.0" fill="rgb(232, 186, 108)" stroke="rgb(232, 186, 108)" stroke-width="1"/>
+<text x="98.8" y="458.8" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(232, 186, 108)" text-anchor="start">CANOPY: 24 LAMPS, 19 WORKING</text>
+<rect x="341.3" y="520.2" width="10.0" height="18.0" fill="rgb(80, 52, 46)" stroke="rgb(224, 106, 74)" stroke-width="2"/>
+<line x1="346.3" y1="538.2" x2="346.3" y2="560.0" stroke="rgb(224, 106, 74)" stroke-width="1" stroke-dasharray="4,3"/>
+<line x1="346.3" y1="520.2" x2="395.8" y2="376.8" stroke="rgb(224, 106, 74)" stroke-width="1" stroke-dasharray="4,3"/>
+<text x="395.8" y="370.8" font-family="DejaVu Sans, sans-serif" font-size="11" fill="rgb(224, 106, 74)" text-anchor="middle" font-weight="bold">THE CAB TELEPHONE</text>
+<text x="395.8" y="385.8" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(224, 106, 74)" text-anchor="middle">a steel hood, no dial, one office</text>
+<text x="395.8" y="398.8" font-family="DejaVu Sans, sans-serif" font-size="9" fill="rgb(224, 106, 74)" text-anchor="middle">the atlas&apos;s own taxi landline notice, made an object</text>
+<rect x="358.8" y="541.7" width="8.0" height="26.0" fill="rgb(24, 24, 28)" stroke="rgb(24, 24, 28)" stroke-width="0"/>
+<rect x="372.4" y="541.7" width="8.0" height="26.0" fill="rgb(24, 24, 28)" stroke="rgb(24, 24, 28)" stroke-width="0"/>
+<rect x="386.1" y="541.7" width="8.0" height="26.0" fill="rgb(24, 24, 28)" stroke="rgb(24, 24, 28)" stroke-width="0"/>
+<rect x="399.7" y="541.7" width="8.0" height="26.0" fill="rgb(24, 24, 28)" stroke="rgb(24, 24, 28)" stroke-width="0"/>
+<rect x="413.4" y="541.7" width="8.0" height="26.0" fill="rgb(24, 24, 28)" stroke="rgb(24, 24, 28)" stroke-width="0"/>
+<rect x="427.0" y="541.7" width="8.0" height="26.0" fill="rgb(24, 24, 28)" stroke="rgb(24, 24, 28)" stroke-width="0"/>
+<rect x="440.6" y="541.7" width="8.0" height="26.0" fill="rgb(24, 24, 28)" stroke="rgb(24, 24, 28)" stroke-width="0"/>
+<rect x="454.3" y="541.7" width="8.0" height="26.0" fill="rgb(24, 24, 28)" stroke="rgb(24, 24, 28)" stroke-width="0"/>
+<rect x="467.9" y="541.7" width="8.0" height="26.0" fill="rgb(24, 24, 28)" stroke="rgb(24, 24, 28)" stroke-width="0"/>
+<rect x="481.6" y="541.7" width="8.0" height="26.0" fill="rgb(24, 24, 28)" stroke="rgb(24, 24, 28)" stroke-width="0"/>
+<rect x="495.2" y="541.7" width="8.0" height="26.0" fill="rgb(24, 24, 28)" stroke="rgb(24, 24, 28)" stroke-width="0"/>
+<text x="420.0" y="602.9" font-family="DejaVu Sans, sans-serif" font-size="10" fill="rgb(238, 232, 220)" text-anchor="middle" font-weight="bold">THE CHIP SHOP QUEUE AT 22.52, ELEVEN DEEP, IN THE WET</text>
+<text x="44.0" y="150.0" font-family="DejaVu Sans, sans-serif" font-size="11" fill="rgb(28, 26, 24)" text-anchor="start" font-weight="bold">LIT UNITS 7 OF 9. Take the brewery signs out of a 1990 nightlife street and half its illuminated signage goes with them. What is left is</text>
+<text x="44.0" y="167.0" font-family="DejaVu Sans, sans-serif" font-size="11" fill="rgb(28, 26, 24)" text-anchor="start" font-weight="bold">FOOD AND FILM: fluorescent behind shop glass, a cinema canopy, one small neon, sodium overhead. That is a better lighting brief than a row</text>
+<text x="44.0" y="184.0" font-family="DejaVu Sans, sans-serif" font-size="11" fill="rgb(28, 26, 24)" text-anchor="start" font-weight="bold">of internally lit drink signs, not a worse one, and it is the whole argument of this sheet.</text>
+</svg>
