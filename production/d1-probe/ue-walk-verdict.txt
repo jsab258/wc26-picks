@@ -1,9 +1,91 @@
-# UE walk probe abee15e @1789034650
+# UE walk probe 6b608af @1789035914
 # Line 1 names the commit this was measured on, as the Unity verdict does.
+# Ruling 1, Jafar, 2026-09-07: this replaces human smoke-testing. Five
+#   judgments; judgment 1 (launch) is added by the workflow step from this
+#   file's own presence, its last walkPhaseReached and its exit code, because
+#   only something watching the process from outside can tell a hang from a
+#   crash from a clean exit. Judgments 2-5 are below.
+# JUDGMENT 2, streetStatus / sceneStatus line: the SAME piecesEmitted=N/M
+#   counters BuildScene emits for the vignette path, read back, not
+#   recomputed.
+# JUDGMENT 3, walkCamera*: GetActorLocation() before and after a scripted
+#   AddMovementInput phase down the open footway. walkCameraDistanceCm is
+#   the ACCEPTING-CASE distance and is reused, not remeasured, as
+#   collisionClearDistanceCm below: they are one variable.
+# JUDGMENT 4, testCardsSpawned=N/M: M is LedgerSurface::ControlQuadCount(),
+#   the count the automation path would spawn; N is what THIS process
+#   actually spawned, which is 0 by construction on this path.
+# JUDGMENT 5, collision*: a PLANTED pair per rule 5b. collisionClear* is the
+#   accepting case (the open footway); collisionBlocked* is the rejecting
+#   case, walked straight at east_parade_bay0, a full-height terrace carcass
+#   looked up by name from the street BuildScene actually spawned. STOPPED,
+#   PASSED-THROUGH, MOVED and STUCK are coarse first-cut splits, not bounds
+#   read off a series (rule 2): this instrument has never run before this
+#   commit, so the raw *DistanceCm numbers beside every word are the
+#   evidence, not the word.
+# THE GRATE, frames 05 and 06 and every grate* key below: ONE CAMERA aimed
+#   at prop_drainage_grate_01_0 from the pavement side, photographed TWICE
+#   without moving. Frame 05 is the picture of Jafar's accepting case, which
+#   run 34 measured (propsAsMesh, propPlacedWithCollision, propFullyBuried)
+#   and no frame showed. The PAIR exists because the piece's top face is
+#   coincident with the channel and carriageway top faces over about 0.16
+#   square metres (0.1599, decision-2026-09-09-the-grate-rises-flush.md).
+#   WHAT IS ACTUALLY READ IS THE CHANNEL HALF: tools/grate-zfight.py
+#   measures a 22 cm rectangle spanning z 2.76 to 2.98, wholly inside the
+#   channel course, so the crown-side strip where the grate meets the
+#   CARRIAGEWAY, about 2.60 to 2.745, is UNMEASURED by any rectangle in
+#   this run (amendment 2, decision-2026-09-09-grate-camera-and-zfight.md).
+#   AND THE FLICKER HALF CANNOT FIRE ON A STATIC PAIR: both frames come
+#   from a camera that did not move over static geometry, so a depth-test
+#   tie is deterministic and reproduces identically, and a flicker of zero
+#   is what a stable tie looks like (production/queue/173). So this run
+#   carries ONE reading, the speckle density against the same-area control
+#   rectangle named on the grateRect line, and one named gap. THE CONTROL
+#   IS THE DENOMINATOR: no bound is set here and this file decides nothing
+#   about the tie. It supplies the two frames and the two rectangles as
+#   FRACTIONS of the frame.
+# AND IT TRACES BEFORE IT SHOOTS, since run 35. That run printed
+#   grateShotStatus=AIMED, grateRectStatus=MEASURED and walkFramesWrote=7/7
+#   over a frame in which the east kerb's pedestrian guard railing (E8,
+#   posts at x=10/12/14/16 m in the plane z=3.375 m, one of them at the
+#   grate's own x) stands between the camera and the piece, and nothing
+#   asked what was in the line. The camera arithmetic was right. Each
+#   standpoint in the table is now line-traced to ten points first (five on
+#   the subject rectangle, which decide; four top-face corners and the
+#   bounds centre, which are context), the first with five clear subject
+#   rays is taken, and grateOccluded / grateBlocker are the same pair
+#   CrimeProbe prints. With no clear standpoint the shot is REFUSED with
+#   the blocker named and frames 05 and 06 are NOT written.
+# THE CLIP: this file writes two kinds of frame. ue-walk_NN_*.png is the
+#   evidence, seven named milestones (five route, two grate), untouched by
+#   the clip. ue-walkseq_NNN.png
+#   is the SEQUENCE (walkSeqFramesRequested/Wrote below), which
+#   tools/clip-from-frames.py (Pillow, no new dependency; see its own header)
+#   stitches into one GIF outside this process. This file never writes a GIF.
 
-launchStatus=NO-LAUNCH launchReason=build-step-published-no-binary
-streetStatus=NOTHING-MEASURED walkCameraStatus=NOTHING-MEASURED
-testCardsSpawned=nothing-measured collisionStatus=NOTHING-MEASURED
-NOTHING MEASURED - no walk was attempted on this commit and no older one is carried forward.
+sceneStatus=WHOLE piecesEmitted=610/610 asBox=422 asCyl=146 asPlane=20 propStandIns=18/40 decalQuads=20/20 skipped=0 lanternsPlaced=4/4 windowsLit=3/3 flatsLit=0/0 nothing-to-light multiRotationInFile=0 aheadOfUnityRun=cb4767e aheadPiecesThen=593 lampColourSpace=gamma-sRGB>linear windowColourSpace=gamma-sRGB>linear sceneNote=none propsAsMesh=22/40 propsAsBox=18/40 propFallbackWhy=prop_pavement_sign_0=no-uasset-for-pavement_sign;prop_fascia_cornice_01_0=no-uasset-for-fascia_cornice_01;prop_fascia_cornice_01_1=no-uasset-for-fascia_cornice_01;prop_fascia_cornice_01_2=no-uasset-for-fascia_cornice_01;(+14~more~not~shown) propPackageDir=/Game/Ledger/Props propNamePattern=SM_<asset> propScale=1/never-scaled/dims-policy propCentreWorstMm=0.00/on=prop_awning_02_1/of=22 propCentreStat=distance-from-the-files-own-xyz-to-the-placed-meshes-world-bounds-centre-at-worst propSizeWorstMm=44.02/on=prop_wooden_crate_01_0 propSizeComparable=20/22 propSizeStat=axis-aligned-pieces-only/a-yawed-world-aabb-is-legitimately-bigger propPlacedWithCollision=22/22 propPlacedCollisionUnread=0/22 propPlacedCollisionNoOn=none propPlacedCollisionUnknownOn=none propPlacedCollisionStat=placed-prop-mesh-components-whose-asset-reports-collision/over-placed-prop-meshes/PROXY-only-a-sweep-answers-whether-a-capsule-is-stopped/a-missing-body-setup-reads-UNKNOWN-here-and-NO-in-import_prop_meshes.py/ruled-2026-09-08/two-populations-at-two-times/never-added-never-differenced propCollisionAsked=QueryOnly/the-walk-path/NOT-A-MEASUREMENT-restates-bInteractive propFootprintsRead=40/40 propFootprintGrid=20x20/400-cells-per-prop/a-gap-narrower-than-one-cell-is-invisible-here propFullyBuried=11/40 propAnyBuried=21/40 propBurialWorst=100.0pct@150.00mm/on=prop_fascia_console_01_0/by=prop_fascia_cornice_01_0/of=40 propBurialStat=fraction-of-a-props-own-footprint-whose-top-is-inside-another-placed-pieces-bounds/at-worst-by-fraction-then-depth/pct-and-mm-and-cover-name-captured-at-the-same-cell/depth-is-an-AABB-depth-and-OVERSTATES-a-pitched-slab-by-its-cross-fall-across-its-own-width propBuriedOn=prop_fascia_console_01_0/100.0pct@150.00mm/by=prop_fascia_cornice_01_0;prop_fascia_console_01_1/100.0pct@150.00mm/by=prop_fascia_cornice_01_0;prop_fascia_console_01_2/100.0pct@150.00mm/by=prop_fascia_cornice_01_1;(+18~more~not~shown) propBuriedByEdge=east_footway=14/22;west_footway=4/11;east_channel=1/1;east_plot=2/5;west_carriageway=0/1 propBurialSubject=prop_drainage_grate_01_0/via=loaded-asset/collision=YES/topM=-0.0650/buried=40.0pct/overhung=0.0pct/open=60.0pct/deepestMm=65.01/coverTopM=0.0000/by=ground_east_carriageway/cells=400/headroom=none propBurialSubjectBy=ground_east_carriageway=65.01mm;yellow_east_0=10.75mm fill=3/3 fog=yes lampGain=1.00 fogGain=1.00 lightUnits=unitless/not-candelas decalLiftCm=1.0 decalModel=quad/phase-C-owns-the-decal skyModel=skyatmosphere+skylight-realtime-capture/not-an-hdri ambientModel=skylight-captured-sky/ONE-OWNER/trilight-retired-to-zero skyLight=yes skyLightComponent=yes skyAtmosphere=yes skyAtmosphereComponent=yes skySourceTypeRead=0 skyRealTimeCaptureRead=yes skyIntensityRead=1.000 sun=yes sunComponent=yes sunIntensityRead=3.000 sunCastShadowsRead=yes sunPitchYawRead=-36.0/25.0 sunMobilityRead=2 sunMobilityKey=0-static/1-stationary/2-movable/engine-enum-printed-not-translated sunReadStat=one-per-run/last-wins/off-the-component-after-the-last-condition-applied skyWrites=1/of=1/applyCondition-calls/write-once-per-shot-never-per-settle-tick fogComponent=yes fogDensityRead=0.0120 fogMaxOpacityRead=0.450 fillsRetiredToZero=yes fillsSpawned=3/3 skyHdriAsked=Sky/polyhaven/belfast_open_field_2k skyHdriFoundAt=NOT-FOUND/tried=C:/actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Packaged/Windows/LedgerProbe/SkyHdri/Sky/polyhaven/belfast_open_field_2k.hdr;C:/actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Packaged/Windows/LedgerProbe/Binaries/Win64/SkyHdri/Sky/polyhaven/belfast_open_field_2k.hdr;C:/actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Packaged/Windows/ledger/Assets/Resources/Sky/polyhaven/belfast_open_field_2k.hdr;C:/actions-runner-ledger/_work/wc26-picks/wc26-picks/ue-probe/Packaged/ledger/Assets/Resources/Sky/polyhaven/belfast_open_field_2k.hdr skyHdriBytes=0 skyHdriDetectedAs=not-read skyHdriBoundAs=NOTHING/a-skylight-takes-a-cube-and-this-engine-builds-none-at-runtime skyReadStat=every-value-above-is-read-back-off-the-component-after-the-write/never-the-value-that-was-asked-for
+walkCameraStartXYZcm=400.0/400.0/98.0 walkCameraEndXYZcm=1184.6/420.0/97.6 walkCameraDistanceCm=784.9 walkCameraSeconds=3.00 walkCameraStat=accepting-case/open-footway walkCameraStatus=MOVED
+collisionClearDistanceCm=784.9 collisionClearSeconds=3.00 collisionClearStat=same-measurement-as-walkCameraDistanceCm/one-variable collisionClearStatus=MOVED
+collisionBlockedWallName=east_parade_bay0 collisionBlockedApproachClearanceCm=150.0 collisionBlockedStartXYZcm=600.0/362.5/98.9 collisionBlockedEndXYZcm=600.0/462.5/98.7 collisionBlockedDistanceCm=100.0 collisionBlockedSeconds=3.00 collisionBlockedStat=first-run-of-this-instrument/not-a-tuned-bound collisionBlockedStatus=STOPPED
+collisionStatus=REAL collisionStatusNote=needs-both-the-accepting-and-the-planted-case/rule-5b
+testCardsSpawned=0/3 testCardsStatus=ABSENT
+walkFramesRequested=7/7 walkFramesWrote=7/7
+walkShot=start walkShotAtXYZcm=400.0/400.0/98.0 shotW=960 shotH=540 shotPixels=518400 shotMeanLuma=0.6092 shotMinLuma=0.0450 shotMaxLuma=0.9332 shotNonBlackPixels=518400 shotNonBlackPct=100.00 shotDistinctBuckets=1313/32768 shotBlank=no shotBytes=1169348
+walkShot=mid_clear walkShotAtXYZcm=818.1/417.1/97.7 shotW=960 shotH=540 shotPixels=518400 shotMeanLuma=0.5645 shotMinLuma=0.0389 shotMaxLuma=0.9381 shotNonBlackPixels=518400 shotNonBlackPct=100.00 shotDistinctBuckets=975/32768 shotBlank=no shotBytes=912088
+walkShot=after_clear walkShotAtXYZcm=1191.0/420.0/97.6 shotW=960 shotH=540 shotPixels=518400 shotMeanLuma=0.5585 shotMinLuma=0.0495 shotMaxLuma=0.9490 shotNonBlackPixels=518400 shotNonBlackPct=100.00 shotDistinctBuckets=1119/32768 shotBlank=no shotBytes=1006482
+walkShot=before_blocked walkShotAtXYZcm=600.0/362.5/98.9 shotW=960 shotH=540 shotPixels=518400 shotMeanLuma=0.6053 shotMinLuma=0.0414 shotMaxLuma=0.9599 shotNonBlackPixels=518400 shotNonBlackPct=100.00 shotDistinctBuckets=1289/32768 shotBlank=no shotBytes=1119479
+walkShot=after_blocked walkShotAtXYZcm=600.0/462.5/98.7 shotW=960 shotH=540 shotPixels=518400 shotMeanLuma=0.6162 shotMinLuma=0.0363 shotMaxLuma=0.9467 shotNonBlackPixels=518400 shotNonBlackPct=100.00 shotDistinctBuckets=1269/32768 shotBlank=no shotBytes=1130923
+walkShot=grate_a walkShotAtXYZcm=600.0/462.5/98.7 shotW=960 shotH=540 shotPixels=518400 shotMeanLuma=0.6032 shotMinLuma=0.0678 shotMaxLuma=0.9310 shotNonBlackPixels=518400 shotNonBlackPct=100.00 shotDistinctBuckets=1326/32768 shotBlank=no shotBytes=937338
+walkShot=grate_b walkShotAtXYZcm=600.0/462.5/98.7 shotW=960 shotH=540 shotPixels=518400 shotMeanLuma=0.6033 shotMinLuma=0.0686 shotMaxLuma=0.9310 shotNonBlackPixels=518400 shotNonBlackPct=100.00 shotDistinctBuckets=1322/32768 shotBlank=no shotBytes=934386
+grateShotStatus=AIMED grateShotName=prop_drainage_grate_01_0 grateOccluded=no grateBlocker=none grateSubjectRaysClear=5/5 grateFaceRaysClear=0/4 grateCentreRayClear=no grateBlockedRays=f0..ground_east_carriageway;f1..ground_east_carriageway;f2..kerb_east_gully_lo;f3..kerb_east_kerb012;b..ground_east_channel grateCandChosen=02 grateCandidatesTried=3/8 grateCandidatesBlocked=2/3 grateRaysTraced=30/80 grateOccludedStat=decided-on-the-five-subject-rectangle-rays-of-the-chosen-standpoint/face-corners-and-bounds-centre-are-context-and-do-not-vote grateRaysStat=cumulative-over-the-standpoints-actually-tried/ten-each/the-search-stops-at-the-first-clear-one grateSubjGridRaysTraced=243/648 grateSubjGridRaysStat=cumulative-over-the-standpoints-actually-tried/81-cells-each/the-denominator-is-every-standpoint-in-the-list-and-the-search-stops-at-the-first-clear-one/counted-apart-from-grateRaysTraced-so-neither-borrows-the-others-denominator grateRayLiftCm=1.0 grateRayLiftStat=clearance-above-the-placed-top-face/not-a-bound/the-face-is-coplanar-with-the-road-plane-at-0.000mm grateBoundsCentreXYZcm=1200.0/280.0/-7.8 grateBoundsTopZcm=-6.50 grateBoundsSizeXYZcm=40.0/40.0/2.5 grateCamAskedXYZcm=1200.0/325.0/118.5 grateCamAskedPitchYaw=-70.2/-90.0 grateCamStandoffCm=132.9 grateCamVFovDeg=40.0 grateCamHFovDeg=65.8
+grateCand=00 grateCandOffsetAcrossAlongEyeCm=130.0/0.0/125.0 grateCandAtXYZcm=1200.0/410.0/118.5 grateCandPitchDeg=-43.9 grateCandStandoffCm=180.3 grateCandSubjectRaysClear=0/5 grateCandFaceRaysClear=0/4 grateCandCentreRayClear=no grateCandOccluded=yes grateCandBlocker=rail_post1 grateCandBlockedRays=s0..rail_post1;s1..rail_bar0_45;s2..rail_bar1_45;s3..kerb_east_gully_lo;s4..kerb_east_kerb012;f0..ground_east_carriageway;f1..ground_east_carriageway;f2..ground_east_footway;f3..ground_east_footway;b..rail_post1 grateCandCtrlOffPitchDeg=13.1 grateCandCtrlOffYawDeg=0.0 grateCandHalfVDeg=20.0 grateCandHalfHDeg=32.9 grateCandFramingStat=angle-to-the-control-rectangles-CENTRE-from-the-camera-axis/not-a-rect-in-frame-test/printed-so-the-selection-rule-can-be-set-from-a-series grateCandSubjGridClear=24/81 grateCandSubjGridSpacingCm=2.75 grateCandSubjGridFirstBlockedCellAlongAcross=00/00 grateCandSubjGridFirstBlocker=rail_bar0_45 grateCandSubjGridStat=counted-over-the-cells-walked/not-voted-on/the-selection-is-still-grateCandSubjectRaysClear-and-first-clear-wins grateCandChosen=no
+grateCand=01 grateCandOffsetAcrossAlongEyeCm=85.0/0.0/120.0 grateCandAtXYZcm=1200.0/365.0/113.5 grateCandPitchDeg=-54.7 grateCandStandoffCm=147.1 grateCandSubjectRaysClear=2/5 grateCandFaceRaysClear=0/4 grateCandCentreRayClear=no grateCandOccluded=yes grateCandBlocker=rail_post1 grateCandBlockedRays=s0..rail_post1;s3..kerb_east_gully_lo;s4..kerb_east_gully_lo;f0..ground_east_carriageway;f1..ground_east_carriageway;f2..kerb_east_gully_lo;f3..kerb_east_kerb012;b..rail_post1 grateCandCtrlOffPitchDeg=18.7 grateCandCtrlOffYawDeg=0.0 grateCandHalfVDeg=20.0 grateCandHalfHDeg=32.9 grateCandFramingStat=angle-to-the-control-rectangles-CENTRE-from-the-camera-axis/not-a-rect-in-frame-test/printed-so-the-selection-rule-can-be-set-from-a-series grateCandSubjGridClear=32/81 grateCandSubjGridSpacingCm=2.75 grateCandSubjGridFirstBlockedCellAlongAcross=02/00 grateCandSubjGridFirstBlocker=rail_post1 grateCandSubjGridStat=counted-over-the-cells-walked/not-voted-on/the-selection-is-still-grateCandSubjectRaysClear-and-first-clear-wins grateCandChosen=no
+grateCand=02 grateCandOffsetAcrossAlongEyeCm=45.0/0.0/125.0 grateCandAtXYZcm=1200.0/325.0/118.5 grateCandPitchDeg=-70.2 grateCandStandoffCm=132.9 grateCandSubjectRaysClear=5/5 grateCandFaceRaysClear=0/4 grateCandCentreRayClear=no grateCandOccluded=no grateCandBlocker=none grateCandBlockedRays=f0..ground_east_carriageway;f1..ground_east_carriageway;f2..kerb_east_gully_lo;f3..kerb_east_kerb012;b..ground_east_channel grateCandCtrlOffPitchDeg=25.2 grateCandCtrlOffYawDeg=0.0 grateCandHalfVDeg=20.0 grateCandHalfHDeg=32.9 grateCandFramingStat=angle-to-the-control-rectangles-CENTRE-from-the-camera-axis/not-a-rect-in-frame-test/printed-so-the-selection-rule-can-be-set-from-a-series grateCandSubjGridClear=81/81 grateCandSubjGridSpacingCm=2.75 grateCandSubjGridFirstBlockedCellAlongAcross=none grateCandSubjGridFirstBlocker=none grateCandSubjGridStat=counted-over-the-cells-walked/not-voted-on/the-selection-is-still-grateCandSubjectRaysClear-and-first-clear-wins grateCandChosen=yes
+grateRectStatus=OFF-FRAME grateRectFrameWH=960/540 grateSubjectRectFrac=0.4329/0.4615/0.5671/0.6835 grateControlRectFrac=0.4329/-0.2575/0.5671/-0.0354 grateSubjectRectPx=129/120 grateRectPixelsEach=15439 grateSubjectIs=grate-top-face-inset-and-clear-of-the-yellow grateControlIs=plain-carriageway-80cm-toward-the-crown/same-pixel-area grateCamReadXYZcm=1200.0/325.0/118.5 grateCamReadPitchYaw=-70.2/-90.0 grateRectNote=fractions-of-the-frame/multiply-by-the-image-own-size
+grateViewRestoreStatus=RESTORED grateViewRestoreWas=the-pawn grateViewRestoreNowIsTheProbeCamera=no
+walkSeqFramesRequested=15/16 walkSeqFramesWrote=15/16 walkSeqIntervalSeconds=0.4 walkSeqCeilingSeconds=5.0 walkSeqNamePrefix=ue-walkseq_
+walkPhaseReached=done
 walkReached=end
-clipStatus=SKIPPED clipReason=no-sequence-frames-found clipDirsSearched=1
+launchStatus=LAUNCHED launchExitCode=0 launchLastPhaseReached=done launchWaitSeconds=12.83 launchWaitCeilingSeconds=600 launchVerdictCandidates=3 launchVerdictFound=yes launchExitCodeIsNotTheVerdict=true
+walkFramesCollected=7/7 walkFramesCollectedStat=copied-over-files-this-step-FOUND/never-over-how-many-the-probe-asked-for/see-walkFramesRequested-on-the-probes-own-line walkFramesCollectedFromDirs=3
+clip clipStatus=WROTE clipReason=none clipFramesExamined=15 clipFramesUsed=15 clipWidth=480 clipHeight=270 clipDurationMs=120 clipScale=0.5 clipBytes=1609037 clipMaxBytes=8388608 clipOut=production/d1-probe/ue-walk.gif clipCaptionedFrames=nothing-measured clipCaptionReason=no-frame-keys-file-given clipCaptionTextPx=0 clipCaptionFont=none clipCaptionLinesDropped=0/0-wrapped clipCaptionKeysRead=0 clipCaptionBankRead=0 clipCaptionsBySource=nothing-measured clipCaptionSpokenVsBank=nothing-measured clipCaptionTildeRuns=nothing-measured
