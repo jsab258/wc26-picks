@@ -1,11 +1,11 @@
-# LEDGER push diagnosis - abee15e @1789034684
+# LEDGER push diagnosis - d690ad2 @1789046703
 # Line 1 names the commit this was read on. READ ONLY: nothing here
 # writes to his checkout, pushes, or prints any credential value.
 diagRepo=C:\Users\Jafar\wc26-picks diagRepoExists=True
-lsRemoteExit=0 lsRemoteSec=0.5 lsRemoteSha=2a7a234cec416cef9a7701c458dc8ccce76a4932
+lsRemoteExit=0 lsRemoteSec=0.6 lsRemoteSha=2a7a234cec416cef9a7701c458dc8ccce76a4932
 localTipRef=2a7a234cec416cef9a7701c458dc8ccce76a4932
 onDisk_production_inbox=2
-onDisk_production_outbound=534
+onDisk_production_outbound=40
 onDisk_production_rulings=-1
 remoteHostPath=m/jsab258/wc26-picks.git
 credentialHelper=manager
