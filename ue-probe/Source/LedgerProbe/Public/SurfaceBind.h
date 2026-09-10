@@ -1024,8 +1024,8 @@ namespace LedgerSurface
 			if (B.bTintBuilt)
 			{
 				double Tr = 0.0, Tg = 0.0, Tb = 0.0, Gr = 0.0, Gg = 0.0, Gb = 0.0;
-				const int PI = ProceduralSurfaceIndex(B.Surface);
-				if (PI >= 0) { ProceduralSurfaceTint(PI, Tr, Tg, Tb); }
+				const int ProcIdx = ProceduralSurfaceIndex(B.Surface);
+				if (ProcIdx >= 0) { ProceduralSurfaceTint(ProcIdx, Tr, Tg, Tb); }
 				TextureGrade(Gr, Gg, Gb);
 				std::snprintf(Buf, sizeof(Buf),
 					" surfaceRoute=%s tintTexel=%d.%d.%d tintFrom=spec.%.2f.%.2f.%.2f"
