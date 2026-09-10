@@ -137,6 +137,14 @@ namespace Ledger.Core
             public string Id, Hdri;
             public bool SunOn, LanternsOn, WindowsOn;
             public double Wetness, FogDensity, SunIntensity, SkyIntensity;
+            /// A4, 2026-09-09. HOW MUCH OF THE FAR FIELD THE HEIGHT FOG MAY
+            /// OWN. It was a hardcoded 0.45f inside the Unreal emitter, and
+            /// THIS READER KNOWING ABOUT IT IS THE POINT: a key only one
+            /// engine knows is the same fault as a key with a silent default,
+            /// facing the other way, and the comment at the top of this file
+            /// says a missing key is an error precisely so the two engines
+            /// cannot quietly build two different streets.
+            public double FogMaxOpacity;
         }
 
         public struct Shot
@@ -1809,7 +1817,10 @@ namespace Ledger.Core
                     // a literal from whichever engine is reading. That
                     // inheritance is the exact fault queue 205 repairs.
                     SunIntensity = Num(o, "sun_intensity"),
-                    SkyIntensity = Num(o, "sky_intensity")
+                    SkyIntensity = Num(o, "sky_intensity"),
+                    // REQUIRED ON THE SAME TERMS. Num throws on a missing
+                    // key and the caller turns that into plan.Error.
+                    FogMaxOpacity = Num(o, "fog_max_opacity")
                 });
             }
             foreach (var sh in MiniJson.GetList(root, "shots"))

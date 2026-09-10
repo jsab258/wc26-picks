@@ -2019,7 +2019,14 @@ def run_batch(exe, ws, pl, spec, outdir, max_minutes, log, redo=False,
     if problems:
         manifest["status"] = "REFUSED"
         manifest["problems"] = problems
-        log("  REFUSED TO START: prompts.json is not usable as it stands.")
+        # THE FILENAME WAS HARDCODED HERE AND NAMED THE WRONG FILE.
+        # Since --spec landed, a run given a one-off comparison spec
+        # refused while naming prompts.json, the 45-item shipped
+        # library, which is the one file such a run never touches. That
+        # cost a diagnosis on 2026-09-10. It now names no file rather
+        # than a wrong one; the per-item problems below carry the ids.
+        log("  REFUSED TO START: the spec this run was given is not "
+            "usable as it stands.")
         for p in problems:
             log(f"    - {p}")
         save()

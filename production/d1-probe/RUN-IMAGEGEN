@@ -217,3 +217,36 @@ out: production/art/compare/hook-2026-09-09-pass2
 only: hook_pass2,hook_pass2_s2,hook_pass2_s3,hook_pass2_s4
 limit: 4
 max_minutes: 30
+
+# ---------------------------------------------------------------------------
+# run 7 - 2026-09-10 - PASS 2 AGAIN, AND THE REASON RUN 6 REFUSED IS FIXED.
+# Run 6 read the pass-2 spec correctly (source=--spec, itemsInSpec=4) and then
+# REFUSED TO START, banking nothing: imagegenVerdict=NO-RUN with
+# why=nothing-generated-nothing-was-attempted.
+#
+# THE CAUSE, off the committed manifest and not off an argument. Four of four
+# items: "the POSITIVE prompt still says ['no'] - an exclusion belongs in
+# `negatives`, because a diffusion model reads the noun and draws it. That is
+# what put a sign board on wall_soot_brick." THE CORRECTION PASS, WRITTEN TO
+# FIX LETTERING, ASKED FOR "no text" TWICE IN THE HALF OF THE PROMPT THAT
+# CANNOT EXPRESS "no". The guard was right and it cost nothing: it refused
+# before a minute of GPU was spent.
+#
+# WHAT CHANGED. Both exclusions moved from the positive prompt into `negative`.
+# "with no text on it at all" is now "plain unlettered painted timber", and
+# "Both rows unlabelled, no text." is now "Both rows unlabelled.". The token is
+# absent from 4 of 4 positive prompts and the exclusions are present in 4 of 4
+# negatives, both counted rather than assumed.
+#
+# AND THE MESSAGE THAT SENT THE READER TO THE WRONG FILE IS FIXED. It
+# hardcoded "prompts.json", so every --spec run refused while naming the one
+# file such a run never touches. It now names no file rather than a wrong one.
+# imagegen selftest after both changes: 144 passed, 0 failed.
+#
+# THE SETTINGS. Uncommented lines only, last-wins, so these five override every
+# pair above and nothing at all is inherited by accident.
+spec: tools/imagegen/compare-hook-2026-09-09-pass2.json
+out: production/art/compare/hook-2026-09-09-pass2
+only: hook_pass2,hook_pass2_s2,hook_pass2_s3,hook_pass2_s4
+limit: 4
+max_minutes: 30

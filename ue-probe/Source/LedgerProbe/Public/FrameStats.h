@@ -547,6 +547,21 @@ namespace LedgerFrame
 		double      P05 = 0.0, P50 = 0.0, P95 = 0.0;
 		double      MeanR = 0.0, MeanG = 0.0, MeanB = 0.0;
 		long long   ClipHiAny = 0;
+		// ---- A2, 2026-09-09: THE TWO RAILS AND THE SORTED SAMPLE ---------
+		//
+		// RailLo counts pixels with every channel at 0 and RailHi is
+		// ClipHiAny by another name, any channel at 255. They are the
+		// VALIDITY DENOMINATOR of any rank claim made about this band: a
+		// tonemap plus 8-bit quantisation is strictly monotone in the middle
+		// and FLAT at both ends, so at the rails the order between two
+		// scene values is not preserved and an invariance claim stops being
+		// true there. Printed beside the rank key always, per rule 3b.
+		long long   RailLo = 0;
+		// THE BAND'S OWN LUMA SAMPLE, SORTED, KEPT so a rank comparison
+		// against another band of the SAME frame can be counted without a
+		// second pass over the image. About 1.5 MB for a ground band at
+		// 1280x720 and freed with the struct.
+		std::vector<double> Sorted;
 	};
 
 	// A BAND OF ONE FRAME, GIVEN AS FRACTIONS OF THE FRAME so one call site
@@ -581,6 +596,7 @@ namespace LedgerFrame
 				const unsigned char G = Bgra[P * 4 + 1];
 				const unsigned char R = Bgra[P * 4 + 2];
 				if (R == 255 || G == 255 || B == 255) { ++S.ClipHiAny; }
+				if (R == 0 && G == 0 && B == 0) { ++S.RailLo; }
 				SumR += (double)R; SumG += (double)G; SumB += (double)B;
 				L.push_back(Luma(R, G, B));
 			}
@@ -604,6 +620,11 @@ namespace LedgerFrame
 		S.MeanR = SumR / (double)L.size();
 		S.MeanG = SumG / (double)L.size();
 		S.MeanB = SumB / (double)L.size();
+		// SORTED ALREADY, HANDED ON AS IT IS. The rank key below counts
+		// against a threshold taken from ANOTHER BAND OF THE SAME FRAME, and
+		// a sorted sample answers that by binary search rather than by a
+		// second pass over the image.
+		S.Sorted = L;
 		return S;
 	}
 
@@ -655,6 +676,143 @@ namespace LedgerFrame
 		return std::string(Buf);
 	}
 
+	// ========================================================================
+	// A2, RULED 2026-09-09: THE TWO STATISTICS THAT SURVIVE A MOVING EXPOSURE,
+	// AND THE WORD "INVARIANT" IS NOT FREE.
+	//
+	// WHAT WENT WRONG FIRST. Every cross-frame number this rig has printed is
+	// void: run 38 photographed eleven frames under unsnapped histogram auto
+	// exposure (ppAutoExposureMethod=0, cvarDefaultAutoExposure=1), and its
+	// own null pair, two shots of the SAME condition at the SAME camera,
+	// differ by 0.1106 of whole-frame mean luma. A number from this rig is
+	// worth something only if it is a comparison INSIDE one photograph.
+	//
+	// AND THE CORRECTION THAT DECIDES THESE KEYS. A ratio is NOT invariant
+	// under this tonemapper. "A difference scales with k and a ratio does
+	// not" is true of a linear multiplier and false of what runs here, which
+	// is an exposure multiply followed by a filmic curve. That curve is
+	// MONOTONE, NOT LINEAR: under a monotone map a ratio moves, a difference
+	// moves, and what survives EXACTLY is ORDER. So there are three classes
+	// and every key below says which one it is in:
+	//
+	//   ABSOLUTE          a luma, a percentile, a mean. May be printed, may
+	//                     NOT be compared across cells.
+	//   ROBUST            a within-frame ratio. Moves with exposure, far less
+	//                     than either end does. Quotable across cells only
+	//                     when the null cell says the exposure held.
+	//   EXACTLY INVARIANT a RANK statistic, meaning a quantity whose
+	//                     definition mentions only comparisons between pixels
+	//                     of the SAME frame.
+	//
+	// AND THE EXCEPTIONS ARE NAMED RATHER THAN IMPLIED, because "invariant"
+	// with no exceptions is the claim this project refuses: bloom, a lens
+	// vignette, grain and LOCAL tonemapping are not whole-frame monotone
+	// curves, and a rank statistic is not invariant under any of them.
+	// ========================================================================
+
+	// THE ROBUST RATIO, p95 OVER p05, OF THE GROUND BAND OF ONE FRAME.
+	//
+	// It is the statistic the reference gap is largest on: the reference
+	// street reads ground p05 0.1932 and p95 0.7281, a ratio of 3.77, and the
+	// frame this rig ships reads 0.5785 and 0.9304, a ratio of 1.61. Our road
+	// is three times brighter at the dark end and carries under half the
+	// contrast. Those four numbers are recorded in the ruling of 2026-09-09
+	// and are NOT in code, so nothing here can compare against them by
+	// accident.
+	inline std::string GroundRobustRatioKeys(const BandStats& Ground)
+	{
+		const std::string N = "band." + Ground.Name;
+		std::string Out;
+		if (!Ground.Measured || Ground.Pixels == 0 || Ground.P05 <= 0.0)
+		{
+			Out += N + ".p95OverP05=NOTHING-MEASURED";
+			Out += " " + N + ".p95OverP05Why=";
+			Out += (!Ground.Measured || Ground.Pixels == 0)
+			     ? "no-pixels-in-this-band/not-a-flat-band"
+			     : "the-p05-of-this-band-is-zero/a-ratio-over-a-rail-is-not-a-contrast";
+		}
+		else
+		{
+			char Buf[64];
+			std::snprintf(Buf, sizeof(Buf), "%.4f", Ground.P95 / Ground.P05);
+			Out += N + ".p95OverP05=" + Buf;
+		}
+		Out += " " + N + ".p95OverP05Stat=within-one-frame-ratio-of-two-indexed-order-statistics/"
+		       "not-interpolated/ROBUST-NOT-INVARIANT/"
+		       "a-tonemap-is-monotone-not-linear-so-this-moves-when-the-exposure-moves/"
+		       "quotable-across-cells-only-when-the-null-cell-held";
+		return Out;
+	}
+
+	// THE RANK KEY, AND ITS DEFINITION MENTIONS ONLY COMPARISONS BETWEEN
+	// PIXELS OF THE SAME FRAME, which is the one rule the ruling set on it.
+	//
+	//   darkerThanSkyMedianPct = the percentage of GROUND band pixels whose
+	//   luma is strictly below the MEDIAN PIXEL OF THE skyCentre BAND OF THE
+	//   SAME FRAME.
+	//
+	// WHY THIS ONE. Exposure and a filmic curve move every luma in the frame
+	// through one strictly monotone map, and a strictly monotone map cannot
+	// reorder two pixels: if a road pixel was darker than the sky's middle
+	// pixel before the curve, it is darker after. So this number is EXACTLY
+	// the same under any exposure the rig drifts to, which no percentile and
+	// no mean on this line can claim. What it measures is the thing the grid
+	// is being read for: how much of the road sits below the sky, which is
+	// what a picture with a dark end in it has and ours has not.
+	//
+	// WHERE THE CLAIM STOPS BEING TRUE, PRINTED BESIDE IT ALWAYS:
+	//   Ties   ground pixels EXACTLY AT the threshold. The comparison is
+	//          strict, so a tie falls outside the count, and 8-bit
+	//          quantisation is what makes ties exist at all.
+	//   Rails  ground pixels at the bottom of the range (every channel 0) and
+	//          at the top (any channel 255). The curve is FLAT there, not
+	//          strictly monotone, so order is not preserved among them.
+	// A rank number quoted without these two is a claim without its
+	// denominator, which is rule 3b.
+	inline std::string GroundRankKeys(const BandStats& Ground, const BandStats& SkyCentre)
+	{
+		const std::string N = "band." + Ground.Name;
+		const std::string Stat =
+			" " + N + ".darkerThanSkyMedianPctStat="
+			"a-rank-comparison-between-pixels-of-ONE-frame/"
+			"EXACTLY-invariant-under-any-strictly-monotone-whole-frame-curve-including-exposure-and-this-tonemap/"
+			"NOT-invariant-under-bloom-vignette-grain-or-local-tonemapping-which-are-not-whole-frame-monotone/"
+			"threshold-is-the-skyCentre-band-median-pixel-of-the-SAME-frame";
+		std::string Out;
+		if (!Ground.Measured || Ground.Pixels == 0 || Ground.Sorted.empty()
+		    || !SkyCentre.Measured || SkyCentre.Pixels == 0)
+		{
+			Out += N + ".darkerThanSkyMedianPct=NOTHING-MEASURED";
+			Out += " " + N + ".darkerThanSkyMedianPctWhy=";
+			Out += (!SkyCentre.Measured || SkyCentre.Pixels == 0)
+			     ? "the-skyCentre-band-had-no-pixels-so-there-is-no-threshold-to-rank-against"
+			     : "the-ground-band-had-no-pixels-to-rank";
+			Out += Stat;
+			Out += " " + N + ".darkerThanSkyMedianPctTies=nothing-measured";
+			Out += " " + N + ".darkerThanSkyMedianPctRails=nothing-measured";
+			return Out;
+		}
+		const double Threshold = SkyCentre.P50;
+		const long long Below = (long long)(std::lower_bound(
+			Ground.Sorted.begin(), Ground.Sorted.end(), Threshold) - Ground.Sorted.begin());
+		const long long AtOrBelow = (long long)(std::upper_bound(
+			Ground.Sorted.begin(), Ground.Sorted.end(), Threshold) - Ground.Sorted.begin());
+		const long long Ties = AtOrBelow - Below;
+		char Buf[96];
+		std::snprintf(Buf, sizeof(Buf), "%.4f", 100.0 * (double)Below / (double)Ground.Pixels);
+		Out += N + ".darkerThanSkyMedianPct=" + Buf + "/of=" + std::to_string(Ground.Pixels);
+		Out += Stat;
+		Out += " " + N + ".darkerThanSkyMedianPctTies=" + std::to_string(Ties)
+		     + "/of=" + std::to_string(Ground.Pixels);
+		Out += " " + N + ".darkerThanSkyMedianPctRails=" + std::to_string(Ground.RailLo)
+		     + "/" + std::to_string(Ground.ClipHiAny)
+		     + "/of=" + std::to_string(Ground.Pixels);
+		Out += " " + N + ".darkerThanSkyMedianPctTiesRailsStat="
+		       "ties-are-ground-pixels-EXACTLY-at-the-threshold-and-the-comparison-is-strict-so-they-are-outside-the-count/"
+		       "rails-are-lo-then-hi-where-the-curve-is-flat-rather-than-strictly-monotone-and-the-invariance-claim-does-not-hold";
+		return Out;
+	}
+
 	// THE THREE BANDS OF ONE SHOT, ON ONE LINE, plus the one derived number
 	// that is worth having and its named limit.
 	//
@@ -673,6 +831,14 @@ namespace LedgerFrame
 		Out += BandLine(SkyCentre);
 		Out += " ";
 		Out += BandLine(Ground);
+		Out += " ";
+		// A2: THE ROBUST RATIO AND THE RANK KEY, BOTH OF THE GROUND BAND,
+		// both per-sample, both on the sample line. Printed before the
+		// absolute ratio below so a reader meets the two quotable numbers
+		// before the one that is void across cells.
+		Out += GroundRobustRatioKeys(Ground);
+		Out += " ";
+		Out += GroundRankKeys(Ground, SkyCentre);
 		Out += " ";
 		if (!SkyCentre.Measured || !Ground.Measured
 		    || SkyCentre.Pixels == 0 || Ground.Pixels == 0

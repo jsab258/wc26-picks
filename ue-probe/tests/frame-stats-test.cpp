@@ -51,26 +51,55 @@ static std::vector<unsigned char> Flat(int W, int H, unsigned char B,
 
 // EVERY VALUE IN THE DONE LINE IS SPACE-FREE, checked mechanically rather
 // than by eye. Every reader in this project splits on whitespace, so a value
-// with a space in it truncates silently: the token count and the `=` count
-// must agree, and each token must carry exactly one `=`.
+// with a space in it truncates silently: each whitespace-separated token must
+// therefore be a key with a non-empty value, and a value that held a space
+// would leave a fragment behind that is not one.
+//
+// ONE EQUALS PER TOKEN IS NOT THE RULE, and until 2026-09-09 this function
+// asserted that it was. The project rule, `.claude/rules/instruments.md`, is
+// "no spaces in key=value values; use / and .. for structure", and a value
+// carrying its own denominator is this verdict's oldest shape: `skyWrites=0/
+// of=0/...` and `propCentreWorstMm=0.00/on=x/of=0` have both shipped for
+// weeks, and ue-probe/tests/vignette-spec-test.cpp's EveryTokenIsKeyValue
+// accepts exactly that. A2's rank keys are dictated as
+// `<key>=<v>/of=<pixels>`, so the denominator rides inside the value where a
+// grep for the key cannot lose it. This is the sibling file's predicate,
+// copied rather than re-invented so the two test binaries cannot disagree
+// about what a verdict token is.
 static bool ValuesHaveNoSpaces(const std::string& Line)
 {
 	std::istringstream In(Line);
 	std::string Tok;
-	int Tokens = 0, Equals = 0;
+	int Tokens = 0;
 	while (In >> Tok)
 	{
 		++Tokens;
-		int E = 0;
-		for (char C : Tok) { if (C == '=') { ++E; } }
-		if (E != 1) { return false; }
-		Equals += E;
+		const size_t At = Tok.find('=');
+		if (At == std::string::npos || At == 0 || At + 1 >= Tok.size()) { return false; }
 	}
-	return Tokens > 0 && Tokens == Equals;
+	return Tokens > 0;
 }
 
 int main()
 {
+	// ---- THE SPACE CHECKER ITSELF, BOTH OUTCOMES, BEFORE IT IS TRUSTED ---
+	//
+	// It was relaxed on 2026-09-09 from "exactly one equals per token" to the
+	// project's actual rule, so it ships with the case it must still REFUSE
+	// rather than with an argument that it does. A space inside a value is
+	// the fault: every reader here splits on whitespace and truncates in
+	// silence, and one red check on a line with a space in it is what stood
+	// between this verdict and a key nobody could read.
+	{
+		Check(ValuesHaveNoSpaces("a.b=1/of=2 c=3/x=4/y=5"),
+		      "the space checker ACCEPTS a value carrying its own denominator, which is the dictated shape");
+		Check(!ValuesHaveNoSpaces("band.ground.rank=nothing measured"),
+		      "and REFUSES a value with a space in it, which is the fault it exists for");
+		Check(!ValuesHaveNoSpaces("band.ground.rank= 0.5"),
+		      "and refuses an empty value followed by a number, which reads as a key with nothing in it");
+		Check(!ValuesHaveNoSpaces("noEqualsHere"), "and refuses a token that is not a key at all");
+	}
+
 	// ---- ACCEPTING CASE FIRST: a frame with content must read WROTE ----
 	{
 		const int W = 8, H = 4;
@@ -443,6 +472,141 @@ int main()
 		              Luma(90, 90, 90) / Luma(190, 200, 210));
 		Check(L.find(Want) != std::string::npos,
 		      "the ratio is the ground band over the sky centre band");
+	}
+	{
+		// ---- A2: THE ROBUST RATIO AND THE RANK KEY, ON A PLANTED FRAME ---
+		//
+		// ACCEPTING CASE FIRST, AND THE COUNTS ARE ARITHMETIC RATHER THAN A
+		// REMEMBERED ANSWER. The ground band of this 80x80 frame is rows 64
+		// to 79, 1280 pixels, planted in four populations:
+		//   rows 64..70, 560 px, mid grey 90   strictly BELOW the sky median
+		//   10 of those  replaced by pure black, which are the LO RAIL
+		//   row 71,       80 px, the sky colour EXACTLY, which are the TIES
+		//   rows 72..79, 640 px, 240 grey      strictly ABOVE, 5 of them white
+		// so the rank key must read 560/1280 = 43.7500 per cent with 80 ties,
+		// 10 on the lo rail and 5 on the hi rail. A tie is outside the count
+		// because the comparison is strict, and that is why it is printed.
+		const int W = 80, H = 80;
+		std::vector<unsigned char> Px((size_t)W * H * 4, 255);
+		for (int Y = 0; Y < H; ++Y)
+		{
+			for (int X = 0; X < W; ++X)
+			{
+				const long long P = (long long)Y * W + X;
+				unsigned char B = 90, G = 90, R = 90;
+				if (Y < H / 4) { B = 210; G = 200; R = 190; }      // the sky
+				else if (Y >= 64 && Y <= 70)
+				{
+					if (Y == 64 && X < 10) { B = 0; G = 0; R = 0; } // the lo rail
+				}
+				else if (Y == 71) { B = 210; G = 200; R = 190; }    // the ties
+				else if (Y >= 72)
+				{
+					B = 240; G = 240; R = 240;
+					if (Y == 79 && X < 5) { B = 255; G = 255; R = 255; } // the hi rail
+				}
+				Px[P * 4] = B; Px[P * 4 + 1] = G; Px[P * 4 + 2] = R; Px[P * 4 + 3] = 255;
+			}
+		}
+		const BandStats Centre = MeasureBand(Px.data(), W, H, "skyCentre",
+		                                     SkyCentreX0(), 0.0, SkyCentreX1(), SkyTopY1());
+		const BandStats Ground = MeasureBand(Px.data(), W, H, "ground",
+		                                     0.0, GroundY0(), 1.0, 1.0);
+		Check(Ground.Pixels == 1280 && Ground.RailLo == 10 && Ground.ClipHiAny == 5,
+		      "the ground band counts its own pixels and both rails over that denominator");
+		Check(Near(Centre.P50, Luma(190, 200, 210)),
+		      "the threshold is the skyCentre band's own median pixel and this frame's sky is flat");
+		const std::string L = SkyBandLine(Centre, Centre, Ground);
+		std::printf("    %s\n", L.c_str());
+		Check(L.find("band.ground.darkerThanSkyMedianPct=43.7500/of=1280") != std::string::npos,
+		      "the rank key counts the ground pixels strictly below the sky's median over its own denominator");
+		Check(L.find("band.ground.darkerThanSkyMedianPctTies=80/of=1280") != std::string::npos,
+		      "the ties print beside it, because a strict comparison leaves them outside the count");
+		Check(L.find("band.ground.darkerThanSkyMedianPctRails=10/5/of=1280") != std::string::npos,
+		      "and both rails, lo then hi, which is where the curve stops being strictly monotone");
+		// THE CLASS WORD IS NOT OPTIONAL ON EITHER KEY, and the word
+		// "invariant" may not appear without the three exceptions beside it.
+		Check(L.find("ROBUST-NOT-INVARIANT") != std::string::npos
+		      && L.find("a-tonemap-is-monotone-not-linear-so-this-moves-when-the-exposure-moves")
+		         != std::string::npos,
+		      "the ratio declares itself robust and not invariant, and says why a tonemap makes it move");
+		Check(L.find("EXACTLY-invariant-under-any-strictly-monotone-whole-frame-curve") != std::string::npos
+		      && L.find("NOT-invariant-under-bloom-vignette-grain-or-local-tonemapping-which-are-not-"
+		                "whole-frame-monotone") != std::string::npos,
+		      "the rank key declares exact invariance AND names bloom, vignette and local tonemapping as the exceptions");
+		// MECHANICAL, NOT A READING: every occurrence of the word must sit on
+		// a line that also carries the exceptions clause. This is CONDITION
+		// C7 of the ruling turned into a check, so nobody has to grep it by
+		// hand a second time.
+		{
+			int Hits = 0;
+			for (size_t At = L.find("nvariant"); At != std::string::npos;
+			     At = L.find("nvariant", At + 1)) { ++Hits; }
+			Check(Hits > 0 && L.find("NOT-invariant-under-bloom-vignette-grain-or-local-tonemapping")
+			                  != std::string::npos,
+			      "every use of the word invariant on this line ships the clause naming its exceptions");
+			std::printf("    invariantHits=%d of 1 line examined, exceptionsClause=present\n", Hits);
+		}
+		// THE ROBUST RATIO IS THE BAND'S OWN TWO ORDER STATISTICS AND NOTHING
+		// ELSE, checked against the arithmetic rather than a typed number.
+		char WantRatio[80];
+		std::snprintf(WantRatio, sizeof(WantRatio), "band.ground.p95OverP05=%.4f",
+		              Ground.P95 / Ground.P05);
+		Check(L.find(WantRatio) != std::string::npos,
+		      "the robust ratio is this band's p95 over its own p05, indexed and not interpolated");
+		Check(ValuesHaveNoSpaces(L), "every A2 value is space-free");
+
+		// ---- AND THE REFUSALS, PLANTED ----------------------------------
+		//
+		// A ratio over a zero p05 is not a contrast and may not print a
+		// number, and a rank key with no threshold to rank against may not
+		// print a zero that would read as a road with no dark in it.
+		const std::vector<unsigned char> Black = Flat(W, H, 0, 0, 0);
+		const BandStats AllBlack = MeasureBand(Black.data(), W, H, "ground",
+		                                       0.0, GroundY0(), 1.0, 1.0);
+		const std::string Z = GroundRobustRatioKeys(AllBlack);
+		std::printf("    %s\n", Z.c_str());
+		Check(Z.find("band.ground.p95OverP05=NOTHING-MEASURED") != std::string::npos
+		      && Z.find("a-ratio-over-a-rail-is-not-a-contrast") != std::string::npos,
+		      "a band whose dark end is on the rail refuses the ratio rather than dividing by zero");
+		Check(Z.find("ROBUST-NOT-INVARIANT") != std::string::npos,
+		      "and the refusing line still carries the class word, so the key is never learned without it");
+		const BandStats NoSky = MeasureBand(Px.data(), W, H, "skyCentre", 0.5, 0.5, 0.5, 0.5);
+		const std::string NR = GroundRankKeys(Ground, NoSky);
+		std::printf("    %s\n", NR.c_str());
+		Check(NR.find("band.ground.darkerThanSkyMedianPct=NOTHING-MEASURED") != std::string::npos
+		      && NR.find("the-skyCentre-band-had-no-pixels-so-there-is-no-threshold-to-rank-against")
+		         != std::string::npos
+		      && NR.find("Ties=nothing-measured") != std::string::npos
+		      && NR.find("Rails=nothing-measured") != std::string::npos,
+		      "a rank key with no threshold says nothing measured on all three of its numbers");
+		Check(ValuesHaveNoSpaces(NR), "the nothing-measured rank line is space-free too");
+		// AND THE INVARIANCE ITSELF, WHICH IS THE CLAIM THE KEY MAKES: put
+		// every pixel of the frame through a strictly monotone curve and the
+		// number must not move by a digit. A percentile would; this is the
+		// whole reason the key exists and it is cheaper to prove than to
+		// argue. The curve is a gamma of 0.45 applied to the 8-bit codes,
+		// which is monotone, not linear, and is the shape of the exposure
+		// plus filmic curve this rig cannot snap.
+		std::vector<unsigned char> Curved = Px;
+		for (size_t I = 0; I + 3 < Curved.size(); I += 4)
+		{
+			for (int C = 0; C < 3; ++C)
+			{
+				const double V = (double)Curved[I + C] / 255.0;
+				Curved[I + C] = (unsigned char)(std::pow(V, 0.45) * 255.0 + 0.5);
+			}
+		}
+		const BandStats CurvedCentre = MeasureBand(Curved.data(), W, H, "skyCentre",
+		                                          SkyCentreX0(), 0.0, SkyCentreX1(), SkyTopY1());
+		const BandStats CurvedGround = MeasureBand(Curved.data(), W, H, "ground",
+		                                          0.0, GroundY0(), 1.0, 1.0);
+		const std::string C2 = GroundRankKeys(CurvedGround, CurvedCentre);
+		std::printf("    afterMonotoneCurve: %s\n", C2.c_str());
+		Check(C2.find("band.ground.darkerThanSkyMedianPct=43.7500/of=1280") != std::string::npos,
+		      "the rank key reads the SAME number after a strictly monotone curve, which is what it claims");
+		Check(std::fabs(CurvedGround.P05 - Ground.P05) > 0.01,
+		      "while the band's own p05 moved under that same curve, which is why no percentile is quotable across cells");
 	}
 	// AND THE REJECTING CASES, EACH PLANTED RATHER THAN WAITED FOR.
 	{

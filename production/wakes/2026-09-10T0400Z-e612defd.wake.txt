@@ -2,8 +2,8 @@ id: e612defd
 due: 2026-09-10T04:00:00Z
 armedAt: 2026-09-09T08:13:26Z
 armedBy: director/daily-brief
-blocks: 0
-dischargedAt: -
+blocks: 1
+dischargedAt: 2026-09-10T04:28:30Z
 capBitAt: -
 
 Produce the 06:00 CEST brief and send it through the Producer. It leads with an OUTCOME, never a count: the ladder's current rung from production/ladder.md is the strongest source for where the project stands. It reports the studio versus game split, in spawns, with its denominator. Images go as Telegram images, never links, each the newest of its kind and dated in its caption. At most two links and only to the glance, the map or the gallery, and check first whether the site is actually serving: eight publish runs failed on 2026-09-09 and a link to a page nobody serves is a 404 with a rule behind it.

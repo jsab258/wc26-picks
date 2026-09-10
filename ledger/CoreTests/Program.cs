@@ -19477,107 +19477,187 @@ namespace Ledger.CoreTests
                               $"bomLines={plan.PerBom.Count} cameras={plan.Cameras.Count} " +
                               $"conditions={plan.Conditions.Count} shots={plan.Shots.Count}");
             Check(plan.Cameras.Count == 3, "three cameras", plan.Cameras.Count.ToString());
-            // TWO JUDGED CONDITIONS PLUS THE SIX QUEUE 205 LADDER ROWS.
-            // The pairing is still overcast_day and wet_night and
-            // nothing else; the six ladder_ rows are a printed series
-            // of sun intensities on one camera and are not part of any
-            // pair, which is why they are counted separately below
-            // rather than hidden inside a bare 8.
-            Check(plan.Conditions.Count == 8, "two judged conditions plus six ladder rows",
-                  plan.Conditions.Count.ToString());
-            int judgedConds = 0, ladderConds = 0;
+            // TWO JUDGED CONDITIONS PLUS THE TWENTY ONE-RUN PROBE ROWS.
+            //
+            // THE LADDER IS RETIRED, 2026-09-09, by section 9 of
+            // game-design/decision-2026-09-09-ruling-the-grid-not-the-ladder.md,
+            // and its series is preserved in section 3 of that record, which
+            // is the condition queue 206 set for removing it. Five rungs at 3,
+            // 10, 30, 100 and 300 moved band.ground.p05 by 0.1243 against a
+            // null of 0.1172 measured between two shots of ONE condition: 1.06
+            // nulls across a hundredfold of sun. WHAT REPLACES IT is a grid at
+            // cam_hook, sky crossed with sun, carrying its own null cell.
+            //
+            // THE PAIRING IS UNTOUCHED: overcast_day and wet_night at cam_A and
+            // cam_B are still the four pairs the engine decision is judged on,
+            // so the groups are counted APART rather than hidden inside a bare
+            // 22, because a bare count would read as the pairing having changed.
+            int judgedConds = 0, probeConds = 0;
             foreach (var cd in plan.Conditions)
-                if (cd.Id.StartsWith("ladder_")) ladderConds++; else judgedConds++;
-            Check(judgedConds == 2 && ladderConds == 6,
-                  "the two judged conditions are still exactly two, and the ladder is six",
-                  judgedConds + " judged, " + ladderConds + " ladder");
-            // FOUR MATCHED FRAMES PLUS ONE THAT IS NOT PART OF THE PAIRING.
+                if (cd.Id == "overcast_day" || cd.Id == "wet_night") judgedConds++;
+                else probeConds++;
+            Check(plan.Conditions.Count == 22 && judgedConds == 2 && probeConds == 20,
+                  "two judged conditions plus twenty one-run probe rows",
+                  plan.Conditions.Count + " total, " + judgedConds + " judged, " + probeConds + " probe");
+
+            // THE GRID IS THE CROSS AND NOTHING ELSE, counted out of the file
+            // rather than trusted: four skies by three suns is twelve cells,
+            // and a missing cell or a typed sky value reads here rather than
+            // one round trip later.
+            var skies = new double[] { 1.00, 0.70, 0.50, 0.35 };
+            var suns = new double[] { 3.0, 10.0, 30.0 };
+            int cells = 0, cellsFound = 0;
+            foreach (var sk in skies)
+                foreach (var su in suns)
+                {
+                    cells++;
+                    foreach (var cd in plan.Conditions)
+                        if (cd.Id.StartsWith("grid_sky") && !cd.Id.StartsWith("grid_null")
+                            && Math.Abs(cd.SkyIntensity - sk) < 1e-9
+                            && Math.Abs(cd.SunIntensity - su) < 1e-9) { cellsFound++; break; }
+                }
+            int gridRows = 0;
+            foreach (var cd in plan.Conditions)
+                if (cd.Id.StartsWith("grid_sky")) gridRows++;
+            Check(cellsFound == cells && gridRows == 12,
+                  "the grid is four skies crossed with three suns, twelve cells, none missing and none extra",
+                  cellsFound + " of " + cells + " cells found over " + gridRows + " grid rows");
+
+            // A1(a), BLOCKING: THE NULL CELL IS A DUPLICATE OR IT IS NOTHING.
+            // Run 38 carried this test as ladder_sun003 and it FAILED, and the
+            // note on that row said in as many words that no other rung would
+            // mean anything if it did. The duplicate is asserted FIELD BY FIELD
+            // here, where the test runs, rather than by reading two rows of
+            // JSON side by side.
+            StreetVignette.Condition refCell = default, nullCell = default;
+            bool haveRef = false, haveNull = false;
+            foreach (var cd in plan.Conditions)
+            {
+                if (cd.Id == "grid_sky100_sun003") { refCell = cd; haveRef = true; }
+                if (cd.Id == "grid_null_repeat") { nullCell = cd; haveNull = true; }
+            }
+            Check(haveRef && haveNull,
+                  "the grid has a reference cell and a null cell to repeat it",
+                  "ref=" + haveRef + " null=" + haveNull);
+            Check(haveRef && haveNull
+                  && nullCell.Hdri == refCell.Hdri
+                  && nullCell.SunOn == refCell.SunOn
+                  && nullCell.LanternsOn == refCell.LanternsOn
+                  && nullCell.WindowsOn == refCell.WindowsOn
+                  && Math.Abs(nullCell.SunIntensity - refCell.SunIntensity) < 1e-12
+                  && Math.Abs(nullCell.SkyIntensity - refCell.SkyIntensity) < 1e-12
+                  && Math.Abs(nullCell.Wetness - refCell.Wetness) < 1e-12
+                  && Math.Abs(nullCell.FogDensity - refCell.FogDensity) < 1e-12
+                  && Math.Abs(nullCell.FogMaxOpacity - refCell.FogMaxOpacity) < 1e-12,
+                  "the null cell is the reference cell in every field that lights a frame",
+                  "a null pair that differs in any input measures the difference, not the rig");
+
+            // A4: THE FOG CAP IS A FIELD ON EVERY ROW, AND A SERIES ON FOUR.
+            int noCap = 0;
+            foreach (var cd in plan.Conditions)
+                if (cd.FogMaxOpacity <= 0.0 && !cd.Id.StartsWith("fog_maxop")) noCap++;
+            Check(noCap == 0,
+                  "every condition carries a fog cap, and only the transparent probe row is allowed a zero",
+                  noCap + " of " + plan.Conditions.Count + " rows carry no cap");
+            var wantFog = new double[] { 0.450, 0.250, 0.100, 0.000 };
+            int fogFound = 0;
+            foreach (var w in wantFog)
+                foreach (var cd in plan.Conditions)
+                    if (cd.Id.StartsWith("fog_maxop") && Math.Abs(cd.FogMaxOpacity - w) < 1e-9)
+                    { fogFound++; break; }
+            Check(fogFound == 4,
+                  "four fog rows at 0.450, 0.250, 0.100 and 0.000, which is a series and not a pair",
+                  fogFound + " of 4");
+            double dayCap = -1;
+            foreach (var cd in plan.Conditions)
+                if (cd.Id == "overcast_day") dayCap = cd.FogMaxOpacity;
+            Check(Math.Abs(dayCap - 0.450) < 1e-9,
+                  "the judged day condition carries the retired kFogMaxOpacityWithSky literal unchanged",
+                  dayCap.ToString());
+
+            // A3: WETNESS AS A SERIES, BOTH ENDS AND THE VALUE IN FORCE.
+            var wantWet = new double[] { 0.0, 0.60, 1.0 };
+            int wetFound = 0;
+            foreach (var w in wantWet)
+                foreach (var cd in plan.Conditions)
+                    if (cd.Id.StartsWith("wet_") && Math.Abs(cd.Wetness - w) < 1e-9)
+                    { wetFound++; break; }
+            Check(wetFound == 3,
+                  "three wetness rows at 0.0, 0.60 and 1.0, so a later session can see whether 0.60 was chosen or typed",
+                  wetFound + " of 3");
+
+            // FOUR MATCHED FRAMES, THE HOOK VIEWPOINT, AND TWENTY PROBE ROWS.
             // The engine decision is judged on cam_A and cam_B by the two
-            // conditions, which is four pairs, and eight would silently
-            // change the bar it is made against. cam_hook is a FIFTH shot and
-            // it is deliberately NOT a matched pair: it exists to stand the
-            // built street beside the lower panel of the Hook concept sheet
-            // for rung 1 of production/ladder.md, it is shot under
-            // overcast_day only, and adding a wet_night twin would make it
-            // six and reopen the pairing question. So the count below is
-            // 4 + 1 and the comment says which is which, because a bare 5
-            // would read as the pairing having changed.
-            // 4 + 1 + 6 SINCE QUEUE 205, and the three groups are counted
-            // apart because a bare 11 would read as the pairing having
-            // changed. The six ladder shots all stand at cam_A and are
-            // LAST in the list on purpose: the probe verdict's shotCam
-            // line is one-per-run and last-wins, so the camera it
-            // describes is the camera every ladder frame was taken with,
-            // and tools/frame-shadow-probe.py can bind strictly instead
-            // of being told which camera to assume.
-            Check(plan.Shots.Count == 11,
-                  "four matched shots plus the hook viewpoint plus the six ladder rungs",
-                  plan.Shots.Count.ToString());
-            int matched = 0, ladderShots = 0, ladderAtCamA = 0;
+            // conditions, which is four pairs; eight would silently change the
+            // bar it is made against. cam_hook is the fifth judged shot and is
+            // deliberately not part of the pairing. EVERY PROBE ROW STANDS AT
+            // cam_hook, which is both Jafar's judging camera and an instrument
+            // repair: the three control quads are hidden there, so no
+            // whole-frame key on a probe row photographs the instrument, and at
+            // fovV 39.0 band.skyCentre is sky rather than the rooftops it holds
+            // at fovV 60.0.
+            int matched = 0, probeShots = 0, probeAtHook = 0;
             foreach (var sh in plan.Shots)
             {
-                if (sh.ConditionId.StartsWith("ladder_"))
+                bool isJudged = sh.ConditionId == "overcast_day" || sh.ConditionId == "wet_night";
+                if (!isJudged)
                 {
-                    ladderShots++;
-                    if (sh.CameraId == "cam_A") ladderAtCamA++;
+                    probeShots++;
+                    if (sh.CameraId == "cam_hook") probeAtHook++;
                 }
                 else if (sh.CameraId == "cam_A" || sh.CameraId == "cam_B") matched++;
             }
-            Check(matched == 4, "the four judged pairs are still exactly four",
-                  matched.ToString());
-            Check(ladderShots == 6 && ladderAtCamA == 6,
-                  "every ladder shot stands at cam_A, which is the camera the +0.0270 control was measured on",
-                  ladderAtCamA + " of " + ladderShots + " ladder shots at cam_A");
-            for (int li = 0; li + 1 < plan.Shots.Count; li++)
-                if (plan.Shots[li].ConditionId.StartsWith("ladder_"))
-                    Check(plan.Shots[li + 1].ConditionId.StartsWith("ladder_"),
-                          "the ladder shots are last in the list, so the one-per-run camera readback is theirs",
-                          plan.Shots[li].Id + " is followed by " + plan.Shots[li + 1].Id);
+            Check(plan.Shots.Count == 25,
+                  "four matched shots plus the hook viewpoint plus twenty probe rows",
+                  plan.Shots.Count.ToString());
+            Check(matched == 4, "the four judged pairs are still exactly four", matched.ToString());
+            Check(probeShots == 20 && probeAtHook == 20,
+                  "every probe row stands at cam_hook, the camera rung 1 is judged from",
+                  probeAtHook + " of " + probeShots + " probe shots at cam_hook");
+            // THE NULL CELL IS SHOT LAST, which is the whole of its value: the
+            // pair is identical inputs at MAXIMUM ORDER SEPARATION, so every
+            // other shot, every condition change and every light probe stands
+            // between them.
+            Check(plan.Shots[plan.Shots.Count - 1].ConditionId == "grid_null_repeat",
+                  "the null cell is the last shot in the list, as far from its twin as the run allows",
+                  plan.Shots[plan.Shots.Count - 1].Id);
 
-            // THE LADDER ITSELF, PRINTED BEFORE IT IS ASSERTED. Queue
-            // 205: the sun intensity is a field on the condition now,
-            // and these are the rows the dispatch renders. No constant
-            // is set from them here; the series is read off a run first.
-            var sunLine = new System.Text.StringBuilder("    sunLadder:");
+            // C6: THE SHOT ORDER IS NOT MONOTONE IN SKY, PRINTED THEN ASSERTED.
+            // The retired ladder rendered in increasing order, so a drift
+            // ordered by shot was perfectly confounded with a response to the
+            // light. This is the mechanical form of that condition: the sky
+            // sequence over the grid shots must rise somewhere and fall
+            // somewhere, and the sequence itself is printed so a reader can see
+            // the order rather than trust this sentence.
+            var order = new System.Text.StringBuilder("    gridShotOrder:");
+            bool rose = false, fell = false;
+            double prevSky = -1;
+            foreach (var sh in plan.Shots)
+            {
+                if (!sh.ConditionId.StartsWith("grid_sky")) continue;
+                double sky = 0;
+                foreach (var cd in plan.Conditions)
+                    if (cd.Id == sh.ConditionId) sky = cd.SkyIntensity;
+                order.Append(" sky").Append(sky.ToString("0.00"));
+                if (prevSky >= 0 && sky > prevSky + 1e-12) rose = true;
+                if (prevSky >= 0 && sky < prevSky - 1e-12) fell = true;
+                prevSky = sky;
+            }
+            Console.WriteLine(order.ToString());
+            Check(rose && fell,
+                  "the grid's shot order rises and falls in sky, so no drift ordered by shot can pass as a sky response",
+                  "rose=" + rose + " fell=" + fell);
+
+            // THE CONDITIONS THEMSELVES, PRINTED BEFORE ANY OF THEM IS
+            // ASSERTED, because this is the series the next commit sets a
+            // constant from and rule 2 says the printer ships first.
+            var sunLine = new System.Text.StringBuilder("    conditions:");
             foreach (var cd in plan.Conditions)
                 sunLine.Append(" ").Append(cd.Id).Append("=sun").Append(cd.SunIntensity.ToString("0.##"))
-                       .Append("/sky").Append(cd.SkyIntensity.ToString("0.##"));
+                       .Append("/sky").Append(cd.SkyIntensity.ToString("0.##"))
+                       .Append("/wet").Append(cd.Wetness.ToString("0.##"))
+                       .Append("/fogMaxOp").Append(cd.FogMaxOpacity.ToString("0.###"));
             Console.WriteLine(sunLine.ToString());
-            double dayS = 0, daySky = 0, nightS = -1, nightSky = -1;
-            foreach (var cd in plan.Conditions)
-            {
-                if (cd.Id == "overcast_day") { dayS = cd.SunIntensity; daySky = cd.SkyIntensity; }
-                if (cd.Id == "wet_night") { nightS = cd.SunIntensity; nightSky = cd.SkyIntensity; }
-            }
-            // THE TWO JUDGED ROWS CARRY THE OLD LITERALS UNCHANGED. This
-            // check is what makes "the field replaced the literal and
-            // moved no number" a fact rather than a claim: 3.0f was the
-            // bare literal at VignetteShot.cpp:1240 and 1.0 and 0.35 were
-            // kSkyIntensityDay and kSkyIntensityNight.
-            Check(Math.Abs(dayS - 3.0) < 1e-9 && Math.Abs(daySky - 1.0) < 1e-9,
-                  "the day condition carries the sun literal and the day sky constant unchanged",
-                  dayS + "/" + daySky);
-            Check(Math.Abs(nightSky - 0.35) < 1e-9 && Math.Abs(nightS) < 1e-9,
-                  "the night condition carries the night sky constant, and its sun is off at zero",
-                  nightS + "/" + nightSky);
-            var wanted = new double[] { 3.0, 10.0, 30.0, 100.0, 300.0 };
-            int rungsFound = 0;
-            foreach (var w in wanted)
-                foreach (var cd in plan.Conditions)
-                    if (cd.Id.StartsWith("ladder_") && Math.Abs(cd.SunIntensity - w) < 1e-9
-                        && Math.Abs(cd.SkyIntensity - 1.0) < 1e-9) { rungsFound++; break; }
-            Check(rungsFound == 5, "five rungs at 3, 10, 30, 100 and 300 against the unchanged sky",
-                  rungsFound + " of " + wanted.Length);
-            int controlRows = 0;
-            foreach (var cd in plan.Conditions)
-                if (cd.Id.StartsWith("ladder_") && Math.Abs(cd.SkyIntensity - 0.35) < 1e-9
-                    && Math.Abs(cd.SunIntensity - 3.0) < 1e-9) controlRows++;
-            // THE CONTROL ROW IS NOT OPTIONAL. Auto exposure is in force
-            // and unoverridden in the probe, so a flat ladder is equally
-            // consistent with a dim sun, a bright sky and the tonemapper.
-            // This row tests the second of the three in the same run.
-            Check(controlRows == 1, "exactly one control row, at the sun in force with the sky at 0.35",
-                  controlRows.ToString());
 
             // WHAT SHAPE EVERY PIECE IS, AND HOW MANY PIPES ARE LYING DOWN.
             // Printed through the same formatter the Unity host prints, so

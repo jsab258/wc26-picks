@@ -176,7 +176,7 @@ def main():
             sys.exit("brief-sheet: hook needs --ours pointing at a drawn sheet")
         out = OUT_DIR / "hook_theirs_vs_ours.jpg"
         compose(ref_full, "THEIRS, three passes",
-                Image.open(a.ours).convert("RGB"), "OURS, two passes", out)
+                Image.open(a.ours).convert("RGB"), "OURS, one pass, the correction pass did not run", out)
     tmp.unlink(missing_ok=True)
     print(f"brief-sheet wrote {out} ({out.stat().st_size} bytes)")
     return 0

@@ -481,7 +481,11 @@ namespace Ledger.Core
                 // written without them fails at parse rather than falling
                 // back on the literal this pair replaced.
                 sb.Append(Kn("sun_intensity", c.SunIntensity)).Append(',');
-                sb.Append(Kn("sky_intensity", c.SkyIntensity));
+                sb.Append(Kn("sky_intensity", c.SkyIntensity)).Append(',');
+                // AND THE FOG CAP, WHICH THE UNREAL READER NOW REQUIRES. A
+                // condition written without it fails at parse rather than
+                // falling back on the 0.45f literal this field replaced.
+                sb.Append(Kn("fog_max_opacity", c.FogMaxOpacity));
                 sb.Append('}');
                 sb.Append(i + 1 < plan.Conditions.Count ? ",\n" : "\n");
             }

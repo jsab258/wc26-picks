@@ -1101,9 +1101,29 @@ jobs:
           $m = Get-Content $out | Where-Object { $_ -notmatch '^\s*#' } |
                Select-String -Pattern "captureStatus=(\S+)" | Select-Object -First 1
           if ($m) { $status = $m.Matches[0].Groups[1].Value }
+          # A6, 2026-09-09, THE SECOND HALF OF THE SAME GUARD. Eleven frames
+          # can all be ALL and all be lit by a sun 46 degrees from the one the
+          # spec asked for, which is what every run before this one was: asked
+          # pitch -36.0, rendered -82.0, a factor of ten in shadow length. The
+          # game writes lightAimStatus from its own component readback and
+          # AGREES is the only passing word; MISSING means the binary on this
+          # commit does not print the key, which fails closed rather than
+          # reading as agreement. MEASURED LINES ONLY, so the header's
+          # explanation of the key cannot be read as the key.
+          $aim = "MISSING"
+          $am = Get-Content $out | Where-Object { $_ -notmatch '^\s*#' } |
+                Select-String -Pattern "lightAimStatus=(\S+)" | Select-Object -First 1
+          if ($am) { $aim = $am.Matches[0].Groups[1].Value }
           Write-Host (Get-Content $out -Raw)
-          if ($status -eq "ALL") { Write-Host "vignette ok: $status"; exit 0 }
-          Write-Host "VIGNETTE NOT USABLE: captureStatus=$status (the evidence is committed either way)"
+          if ($status -eq "ALL" -and $aim -eq "AGREES") {
+            Write-Host "vignette ok: captureStatus=$status lightAimStatus=$aim"; exit 0
+          }
+          if ($status -ne "ALL") {
+            Write-Host "VIGNETTE NOT USABLE: captureStatus=$status (the evidence is committed either way)"
+          }
+          if ($aim -ne "AGREES") {
+            Write-Host "LIGHT AIM REFUSED: lightAimStatus=$aim - a light is not pointing where the shared file sent it, so every frame in this run is lit by a direction nobody chose (the evidence is committed either way)"
+          }
           exit 1
 
       # RULING 1, JAFAR, 2026-09-07, VERBATIM: "I do not launch builds to see

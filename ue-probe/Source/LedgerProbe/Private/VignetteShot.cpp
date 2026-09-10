@@ -205,7 +205,15 @@ namespace
 	// inside that range. IT IS NOT A MEASURED BOUND, it is one number
 	// derived from two measured ones and one unknown, and the printed sky
 	// band series is what replaces the unknown next run.
-	const float kFogMaxOpacityWithSky = 0.45f;
+	// RETIRED 2026-09-09 BY A4: the value lives on every condition row of
+	// production/specs/vignette-scene.json as fog_max_opacity, required in
+	// both readers, and four probe rows at the grid's reference cell print
+	// the series 0.450 / 0.250 / 0.100 / 0.000 that a constant would be set
+	// from. The two judged conditions carry 0.450, so nothing moved.
+	// The derivation is kept because it is what the series is read against:
+	// the far field measured 0.980 luma against the reference panel's 0.808,
+	// and for an atmosphere rendering at S between 0.60 and 0.70 the cap that
+	// lands on 0.81 is between 0.55 and 0.39.
 	// THE HDRI THE SHARED FILE NAMES, LOOKED FOR AND NOT BOUND. The pack
 	// lives under the Unity tree and the workflow stages CityPackTextures by
 	// name; nothing stages this, so NOT-FOUND is the expected answer and it
@@ -315,6 +323,30 @@ namespace
 	ADirectionalLight* GFillB = nullptr;
 	ADirectionalLight* GFillC = nullptr;
 	AExponentialHeightFog* GFog = nullptr;
+	// A1(c) AND CONDITION C5: HOW MANY CELLS READ BACK WHAT THEY ASKED FOR.
+	// Whole-run counters, incremented once per photographed shot by
+	// ShotLightNow and read once by the verdict. The determinism repeat is
+	// NOT counted: it re-photographs shot 0, so counting it would put a
+	// denominator of 26 over a shot list of 25, which is rule 3b's exact
+	// fault (a denominator larger than the set examined).
+	int32 GCellsAgree = 0, GCellsRead = 0;
+	// A6: THE ROTATION EACH DIRECTIONAL LIGHT WAS ASKED FOR, RECORDED AT THE
+	// SPAWN CALL AND NEVER RE-DERIVED. Re-deriving the sun's asked pitch from
+	// the spec at readback time would compare SunPitchDeg against itself and
+	// agree however the spawner mangled the value; this holds the pair that
+	// was actually handed to SpawnDirectional. Four entries, the four lights
+	// this rig spawns, and kDirectionalLights is their denominator.
+	const int kDirectionalLights = 4;
+	std::vector<LedgerVignette::LightAim> GLightAsked;
+	void RecordAsked(const char* Name, ADirectionalLight* L, const FRotator& Rot)
+	{
+		LedgerVignette::LightAim A;
+		A.Name = Name;
+		A.bSpawned = (L != nullptr);
+		A.AskedPitch = (double)Rot.Pitch;
+		A.AskedYaw = (double)Rot.Yaw;
+		GLightAsked.push_back(A);
+	}
 	// QUEUE 186. Both are written by ApplyCondition and by nothing else, the
 	// same rule the sun, the fills and the fog already live under.
 	ASkyLight*      GSky        = nullptr;
@@ -741,6 +773,31 @@ namespace
 		return L;
 	}
 
+	// A6, 2026-09-09: THE ROTATION IS SET ON THE COMPONENT, NOT ONLY ON THE
+	// ACTOR, AND THAT IS THE WHOLE BUG.
+	//
+	// Until this line existed, this function handed its FRotator to
+	// SpawnActor as the ACTOR rotation and then touched only SetCastShadows
+	// and SetIntensity. A directional light's direction is the forward axis
+	// of its LIGHT COMPONENT's world transform, which is also what
+	// GetComponentRotation reads back on the verdict, so whatever relative
+	// rotation the component carried was composed on top of the ask. The spec
+	// asked for a sun 36 degrees above the horizon (asked pitch -36.0) and
+	// every run of this rig rendered -82.0, with the yaw agreeing to the
+	// decimal: a constant pitch displacement and nothing else.
+	//
+	// IT DOES NOT MATTER WHAT THE COMPONENT WAS CARRYING, and that is the
+	// point of writing it this way. -46 degrees of component relative pitch
+	// is a plausible mechanism and NOBODY HAS CONFIRMED it is Unreal's
+	// shipped default, so nothing here subtracts 46 or assumes a default:
+	// SetWorldRotation states the world rotation absolutely, so the asked
+	// value arrives whatever the relative rotation was. The light is made
+	// movable first, one line up, because a static component refuses a
+	// transform write.
+	//
+	// AND IT IS MEASURED RATHER THAN TRUSTED: the caller records the asked
+	// pair, MeasureLightAim reads the component back, and lightAimStatus on
+	// the verdict refuses the run if the two disagree by a degree or more.
 	ADirectionalLight* SpawnDirectional(UWorld* World, const FRotator& Rot, bool bShadows)
 	{
 		FActorSpawnParameters Params;
@@ -751,6 +808,7 @@ namespace
 		MakeMovable(L);
 		if (ULightComponent* C = L->GetLightComponent())
 		{
+			C->SetWorldRotation(Rot);
 			C->SetCastShadows(bShadows);
 			C->SetIntensity(0.0f);
 		}
@@ -1089,11 +1147,29 @@ namespace
 
 		// THE SUN, THE FILL AND THE FOG, SPAWNED HERE AND WRITTEN ONLY BY
 		// ApplyCondition. One owner per global.
-		GSun   = SpawnDirectional(World, FRotator((float)SunPitchDeg(GSpec.SunElevationDeg),
-		                                          (float)SunYawDeg(GSpec.SunAzimuthDeg), 0.0f), true);
-		GFillA = SpawnDirectional(World, FRotator(-80.0f,  20.0f, 0.0f), false);
-		GFillB = SpawnDirectional(World, FRotator(-10.0f, 200.0f, 0.0f), false);
-		GFillC = SpawnDirectional(World, FRotator( 60.0f,  90.0f, 0.0f), false);
+		//
+		// A6: EVERY ASK IS RECORDED BESIDE THE SPAWN THAT CARRIED IT. The
+		// three fills go through the same helper as the sun, so the same
+		// displacement applied to all four and the comment claiming a fill
+		// points at (-80/20) was a decayed claim on every run the key has
+		// existed. They are retired to zero intensity by ApplyCondition when
+		// the sky is whole, so no pixel of today's frames depends on them;
+		// printing their rotations is what retires the claim rather than
+		// repeating it.
+		const FRotator SunRot((float)SunPitchDeg(GSpec.SunElevationDeg),
+		                      (float)SunYawDeg(GSpec.SunAzimuthDeg), 0.0f);
+		const FRotator FillARot(-80.0f,  20.0f, 0.0f);
+		const FRotator FillBRot(-10.0f, 200.0f, 0.0f);
+		const FRotator FillCRot( 60.0f,  90.0f, 0.0f);
+		GSun   = SpawnDirectional(World, SunRot,   true);
+		GFillA = SpawnDirectional(World, FillARot, false);
+		GFillB = SpawnDirectional(World, FillBRot, false);
+		GFillC = SpawnDirectional(World, FillCRot, false);
+		GLightAsked.clear();
+		RecordAsked("sun",   GSun,   SunRot);
+		RecordAsked("fillA", GFillA, FillARot);
+		RecordAsked("fillB", GFillB, FillBRot);
+		RecordAsked("fillC", GFillC, FillCRot);
 		{
 			FActorSpawnParameters Params;
 			Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -1356,7 +1432,13 @@ namespace
 				// something behind it to see; with no sky the fog keeps the
 				// far field it has always had, so a failed spawn does not
 				// also silently change the fog.
-				F->SetFogMaxOpacity(bWhole ? kFogMaxOpacityWithSky : 1.0f);
+				// A4, 2026-09-09: THE CAP COMES OUT OF THE CONDITION NOW.
+				// kFogMaxOpacityWithSky 0.45f was one number derived from two
+				// measured ones and an unknown, and it was never a series.
+				// The field is required in both readers, so there is no path
+				// where this silently falls back to the literal; the verdict
+				// prints fogMaxOpacityRead beside what was asked.
+				F->SetFogMaxOpacity(bWhole ? (float)C.FogMaxOpacity : 1.0f);
 			}
 		}
 		// ---- THE SKY, WRITTEN ON CHANGE AND NOT PER TICK ---------------
@@ -1716,6 +1798,43 @@ namespace
 		GShotCam.ReadYawDeg    = (double)GotRot.Yaw;
 	}
 
+	// ---- A6: THE FOUR LIGHTS, ASKED AGAINST READ, ONCE PER RUN ----------
+	//
+	// READ OFF THE COMPONENT'S WORLD ROTATION, which is the same transform
+	// the renderer takes the light's direction from and the same one the
+	// per-sample shotSunPitchYawRead reads. There is no arrangement in which
+	// this readback says one thing and the render lights another way, which
+	// is why the read is the truth and the ask is what had to arrive.
+	//
+	// The asked halves were recorded at the spawn call. This fills the read
+	// halves in place, so a light that never spawned keeps its ask and prints
+	// nothing-measured for its read rather than a zero that would read as a
+	// light aimed at the horizon.
+	std::string LightAimNow()
+	{
+		std::vector<LedgerVignette::LightAim> Aims = GLightAsked;
+		ADirectionalLight* const Actors[kDirectionalLights] = { GSun, GFillA, GFillB, GFillC };
+		const char* const Names[kDirectionalLights] = { "sun", "fillA", "fillB", "fillC" };
+		for (size_t I = 0; I < Aims.size(); ++I)
+		{
+			for (int K = 0; K < kDirectionalLights; ++K)
+			{
+				if (Aims[I].Name != Names[K]) { continue; }
+				if (Actors[K] == nullptr) { Aims[I].bSpawned = false; break; }
+				Aims[I].bSpawned = true;
+				if (ULightComponent* LC = Actors[K]->GetLightComponent())
+				{
+					const FRotator R = LC->GetComponentRotation();
+					Aims[I].bRead = true;
+					Aims[I].ReadPitch = (double)R.Pitch;
+					Aims[I].ReadYaw = (double)R.Yaw;
+				}
+				break;
+			}
+		}
+		return LedgerVignette::LightAimLine(Aims, kDirectionalLights);
+	}
+
 	// ---- the verdict ----------------------------------------------------
 
 	void WriteVerdict(const std::string& DoneLine)
@@ -1766,6 +1885,24 @@ namespace
 		Out.Add(TEXT("#   ApplyCondition ran and N how many times the sky was rewritten, and N<M is"));
 		Out.Add(TEXT("#   the point rather than a fault. skyHdriBoundAs says NOTHING on purpose:"));
 		Out.Add(TEXT("#   this run looks for the HDRI the shared file names and binds none of it."));
+		Out.Add(TEXT("# shotSunIntensityAsked / shotSkyIntensityAsked: A1(c), 2026-09-09. THE"));
+		Out.Add(TEXT("#   VALUE THE CONDITION ROW ASKED FOR, beside the one the component read"));
+		Out.Add(TEXT("#   back, with shotCellAgrees per frame and cellAgree=N/of=M once per run."));
+		Out.Add(TEXT("#   Run 38 printed five rungs that all read sky 1.000 and one control row at"));
+		Out.Add(TEXT("#   0.350 and never printed the cross, so the cell that mattered had never"));
+		Out.Add(TEXT("#   been rendered and nothing said so. The repeat shot is excluded from the"));
+		Out.Add(TEXT("#   run tally, because it re-photographs shot 0 and would make the"));
+		Out.Add(TEXT("#   denominator larger than the shot list."));
+		Out.Add(TEXT("# lightAim*: A6, 2026-09-09. EVERY DIRECTIONAL LIGHT'S ASKED ROTATION BESIDE"));
+		Out.Add(TEXT("#   THE ONE ITS COMPONENT READS BACK, with the signed residual per axis to"));
+		Out.Add(TEXT("#   four decimals. The spec has asked for a sun at pitch -36.0 since it was"));
+		Out.Add(TEXT("#   written and this rig rendered -82.0 on every run: the arithmetic was"));
+		Out.Add(TEXT("#   tested, the format string was tested, and nothing tested that the number"));
+		Out.Add(TEXT("#   reached the light. lightAimStatus=AGREES is the only passing word and the"));
+		Out.Add(TEXT("#   step refuses on anything else WITH THIS FILE STILL COMMITTED. The bound"));
+		Out.Add(TEXT("#   is 1.0 degree and it is NOT a measured tolerance: it separates the 46.0"));
+		Out.Add(TEXT("#   fault from a float round trip of order 1e-4. A residual printed between"));
+		Out.Add(TEXT("#   0.001 and 1.0 is what a real bound would then be read off."));
 		Out.Add(TEXT("# light lines: one per probed light, the SAME camera, condition and frame"));
 		Out.Add(TEXT("#   counts as its shot with that one light switched off. deltaMeanFull is the"));
 		Out.Add(TEXT("#   whole frame, deltaMeanPeak is the named grid cell in peakRegion, and both"));
@@ -1878,6 +2015,16 @@ namespace
 			GRestoreMismatch, GShotsProbed, (int)GSpec.Shots.size(),
 			kLightProbeBudgetSeconds, GProbeSpent,
 			kWarmFrames + kTimedFrames, GControls).c_str())));
+		// A1(c) AND CONDITION C5: DID EVERY CELL READ BACK WHAT IT ASKED FOR.
+		// A whole-run count over the shots whose components answered, beside
+		// the per-sample shotCellAgrees word each shot line carries.
+		Out.Add(FString(UTF8_TO_TCHAR(LedgerVignette::CellAgreeLine(
+			(int)GCellsAgree, (int)GCellsRead, (int)GSpec.Shots.size()).c_str())));
+		// A6: WHERE THE FOUR DIRECTIONAL LIGHTS WERE AIMED, ASKED BESIDE READ.
+		// A WHOLE-RUN LINE, because the rotation is written once at spawn and
+		// never rewritten, and it sits beside the other whole-run lines for
+		// the same reason. lightAimStatus is the key the CI step refuses on.
+		Out.Add(FString(UTF8_TO_TCHAR(LightAimNow().c_str())));
 		// THE RIG'S OWN DETERMINISM, BESIDE THE PASS SUMMARIES IT QUALIFIES.
 		Out.Add(FString(UTF8_TO_TCHAR(GRigLine.c_str())));
 		Out.Add(FString(UTF8_TO_TCHAR(DoneLine.c_str())));
@@ -2017,8 +2164,18 @@ namespace
 	// last-wins; a ladder renders six conditions in one run, so without
 	// this five of its six frames would carry no component reading at all
 	// and a rung could only be attributed by trusting a data file.
-	std::string ShotLightNow()
+	// A1(c): THE ASK COMES FROM THE CONDITION THIS FRAME WAS PHOTOGRAPHED
+	// UNDER, looked up by the shot's own condition id rather than taken from
+	// whatever was applied last. The value applied last would be the same on a
+	// well-behaved run and the point of the key is the run that is not one.
+	std::string ShotLightNow(const Shot& S)
 	{
+		double SunAsked = 0.0, SkyAsked = 0.0;
+		if (const Condition* C = FindCondition(S.ConditionId))
+		{
+			SunAsked = C->SunIntensity;
+			SkyAsked = C->SkyIntensity;
+		}
 		bool bSunComp = false, bCast = false, bSkyComp = false;
 		double Intensity = 0.0, Pitch = 0.0, Yaw = 0.0, SkyIntensity = 0.0;
 		int Mobility = -1;
@@ -2043,8 +2200,20 @@ namespace
 				SkyIntensity = (double)SC->Intensity;
 			}
 		}
-		return LedgerVignette::ShotLightLine(bSunComp, Intensity, bCast, Pitch, Yaw,
-		                                     Mobility, bSkyComp, SkyIntensity);
+		// THE TALLY IS COUNTED HERE AND NOWHERE ELSE, so the per-sample word
+		// and the whole-run count cannot disagree: both come from
+		// LedgerVignette::CellAgrees.
+		if (bSunComp && bSkyComp && !GRepeating)
+		{
+			++GCellsRead;
+			if (LedgerVignette::CellAgrees(SunAsked, Intensity)
+			    && LedgerVignette::CellAgrees(SkyAsked, SkyIntensity))
+			{
+				++GCellsAgree;
+			}
+		}
+		return LedgerVignette::ShotLightLine(bSunComp, SunAsked, Intensity, bCast, Pitch, Yaw,
+		                                     Mobility, bSkyComp, SkyAsked, SkyIntensity);
 	}
 
 	// ---- QUEUE 208 AND THE CAPTURE PATH, ON EVERY SHOT LINE -------------
@@ -2142,7 +2311,7 @@ namespace
 		// AND WHAT LIT IT, READ OFF THE COMPONENTS RATHER THAN OFF THE ROW
 		// OF THE FILE THAT ASKED FOR IT. Per-sample keys on the sample line.
 		Line += " ";
-		Line += ShotLightNow();
+		Line += ShotLightNow(S);
 		// AND WHAT TOOK IT: the camera this frame was photographed from, and
 		// which of the two capture paths wrote the file. Per-sample, queue
 		// 208, and the reason tools/frame-shadow-probe.py can bind a shot

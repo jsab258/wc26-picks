@@ -137,93 +137,209 @@ int main(int argc, char** argv)
 	      "every piece the header claims is under it");
 	Check(S.Pieces.size() > 500,
 	      "the street read back is a street and not a handful of pieces");
-	// THREE CAMERAS AND FIVE SHOTS, AND THE SPLIT IS NAMED RATHER THAN
-	// SUMMED: cam_A and cam_B by the two conditions are the FOUR MATCHED
-	// PAIRS the engine decision is judged on, and cam_hook is a fifth shot
-	// that is deliberately not part of that pairing (rung 1 of
-	// production/ladder.md, one condition only). A bare 5 here would read as
-	// the pairing having changed, so the four are counted separately.
+	// THREE CAMERAS, FIVE JUDGED SHOTS AND TWENTY PROBE ROWS, AND THE SPLIT
+	// IS NAMED RATHER THAN SUMMED.
+	//
+	// cam_A and cam_B by the two conditions are the FOUR MATCHED PAIRS the
+	// engine decision is judged on, cam_hook under overcast_day is a fifth
+	// judged shot that is deliberately not part of that pairing, and the
+	// twenty rows this batch adds are ONE-RUN PROBE ROWS that the item
+	// reading the run removes. A bare 25 would read as the pairing having
+	// changed, so the three groups are counted apart.
+	//
+	// THE LADDER IS GONE, 2026-09-09, section 9 of the grid ruling, and its
+	// series is preserved in section 3 of that record: five rungs across a
+	// HUNDREDFOLD of sun moved band.ground.p05 by 1.06 of the null measured
+	// between two shots of one condition.
 	{
-		int Matched = 0;
+		int Matched = 0, ProbeShots = 0, ProbeAtHook = 0;
 		for (size_t I = 0; I < S.Shots.size(); ++I)
 		{
-			if (S.Shots[I].CameraId == "cam_A" || S.Shots[I].CameraId == "cam_B")
+			const bool bJudged = (S.Shots[I].ConditionId == "overcast_day"
+			                      || S.Shots[I].ConditionId == "wet_night");
+			if (!bJudged)
+			{
+				++ProbeShots;
+				if (S.Shots[I].CameraId == "cam_hook") { ++ProbeAtHook; }
+			}
+			else if (S.Shots[I].CameraId == "cam_A" || S.Shots[I].CameraId == "cam_B")
 			{
 				++Matched;
 			}
 		}
-		int LadderShots = 0, LadderAtCamA = 0, JudgedConds = 0, LadderConds = 0;
-		for (size_t I = 0; I < S.Shots.size(); ++I)
-		{
-			if (S.Shots[I].ConditionId.compare(0, 7, "ladder_") == 0)
-			{
-				++LadderShots;
-				if (S.Shots[I].CameraId == "cam_A") { ++LadderAtCamA; }
-				--Matched;
-			}
-		}
+		int JudgedConds = 0, ProbeConds = 0;
 		for (size_t I = 0; I < S.Conditions.size(); ++I)
 		{
-			if (S.Conditions[I].Id.compare(0, 7, "ladder_") == 0) { ++LadderConds; }
-			else { ++JudgedConds; }
+			if (S.Conditions[I].Id == "overcast_day" || S.Conditions[I].Id == "wet_night")
+			{
+				++JudgedConds;
+			}
+			else { ++ProbeConds; }
 		}
-		Check(S.Cameras.size() == 3 && JudgedConds == 2 && LadderConds == 6
-		      && S.Shots.size() == 11 && Matched == 4,
-		      "three cameras, two judged conditions plus six ladder rows, and eleven "
+		std::printf("    rows: cameras=%d judgedConds=%d probeConds=%d shots=%d "
+		            "matchedPairs=%d probeShots=%d probeAtHook=%d\n",
+		            (int)S.Cameras.size(), JudgedConds, ProbeConds, (int)S.Shots.size(),
+		            Matched, ProbeShots, ProbeAtHook);
+		Check(S.Cameras.size() == 3 && JudgedConds == 2 && ProbeConds == 20
+		      && S.Shots.size() == 25 && Matched == 4,
+		      "three cameras, two judged conditions plus twenty probe rows, and twenty-five "
 		      "shots of which the four judged pairs are still exactly four");
-		// THE LADDER STANDS AT ONE CAMERA AND IT IS cam_A. It is the only
-		// camera with a PRE-SKY control on the same pixels: shadow-edge
-		// step +0.0270 against three fills, -0.0003 against the captured
-		// sky. A ladder read against a datum from another camera would be
-		// two populations compared as one.
-		Check(LadderShots == 6 && LadderAtCamA == 6,
-		      "every ladder shot stands at cam_A, the camera the +0.0270 control was measured on");
+		// EVERY PROBE ROW STANDS AT cam_hook, and that is an instrument
+		// repair as much as it is Jafar's judging camera: the three control
+		// quads are HIDDEN on this camera (controlQuadHidden named
+		// vign_hook_day on run 38), so no whole-frame key on a probe row
+		// photographs the instrument, and at fovV 39.0 band.skyCentre is sky
+		// rather than the rooftops it holds at fovV 60.0.
+		Check(ProbeShots == 20 && ProbeAtHook == 20,
+		      "every probe row stands at cam_hook, the camera rung 1 is judged from",
+		      "a probe row at another camera would be two pixel populations read as one");
+		// THE NULL CELL IS SHOT LAST. Identical inputs at maximum order
+		// separation is the whole of its value.
+		Check(!S.Shots.empty() && S.Shots[S.Shots.size() - 1].ConditionId == "grid_null_repeat",
+		      "the null cell is the last shot in the list, as far from its twin as the run allows",
+		      S.Shots.empty() ? std::string("no shots") : S.Shots[S.Shots.size() - 1].Id);
 	}
 
-	// ---- QUEUE 205: THE SUN INTENSITY IS A FIELD NOW, AND IT IS READ ----
+	// ---- A1: THE GRID, ITS NULL CELL, AND THE TWO PROBE SERIES ----------
 	//
 	// PRINTED BEFORE IT IS ASSERTED, because this is the series the next
-	// commit sets a constant from and rule 2 says the printer ships first.
+	// commit sets constants from and rule 2 says the printer ships first.
 	{
-		std::printf("    sunLadder:");
+		std::printf("    grid:");
 		for (size_t I = 0; I < S.Conditions.size(); ++I)
 		{
-			std::printf(" %s=sun%.2f/sky%.2f", S.Conditions[I].Id.c_str(),
-			            S.Conditions[I].SunIntensity, S.Conditions[I].SkyIntensity);
+			std::printf(" %s=sun%.2f/sky%.2f/wet%.2f/fogMaxOp%.3f",
+			            S.Conditions[I].Id.c_str(), S.Conditions[I].SunIntensity,
+			            S.Conditions[I].SkyIntensity, S.Conditions[I].Wetness,
+			            S.Conditions[I].FogMaxOpacity);
 		}
 		std::printf("\n");
-		double DaySun = -1.0, DaySky = -1.0, NightSun = -1.0, NightSky = -1.0;
-		int Rungs = 0, Control = 0;
-		const double Want[5] = { 3.0, 10.0, 30.0, 100.0, 300.0 };
+		double DaySun = -1.0, DaySky = -1.0, DayCap = -1.0;
+		double NightSun = -1.0, NightSky = -1.0;
 		for (size_t I = 0; I < S.Conditions.size(); ++I)
 		{
 			const LedgerVignette::Condition& C = S.Conditions[I];
-			if (C.Id == "overcast_day") { DaySun = C.SunIntensity; DaySky = C.SkyIntensity; }
-			if (C.Id == "wet_night")    { NightSun = C.SunIntensity; NightSky = C.SkyIntensity; }
-			if (C.Id.compare(0, 7, "ladder_") != 0) { continue; }
-			if (std::fabs(C.SkyIntensity - 0.35) < 1e-9
-			    && std::fabs(C.SunIntensity - 3.0) < 1e-9) { ++Control; continue; }
-			for (int K = 0; K < 5; ++K)
+			if (C.Id == "overcast_day")
 			{
-				if (std::fabs(C.SunIntensity - Want[K]) < 1e-9
-				    && std::fabs(C.SkyIntensity - 1.0) < 1e-9) { ++Rungs; break; }
+				DaySun = C.SunIntensity; DaySky = C.SkyIntensity; DayCap = C.FogMaxOpacity;
 			}
+			if (C.Id == "wet_night") { NightSun = C.SunIntensity; NightSky = C.SkyIntensity; }
 		}
-		// THE TWO JUDGED ROWS CARRY THE OLD LITERALS UNCHANGED, which is
-		// what makes "the field replaced the literal and moved no number"
-		// a check rather than a claim. 3.0f was the bare literal at
+		// THE TWO JUDGED ROWS CARRY THE OLD LITERALS UNCHANGED, which is what
+		// makes "the field replaced the literal and moved no number" a check
+		// rather than a claim. 3.0f was the bare literal at
 		// VignetteShot.cpp:1240; 1.0 and 0.35 were kSkyIntensityDay and
-		// kSkyIntensityNight.
+		// kSkyIntensityNight; 0.45f was kFogMaxOpacityWithSky.
 		Check(std::fabs(DaySun - 3.0) < 1e-9 && std::fabs(DaySky - 1.0) < 1e-9,
 		      "the day condition carries the retired sun literal and day sky constant unchanged");
 		Check(std::fabs(NightSun) < 1e-9 && std::fabs(NightSky - 0.35) < 1e-9,
 		      "the night condition carries the night sky constant with its sun at zero");
-		Check(Rungs == 5, "five ladder rungs at 3, 10, 30, 100 and 300 against the unchanged sky");
-		// THE CONTROL ROW IS NOT OPTIONAL. Auto exposure is in force and
-		// unoverridden, so a flat ladder is equally consistent with a dim
-		// sun, a bright sky and the tonemapper. This row tests the second
-		// of the three in the same run.
-		Check(Control == 1, "exactly one control row, sun at the value in force and sky at 0.35");
+		Check(std::fabs(DayCap - 0.450) < 1e-9,
+		      "and the retired fog cap literal, 0.45, unchanged on the judged day row");
+		// THE GRID IS THE CROSS AND NOTHING ELSE, counted out of the file.
+		const double Skies[4] = { 1.00, 0.70, 0.50, 0.35 };
+		const double Suns[3]  = { 3.0, 10.0, 30.0 };
+		int Cells = 0, GridRows = 0;
+		for (int A = 0; A < 4; ++A)
+		{
+			for (int B = 0; B < 3; ++B)
+			{
+				for (size_t I = 0; I < S.Conditions.size(); ++I)
+				{
+					const LedgerVignette::Condition& C = S.Conditions[I];
+					if (C.Id.compare(0, 8, "grid_sky") != 0) { continue; }
+					if (std::fabs(C.SkyIntensity - Skies[A]) < 1e-9
+					    && std::fabs(C.SunIntensity - Suns[B]) < 1e-9) { ++Cells; break; }
+				}
+			}
+		}
+		for (size_t I = 0; I < S.Conditions.size(); ++I)
+		{
+			if (S.Conditions[I].Id.compare(0, 8, "grid_sky") == 0) { ++GridRows; }
+		}
+		Check(Cells == 12 && GridRows == 12,
+		      "the grid is four skies crossed with three suns, twelve cells, none missing and none extra",
+		      std::to_string(Cells) + " of 12 cells over " + std::to_string(GridRows) + " rows");
+		// A1(a), BLOCKING: THE NULL CELL IS A DUPLICATE OR IT IS NOTHING.
+		// Run 38 carried this test as ladder_sun003 against vign_camA_day and
+		// IT FAILED, by 0.1106 of whole-frame mean luma, and nobody read it.
+		// Asserted field by field here rather than by reading two rows of
+		// JSON side by side.
+		const LedgerVignette::Condition* Ref = 0;
+		const LedgerVignette::Condition* Null = 0;
+		for (size_t I = 0; I < S.Conditions.size(); ++I)
+		{
+			if (S.Conditions[I].Id == "grid_sky100_sun003") { Ref = &S.Conditions[I]; }
+			if (S.Conditions[I].Id == "grid_null_repeat")    { Null = &S.Conditions[I]; }
+		}
+		Check(Ref != 0 && Null != 0,
+		      "the grid has a reference cell and a null cell that repeats it");
+		Check(Ref != 0 && Null != 0
+		      && Null->Hdri == Ref->Hdri && Null->SunOn == Ref->SunOn
+		      && Null->LanternsOn == Ref->LanternsOn && Null->WindowsOn == Ref->WindowsOn
+		      && std::fabs(Null->SunIntensity - Ref->SunIntensity) < 1e-12
+		      && std::fabs(Null->SkyIntensity - Ref->SkyIntensity) < 1e-12
+		      && std::fabs(Null->Wetness - Ref->Wetness) < 1e-12
+		      && std::fabs(Null->FogDensity - Ref->FogDensity) < 1e-12
+		      && std::fabs(Null->FogMaxOpacity - Ref->FogMaxOpacity) < 1e-12,
+		      "the null cell is the reference cell in every field that lights a frame",
+		      "a null pair that differs in any input measures that difference and not the rig");
+		// C6, MECHANICALLY: THE SHOT ORDER RISES AND FALLS IN SKY. The
+		// retired ladder rendered in increasing order, so a drift ordered by
+		// shot was perfectly confounded with a response to the light.
+		bool bRose = false, bFell = false;
+		double PrevSky = -1.0;
+		std::printf("    gridShotOrder:");
+		for (size_t I = 0; I < S.Shots.size(); ++I)
+		{
+			if (S.Shots[I].ConditionId.compare(0, 8, "grid_sky") != 0) { continue; }
+			double Sky = -1.0;
+			for (size_t K = 0; K < S.Conditions.size(); ++K)
+			{
+				if (S.Conditions[K].Id == S.Shots[I].ConditionId)
+				{
+					Sky = S.Conditions[K].SkyIntensity;
+				}
+			}
+			std::printf(" sky%.2f", Sky);
+			if (PrevSky >= 0.0 && Sky > PrevSky + 1e-12) { bRose = true; }
+			if (PrevSky >= 0.0 && Sky < PrevSky - 1e-12) { bFell = true; }
+			PrevSky = Sky;
+		}
+		std::printf("\n");
+		Check(bRose && bFell,
+		      "the grid's shot order rises and falls in sky, so no drift ordered by shot passes as a sky response",
+		      "rose and fell are both required, which is condition C6");
+		// A4, THE FOG SERIES, AND A3, THE WETNESS SERIES.
+		const double WantFog[4] = { 0.450, 0.250, 0.100, 0.000 };
+		int FogRows = 0;
+		for (int A = 0; A < 4; ++A)
+		{
+			for (size_t I = 0; I < S.Conditions.size(); ++I)
+			{
+				if (S.Conditions[I].Id.compare(0, 9, "fog_maxop") != 0) { continue; }
+				if (std::fabs(S.Conditions[I].FogMaxOpacity - WantFog[A]) < 1e-9)
+				{
+					++FogRows; break;
+				}
+			}
+		}
+		Check(FogRows == 4,
+		      "four fog rows at 0.450, 0.250, 0.100 and 0.000, which is a series and not a pair",
+		      std::to_string(FogRows) + " of 4");
+		const double WantWet[3] = { 0.0, 0.60, 1.0 };
+		int WetRows = 0;
+		for (int A = 0; A < 3; ++A)
+		{
+			for (size_t I = 0; I < S.Conditions.size(); ++I)
+			{
+				if (S.Conditions[I].Id.compare(0, 4, "wet_") != 0) { continue; }
+				if (std::fabs(S.Conditions[I].Wetness - WantWet[A]) < 1e-9) { ++WetRows; break; }
+			}
+		}
+		Check(WetRows == 3,
+		      "three wetness rows at 0.0, 0.60 and 1.0, both ends and the value the judged rows carry",
+		      std::to_string(WetRows) + " of 3");
 	}
 
 	// REJECTING CASE, SYNTHESISED FROM THE LIVE FILE BY DELETING ONE KEY,
@@ -1232,22 +1348,36 @@ int main(int argc, char** argv)
 		// THE HEADER AND THE ARRAY MUST AGREE. A truncated write leaves a
 		// header claiming 593 above 400 lines and every other check here
 		// reads one or the other.
+		//
+		// THE FIXTURE READS THE LIVE COUNT, 2026-09-09, AND NO LONGER PINS
+		// ONE. It carried the literal `"pieces":593` and went red the first
+		// time the street legitimately grew, which is a fixture failing for
+		// the one reason a fixture must not: the work moved the number it was
+		// typed against. The count comes out of the header this run just
+		// parsed, so the planted fault is a DECREMENT OF WHATEVER IS THERE
+		// and the fixture cannot decay. It still says nothing-measured rather
+		// than passing if the key is absent.
 		LedgerVignette::Spec Bad;
 		std::string BadErr;
 		std::string Miscount(Text);
-		const size_t At = Miscount.find("\"pieces\":593");
+		const std::string Key = "\"pieces\":" + std::to_string(S.HeaderPieces);
+		const size_t At = Miscount.find(Key);
 		if (At != std::string::npos)
 		{
-			Miscount.replace(At, 12, "\"pieces\":591");
+			const std::string Wrong = "\"pieces\":" + std::to_string(S.HeaderPieces - 2);
+			Miscount.replace(At, Key.size(), Wrong);
+			std::printf("    miscountFixture: planted %s in place of %s\n",
+			            Wrong.c_str(), Key.c_str());
 			Check(!LedgerVignette::ParseSpec(Miscount, Bad, BadErr),
-			      "a header that claims more pieces than are under it is refused", BadErr);
+			      "a header that claims fewer pieces than are under it is refused", BadErr);
 		}
 		else
 		{
-			// The count moved; say so rather than passing a check that
-			// planted nothing.
+			// NOTHING MEASURED rather than a pass: the fixture planted no
+			// fault, so the check it stands for did not run.
 			Check(false, "the miscount fixture could not be planted",
-			      "no \"pieces\":593 in the committed file: update this fixture to the live count");
+			      "nothing measured: the header key " + Key
+			      + " is not in the committed file in that form");
 		}
 	}
 	{
@@ -2047,7 +2177,12 @@ int main(int argc, char** argv)
 		In.bSunActor = true; In.bSunComponent = true;
 		In.SunIntensityRead = 30.0;
 		In.bSunCastShadowsRead = true;
-		In.SunPitchRead = -36.0; In.SunYawRead = 205.0;
+		// THE YAW SLOT CARRIES A YAW, NOT AN AZIMUTH. Until 2026-09-09 this
+		// fixture read 205.0, which is the file's azimuth_deg; the converted
+		// yaw is SunYawDeg(205) = 25.0, and a reader learning the key from
+		// this test learned it wrong. Nothing depended on it, and a key
+		// taught wrong by its own test is how a unit survives a review.
+		In.SunPitchRead = -36.0; In.SunYawRead = LedgerVignette::SunYawDeg(205.0);
 		In.SunMobilityRead = 2;
 		const std::string L = LedgerVignette::SkySegment(In);
 		std::printf("    %s\n", L.c_str());
@@ -2055,8 +2190,8 @@ int main(int argc, char** argv)
 		      "the sun's intensity is printed as the component reported it");
 		Check(L.find("sunCastShadowsRead=yes") != std::string::npos,
 		      "and whether it casts, which sun=yes never said");
-		Check(L.find("sunPitchYawRead=-36.0/205.0") != std::string::npos,
-		      "and where it points, as one pair with no space in it");
+		Check(L.find("sunPitchYawRead=-36.0/25.0") != std::string::npos,
+		      "and where it points, as one pair with no space in it, the CONVERTED yaw and not the azimuth");
 		Check(L.find("sunMobilityRead=2") != std::string::npos
 		      && L.find("sunMobilityKey=0-static/1-stationary/2-movable/") != std::string::npos,
 		      "and its mobility as the engine's own enum value with the key beside it");
@@ -2084,20 +2219,61 @@ int main(int argc, char** argv)
 		// in one run and the scene line is one-per-run, so this is the
 		// half that can attribute a rung to the sun that lit it.
 		const std::string L = LedgerVignette::ShotLightLine(
-			true, 300.0, true, -36.0, 205.0, 2, true, 1.0);
+			true, 300.0, 300.0, true, -36.0, LedgerVignette::SunYawDeg(205.0), 2, true, 1.0, 1.0);
 		std::printf("    %s\n", L.c_str());
 		Check(L.find("shotSunIntensityRead=300.000") != std::string::npos
 		      && L.find("shotSkyIntensityRead=1.000") != std::string::npos,
 		      "the frame's own line carries both intensities as the components read them");
+		// A1(c), CONDITION C5: THE ASK IS ON THE SAME LINE AS THE READ, and
+		// the cell says whether they agreed. Run 38 printed five rungs that
+		// all read sky 1.000 and never printed what any of them asked for.
+		Check(L.find("shotSunIntensityAsked=300.000") != std::string::npos
+		      && L.find("shotSkyIntensityAsked=1.000") != std::string::npos
+		      && L.find("shotCellAgrees=yes") != std::string::npos,
+		      "a cell lit by the numbers it asked for prints both halves and says it agreed");
+		// AND THE PLANTED DISAGREEMENT, which is the case the key exists for:
+		// the grid's middle skies are the cells that have never been rendered,
+		// so a row reading back the old 1.000 must refuse rather than report.
+		const std::string Wrong = LedgerVignette::ShotLightLine(
+			true, 3.0, 3.0, true, -36.0, 25.0, 2, true, 0.70, 1.000);
+		std::printf("    %s\n", Wrong.c_str());
+		Check(Wrong.find("shotSkyIntensityAsked=0.700") != std::string::npos
+		      && Wrong.find("shotSkyIntensityRead=1.000") != std::string::npos
+		      && Wrong.find("shotCellAgrees=NO/the-frame-was-lit-by-numbers-this-row-did-not-ask-for")
+		         != std::string::npos,
+		      "a cell that asked for a middle sky and read back 1.000 says NO on its own line");
+		Check(EveryTokenIsKeyValue(Wrong), "the disagreeing cell line is space-free");
 		Check(L.find("shotLightStat=read-off-the-components-while-THIS-frame-stood/"
 		             "per-sample-not-per-run") != std::string::npos,
 		      "and says it is a per-sample reading, so it is never read as a whole-run number");
 		Check(EveryTokenIsKeyValue(L), "the shot light line is space-free");
 		const std::string M = LedgerVignette::ShotLightLine(
-			false, 0.0, false, 0.0, 0.0, -1, false, 0.0);
+			false, 3.0, 0.0, false, 0.0, 0.0, -1, false, 1.0, 0.0);
 		Check(M.find("shotSunIntensityRead=nothing-measured") != std::string::npos
 		      && M.find("shotSkyIntensityRead=nothing-measured") != std::string::npos,
 		      "a frame taken with no sun component says nothing-measured on its own line");
+		// AND A CELL THAT WAS NOT READ IS NOT A CELL THAT AGREED. The ask is
+		// still printed, because the row existed; the agreement is not.
+		Check(M.find("shotSunIntensityAsked=3.000") != std::string::npos
+		      && M.find("shotCellAgrees=nothing-measured/no-component-answered-on-this-frame")
+		         != std::string::npos,
+		      "an unread cell prints what it asked for and refuses to claim agreement");
+		Check(EveryTokenIsKeyValue(M), "the unread cell line is space-free too");
+
+		// ---- THE WHOLE-RUN TALLY, AND ITS NEVER-RAN CASE -----------------
+		const std::string T = LedgerVignette::CellAgreeLine(25, 25, 25);
+		std::printf("    %s\n", T.c_str());
+		Check(T.find("cellAgree=25/of=25/read") != std::string::npos
+		      && T.find("cellAgreeRead=25/of=25/asked") != std::string::npos,
+		      "the run line counts agreeing cells over the cells READ and the cells read over the shots ASKED");
+		Check(LedgerVignette::CellAgreeLine(11, 12, 25).find("cellAgree=11/of=12/read")
+		      != std::string::npos,
+		      "and one cell short of twelve reads as eleven of twelve rather than as a pass");
+		const std::string Z = LedgerVignette::CellAgreeLine(0, 0, 25);
+		Check(Z.find("cellAgree=nothing-measured/of=25/shots-asked") != std::string::npos,
+		      "a run that read no cell says nothing measured over the shots it was asked for, never 0/0");
+		Check(EveryTokenIsKeyValue(T) && EveryTokenIsKeyValue(Z),
+		      "both forms of the cell tally are space-free");
 	}
 
 	{
@@ -2160,6 +2336,122 @@ int main(int argc, char** argv)
 		      "an unread camera never prints the origin it was default-constructed at");
 	}
 
+	// ---- A6: THE LIGHTS, ASKED AGAINST READ, AND THE GUARD'S TWO CASES ---
+	//
+	// WHAT WAS MISSING AND WHAT IT COST. The sun's conversion was tested at
+	// line 404 of this file and its format string at 2058, and the engine
+	// rendered a sun 46.0 degrees from the asked one for every run the key
+	// has existed, because no test asked whether the number ARRIVED. These
+	// run in the layer that compiles here; the arrival itself is measured on
+	// the run, which is what lightAimStatus refuses on.
+	//
+	// ACCEPTING CASE FIRST, PER RULE 5b, AND ON THE LIVE VALUES: the asked
+	// pair is the committed file's own sun put through the same two
+	// converters the spawner calls, so this fixture cannot drift from the
+	// scene.
+	{
+		const double AskedPitch = LedgerVignette::SunPitchDeg(S.SunElevationDeg);
+		const double AskedYaw   = LedgerVignette::SunYawDeg(S.SunAzimuthDeg);
+		std::printf("    lightAim: liveAskedPitchYaw=%.1f/%.1f from elevation=%.1f azimuth=%.1f\n",
+		            AskedPitch, AskedYaw, S.SunElevationDeg, S.SunAzimuthDeg);
+		std::vector<LedgerVignette::LightAim> Lights;
+		LedgerVignette::LightAim Sun;
+		Sun.Name = "sun"; Sun.bSpawned = true; Sun.bRead = true;
+		Sun.AskedPitch = AskedPitch; Sun.AskedYaw = AskedYaw;
+		Sun.ReadPitch = AskedPitch;  Sun.ReadYaw = AskedYaw;
+		Lights.push_back(Sun);
+		// THE THREE FILLS, WITH THE LITERALS VignetteShot.cpp SPAWNS THEM
+		// FROM, and fill B is the case that matters: it asks for yaw 200.0
+		// and an FRotator normalises that to -160.0, which is the same
+		// direction. A residual that did not wrap would refuse a light aimed
+		// exactly where it was sent, and the guard would have been a ratchet.
+		const double FillPitch[3] = { -80.0, -10.0,  60.0 };
+		const double FillYaw[3]   = {  20.0, 200.0,  90.0 };
+		const double FillReadYaw[3] = { 20.0, -160.0, 90.0 };
+		const char* FillName[3] = { "fillA", "fillB", "fillC" };
+		for (int K = 0; K < 3; ++K)
+		{
+			LedgerVignette::LightAim F;
+			F.Name = FillName[K]; F.bSpawned = true; F.bRead = true;
+			F.AskedPitch = FillPitch[K]; F.AskedYaw = FillYaw[K];
+			F.ReadPitch = FillPitch[K];  F.ReadYaw = FillReadYaw[K];
+			Lights.push_back(F);
+		}
+		const std::string L = LedgerVignette::LightAimLine(Lights, 4);
+		std::printf("    %s\n", L.c_str());
+		Check(L.find("lightAimStatus=AGREES") != std::string::npos,
+		      "four lights aimed where they were sent print the one passing word");
+		Check(L.find("lightAimAgreeing=4/of=4/read") != std::string::npos
+		      && L.find("lightAimRead=4/of=4/spawned") != std::string::npos
+		      && L.find("lightAimSpawned=4/of=4/") != std::string::npos,
+		      "and every count ships the denominator it is over");
+		Check(L.find("lightAim.sun.askedPitchYaw=-36.0/25.0") != std::string::npos
+		      && L.find("lightAim.sun.readPitchYaw=-36.0/25.0") != std::string::npos,
+		      "the sun's asked pair is the live file's -36.0/25.0 and it is printed beside the read pair",
+		      "the committed spec asks elevation 36 azimuth 205");
+		Check(L.find("lightAim.sun.residualPitchYawDeg=0.0000/0.0000") != std::string::npos,
+		      "a light that arrived prints a zero residual on both axes to four decimals");
+		Check(L.find("lightAim.fillB.askedPitchYaw=-10.0/200.0") != std::string::npos
+		      && L.find("lightAim.fillB.readPitchYaw=-10.0/-160.0") != std::string::npos
+		      && L.find("lightAim.fillB.residualPitchYawDeg=0.0000/0.0000") != std::string::npos,
+		      "a yaw of 200 reading back as -160 is the same direction and wraps to a zero residual",
+		      "an unwrapped subtraction would print -360.0000 and refuse a correct light");
+		Check(L.find("lightAimWorstResidualDeg=0.0000/on=") != std::string::npos,
+		      "and the worst residual over the population is named with the light and axis it is on");
+		Check(L.find("lightAimRefuseAtDeg=1.0/NOT-A-MEASURED-TOLERANCE/") != std::string::npos,
+		      "the bound says in its own value that it is a class separator and not a measurement");
+		Check(EveryTokenIsKeyValue(L), "the lightAim line is space-free, every token a key with a value");
+
+		// ---- THE PLANTED OFFSET, WHICH MUST REFUSE -----------------------
+		//
+		// 46.0 degrees of pitch is not an invented number: it is the exact
+		// displacement the committed verdict carried, asked -36.0 against
+		// read -82.0. The guard is tested on the fault it exists for.
+		std::vector<LedgerVignette::LightAim> Planted = Lights;
+		Planted[0].ReadPitch = AskedPitch - 46.0;
+		const std::string M = LedgerVignette::LightAimLine(Planted, 4);
+		std::printf("    %s\n", M.c_str());
+		Check(M.find("lightAimStatus=REFUSED") != std::string::npos,
+		      "a sun 46 degrees from its ask refuses rather than reporting");
+		Check(M.find("lightAim.sun.readPitchYaw=-82.0/25.0") != std::string::npos
+		      && M.find("lightAim.sun.residualPitchYawDeg=-46.0000/0.0000") != std::string::npos,
+		      "and the line carries the run-38 pair and the signed 46 degree residual",
+		      "the committed verdict read sunPitchYawRead=-82.0/25.0 against an asked -36.0/25.0");
+		Check(M.find("lightAim.sun=REFUSED") != std::string::npos
+		      && M.find("lightAim.fillA=AGREES") != std::string::npos,
+		      "the refusal names WHICH light, so three agreeing lights do not hide the fourth");
+		Check(M.find("lightAimAgreeing=3/of=4/read") != std::string::npos,
+		      "and the count over the population moves with it");
+		Check(M.find("lightAimWorstResidualDeg=-46.0000/on=sun/axis=pitch") != std::string::npos,
+		      "the at-worst residual is signed and names the light and the axis it was worst on");
+		// AND A HALF DEGREE MUST NOT REFUSE, which is the other side of the
+		// class separator: the bound exists to catch 46.0 and not a float
+		// round trip, and a guard that cannot tell them apart is a ratchet.
+		std::vector<LedgerVignette::LightAim> Small = Lights;
+		Small[0].ReadYaw = AskedYaw + 0.5;
+		Check(LedgerVignette::LightAimLine(Small, 4).find("lightAimStatus=AGREES")
+		      != std::string::npos,
+		      "half a degree does not refuse, because 1.0 separates the 46.0 fault from rounding");
+
+		// ---- AND A RUN THAT READ NOTHING, WHICH IS NOT A PASS ------------
+		std::vector<LedgerVignette::LightAim> NoneRead;
+		LedgerVignette::LightAim Dead;
+		Dead.Name = "sun"; Dead.bSpawned = true; Dead.bRead = false;
+		Dead.AskedPitch = AskedPitch; Dead.AskedYaw = AskedYaw;
+		NoneRead.push_back(Dead);
+		const std::string N = LedgerVignette::LightAimLine(NoneRead, 4);
+		std::printf("    %s\n", N.c_str());
+		Check(N.find("lightAimStatus=NOTHING-MEASURED") != std::string::npos
+		      && N.find("lightAim.sun=NO-COMPONENT") != std::string::npos
+		      && N.find("lightAim.sun.readPitchYaw=nothing-measured") != std::string::npos,
+		      "a light with no component prints the words rather than a zero that reads as the horizon");
+		Check(N.find("lightAimWorstResidualDeg=nothing-measured/") != std::string::npos
+		      && N.find("lightAimRead=0/of=1/spawned") != std::string::npos,
+		      "a run that read no light says so with its denominators and never prints a zero residual");
+		Check(N.find("lightAimStatus=AGREES") == std::string::npos,
+		      "and NOTHING-MEASURED is not the passing word, so the guard fails closed");
+		Check(EveryTokenIsKeyValue(N), "the nothing-measured lightAim line is space-free too");
+	}
 
 	std::printf("%s: %d of %d check(s) failed\n",
 	            gFailed == 0 ? "PASS" : "FAIL", gFailed, gChecks);

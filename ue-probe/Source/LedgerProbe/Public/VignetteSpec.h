@@ -255,8 +255,16 @@ namespace LedgerVignette
 		std::string Id, Hdri;
 		bool   SunOn, LanternsOn, WindowsOn;
 		double Wetness, FogDensity, SunIntensity, SkyIntensity;
+		// A4, 2026-09-09: HOW MUCH OF THE FAR FIELD THE HEIGHT FOG MAY OWN,
+		// out of the shared file instead of out of
+		// `const float kFogMaxOpacityWithSky = 0.45f` in VignetteShot.cpp. A
+		// sky behind an opaque fog is invisible, and queue 186 names this cap
+		// in its own text as something that must come down in the same change
+		// as the sky. REQUIRED, like the two intensities: see the parse.
+		double FogMaxOpacity;
 		Condition() : SunOn(false), LanternsOn(false), WindowsOn(false),
-		              Wetness(0), FogDensity(0), SunIntensity(0), SkyIntensity(0) {}
+		              Wetness(0), FogDensity(0), SunIntensity(0), SkyIntensity(0),
+		              FogMaxOpacity(0) {}
 	};
 
 	struct Shot { std::string Id, CameraId, ConditionId; };
@@ -451,6 +459,11 @@ namespace LedgerVignette
 			// would rebuild exactly the fault queue 205 exists to repair.
 			if (!NeedNum(O, "sun_intensity", C.SunIntensity, Err, "condition")) return false;
 			if (!NeedNum(O, "sky_intensity", C.SkyIntensity, Err, "condition")) return false;
+			// AND THE FOG CAP, ON THE SAME TERMS AND FOR THE SAME REASON.
+			// An optional field with a silent default would let one engine
+			// cap the fog at 0.45 and the other at 1.0 and both stills would
+			// look fine, which is the fault the required fields exist for.
+			if (!NeedNum(O, "fog_max_opacity", C.FogMaxOpacity, Err, "condition")) return false;
 			Out.Conditions.push_back(C);
 		}
 
@@ -2044,40 +2057,274 @@ namespace LedgerVignette
 	// off the same components at the moment THIS frame was photographed,
 	// which is what lets a rung of the ladder be attributed to the sun
 	// that lit it rather than to the row of a data file.
-	inline std::string ShotLightLine(bool bSunComponent, double SunIntensityRead,
+	// A1(c), 2026-09-09, AND IT IS CONDITION C5, BLOCKING: THE ASKED VALUE
+	// RIDES BESIDE THE READ ONE ON EVERY CELL'S OWN LINE.
+	//
+	// Run 38 printed five rungs that all read sky 1.000 and one control row
+	// that read 0.350, and the CROSS WAS NEVER PRINTED, so the cell that
+	// mattered (a middle sky with the sun in force) had never been rendered
+	// and nothing in the verdict said so. A grid of twelve cells is twelve
+	// chances to render the wrong row and read it as the right one. The ask
+	// comes from the condition this frame was photographed under; the read is
+	// off the live components. A cell that could not be read prints the words.
+	//
+	// THE AGREEMENT IS DECIDED HERE, where the tests run, so the run line's
+	// tally and this line's verdict cannot drift apart.
+	inline double CellAgreeTol() { return 0.001; }
+	inline bool CellAgrees(double Asked, double Read) 
+	{
+		return std::fabs(Read - Asked) < CellAgreeTol();
+	}
+
+	inline std::string ShotLightLine(bool bSunComponent, double SunIntensityAsked,
+	                                 double SunIntensityRead,
 	                                 bool bCastShadowsRead, double PitchRead,
 	                                 double YawRead, int MobilityRead,
-	                                 bool bSkyComponent, double SkyIntensityRead)
+	                                 bool bSkyComponent, double SkyIntensityAsked,
+	                                 double SkyIntensityRead)
 	{
-		char Buf[600];
-		char Sun[300];
+		char Buf[900];
+		char Sun[420];
 		if (bSunComponent)
 		{
 			std::snprintf(Sun, sizeof(Sun),
-				"shotSunIntensityRead=%.3f shotSunCastShadowsRead=%s "
+				"shotSunIntensityAsked=%.3f shotSunIntensityRead=%.3f "
+				"shotSunCastShadowsRead=%s "
 				"shotSunPitchYawRead=%.1f/%.1f shotSunMobilityRead=%d",
-				SunIntensityRead, bCastShadowsRead ? "yes" : "NO",
+				SunIntensityAsked, SunIntensityRead, bCastShadowsRead ? "yes" : "NO",
 				PitchRead, YawRead, MobilityRead);
 		}
 		else
 		{
 			std::snprintf(Sun, sizeof(Sun),
-				"shotSunIntensityRead=nothing-measured shotSunCastShadowsRead=nothing-measured "
-				"shotSunPitchYawRead=nothing-measured shotSunMobilityRead=nothing-measured");
+				"shotSunIntensityAsked=%.3f shotSunIntensityRead=nothing-measured "
+				"shotSunCastShadowsRead=nothing-measured "
+				"shotSunPitchYawRead=nothing-measured shotSunMobilityRead=nothing-measured",
+				SunIntensityAsked);
 		}
-		char Sky[140];
+		char Sky[200];
 		if (bSkyComponent)
 		{
-			std::snprintf(Sky, sizeof(Sky), "shotSkyIntensityRead=%.3f", SkyIntensityRead);
+			std::snprintf(Sky, sizeof(Sky),
+				"shotSkyIntensityAsked=%.3f shotSkyIntensityRead=%.3f",
+				SkyIntensityAsked, SkyIntensityRead);
 		}
 		else
 		{
-			std::snprintf(Sky, sizeof(Sky), "shotSkyIntensityRead=nothing-measured");
+			std::snprintf(Sky, sizeof(Sky),
+				"shotSkyIntensityAsked=%.3f shotSkyIntensityRead=nothing-measured",
+				SkyIntensityAsked);
+		}
+		// THE CELL'S OWN VERDICT, AND A CELL THAT WAS NOT READ IS NOT A
+		// CELL THAT AGREED. Rule 3b: nothing-measured, never a quiet yes.
+		const char* Agree = "nothing-measured/no-component-answered-on-this-frame";
+		if (bSunComponent && bSkyComponent)
+		{
+			Agree = (CellAgrees(SunIntensityAsked, SunIntensityRead)
+			         && CellAgrees(SkyIntensityAsked, SkyIntensityRead))
+			      ? "yes" : "NO/the-frame-was-lit-by-numbers-this-row-did-not-ask-for";
 		}
 		std::snprintf(Buf, sizeof(Buf),
-			"%s %s shotLightStat=read-off-the-components-while-THIS-frame-stood/per-sample-not-per-run",
-			Sun, Sky);
+			"%s %s shotCellAgrees=%s "
+			"shotLightStat=read-off-the-components-while-THIS-frame-stood/per-sample-not-per-run/"
+			"asked-comes-from-the-condition-row-this-frame-was-photographed-under",
+			Sun, Sky, Agree);
 		return std::string(Buf);
+	}
+
+	// THE WHOLE-RUN TALLY OF THE SAME QUESTION, ONE NUMBER OVER ITS OWN
+	// DENOMINATOR. Twelve grid cells live inside Measured, and the count that
+	// matters for condition C5 is that every cell read back what it asked
+	// for; a run that photographed nothing says the words rather than
+	// printing 0/0, which reads as a clean sweep.
+	inline std::string CellAgreeLine(int Agree, int Measured, int Asked)
+	{
+		char Buf[520];
+		if (Measured == 0)
+		{
+			std::snprintf(Buf, sizeof(Buf),
+				"cellAgree=nothing-measured/of=%d/shots-asked "
+				"cellAgreeStat=one-per-run/counted-over-shots-whose-sun-and-sky-components-both-answered/"
+				"a-cell-that-was-not-read-is-not-a-cell-that-agreed",
+				Asked);
+			return std::string(Buf);
+		}
+		std::snprintf(Buf, sizeof(Buf),
+			"cellAgree=%d/of=%d/read cellAgreeRead=%d/of=%d/asked cellAgreeTolUnitless=%.3f "
+			"cellAgreeStat=one-per-run/counted-over-shots-whose-sun-and-sky-components-both-answered/"
+			"asked-is-the-condition-row-read-is-the-live-component/"
+			"a-cell-that-was-not-read-is-not-a-cell-that-agreed",
+			Agree, Measured, Measured, Asked, CellAgreeTol());
+		return std::string(Buf);
+	}
+
+	// ---- A6: WHERE EVERY DIRECTIONAL LIGHT WAS AIMED, ASKED BESIDE READ -
+	//
+	// WHY THIS EXISTS, AND IT IS CLAUDE.md RULE 6 WITH A NUMBER ON IT.
+	// production/specs/vignette-pieces.json asks for a sun 36 degrees above
+	// the horizon, SunPitchDeg turns that into an asked pitch of -36.0, and
+	// every run of this rig rendered a sun at -82.0: off by exactly 46.0 with
+	// the yaw agreeing to the decimal. The arithmetic was tested
+	// (vignette-spec-test.cpp:404) and the format string was tested (:2058)
+	// and NOTHING TESTED THAT THE NUMBER REACHED THE LIGHT. The same rig
+	// already differences asked against read for the camera
+	// (shotCamAskedPitchYaw beside shotCamReadPitchYaw) and for every prop
+	// (propCentreWorstMm against the file's own coordinates); the lights were
+	// the one actor population nobody differenced, and 46 degrees hid there
+	// for every run the key has existed. A 4 m lamp post casts 5.5 m at the
+	// asked elevation and 0.56 m at the rendered one.
+	//
+	// WHOLE-RUN, NOT PER-SAMPLE, and the reason is mechanical rather than
+	// stylistic: the rotation is written once at spawn and never rewritten,
+	// so it is a fact about the run and not about a frame. The per-sample
+	// shotSunPitchYawRead above STAYS, because a per-sample read is what
+	// would catch a later write.
+	//
+	// ASKED IS CAPTURED AT THE SPAWN CALL, not re-derived here from the spec:
+	// re-deriving it would compare the formula against itself and agree
+	// whatever the spawner did with the value.
+	struct LightAim
+	{
+		std::string Name;    // sun / fillA / fillB / fillC
+		bool   bSpawned;     // the actor exists
+		bool   bRead;        // a component answered; false prints the words
+		double AskedPitch, AskedYaw;
+		double ReadPitch, ReadYaw;
+		LightAim() : Name("unnamed"), bSpawned(false), bRead(false),
+		             AskedPitch(0.0), AskedYaw(0.0), ReadPitch(0.0), ReadYaw(0.0) {}
+	};
+
+	// A SIGNED RESIDUAL ON A CIRCLE, AND THE WRAP IS NOT COSMETIC. FRotator
+	// normalises each axis to (-180,180], so fill B asked for yaw 200.0 reads
+	// back as -160.0, which is THE SAME DIRECTION. A naive subtraction would
+	// print -360.0000 and refuse a light that is aimed exactly where it was
+	// sent. Wrapped, that pair reads 0.0000.
+	inline double AngleResidualDeg(double ReadDeg, double AskedDeg)
+	{
+		double D = ReadDeg - AskedDeg;
+		while (D <= -180.0) { D += 360.0; }
+		while (D >   180.0) { D -= 360.0; }
+		return D;
+	}
+
+	// THE REFUSAL BOUND, AND THIS IS NOT A MEASURED TOLERANCE. It is a CLASS
+	// SEPARATOR between the fault it must catch, 46.0 degrees, and the float
+	// round trip it must not, which is of order 1e-4. If any run ever prints
+	// a residual between 0.001 and 1.0, the bound gets set from that printed
+	// series and not before. Ruled 2026-09-09, A6 amendment (a).
+	inline double LightAimRefuseAtDeg() { return 1.0; }
+
+	inline bool LightAimAgrees(const LightAim& L)
+	{
+		if (!L.bSpawned || !L.bRead) { return false; }
+		return std::fabs(AngleResidualDeg(L.ReadPitch, L.AskedPitch)) < LightAimRefuseAtDeg()
+		    && std::fabs(AngleResidualDeg(L.ReadYaw,   L.AskedYaw))   < LightAimRefuseAtDeg();
+	}
+
+	// ONE NUMBER, FORMATTED ONCE, so no caller can print a degree with a
+	// different number of decimals than the residual it is compared against.
+	inline std::string Deg1(double V)
+	{
+		char B[48];
+		std::snprintf(B, sizeof(B), "%.1f", V);
+		return std::string(B);
+	}
+	inline std::string Deg4(double V)
+	{
+		char B[48];
+		std::snprintf(B, sizeof(B), "%.4f", V);
+		return std::string(B);
+	}
+
+	// THE WHOLE-RUN LINE. OfAsked is how many directional lights this rig
+	// spawns, supplied by the caller so a light added to the rig and left out
+	// of this list shows up as a denominator that does not match rather than
+	// as silence.
+	//
+	// NO CAP, SAID OUT LOUD: every light in the population prints its own
+	// three keys. The population is four, a cap would hide the thing the line
+	// exists to show, and the one place this project has been bitten by a cap
+	// is a cap that hid a hundred per cent of its own list.
+	inline std::string LightAimLine(const std::vector<LightAim>& Lights, int OfAsked)
+	{
+		int Spawned = 0, Read = 0, Agreeing = 0;
+		double Worst = 0.0;
+		std::string WorstOn = "none", WorstAxis = "none";
+		bool bAnyRead = false;
+		for (size_t I = 0; I < Lights.size(); ++I)
+		{
+			if (Lights[I].bSpawned) { ++Spawned; }
+			if (!Lights[I].bSpawned || !Lights[I].bRead) { continue; }
+			++Read;
+			if (LightAimAgrees(Lights[I])) { ++Agreeing; }
+			const double RP = AngleResidualDeg(Lights[I].ReadPitch, Lights[I].AskedPitch);
+			const double RY = AngleResidualDeg(Lights[I].ReadYaw,   Lights[I].AskedYaw);
+			if (!bAnyRead || std::fabs(RP) > std::fabs(Worst))
+			{
+				Worst = RP; WorstOn = NoSpaces(Lights[I].Name); WorstAxis = "pitch";
+			}
+			if (std::fabs(RY) > std::fabs(Worst))
+			{
+				Worst = RY; WorstOn = NoSpaces(Lights[I].Name); WorstAxis = "yaw";
+			}
+			bAnyRead = true;
+		}
+		// THE STATUS WORD FAILS CLOSED. A run that read no light has not
+		// landed this fix either, so NOTHING-MEASURED is not a pass; the
+		// only passing word is AGREES, and the CI step reads this key.
+		std::string Status = "REFUSED";
+		if (Read == 0) { Status = "NOTHING-MEASURED"; }
+		else if (Agreeing == Read && Read == OfAsked && Spawned == OfAsked) { Status = "AGREES"; }
+		std::string Out = "lightAimStatus=" + Status;
+		Out += " lightAimSpawned=" + std::to_string(Spawned) + "/of=" + std::to_string(OfAsked)
+		     + "/directional-lights-this-rig-spawns";
+		Out += " lightAimRead=" + std::to_string(Read) + "/of=" + std::to_string(Spawned)
+		     + "/spawned";
+		Out += " lightAimAgreeing=" + std::to_string(Agreeing) + "/of=" + std::to_string(Read)
+		     + "/read";
+		if (bAnyRead)
+		{
+			Out += " lightAimWorstResidualDeg=" + Deg4(Worst) + "/on=" + WorstOn
+			     + "/axis=" + WorstAxis + "/at-worst-over-the-population-signed";
+		}
+		else
+		{
+			Out += " lightAimWorstResidualDeg=nothing-measured/no-light-component-answered";
+		}
+		Out += " lightAimRefuseAtDeg=" + Deg1(LightAimRefuseAtDeg())
+		     + "/NOT-A-MEASURED-TOLERANCE/a-class-separator-between-the-46.0-fault-and-a-1e-4-float-round-trip";
+		for (size_t I = 0; I < Lights.size(); ++I)
+		{
+			const LightAim& L = Lights[I];
+			const std::string N = "lightAim." + NoSpaces(L.Name);
+			if (!L.bSpawned)
+			{
+				Out += " " + N + "=SPAWN-FAILED";
+				Out += " " + N + ".askedPitchYaw=" + Deg1(L.AskedPitch) + "/" + Deg1(L.AskedYaw);
+				Out += " " + N + ".readPitchYaw=nothing-measured";
+				Out += " " + N + ".residualPitchYawDeg=nothing-measured";
+				continue;
+			}
+			if (!L.bRead)
+			{
+				Out += " " + N + "=NO-COMPONENT";
+				Out += " " + N + ".askedPitchYaw=" + Deg1(L.AskedPitch) + "/" + Deg1(L.AskedYaw);
+				Out += " " + N + ".readPitchYaw=nothing-measured";
+				Out += " " + N + ".residualPitchYawDeg=nothing-measured";
+				continue;
+			}
+			Out += " " + N + "=" + (LightAimAgrees(L) ? "AGREES" : "REFUSED");
+			Out += " " + N + ".askedPitchYaw=" + Deg1(L.AskedPitch) + "/" + Deg1(L.AskedYaw);
+			Out += " " + N + ".readPitchYaw=" + Deg1(L.ReadPitch) + "/" + Deg1(L.ReadYaw);
+			Out += " " + N + ".residualPitchYawDeg="
+			     + Deg4(AngleResidualDeg(L.ReadPitch, L.AskedPitch)) + "/"
+			     + Deg4(AngleResidualDeg(L.ReadYaw,   L.AskedYaw));
+		}
+		Out += " lightAimStat=one-per-run/the-rotation-is-written-once-at-spawn-and-never-rewritten/"
+		       "asked-is-the-rotation-handed-to-the-spawn-call/read-is-the-light-components-world-rotation/"
+		       "residual-is-read-minus-asked-wrapped-to-plus-or-minus-180-so-a-yaw-of-200-reading-back-as-"
+		       "minus-160-is-zero";
+		return Out;
 	}
 
 	// ---- QUEUE 208: THE CAMERA THAT TOOK ONE FRAME, ON THAT FRAME'S LINE -
