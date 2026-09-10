@@ -11,4 +11,4 @@ outboundLatencySec: nothing-measured
 outboundLatencySecFrom: fileCommitInstant
 outboundLatencySecTo: sendInstant
 note: one sample of one message, not a rate. the brief is not committed yet
-instrumentFault: Brief receipt fields fileCommit and outboundLatencySec written before <fix-commit> are INSTRUMENT FAULTS, not facts. BriefReceipts.sent unpacked two values from a call returning three inside a bare except, so every such receipt reported fileCommit=none and outboundLatencySec=nothing-measured regardless of what happened. Read them as nothing measured, NOT as not committed and NOT as not sent. Do not back-fill values that were never recorded.
+instrumentFault: Brief receipt fields fileCommit and outboundLatencySec written before 1b1bc21d are INSTRUMENT FAULTS, not facts. BriefReceipts.sent unpacked two values from a call returning three inside a bare except, so every such receipt reported fileCommit=none and outboundLatencySec=nothing-measured regardless of what happened. Read them as nothing measured, NOT as not committed and NOT as not sent. Do not back-fill values that were never recorded.

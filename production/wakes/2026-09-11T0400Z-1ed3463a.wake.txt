@@ -42,7 +42,7 @@ section 2, applied verbatim to this document because it quotes one of the
 affected fields:
 
 Brief receipt fields fileCommit and outboundLatencySec written before
-<fix-commit> are INSTRUMENT FAULTS, not facts. BriefReceipts.sent unpacked
+1b1bc21d are INSTRUMENT FAULTS, not facts. BriefReceipts.sent unpacked
 two values from a call returning three inside a bare except, so every such
 receipt reported fileCommit=none and outboundLatencySec=nothing-measured
 regardless of what happened. Read them as nothing measured, NOT as not

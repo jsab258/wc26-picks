@@ -3470,3 +3470,26 @@ full, after Jafar had ruled twice that a turn ends only at the ceiling, a limit
 or a genuine blocker, and that neither lane ends a turn with work in it.
 
 Full record and the standing rule in production/budget.md.
+
+--------------------------------------------------------------------------------
+2026-09-10, A SENTENCE IN A LANDED COMMIT MESSAGE IS WRONG AND IS CORRECTED HERE.
+
+The game lane's commit message says of the channel fix that "brief.py CALLS
+outbox's proven photo path". IT DOES NOT, and the builder that wrote the code
+said so plainly when the resident quoted it back. The accurate sentence:
+brief.py takes an INJECTED photo_sender and uses outbox only for the grammar,
+the size check and the receipt renderer, namely photo_ref_rel, read_media_ref,
+photo_refusal, sizes_key and render_captioned_receipt. The wire call itself is
+send_photo in tools/runner/telegram-bot.py, and the bot hands outbox.sweep the
+same shape.
+
+WHY IT MATTERS RATHER THAN BEING PEDANTRY. The claim the studio needed to be
+true was "no second sender was built", and that claim SURVIVES: there is one
+send_brief, one brief_pass, and a brief still never enters production/outbox.
+But "calls the photo path" would tell a later reader that changing outbox's
+sender changes the brief's, and it does not: the brief's wire is injected and
+lives in the bot. A reader who fixed a bug in one and expected the other to move
+would be wrong, which is exactly the kind of decayed claim this project keeps
+finding in its own comments.
+
+A commit message cannot be edited after it lands, so the correction lives here.
