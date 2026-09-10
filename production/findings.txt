@@ -3493,3 +3493,33 @@ would be wrong, which is exactly the kind of decayed claim this project keeps
 finding in its own comments.
 
 A commit message cannot be edited after it lands, so the correction lives here.
+
+--------------------------------------------------------------------------------
+2026-09-10, THE CONTAMINATION GUARD WATCHED TWO FILES AND THE AGENT WROTE A THIRD.
+
+Queue 225 says verify must run alone because contention makes it report failures
+it did not measure. To make that checkable rather than hoped for, the resident
+began recording file mtimes either side of a verify run and printing whether
+they moved. It worked once, honestly, on a run where the engine lane was quiet.
+
+THE SECOND USE OF IT WAS FAULTY AND THE CONCLUSION IT PRINTED WAS NOT EARNED. It
+watched SurfaceBind.h and VignetteShot.cpp, both unchanged, and printed
+UNCONTAMINATED. The agent working at that moment was writing VignetteSpec.h, a
+file the guard did not name. So what was proven is that TWO NAMED FILES did not
+move, and what was printed is that NOTHING did.
+
+IT IS THE HAND-LIST FAULT AGAIN, ruled a standing standard on 2026-09-09 after
+the bootstrap lint counted its own hand-written tuple instead of the workflows:
+a check derives its population from the artefacts it checks, never from a
+hand-written list of them. A guard over "the files I expect an agent to touch"
+is a guard over the resident's expectations, and an agent that surprises you is
+exactly the case the guard exists for.
+
+THE REPAIR is to hash the whole working tree state, or at minimum to compare
+git status output either side, so the population is DERIVED. Filed rather than
+built here because the resident is not the right author for a guard about
+agents, and because the honest interim is to say what was actually measured.
+
+NOTHING WAS HARMED THIS TIME: verify came back green with the agent's partial
+file present, so the reading stands on its own, and the commit that followed
+staged only the resident's own paths by name and left the partial file alone.

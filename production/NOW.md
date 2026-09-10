@@ -9,6 +9,57 @@ session would otherwise duplicate, abandon, or wait for forever.
 Keep it current or delete it. A stale NOW is worse than none, because it
 looks like a live state.
 
+## 2026-09-10 08:10Z: THE FOUR-LANE BATCH IS LANDED AND TWO RUNS ARE OUT
+
+FIVE COMMITS, IN THE ORDER THE REVIEW'S C12 REQUIRES, and the working tree went
+clean for the first time in two days. Game lane with the record, then the art
+lane, then the annotations, then production/d1-probe/DISPATCH ALONE, then the
+Fairview sentinel behind it. The two trigger files are separated from everything
+else on purpose so a reader of the history can see which commit started which
+run, and so nothing fires until what it fires on has been reviewed.
+
+THE SHA TO WATCH BY IS 83dec336, captured BEFORE the dispatch per ci.md, and the
+watch tests ANCESTRY AND PAYLOAD BOTH. Ancestry alone says a run started and not
+that it produced anything, which cost a false landing on 9 September when a
+scheduled housekeeping commit containing the watched sha was read as the render
+arriving. Queue 229.
+
+WHAT THE RENDER MUST ANSWER, written before it started: lightAimStatus=AGREES
+with asked beside read on both axes, and the sun asked at pitch -36.0 and yaw
+25.0. IF IT READS -82.0 AGAIN THE REPAIR DID NOT REACH THE RENDERER AND NOTHING
+ELSE IN THE RUN MEANS ANYTHING. Then nullSeriesSamples=7/of=25 with
+nullSeriesTiedGroups=0, cellAgree=25/of=25, rigDeterminism=IDENTICAL at
+rigDiffPixels=0/921600, and fogMaxOpacityRead across four rows with every
+pre-existing condition still at 0.450.
+
+THE BEFORE FRAME FOR THE SUN COMPARISON IS AT 83dec336 AND IS PROVEN READABLE
+THERE, because the render commits its new frames over the old paths and the
+before picture would otherwise be gone the moment the run lands. Recover it with
+`git show 83dec336:production/d1-probe/ue-vign_hook_day.png`. The pair goes
+through `python3 tools/brief-sheet.py district --ref <before> --ours <after>
+--left "BEFORE, the sun 82 degrees up" --right "AFTER, the sun where the plan
+puts it"`.
+
+AND THE FRAMES GET OPENED BEFORE ANY GATE IS READ. Queue 180's acceptance says
+his eye is the gate and no number passes this rung.
+
+NOW BUILDING, and it is the largest visual gap left on rung 1: queue 223. Thirty
+pieces render the engine default because one line skips any piece whose surface
+did not resolve, and 593 minus 563 is exactly 30. No shop interiors, no posters,
+no notices, no yellow road markings. NOTHING NEEDS FETCHING; the UE probe is
+missing four rules the Unity host already has written down. The number that
+proves it is piecesUnpainted going 30 to 0.
+
+TWO THINGS DELIBERATELY NOT BUILT, each with its reason on the record. The
+CONTACT bucket for the burial gate, because the ruling attaches five conditions
+to it and a key rename meets none of them; the series its tolerance must be read
+off is already measured and waiting, 11 pairs at exactly 0.000000 mm and 16 from
+3.74 to 1043.45 mm, so any tolerance between them separates the two cases on
+today's street. And queue 227's gate denominator, because surfacesAsked=16
+counts two decal blends as library surfaces so its green state would require
+shipping wrong content, and changing what a gate counts is a conclusion change
+that needs a ruling rather than a diff.
+
 ## 2026-09-10 07:30Z: A STANDING PROMPT RULE, AND A BUDGET FAULT OF THE RESIDENT'S
 
 THE PROMPT RULE, Jafar 2026-09-10, and it applies to every image spec this lane

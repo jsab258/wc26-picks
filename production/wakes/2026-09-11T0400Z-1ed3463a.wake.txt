@@ -92,3 +92,26 @@ AND THE HONEST CAPTION ON THE HOOK PAIR IS PART OF THE ORDER: three of their
 passes against two of ours, ours the best of four seeds, which is what they did
 too. The Fairview pair carries no such caveat and should not pretend to: it is
 our first authored sheet against their sheet for the same district.
+
+AMENDED 2026-09-10 08:35Z, AND IT CHANGES WHAT THE SUN PICTURE MEANS. The
+render ran on 83dec336 and landed at fc49cd6b. THE REPAIR IS PROVEN:
+lightAimStatus=AGREES, the sun asked at pitch -36.0 yaw 25.0 and read back at
+-36.0/25.0, residual 0.0000 on both axes. The forty six degree error is gone.
+
+AND THE PICTURE GOT WORSE, WHICH IS WHAT THE BEFORE AND AFTER SHOWS. The after
+frame is blown, 209014 of 921600 pixels clipped. Do not caption that pair as an
+improvement. THE HONEST CAPTION IS THAT WE PUT THE SUN WHERE THE PLAN SAYS AND
+THE PICTURE IS NOW TOO BRIGHT, because the scene was tuned around a sun that
+was in the wrong place, and the next thing to fix is how the camera exposes.
+game-design/sim-shots/sun_before_after.jpg is built and committed.
+
+THE RUN'S OWN ACCEPTANCE TEST FAILED AND IT WAS RIGHT TO, which is the thing
+worth telling him because it is the studio catching itself: two photographs of
+one unchanged scene came back different on every pixel, mean luma 0.6102 against
+0.9562. So the twelve-cell sky grid CANNOT BE READ from this run and nothing is
+concluded about the sky. Queue 235. IN HIS WORDS AND NOT THESE: we fixed where
+the sun sits and proved it, the street is now too bright rather than too flat,
+and the measurement we built to catch ourselves told us the rest of that run
+cannot be trusted, so we are not going to pretend it told us anything else.
+
+DO NOT SAY THE STREET LOOKS BETTER. It does not yet.
