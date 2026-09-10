@@ -1,0 +1,94 @@
+id: 1ed3463a
+due: 2026-09-11T04:00:00Z
+armedAt: 2026-09-10T06:06:35Z
+armedBy: director/brief-pictures
+blocks: 0
+dischargedAt: -
+capBitAt: -
+
+TOMORROW'S BRIEF CARRIES PICTURES, and today's could not. Today's message went out with its two buttons and no images because the daily sender owns the buttons and has no attachment path at all, which is queue 232; the fix was built on 10 September and must be CHECKED AS LANDED before this brief is written, by reading a receipt that names both the image and the buttons rather than by trusting the code is in the tree. WHAT RIDES IT, in this order. First the Hook comparison at game-design/sim-shots/hook_theirs_vs_ours.jpg: ours at two passes beside Codex's at three, best of four seeds on both sides so the comparison stays symmetric, and the caption says that. HONEST READING, which Jafar asked for by name: the correction pass fixed what it targeted, the rope and dustbin and crate the model had silently dropped are present on all four and the lettering held to two named fascias, and ours still loses on the harbour, where theirs is a working port with trawlers and nets and lobster pots and ours is a prettier basin with market stalls. Second the FIRST ORIGINAL DISTRICT SHEET, authored in-house from the form bible and the atlas and the research with no use of the outside prompt files, beside Codex's sheet for the same district, WITH THE PROVENANCE TABLE saying which words came from which source, because that table is the thing he asked to judge and the sheet without it does not answer his question. Third, if the sun-fixed render has landed by then, the BEFORE AND AFTER OF THE STREET, which is the one picture that shows the shadow arriving. His rules on the message are unchanged: no numbers with units, no coordinates, no file names, no studio vocabulary, images inside the message and never as links, at most two links and only to a page that is actually serving.
+
+AMENDED 2026-09-10 06:20Z, closing the one gap the channel builder named rather
+than hid. THE PICTURE DOES NOT RIDE UNLESS SOMEBODY WRITES THE SIDECAR. The
+sender reads a one-line file beside the brief, same stem, ".photo.txt" suffix,
+whose only content is "photo: " and a repository-relative path. Today's exists
+as the worked example. WRITE TOMORROW'S IN THE SAME TURN THAT WRITES THE BRIEF,
+before the push, because the push is what sends.
+
+A DAY WITH NO SIDECAR IS NOT A FAILURE AND MUST NOT BE TREATED AS ONE: the
+message goes normally with its two buttons and the done line reads
+briefPhotoCarried=0/1 with briefPhoto=none-named and the sidecar path printed.
+That is the channel saying out loud that nobody named a picture, which is the
+opposite of yesterday, when a brief went out carrying nothing and looked fine.
+
+AND CHECK THE RECEIPT RATHER THAN THE CODE. Acceptance is one file containing
+"receipt: sent-with-photo" AND "photoSizeCount:" of at least one AND
+"buttons: 2/2". Telegram returns the sizes array only when it accepted the
+upload AS a photo, so that key is the image's own evidence rather than ours. If
+the picture did not ride, the receipt says "receipt: sent" with a photoNote
+line and NO photoSizes at all, so a reader can never infer an image that did
+not arrive.
+
+ONE STANDING CORRECTION THIS FIX CARRIES WITH IT. Every brief receipt written
+before 2026-09-10 says "fileCommit: none" and "outboundLatencySec:
+nothing-measured", and that was an INSTRUMENT FAULT and never a fact: the
+record unpacked two values from a call returning three inside a bare except, so
+it swallowed its own arity mistake on every run. The 9 September brief WAS
+committed and its outbound latency was 64 seconds. Do not quote the old
+receipts as evidence of anything about commits or latency.
+
+AMENDMENT 3 of `game-design/decision-2026-09-10-ruling-the-four-lane-batch.md`
+section 2, applied verbatim to this document because it quotes one of the
+affected fields:
+
+Brief receipt fields fileCommit and outboundLatencySec written before
+<fix-commit> are INSTRUMENT FAULTS, not facts. BriefReceipts.sent unpacked
+two values from a call returning three inside a bare except, so every such
+receipt reported fileCommit=none and outboundLatencySec=nothing-measured
+regardless of what happened. Read them as nothing measured, NOT as not
+committed and NOT as not sent. Do not back-fill values that were never
+recorded.
+
+SCOPE, MEASURED RATHER THAN ESTIMATED. One receipt on disk was written by
+BriefReceipts.sent and carries the faulty fields:
+production/outbound/brief-2026-09-09.receipt.txt, 1 of 1 receipts named by
+brief_slot and 1 of 39 receipts in production/outbound. The five
+*.brief.receipt.txt files are the Producer path and three of them carry a real
+fileCommit sha, so they were never written through the faulty unpack. The
+annotation is ON that receipt as an instrumentFault line; its historical values
+are not rewritten.
+
+AMENDED 2026-09-10 07:20Z. WHAT TOMORROW'S MESSAGE CARRIES, ruled by Jafar:
+the sun before and after, the Hook pass-2 pair with its honest caption, and the
+Fairview sheet beside Codex's Fairview sheet. AS ONE PICTURE WITH THE TWO
+BUTTONS, because the send path carries exactly one attachment and the buttons
+only ride a single message.
+
+THE COMPOSER EXISTS AND NEEDS NO NEW MACHINERY. tools/brief-sheet.py now has
+two modes for this. `district --ref <theirs> --ours <ours> --left <label>
+--right <label> --name <file>` makes one pair; `stack --stack <a.jpg> <b.jpg>
+<c.jpg> --name brief_<day>.jpg` makes the single picture in caption order. The
+stack mode REFUSES BY NAME if any input is not on disk rather than quietly
+composing fewer pictures, which is the same fault the channel fix exists to
+prevent, so a missing render shows up as a refusal and not as a thinner message.
+
+Codex's Fairview sheet for the pair is production/art/atlas-01/concepts/
+fairview.png on origin/art/atlas-01, checked readable at 3250510 bytes.
+
+THE SIDECAR IS THE STEP NOBODY IS TOLD TO DO, and without it the picture does
+not ride. Write production/briefs/<day>.photo.txt containing one line,
+`photo: game-design/sim-shots/brief_<day>.jpg`. The sender resolves that
+sidecar; with no sidecar the brief still sends, with its buttons, and prints
+briefPhotoCarried=0/1 briefPhoto=none-named, so the omission is visible in the
+channel's own output rather than silent. CHECK THAT LINE AFTER SENDING.
+
+WHAT PROVES BOTH HALVES ARRIVED, in the receipt, and it is a grep and not a
+judgement: `receipt: sent-with-photo` AND `photoSizeCount:` at one or more AND
+`buttons: 2/2` in the same file. If the picture did not ride, the receipt says
+`receipt: sent` with a photoNote naming why and NO photoSizes at all, so a
+reader can never infer an image that did not arrive.
+
+AND THE HONEST CAPTION ON THE HOOK PAIR IS PART OF THE ORDER: three of their
+passes against two of ours, ours the best of four seeds, which is what they did
+too. The Fairview pair carries no such caveat and should not pretend to: it is
+our first authored sheet against their sheet for the same district.

@@ -1,0 +1,48 @@
+id: 48f57a3e
+due: 2026-09-10T07:00:00Z
+armedAt: 2026-09-10T06:30:46Z
+armedBy: director/land-the-four-lane-batch
+blocks: 3
+dischargedAt: -
+capBitAt: -
+
+LAND THE FOUR-LANE BATCH. It is BUILT, TESTED and REVIEWED and it is not committed, and the only thing between it and the branch is the cadence gate wanting a director row for this batch. A studio-director was spawned at about 06:40Z to write game-design/decision-2026-09-10-ruling-the-four-lane-batch.md; CHECK THAT FILE EXISTS WITH ITS RULING STAMP before anything else, and if it does not, spawn one and tell it to WRITE THE FILE IN ITS FIRST TWO CALLS rather than survey, because that failure has now cost this studio two spawns. THEN, IN THIS ORDER. One: run python3 ledger/verify.py ALONE, with no agents working, per Jafar's ruling of 2026-09-10 and queue 225, because contention makes it report failures it did not measure. Two: paste the footer FROM ledger/.verify-footer and never from the scrollback. Three: commit the GAME LANE FIRST and the ART LANE SECOND, which is the batch review's C12, and STAGE BY NAME while PRINTING THE STAGED SET AND READING IT before committing, because on 10 September a git add listing one nonexistent path failed silently with stderr discarded and a push then carried three files while being reported as a sent brief. Four: production/d1-probe/DISPATCH GOES IN LAST AND ON ITS OWN. It is the probe workflow's only push trigger and committing it is what fires the sun-fixed render that produces the before and after of the street Jafar asked for. The Fairview imagegen sentinel is already appended to production/d1-probe/RUN-IMAGEGEN and parses; the art lane QUEUES behind the game lane on the shared machine rather than yielding, so both may ride. Five: watch the run BY ANCESTRY AND BY PAYLOAD, both, because ancestry alone says a run started and not that it produced anything, which is queue 229 and cost a false landing on 9 September. WHAT THE RUN MUST ANSWER, so a shortfall cannot be explained afterwards: lightAimStatus=AGREES with the sun reading its asked -36.0/25.0 rather than -82.0, nullSeriesVerdict with its seven-sample spread, cellAgree=25/of=25, and propsAsMesh=39/40 with pavement_sign and NOTHING ELSE in propFallbackWhy. Then OPEN THE FRAMES BEFORE READING ANY GATE, per C14 and rule 4, and put the before and after beside the Hook panel.
+
+AMENDED 2026-09-10 06:45Z WITH THE REVIEW'S OUTCOME. The ruling now EXISTS at
+game-design/decision-2026-09-10-ruling-the-four-lane-batch.md, stamped
+2026-09-10T06:30:10Z against row 503 of the agent log, so the first step of this
+record is discharged: do not spawn another director for this batch.
+
+THE BATCH IS APPROVED WITH FIVE AMENDMENTS AND THIRTEEN PRINTABLE CONDITIONS,
+so it DOES NOT COMMIT AS IT STANDS. Read section 2 for the dictated text and
+section on conditions for the thirteen. The amendments are the price of the
+corrections, not a complaint about them: three of the four lanes corrected the
+thing they were built on, and unless those corrections land in the RECORD the
+next session reads the stale authority and repeats the work.
+
+AMENDMENT 5 IS A REAL LATENT BUG AND IT IS THE ONE TO FIX FIRST, in
+VignetteSpec.h's NullSeriesLine. The tie loop runs over FRAMES, not groups, so
+a single rival group of seven frames would print nullSeriesTiedGroups=7 and
+read as seven rival groups. It is latent today because there is one largest
+group, and it goes live and wrong the moment a second group ties. Nothing
+asserts it: one grep hit in the whole repository and that hit is the emit.
+
+THE STAMP TRAP THE REVIEW FELL INTO AND CLIMBED OUT OF, worth knowing before
+any future ruling is written: it first stamped spawn=<iso>Z-studio-director,
+and verify's _cadence_epoch strips the Z to +00:00 and hands the whole string
+to fromisoformat, which rejects it, so the ruling counts as UNMATCHED and
+clears nothing while sitting on disk looking correct. The stamp must be the
+BARE timestamp matching an agent-log row verbatim. findings.txt line 241
+already records this class.
+
+THE CHEAP DECISIVE CHECK IT SUBSTITUTED FOR A NEW TEST, and it is owed as
+printed output: drop cam. from SampleKey, print the red 9/of=25, restore it,
+print the green 7/of=25. Two runs prove the camera term is load-bearing, which
+is stronger than another assertion and costs less.
+
+AND THE RECEIPT CORRECTION IS ASYMMETRIC, which matters for what may be
+claimed: the NEGATIVE readings are void because a swallowed arity mismatch
+emits a constant rather than a measurement, but the POSITIVE ones are NOT
+thereby established. One brief has a measured receipt; the rest are genuinely
+nothing-measured and get ANNOTATED, never back-filled, and any bound derived
+from them is void.

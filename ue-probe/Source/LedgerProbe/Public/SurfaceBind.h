@@ -788,6 +788,115 @@ namespace LedgerSurface
 		return B;
 	}
 
+	// ---- DOES THIS SHOT'S OWN WHOLE-FRAME NUMBERS INCLUDE THE INSTRUMENT --
+	//
+	// A1(d), amendment 1 of
+	// game-design/decision-2026-09-09-ruling-the-grid-batch-review.md, and it
+	// is a DECLARATION ON THE SAMPLE LINE rather than a coverage measurement.
+	// The distinction is the whole point. shotMeanLuma, the exposure bands and
+	// band.ground are means over every pixel of the frame, so on the camera
+	// the control quads were placed from they include three saturated swatches
+	// standing in the carriageway, and the reader of a grid cell has no way to
+	// tell from the line which frames carry them. The earlier ruling dictated
+	// this as a literal string with pixel boxes and a percentage measured once
+	// for one camera at one field of view; the review narrowed it, because a
+	// measurement frozen as a literal inside an emit is a number nobody can
+	// re-measure. So the boxes are PROJECTED HERE, by ControlQuadPlace and
+	// ProjectFilePoint, the same two functions the tests exercise, from
+	// whatever camera the file carries.
+	//
+	// WHAT THE PERCENTAGE IS AND IS NOT. It is the union of the three
+	// projected boxes, clipped to the frame, over the frame area: an AT-MOST
+	// bound on how much of the picture the swatches can own, and it overstates
+	// that coverage because a bounding box is not a quad and three boxes that
+	// overlap are counted once only through their union. It is not a pixel
+	// readback, nothing here looked at a frame, and the key says so in its own
+	// stat string. Covering the frame is what a still answers.
+	//
+	// IT FAILS CLOSED ON IDENTITY. A shot whose camera or control camera did
+	// not answer prints nothing-measured rather than "no", because "no" is a
+	// claim about a frame and silence is not.
+	inline std::string ShotControlQuadLine(const LedgerVignette::Camera& ShotCam,
+	                                       const std::string& ControlCameraId,
+	                                       int QuadsSpawned,
+	                                       bool bWholeFrameKeysOnThisLine,
+	                                       int W, int H)
+	{
+		const std::string Key = "shotWholeFrameIncludesControlQuads=";
+		if (!bWholeFrameKeysOnThisLine)
+		{
+			return Key + "nothing-measured/this-line-carries-no-whole-frame-keys";
+		}
+		if (ShotCam.Id.empty() || ControlCameraId.empty())
+		{
+			return Key + "nothing-measured/no-camera-identity-answered";
+		}
+		if (QuadsSpawned <= 0)
+		{
+			return Key + "no/no-control-quads-were-spawned-in-this-build";
+		}
+		if (!ControlQuadsVisibleFor(ShotCam.Id, ControlCameraId))
+		{
+			return Key + "no/hidden-for-this-camera";
+		}
+		// THE QUADS ARE VISIBLE ONLY IN THE FRAMES OF THE CAMERA THEY WERE
+		// PLACED FROM, which ControlQuadsVisibleFor has just established, so
+		// the placement camera and the shooting camera are the same camera and
+		// the projection below is taken from the one this shot used.
+		double X0 = 0.0, X1 = 0.0, Y0 = 0.0, Y1 = 0.0;
+		int Boxed = 0;
+		const int Asked = ControlQuadCount();
+		for (int I = 0; I < Asked; ++I)
+		{
+			const QuadPlace P = ControlQuadPlace(ShotCam, I);
+			const ScreenBox B = ControlQuadBox(ShotCam, P, W, H);
+			if (!B.bMeasured) { continue; }
+			if (Boxed == 0) { X0 = B.X0; X1 = B.X1; Y0 = B.Y0; Y1 = B.Y1; }
+			else
+			{
+				if (B.X0 < X0) { X0 = B.X0; }
+				if (B.X1 > X1) { X1 = B.X1; }
+				if (B.Y0 < Y0) { Y0 = B.Y0; }
+				if (B.Y1 > Y1) { Y1 = B.Y1; }
+			}
+			++Boxed;
+		}
+		std::string Out = Key
+			+ "yes/whole-frame-keys-on-this-line-include-them"
+			  "/boxes=see-controlQuadVisibility-and-the-quad-lines"
+			  "/PROJECTED-BOXES-NOT-MEASURED-COVERAGE";
+		char Buf[520];
+		if (Boxed == 0)
+		{
+			std::snprintf(Buf, sizeof(Buf),
+				" shotControlQuadsBoxed=0/of=%d/quads-with-four-corners-ahead"
+				" shotControlQuadsBoxPx=nothing-measured/no-quad-projected-with-all-four-"
+				"corners-ahead shotControlQuadsAtMostPctOfFrame=nothing-measured"
+				" shotControlQuadsBoxStat=per-sample/projected-by-ControlQuadPlace-and-"
+				"ProjectFilePoint/not-a-pixel-readback",
+				Asked);
+			Out += Buf;
+			return Out;
+		}
+		const double CX0 = X0 < 0.0 ? 0.0 : (X0 > (double)W ? (double)W : X0);
+		const double CX1 = X1 < 0.0 ? 0.0 : (X1 > (double)W ? (double)W : X1);
+		const double CY0 = Y0 < 0.0 ? 0.0 : (Y0 > (double)H ? (double)H : Y0);
+		const double CY1 = Y1 < 0.0 ? 0.0 : (Y1 > (double)H ? (double)H : Y1);
+		const double Area = (CX1 - CX0) * (CY1 - CY0);
+		const double Frame = (double)W * (double)H;
+		const double Pct = (Frame > 0.0 && Area > 0.0) ? (Area * 100.0 / Frame) : 0.0;
+		std::snprintf(Buf, sizeof(Buf),
+			" shotControlQuadsBoxed=%d/of=%d/quads-with-four-corners-ahead"
+			" shotControlQuadsBoxPx=x%.0f..%.0f/y%.0f..%.0f shotControlQuadsFrame=%dx%d"
+			" shotControlQuadsAtMostPctOfFrame=%.2f"
+			" shotControlQuadsBoxStat=per-sample/union-of-the-projected-boxes-clipped-to-"
+			"the-frame/AT-MOST-because-a-box-is-not-a-quad/projected-by-ControlQuadPlace-"
+			"and-ProjectFilePoint/not-a-pixel-readback",
+			Boxed, Asked, X0, X1, Y0, Y1, W, H, Pct);
+		Out += Buf;
+		return Out;
+	}
+
 	// ---- THE FOUR COLOURS ------------------------------------------------
 	//
 	// SATURATED AND FAR APART, ON PURPOSE. The frame this is read against

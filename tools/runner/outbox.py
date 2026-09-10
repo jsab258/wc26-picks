@@ -231,13 +231,38 @@ def video_receipt_rel(path, run_sha, role):
 # --------------------------------------------------------------------------
 # The records. One implementation, written on the PC and read in the container.
 # --------------------------------------------------------------------------
+#: WHAT A BUTTON PAIR IS COUNTED AGAINST, on the two receipt shapes a sender
+#: with buttons can write. `buttons: 2/2` is a PAIRED READING and not two
+#: keys: the rows that went on the wire over the rows the pair requires, so a
+#: receipt that reads 1/2 or 0/2 says the pair broke without a reader having
+#: to remember a second number. Only `brief.py` sends buttons with a message,
+#: so only its receipts carry the line; a sender with no buttons passes
+#: nothing and the line is absent, which is honest because no buttons existed
+#: to count. Inside the brief population the line is always present.
+BUTTONS_WANTED = 2
+
+
+def buttons_key(rows, wanted=BUTTONS_WANTED):
+    """`2/2`. NO SPACES: this value also rides key=value lines."""
+    return "%d/%d" % (int(rows or 0), int(wanted))
+
+
 def render_receipt(rel, kind, sent_epoch, message_id, chars, commit_sha,
-                   commit_epoch, latency, why_no_latency=""):
+                   commit_epoch, latency, why_no_latency="", buttons=None,
+                   photo_note=""):
     """The proof that a message left this PC.
 
     NO TOKEN AND NO CHAT ID, ever, in anything this writes into git: the
     credential rule of 2026-09-04 applies to what is committed exactly as it
     applies to what is printed.
+
+    `buttons` AND `photo_note` ARE THE BRIEF PATH'S TWO EXTRA FACTS, queue
+    232, and they are optional so every caller that predates them is
+    unchanged. `buttons` is a row count turned into `buttons: N/2` by
+    `buttons_key`. `photo_note` is the sentence saying WHY this message went
+    as words when the day's brief meant to carry a picture: a brief that
+    arrived without its picture must be readable as that from its receipt
+    alone, never indistinguishable from a brief that never named one.
     """
     return ("receipt: sent\n"
             "file: %s\n"
@@ -251,12 +276,15 @@ def render_receipt(rel, kind, sent_epoch, message_id, chars, commit_sha,
             "outboundLatencySec: %s\n"
             "outboundLatencySecFrom: fileCommitInstant\n"
             "outboundLatencySecTo: sendInstant\n"
-            "note: one sample of one message, not a rate.%s\n"
+            "%s%snote: one sample of one message, not a rate.%s\n"
             % (rel, kind, commit_sha or "none",
                "none" if commit_epoch is None else int(commit_epoch),
                inbox.iso_utc(sent_epoch), int(sent_epoch), int(message_id),
                int(chars),
                "nothing-measured" if latency is None else int(latency),
+               ("" if buttons is None
+                else "buttons: %s\n" % buttons_key(buttons)),
+               "" if not photo_note else "photoNote: %s\n" % photo_note,
                (" " + why_no_latency) if why_no_latency else ""))
 
 
@@ -290,7 +318,7 @@ def render_photo_receipt(frame, role, run_sha, path_bytes, sent_epoch,
 
 def render_captioned_receipt(rel, kind, photo_rel, sent_epoch, message_id,
                              chars, sizes, commit_sha, commit_epoch, latency,
-                             why_no_latency=""):
+                             why_no_latency="", buttons=None):
     """The proof that a PRODUCER MESSAGE left this PC AS ONE CAPTIONED PHOTO.
 
     RULING 5, 2026-09-07: "let the photo path carry a caption for a test
@@ -305,6 +333,13 @@ def render_captioned_receipt(rel, kind, photo_rel, sent_epoch, message_id,
     send or a sim-shot picture: three record shapes, three meanings, one
     reader (`outbound_summary`) that keys off this line rather than the
     filename.
+
+    `buttons` IS QUEUE 232's THIRD PROOF ON THE SAME RECORD, optional for the
+    same reason it is optional on `render_receipt`: the sweep has no buttons
+    to count and passes nothing, and the brief path always has two. One
+    record then names BOTH halves of what Jafar requires of the daily
+    message, `photoSizes` for the picture and `buttons` for the pair, so
+    neither can be claimed from a line the other is not on.
     """
     return ("receipt: sent-with-photo\n"
             "file: %s\n"
@@ -321,12 +356,14 @@ def render_captioned_receipt(rel, kind, photo_rel, sent_epoch, message_id,
             "outboundLatencySec: %s\n"
             "outboundLatencySecFrom: fileCommitInstant\n"
             "outboundLatencySecTo: sendInstant\n"
-            "note: one sample of one message, not a rate.%s\n"
+            "%snote: one sample of one message, not a rate.%s\n"
             % (rel, kind, photo_rel, commit_sha or "none",
                "none" if commit_epoch is None else int(commit_epoch),
                inbox.iso_utc(sent_epoch), int(sent_epoch), int(message_id),
                int(chars), sizes_key(sizes) or "none", len(sizes or []),
                "nothing-measured" if latency is None else int(latency),
+               ("" if buttons is None
+                else "buttons: %s\n" % buttons_key(buttons)),
                (" " + why_no_latency) if why_no_latency else ""))
 
 

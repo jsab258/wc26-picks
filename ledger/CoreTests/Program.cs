@@ -19614,10 +19614,13 @@ namespace Ledger.CoreTests
             Check(probeShots == 20 && probeAtHook == 20,
                   "every probe row stands at cam_hook, the camera rung 1 is judged from",
                   probeAtHook + " of " + probeShots + " probe shots at cam_hook");
-            // THE NULL CELL IS SHOT LAST, which is the whole of its value: the
-            // pair is identical inputs at MAXIMUM ORDER SEPARATION, so every
-            // other shot, every condition change and every light probe stands
-            // between them.
+            // THE NULL CELL IS SHOT LAST, which is the whole of its value: its
+            // twin grid_sky100_sun003 is shot 7 of 25, so the pair is
+            // EIGHTEEN SHOTS APART ON IDENTICAL INPUTS, with every condition
+            // change and every light probe between them. Not the maximum
+            // separation the run could hold, which six preceding shots rule
+            // out, and corrected here by amendment 3(b) of
+            // game-design/decision-2026-09-09-ruling-the-grid-batch-review.md.
             Check(plan.Shots[plan.Shots.Count - 1].ConditionId == "grid_null_repeat",
                   "the null cell is the last shot in the list, as far from its twin as the run allows",
                   plan.Shots[plan.Shots.Count - 1].Id);
@@ -19854,16 +19857,131 @@ namespace Ledger.CoreTests
                               $"decalPieces={decals} decalImages={images.Count} " +
                               $"noAsset={noAsset} badCrop={badCrop}/{meshes + decals} first={firstBad}");
             // THE TRAP THIS ITEM NAMES, ASSERTED AS A CEILING AND NOT A
-            // FLOOR. 37 props are held and the bill of materials wants 16 of
-            // them on this street; placing all 37 to make a number go up is
-            // the failure, so the guard is that the scene stays inside what
-            // the bill of materials asked for, in both directions.
+            // FLOOR. Props are held in quantity and the bill of materials
+            // wants a named subset of them on this street; placing everything
+            // held to make a number go up is the failure, so the guard is
+            // that the scene stays inside what the bill of materials asked
+            // for, in both directions.
+            //
+            // THE LITERAL 16 IS GONE, 2026-09-10, AND WHAT REPLACED IT IS
+            // STRICTLY STRONGER. It read `assets.Count == 16` with a comment
+            // saying 37 props were held, and by the time it failed BOTH
+            // numbers had stopped describing the repository: 39 .glb files sat
+            // under Assets/Props/base-mesh and two of them, fascia_cornice_01
+            // and fascia_console_01, were named by NOTHING AT ALL. The pin
+            // could not see them, because a count of what the scene places
+            // cannot see a file the scene does not mention. A pinned literal
+            // also cannot tell a SUBSTITUTION from agreement: swap one asset
+            // for another and 16 is still 16.
+            //
+            // So the ceiling now comes from the DATA instead of from a number
+            // somebody typed, in four parts that each answer a different
+            // question:
+            //   (a) the plan placed exactly the assets the scene file's rows
+            //       name, so the emitter neither dropped a row nor invented an
+            //       asset;
+            //   (b) no asset is both placed and excused, which is the
+            //       bookkeeping contradiction;
+            //   (c) placed plus excused IS the directory, so a held prop named
+            //       by nothing FAILS HERE rather than sitting unreferenced for
+            //       a week, and a name with no file fails too;
+            //   (d) every excused prop carries a written reason, and that
+            //       reason is the real ceiling: placing one more prop now
+            //       means DELETING a sentence that says why it was held back,
+            //       which is a reviewable act, where bumping a literal by one
+            //       character was not.
             Check(meshes > 0 && decals > 0,
                   "the plan carries held meshes AND applied pictures, not primitives only",
                   meshes + " meshes, " + decals + " decals");
-            Check(assets.Count == 16,
-                  "sixteen of the thirty-seven held props are named by this street, per the bill of materials",
-                  assets.Count.ToString());
+
+            var sceneText = File.ReadAllText(path);
+            var sceneHeld = MiniJson.GetObject(
+                MiniJson.AsObject(MiniJson.Deserialize(sceneText)), "held_props");
+            var sceneRows = MiniJson.GetList(sceneHeld, "items");
+            var excusedRows = MiniJson.GetList(sceneHeld, "not_placed");
+            Check(sceneRows != null && excusedRows != null,
+                  "the scene file's held_props carries both an items list and a not_placed list",
+                  "items=" + (sceneRows == null ? "missing" : sceneRows.Count.ToString())
+                  + " not_placed=" + (excusedRows == null ? "missing" : excusedRows.Count.ToString()));
+            var namedByScene = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var r in sceneRows ?? new List<object>())
+                namedByScene.Add(MiniJson.GetString(MiniJson.AsObject(r), "asset") ?? "");
+            var excused = new HashSet<string>(StringComparer.Ordinal);
+            int noWhy = 0; string firstNoWhy = "none";
+            foreach (var r in excusedRows ?? new List<object>())
+            {
+                var ro = MiniJson.AsObject(r);
+                string a = MiniJson.GetString(ro, "asset") ?? "";
+                excused.Add(a);
+                string why = MiniJson.GetString(ro, "why");
+                if (string.IsNullOrEmpty(why) || why.Trim().Length < 8)
+                { noWhy++; if (firstNoWhy == "none") firstNoWhy = a; }
+            }
+
+            // (a) WHAT THE PLAN PLACED IS WHAT THE FILE ASKED FOR.
+            var placedNotAsked = new List<string>(); var askedNotPlaced = new List<string>();
+            foreach (var a in assets) if (!namedByScene.Contains(a)) placedNotAsked.Add(a);
+            foreach (var a in namedByScene) if (!assets.Contains(a)) askedNotPlaced.Add(a);
+            placedNotAsked.Sort(StringComparer.Ordinal); askedNotPlaced.Sort(StringComparer.Ordinal);
+            Console.WriteLine($"    held inventory: placed={assets.Count}/{namedByScene.Count} asked "
+                              + $"excused={excused.Count} "
+                              + $"placedNotAsked={Tally(placedNotAsked)} "
+                              + $"askedNotPlaced={Tally(askedNotPlaced)}");
+            Check(placedNotAsked.Count == 0 && askedNotPlaced.Count == 0,
+                  "the plan places exactly the prop assets the scene file names, none invented and none dropped",
+                  assets.Count + " placed of " + namedByScene.Count + " asked, extra "
+                  + Tally(placedNotAsked) + ", missing " + Tally(askedNotPlaced));
+
+            // (b) NO ASSET IS BOTH PLACED AND EXCUSED.
+            var both = new List<string>();
+            foreach (var a in assets) if (excused.Contains(a)) both.Add(a);
+            both.Sort(StringComparer.Ordinal);
+            Check(both.Count == 0,
+                  "no held prop is both placed on this street and listed as not placed",
+                  both.Count + " of " + assets.Count + ", " + Tally(both));
+
+            // (c) PLACED PLUS EXCUSED IS THE DIRECTORY. A SKIP SAYS SO: with
+            // no props directory reachable this cannot read as a pass, for the
+            // same reason ue_probe_tests names a missing g++ instead of going
+            // green.
+            var propDir = RootDir("ledger/Assets/Props/base-mesh");
+            if (propDir == null)
+            {
+                Console.WriteLine("    held inventory: NOTHING MEASURED, "
+                                  + "ledger/Assets/Props/base-mesh not found from "
+                                  + AppContext.BaseDirectory);
+                Check(false, "the held props directory is reachable, so the inventory closure can be measured",
+                      "nothing measured");
+            }
+            else
+            {
+                var onDisk = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var f in Directory.GetFiles(propDir, "*.glb"))
+                    onDisk.Add(Path.GetFileNameWithoutExtension(f));
+                var namedByNothing = new List<string>(); var namedNoFile = new List<string>();
+                foreach (var f in onDisk)
+                    if (!assets.Contains(f) && !excused.Contains(f)) namedByNothing.Add(f);
+                foreach (var a in assets) if (!onDisk.Contains(a)) namedNoFile.Add(a);
+                foreach (var a in excused) if (!onDisk.Contains(a)) namedNoFile.Add(a);
+                namedByNothing.Sort(StringComparer.Ordinal); namedNoFile.Sort(StringComparer.Ordinal);
+                Console.WriteLine($"    held inventory: onDisk={onDisk.Count} "
+                                  + $"placed={assets.Count} excused={excused.Count} "
+                                  + $"namedByNothing={Tally(namedByNothing)} "
+                                  + $"namedButNoFile={Tally(namedNoFile)}");
+                Check(namedByNothing.Count == 0,
+                      "every held prop file is named by this street or excused by name, so none sits in the tree referenced by nothing",
+                      namedByNothing.Count + " of " + onDisk.Count + ", " + Tally(namedByNothing));
+                Check(namedNoFile.Count == 0,
+                      "every prop asset the scene names has a file under Assets/Props/base-mesh",
+                      namedNoFile.Count + " of " + (assets.Count + excused.Count) + ", " + Tally(namedNoFile));
+            }
+
+            // (d) THE CEILING ITSELF: an excused prop carries the sentence
+            // that says why. This is what makes placing one more prop a
+            // reviewable deletion rather than an edit to a number.
+            Check(noWhy == 0,
+                  "every held prop that is not placed says in writing why it is not, which is the ceiling the old literal only stood in for",
+                  noWhy + " of " + excused.Count + ", first " + firstNoWhy);
             Check(noAsset == 0, "every mesh and decal piece says what to load", noAsset.ToString());
             Check(badCrop == 0,
                   "every crop rectangle parses and is the right way up, so no decal samples an empty region",
@@ -20073,6 +20191,12 @@ namespace Ledger.CoreTests
             // writing the list out rather than deriving it from the plan.
             "A5_double_yellow_lines", "A7_gully_grate", "A8_manhole",
             "C6_fascia_lettering", "C11_lit_interior_card",
+            // C15 IS THE FIRST LINE ON THIS LIST WHOSE GEOMETRY WAS AUTHORED
+            // HERE, added 2026-09-10. It is in the list for the reason the
+            // list exists: the two GLBs were committed on 2026-09-09 and named
+            // by nothing for a day, and a line that stops emitting has to fail
+            // a test rather than go quiet.
+            "C15_fascia_cornice_console",
             "D3_chimney_pots", "E5_bollards", "E6_public_bins",
             "E11_cones_barrier", "E12_a_board_posters", "E14_dock_clutter",
             "E18_shop_awnings", "G1_leak_stains", "G2_asphalt_damage",
@@ -20345,6 +20469,32 @@ namespace Ledger.CoreTests
         /// Walk up to a DIRECTORY rather than a file. `Root` cannot find the
         /// landed run verdicts, because the useful thing there is the folder
         /// and its newest member is not known in advance.
+        /// A SHORT LIST INSIDE A key=value VALUE, WITH ITS CAP ANNOUNCED.
+        ///
+        /// Two house rules in one function. No spaces in a key=value value,
+        /// because every reader of these lines splits on whitespace and
+        /// truncates silently, so the separator is `;` and the words of the
+        /// cap are joined with `~`. And every cap announces when it bites: a
+        /// `| head -N` that outgrew its input once read as three of five
+        /// systems failing when nothing was broken. An empty list prints
+        /// `none` rather than nothing at all, so a zero here can never be
+        /// mistaken for a key that was never emitted.
+        const int TallyCap = 6;
+        static string Tally(IList<string> items)
+        {
+            if (items == null || items.Count == 0) return "none";
+            var sb = new System.Text.StringBuilder();
+            int shown = Math.Min(TallyCap, items.Count);
+            for (int i = 0; i < shown; i++)
+            {
+                if (i > 0) sb.Append(';');
+                sb.Append(items[i].Replace(' ', '~'));
+            }
+            if (items.Count > shown)
+                sb.Append(";(+").Append(items.Count - shown).Append("~more~not~shown)");
+            return sb.ToString();
+        }
+
         static string RootDir(string relative)
         {
             var dir = new DirectoryInfo(AppContext.BaseDirectory);
@@ -20410,16 +20560,43 @@ namespace Ledger.CoreTests
                 }
             }
 
+            // THE DECLARATION GOES ONLY IN THE FILE THAT HAS A GAP, fixed
+            // 2026-09-10. One flag writes two files, and until today it stamped
+            // the key into BOTH whether or not each one was actually ahead. The
+            // fascia package is the layout change that found it: 17 wall-hung
+            // pieces move the piece count by 17 and the PROBE count by nothing
+            // at all, because a prop fixed to a frontage has no foot on the
+            // ground and is not foot-probed, exactly like the two awnings. So
+            // pieces went 593 to 610 with the run still at 593 (a live gap) and
+            // probes stayed at 910 against a run that counted 910 (no gap), and
+            // the writer put a key in the probe list saying it was ahead of a
+            // run it agreed with. CoreTests then refused that key as SPENT, and
+            // it was right to: the guard's rule is that a declaration describes
+            // a live gap. The writer was manufacturing the state the guard
+            // exists to refuse, so the writer is what changed and the guard is
+            // untouched. Each file is asked its own question.
+            bool piecesAhead = aheadRun != null && piecesThen != plan.Pieces.Count;
+            bool feetAhead = aheadRun != null && feetThen != plan.Feet.Count;
+            if (aheadRun != null)
+                Console.WriteLine("ahead-of-run " + aheadRun
+                                  + " piecesGap=" + (plan.Pieces.Count - piecesThen)
+                                  + "/file=" + plan.Pieces.Count + "/run=" + piecesThen
+                                  + " feetGap=" + (plan.Feet.Count - feetThen)
+                                  + "/file=" + plan.Feet.Count + "/run=" + feetThen
+                                  + " keyWrittenInto=" + (piecesAhead ? "pieces" : "-")
+                                  + "/" + (feetAhead ? "feet" : "-")
+                                  + " rule=a-key-describes-a-live-gap-or-it-is-not-written");
+
             var path = VignettePiecesPath();
             string before = File.Exists(path) ? File.ReadAllText(path) : null;
-            string text = StreetVignettePieces.Write(plan, aheadRun, piecesThen);
+            string text = StreetVignettePieces.Write(plan, piecesAhead ? aheadRun : null, piecesThen);
             File.WriteAllText(path, text);
             string moved = Difference(before, text);
             Console.WriteLine("wrote " + StreetVignettePieces.RelativePath
                               + " pieces=" + plan.Pieces.Count
                               + " bytes=" + text.Length
                               + " changed=" + (moved == null ? "no" : "yes")
-                              + " aheadOfRun=" + (aheadRun == null ? "none" : aheadRun)
+                              + " aheadOfRun=" + (piecesAhead ? aheadRun : "none")
                               + " piecesThen=" + (aheadRun == null ? "n/a" : piecesThen.ToString()));
             if (moved != null) Console.WriteLine("  " + moved);
 
@@ -20430,7 +20607,7 @@ namespace Ledger.CoreTests
             // yesterday's datum.
             var fpath = VignetteFeetPath();
             string fbefore = File.Exists(fpath) ? File.ReadAllText(fpath) : null;
-            string ftext = StreetVignettePieces.WriteFeet(plan, aheadRun, feetThen);
+            string ftext = StreetVignettePieces.WriteFeet(plan, feetAhead ? aheadRun : null, feetThen);
             File.WriteAllText(fpath, ftext);
             string fmoved = Difference(fbefore, ftext);
             Console.WriteLine("wrote " + StreetVignettePieces.FeetRelativePath
@@ -20440,6 +20617,7 @@ namespace Ledger.CoreTests
                               + "/" + plan.Feet.Count
                               + " bytes=" + ftext.Length
                               + " changed=" + (fmoved == null ? "no" : "yes")
+                              + " aheadOfRun=" + (feetAhead ? aheadRun : "none")
                               + " feetThen=" + (aheadRun == null ? "n/a" : feetThen.ToString()));
             if (fmoved != null) Console.WriteLine("  " + fmoved);
             return 0;

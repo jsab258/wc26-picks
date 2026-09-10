@@ -2439,6 +2439,320 @@ namespace LedgerVignette
 		return std::string(Buf);
 	}
 
+	// ---- THE NULL SERIES IS SEVEN SAMPLES, NOT ONE PAIR ------------------
+	//
+	// C4 as amended by section 4 and section 9 of
+	// game-design/decision-2026-09-09-ruling-the-grid-batch-review.md, and
+	// amendment 2's engine form, which that record made due on the next commit
+	// that touches the verdict-writing path of VignetteShot.cpp. This commit
+	// touches it.
+	//
+	// WHAT THE REVIEW FOUND, BY HAND, ON FIELD VALUES. Seven of the 25 shots
+	// have IDENTICAL rendering inputs in this engine: vign_hook_day,
+	// vign_grid_sky100_sun003, vign_fog_maxop0450, vign_wet_000, vign_wet_060,
+	// vign_wet_100 and vign_grid_null_repeat, at shot positions 5, 7, 18, 22,
+	// 23, 24 and 25. They arrived by accident, because four probe families
+	// share one reference cell, and the judged hook frame is itself a member.
+	// A ONE-PAIR DIFFERENCE CANNOT TELL A MONOTONE DRIFT FROM A STEP, which is
+	// the confound that made the sun ladder unreadable; seven samples spanning
+	// the run give a SPREAD and an ORDERING, and the smallest sky step the grid
+	// can claim is read against that spread rather than against one
+	// subtraction.
+	//
+	// NOTHING HERE NAMES A SHOT. The group is DISCOVERED from the conditions,
+	// by the fields this engine applies, so a row added or removed by a later
+	// ruling moves the series without anybody editing this function. Seven is
+	// a reading, never a constant.
+	//
+	// WETNESS IS EXCLUDED AND THE STRING SAYS WHY. VignetteShot.cpp has no
+	// read site for `wetness` on this commit: three hits in the whole ue-probe
+	// tree, all in this header. Two conditions differing only in wetness
+	// therefore render the same street HERE, which is what makes wet_000,
+	// wet_060 and wet_100 null samples in this engine. The other engine does
+	// read it, at ledger/Assets/Scripts/Game/StreetVignetteHost.cs line 715,
+	// so the same arithmetic in Unity gives a different group and this
+	// function is named for the engine it speaks for.
+	inline std::string AppliedFieldsUnreal(const Condition& C, bool bWithSky)
+	{
+		char Buf[320];
+		if (bWithSky)
+		{
+			std::snprintf(Buf, sizeof(Buf),
+				"sun.%s/sunI%.3f/skyI%.4f/hdri.%s/fog%.4f/fogMaxOp%.3f/lant.%s/prac.%s",
+				C.SunOn ? "on" : "off", C.SunIntensity, C.SkyIntensity,
+				NoSpaces(C.Hdri).c_str(), C.FogDensity, C.FogMaxOpacity,
+				C.LanternsOn ? "on" : "off", C.WindowsOn ? "on" : "off");
+		}
+		else
+		{
+			std::snprintf(Buf, sizeof(Buf),
+				"sun.%s/sunI%.3f/hdri.%s/fog%.4f/fogMaxOp%.3f/lant.%s/prac.%s",
+				C.SunOn ? "on" : "off", C.SunIntensity,
+				NoSpaces(C.Hdri).c_str(), C.FogDensity, C.FogMaxOpacity,
+				C.LanternsOn ? "on" : "off", C.WindowsOn ? "on" : "off");
+		}
+		return std::string(Buf);
+	}
+
+	// ONE MEASURED FRAME, AS MUCH OF IT AS THE SPREAD NEEDS. The .cpp fills
+	// these in shot order as the frames are measured, which is the only order
+	// that can answer "is the drift monotone in shot order".
+	struct FrameSample
+	{
+		std::string ShotId;
+		std::string CameraId;      // see SampleKey: a different camera is a different picture
+		std::string Applied;       // the fields this engine applies, sky included
+		std::string AppliedNoSky;  // the same without sky, for the sky-only pairs
+		double SkyIntensity;
+		bool   bMeasured;          // a frame landed and was measured
+		double MeanLuma, GroundP05, GroundP50;
+		FrameSample() : SkyIntensity(0), bMeasured(false),
+		                MeanLuma(0), GroundP05(0), GroundP50(0) {}
+	};
+
+	// THE CAMERA IS PART OF THE FINGERPRINT, AND THIS IS A READING AND NOT A
+	// PRECAUTION. With the fields alone the live file's largest identical-input
+	// group comes back as NINE frames, not the review's seven: vign_camA_day
+	// and vign_camB_day carry `overcast_day` too, so their rendering inputs are
+	// identical and their PICTURES are not, because they are shot from other
+	// cameras. A spread taken over those nine would be a camera difference
+	// reported as a noise floor, which is the largest number in the comparison
+	// wearing the name of the smallest. The review's seven is right, and it is
+	// right because every one of them stands at cam_hook.
+	inline std::string SampleKey(const FrameSample& S, bool bWithSky)
+	{
+		return std::string("cam.") + NoSpaces(S.CameraId) + "/"
+		     + (bWithSky ? S.Applied : S.AppliedNoSky);
+	}
+
+	inline double SampleStat(const FrameSample& S, int Which)
+	{
+		if (Which == 0) { return S.MeanLuma; }
+		if (Which == 1) { return S.GroundP05; }
+		return S.GroundP50;
+	}
+
+	inline const char* SampleStatName(int Which)
+	{
+		if (Which == 0) { return "MeanLuma"; }
+		if (Which == 1) { return "GroundP05"; }
+		return "GroundP50";
+	}
+
+	// THE LINE. WHOLE-RUN KEYS ONLY: every number here is a statistic OVER the
+	// run's frames and none of them is true of one frame, so none of them may
+	// ride on a sample line.
+	inline std::string NullSeriesLine(const std::vector<FrameSample>& All)
+	{
+		int Measured = 0;
+		for (size_t I = 0; I < All.size(); ++I)
+		{
+			if (All[I].bMeasured) { ++Measured; }
+		}
+		if (Measured == 0)
+		{
+			char Buf[420];
+			std::snprintf(Buf, sizeof(Buf),
+				"nullSeriesStatus=NOTHING-MEASURED nullSeriesSamples=nothing-measured/of=%d"
+				"/shots-offered nullSeriesIds=none nullSeriesVerdict=nothing-measured"
+				" nullSeriesStat=whole-run/no-frame-was-measured-so-there-is-no-noise-floor",
+				(int)All.size());
+			return std::string(Buf);
+		}
+		// THE GROUP: the largest set of measured frames sharing one applied
+		// fingerprint. Largest, because the noise floor is read off the widest
+		// set of frames the run renders identically; a tie keeps the first
+		// group in shot order, and the tie is printed rather than hidden.
+		//
+		// THE TIE COUNTER COUNTS GROUPS, AND IT COUNTED FRAMES UNTIL
+		// AMENDMENT 5 of
+		// game-design/decision-2026-09-10-ruling-the-four-lane-batch.md
+		// section 9. The old loop ran over FRAMES and incremented once per
+		// frame of a rival group, so ONE rival group of seven frames printed
+		// nullSeriesTiedGroups=7 and read as seven rival groups: the key's
+		// name was not what the number was a statistic of. It was latent only
+		// because the live spec has a single largest group, and it would have
+		// gone live and wrong on the first real tie, which is exactly when a
+		// reader would lean on it.
+		//
+		// So the frames are collapsed to DISTINCT groups FIRST, each counted
+		// once, and the tie count is the number of distinct groups whose size
+		// equals the largest, MINUS the one that is kept. Keys are recorded in
+		// shot order of first appearance and the winner is taken on a STRICT
+		// greater-than, so the kept group is still the first in shot order.
+		// The denominator is the number of distinct groups examined, because a
+		// bare zero here cannot tell no rival apart from nothing looked at.
+		std::vector<std::string> GroupKeys;
+		std::vector<int> GroupSizes;
+		for (size_t I = 0; I < All.size(); ++I)
+		{
+			if (!All[I].bMeasured) { continue; }
+			const std::string K = SampleKey(All[I], true);
+			size_t At = GroupKeys.size();
+			for (size_t Q = 0; Q < GroupKeys.size(); ++Q)
+			{
+				if (GroupKeys[Q] == K) { At = Q; break; }
+			}
+			if (At == GroupKeys.size()) { GroupKeys.push_back(K); GroupSizes.push_back(0); }
+			++GroupSizes[At];
+		}
+		std::string BestKey;
+		int Best = 0;
+		for (size_t Q = 0; Q < GroupKeys.size(); ++Q)
+		{
+			if (GroupSizes[Q] > Best) { Best = GroupSizes[Q]; BestKey = GroupKeys[Q]; }
+		}
+		int TiedGroups = 0;
+		for (size_t Q = 0; Q < GroupKeys.size(); ++Q)
+		{
+			if (GroupSizes[Q] == Best && GroupKeys[Q] != BestKey) { ++TiedGroups; }
+		}
+		const int DistinctGroups = (int)GroupKeys.size();
+		std::vector<FrameSample> G;
+		for (size_t I = 0; I < All.size(); ++I)
+		{
+			if (All[I].bMeasured && SampleKey(All[I], true) == BestKey) { G.push_back(All[I]); }
+		}
+		std::string Out;
+		char Buf[960];
+		std::snprintf(Buf, sizeof(Buf),
+			"nullSeriesStatus=%s nullSeriesSamples=%d/of=%d/measured-frames-sharing-the-"
+			"largest-identical-applied-input-group-at-one-camera"
+			" nullSeriesMeasured=%d/of=%d/shots-offered"
+			" nullSeriesTiedGroups=%d/of=%d/distinct-groups-examined/groups-not-frames/"
+			"rival-groups-whose-size-equals-the-largest-excluding-the-one-kept"
+			" nullSeriesApplied=%s"
+			" nullSeriesExcludes=wetness/because-VignetteShot.cpp-has-no-read-site-for-it-"
+			"on-this-commit/the-other-engine-applies-it-at-StreetVignetteHost.cs-line-715",
+			G.size() >= 2 ? "READ" : "TOO-FEW-SAMPLES",
+			(int)G.size(), Measured, Measured, (int)All.size(),
+			TiedGroups, DistinctGroups,
+			BestKey.empty() ? "none" : BestKey.c_str());
+		Out += Buf;
+		// THE IDS, IN SHOT ORDER, AND THE CAP ANNOUNCES ITSELF.
+		const size_t kIdCap = 12;
+		std::string Ids;
+		for (size_t I = 0; I < G.size() && I < kIdCap; ++I)
+		{
+			if (!Ids.empty()) { Ids += ";"; }
+			Ids += NoSpaces(G[I].ShotId);
+		}
+		if (G.size() > kIdCap)
+		{
+			char More[64];
+			std::snprintf(More, sizeof(More), "/+%d-more-not-shown", (int)(G.size() - kIdCap));
+			Ids += More;
+		}
+		Out += " nullSeriesIds=" + (Ids.empty() ? std::string("none") : Ids);
+		if (G.size() < 2)
+		{
+			Out += " nullSeriesVerdict=nothing-measured/one-frame-cannot-hold-a-spread";
+			Out += " nullSeriesStat=whole-run/spread-is-max-minus-min-over-the-group";
+			return Out;
+		}
+		// THE SPREAD, THE DRIFT AND THE SMALLEST SKY STEP, PER STATISTIC.
+		// THE SPREAD is max minus min over the group, stated as such, with the
+		// two frames it came from named. THE DRIFT is last minus first IN SHOT
+		// ORDER, which is the one-pair difference the 19:46Z record asked for,
+		// and the two together say whether the drift is monotone in shot order:
+		// a spread whose extremes ARE the first and last frame reads as drift,
+		// and one whose extremes sit in the middle reads as a step or as noise.
+		// THE SKY STEP is the SMALLEST absolute difference between any two
+		// measured frames whose conditions differ in sky intensity ALONE, which
+		// is the weakest signal the grid is allowed to claim. No shot is named
+		// to find it.
+		int Clear = 0, Judged = 0;
+		for (int W = 0; W < 3; ++W)
+		{
+			double Lo = SampleStat(G[0], W), Hi = Lo;
+			size_t LoAt = 0, HiAt = 0;
+			bool bUp = true, bDown = true;
+			for (size_t I = 0; I < G.size(); ++I)
+			{
+				const double V = SampleStat(G[I], W);
+				if (V < Lo) { Lo = V; LoAt = I; }
+				if (V > Hi) { Hi = V; HiAt = I; }
+				if (I > 0)
+				{
+					const double P = SampleStat(G[I - 1], W);
+					if (V < P) { bUp = false; }
+					if (V > P) { bDown = false; }
+				}
+			}
+			const double Spread = Hi - Lo;
+			const double Drift  = SampleStat(G[G.size() - 1], W) - SampleStat(G[0], W);
+			// THE SMALLEST SKY STEP, AND ITS OWN DENOMINATOR: how many
+			// sky-only pairs were found at all. Zero pairs is not a clean
+			// result, it is nothing measured.
+			double Step = 0.0;
+			int Pairs = 0;
+			std::string StepA, StepB;
+			for (size_t I = 0; I < All.size(); ++I)
+			{
+				if (!All[I].bMeasured) { continue; }
+				for (size_t J = I + 1; J < All.size(); ++J)
+				{
+					if (!All[J].bMeasured) { continue; }
+					if (SampleKey(All[I], false) != SampleKey(All[J], false)) { continue; }
+					if (All[I].SkyIntensity == All[J].SkyIntensity) { continue; }
+					const double D = std::fabs(SampleStat(All[I], W) - SampleStat(All[J], W));
+					if (Pairs == 0 || D < Step)
+					{
+						Step = D; StepA = All[I].ShotId; StepB = All[J].ShotId;
+					}
+					++Pairs;
+				}
+			}
+			char Line[760];
+			std::snprintf(Line, sizeof(Line),
+				" nullSpread%s=%.4f/max=%s/%.4f/min=%s/%.4f"
+				" nullDrift%s=%+.4f/first=%s/last=%s"
+				" nullOrder%s=%s",
+				SampleStatName(W), Spread, NoSpaces(G[HiAt].ShotId).c_str(), Hi,
+				NoSpaces(G[LoAt].ShotId).c_str(), Lo,
+				SampleStatName(W), Drift, NoSpaces(G[0].ShotId).c_str(),
+				NoSpaces(G[G.size() - 1].ShotId).c_str(),
+				SampleStatName(W),
+				bUp && bDown ? "flat" : (bUp ? "nondecreasing-in-shot-order"
+				                             : (bDown ? "nonincreasing-in-shot-order"
+				                                      : "neither/a-step-or-noise")));
+			Out += Line;
+			char StepS[520];
+			if (Pairs == 0)
+			{
+				std::snprintf(StepS, sizeof(StepS),
+					" skyStepSmallest%s=nothing-measured/no-pair-of-measured-frames-differs-"
+					"in-sky-alone skyStepPairs%s=0/of=0/sky-only-pairs"
+					" nullFloor%s=nothing-measured/no-sky-step-to-read-the-spread-against",
+					SampleStatName(W), SampleStatName(W), SampleStatName(W));
+				Out += StepS;
+				continue;
+			}
+			++Judged;
+			const bool bClear = (Spread < Step);
+			if (bClear) { ++Clear; }
+			std::snprintf(StepS, sizeof(StepS),
+				" skyStepSmallest%s=%.4f/between=%s..%s skyStepPairs%s=%d/of=%d/sky-only-pairs"
+				" nullFloor%s=%s/spread%.4f/vs/step%.4f",
+				SampleStatName(W), Step, NoSpaces(StepA).c_str(), NoSpaces(StepB).c_str(),
+				SampleStatName(W), Pairs, Pairs,
+				SampleStatName(W), bClear ? "CLEAR" : "NOT-SMALLER", Spread, Step);
+			Out += StepS;
+		}
+		char Done[520];
+		std::snprintf(Done, sizeof(Done),
+			" nullSeriesVerdict=%s nullSeriesClear=%d/of=%d/statistics-with-a-sky-step-to-"
+			"read-against nullSeriesStat=whole-run/spread-is-max-minus-min-over-the-group/"
+			"drift-is-last-minus-first-in-shot-order/sky-step-is-the-SMALLEST-difference-"
+			"between-two-frames-differing-in-sky-alone/a-spread-not-smaller-than-that-step-"
+			"makes-the-grid-a-NO-READ",
+			Judged == 0 ? "nothing-measured"
+			            : (Clear == Judged ? "CLEAR" : "NO-READ/no-cell-may-be-quoted"),
+			Clear, Judged);
+		Out += Done;
+		return Out;
+	}
+
 	// THE DONE LINE FOR THE WHOLE CAPTURE. Whole-run numbers only, and a run
 	// that photographed nothing says the words rather than printing zeros
 	// that read like a clean result.

@@ -464,6 +464,20 @@
       "gate": "decal-ink.py"
     },
     {
+      "id": "C15_fascia_cornice_console",
+      "group": "C",
+      "what": "The moulded cornice over the fascia band, and the console brackets that terminate it at each pilaster",
+      "count": 17,
+      "route": "HAVE",
+      "certainty": "HELD",
+      "source": "ledger/Assets/Props/base-mesh/fascia_cornice_01.glb and fascia_console_01.glb, AUTHORED IN HOUSE by production/art/fascia-01/author/make_fascia_mouldings.py, regenerable byte for byte",
+      "licence": "LEDGER's own work. Nothing fetched, nothing purchased, no model weights, no third-party geometry, UV set or byte. Tagged in ledger/Assets/Props/base-mesh/THIRD-PARTY.md",
+      "dims": "measured 5.8920 x 0.1500 x 0.2150 m (cornice, 300 verts, 140 tris) and 0.2400 x 0.5500 x 0.1800 m (console, 296 verts, 136 tris), boxWorstMm 0.0000000 against the spec on both",
+      "priority": "MANDATORY",
+      "gate": "tools/ue/import_prop_meshes.py --measure and --selftest, tools/meshgen/meshgen.py --series, tools/attribution-check.py",
+      "note": "SIX CORNICES AND ELEVEN CONSOLES, and eleven of twelve pilasters is an AUTHORED ABSENCE rather than a miscount: bay 3 carries no fascia lettering, so it is the parade's empty unit and its right-hand console at x=26.825 is gone the way a console goes in a port town. A terrace built at one time has ONE moulding repeated, so the variation on this street is absence and not a second design. THE LETTERING IS NOT HERE: it stays C6's four decals, because 25 mm of applied letter relief buys a sub-pixel gradient under the overcast sky canon fixes as the target while a 0.215 m cornice throws a hard shadow line across 36 m of terrace. The period's other fascia, the 1970s aluminium box with a Perspex face, is deliberately a later package: it REPLACES joinery rather than adding to it. Spec: production/art/fascia-01/01-SPEC-fascia-package.md."
+    },
+    {
       "id": "D1_roof_slate",
       "group": "D",
       "what": "Roof covering, Welsh slate dark grey to black per art-direction",
@@ -1145,9 +1159,9 @@
     }
   ],
   "held_props_coverage": {
-    "what": "Of the 37 props already cleaned, measured and licence-tagged by the props-local-01 run, how many are named by a line of this list.",
-    "named": 36,
-    "of": 37,
+    "what": "Of the 39 props under ledger/Assets/Props/base-mesh, how many are named by a line of this list. 37 were cleaned, measured and licence-tagged by the props-local-01 run; the other two, fascia_cornice_01 and fascia_console_01, were AUTHORED IN HOUSE on 2026-09-09 and are named by C15_fascia_cornice_console. The denominator is the directory, counted on 2026-09-10.",
+    "named": 38,
+    "of": 39,
     "not_named": [
       "lamp_post_01"
     ],

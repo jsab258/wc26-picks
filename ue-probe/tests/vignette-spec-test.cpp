@@ -23,6 +23,7 @@
 
 #include <clocale>
 #include <cstdio>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -1254,9 +1255,31 @@ int main(int argc, char** argv)
 			      "line, because both halves end up on ONE line and every reader "
 			      "here greps", Dup);
 		}
-		Check(LiveSeg.find("propFootprintsRead=23/23") != std::string::npos,
+		// THE NUMBER COMES OFF THE FILE, NOT OUT OF THIS LINE, repaired
+		// 2026-09-10. It read propFootprintsRead=23/23 as a literal, and the
+		// fascia package took the street to 40 mesh pieces, so a correct
+		// layout change turned this check red while the thing it asserts held
+		// perfectly. WHAT IT ASSERTS IS A RELATION AND NOT A COUNT, and its
+		// own message says so: the count EXAMINED over the count the FILE
+		// ASKED FOR, equal, with the denominator being the file's and not a
+		// number typed here. So the expected string is built from the live
+		// spec's own mesh-piece count. A zero is refused separately, because
+		// propFootprintsRead=0/0 satisfies the equality and would mean the
+		// burial half measured nothing at all.
+		int MeshPiecesHere = 0;
+		for (size_t I = 0; I < S.Pieces.size(); ++I)
+		{
+			if (S.Pieces[I].Shape == "mesh") { ++MeshPiecesHere; }
+		}
+		char WantFootprints[64];
+		std::snprintf(WantFootprints, sizeof(WantFootprints),
+		              "propFootprintsRead=%d/%d", MeshPiecesHere, MeshPiecesHere);
+		Check(MeshPiecesHere > 0,
+		      "the committed street asks for at least one mesh piece, so the burial "
+		      "half has a population to examine at all", WantFootprints);
+		Check(LiveSeg.find(WantFootprints) != std::string::npos,
 		      "the burial half ships the count it examined over the count the file "
-		      "asked for", LiveSeg);
+		      "asked for", std::string(WantFootprints) + " | " + LiveSeg);
 		Check(LiveSeg.find("propFootprintGrid=20x20/400-cells-per-prop/a-gap-narrower-"
 		                   "than-one-cell-is-invisible-here") != std::string::npos,
 		      "and it says what its own sampler cannot see, rather than leaving the "
@@ -1997,6 +2020,86 @@ int main(int argc, char** argv)
 			Check(LedgerSurface::ControlQuadVisibilityLine(0, 0, "").find(
 			          "nothing-measured") != std::string::npos,
 			      "a run that took no shot says nothing measured rather than zero");
+			// A1(d): EVERY SAMPLE LINE DECLARES WHETHER ITS OWN WHOLE-FRAME
+			// KEYS INCLUDE THE INSTRUMENT. Accepting case first, and the
+			// accepting case is the camera that DOES carry them, because that
+			// is the line a reader of shotMeanLuma has to be warned about.
+			// The boxes are projected here rather than quoted from a document:
+			// the percentage moves if the camera, the field of view or the
+			// placement constants move, which is what a frozen literal could
+			// not do.
+			const std::string QA = LedgerSurface::ShotControlQuadLine(
+				*QuadCam, QuadCam->Id, LedgerSurface::ControlQuadCount(), true, 1280, 720);
+			const std::string QH = LedgerSurface::ShotControlQuadLine(
+				*Hook, QuadCam->Id, LedgerSurface::ControlQuadCount(), true, 1280, 720);
+			std::printf("    %s\n    %s\n", QA.c_str(), QH.c_str());
+			Check(QA.find("shotWholeFrameIncludesControlQuads=yes/whole-frame-keys-on-this-"
+			              "line-include-them/boxes=see-controlQuadVisibility-and-the-quad-"
+			              "lines/PROJECTED-BOXES-NOT-MEASURED-COVERAGE") != std::string::npos,
+			      "the shot taken from the camera the controls were placed from declares "
+			      "that its own whole-frame keys include them, in the words the ruling "
+			      "dictated", QA);
+			Check(QA.find("shotControlQuadsBoxed=3/of=3/") != std::string::npos
+			      && QA.find("shotControlQuadsBoxPx=x") != std::string::npos,
+			      "and it carries the projected boxes with their denominator rather than "
+			      "a literal copied out of a document", QA);
+			Check(QH == "shotWholeFrameIncludesControlQuads=no/hidden-for-this-camera",
+			      "a shot from any other camera declares no, which is the case rung 1's "
+			      "own frame is in", QH);
+			// AND THE THREE REFUSALS, because "no" is a claim about a frame
+			// and a run that did not know its camera, did not spawn the quads
+			// or did not measure the frame must not make it.
+			Check(LedgerSurface::ShotControlQuadLine(*QuadCam, "", 3, true, 1280, 720)
+			          .find("nothing-measured/no-camera-identity-answered") != std::string::npos
+			      && LedgerSurface::ShotControlQuadLine(*QuadCam, QuadCam->Id, 0, true,
+			                                            1280, 720)
+			          .find("no/no-control-quads-were-spawned-in-this-build")
+			          != std::string::npos
+			      && LedgerSurface::ShotControlQuadLine(*QuadCam, QuadCam->Id, 3, false,
+			                                            1280, 720)
+			          .find("nothing-measured/this-line-carries-no-whole-frame-keys")
+			          != std::string::npos,
+			      "an unnamed camera, a build that spawned no quads and a line with no "
+			      "whole-frame keys each say so rather than answering yes or no");
+			Check(EveryTokenIsKeyValue(QA) && EveryTokenIsKeyValue(QH),
+			      "both control-quad declarations are space-free, every token a key "
+			      "with a value", QA);
+			// THE AT-MOST PERCENTAGE IS A PROJECTION AND THE SERIES IS PRINTED
+			// BEFORE ANY BOUND IS SET. No gate reads it tonight; the point of
+			// printing three fields of view is that a later session sets its
+			// bound off a read series rather than off one frame, which is what
+			// froze the number the earlier ruling dictated as a literal.
+			//
+			// THE VARIABLE IS THE FIELD OF VIEW AND NOT THE FRAME SIZE, and
+			// that is itself a reading taken here: the union box scales with
+			// the frame, so 1280x720 and 640x360 return the SAME percentage
+			// and printing both would be one number twice. The fov moves it.
+			{
+				const double Fovs[3] = {QuadCam->FovVerticalDeg, 39.0, 90.0};
+				std::printf("    controlQuadAtMost series, one projection per field of "
+				            "view, 1280x720 throughout, 3 of 3 shown:");
+				for (int FI = 0; FI < 3; ++FI)
+				{
+					LedgerVignette::Camera Vary = *QuadCam;
+					Vary.FovVerticalDeg = Fovs[FI];
+					const std::string L = LedgerSurface::ShotControlQuadLine(
+						Vary, QuadCam->Id, 3, true, 1280, 720);
+					const size_t At = L.find("shotControlQuadsAtMostPctOfFrame=");
+					std::printf(" fovV=%.1f/%s", Fovs[FI],
+					            At == std::string::npos ? "not-printed"
+					            : L.substr(At + 33, L.find(' ', At) - At - 33).c_str());
+				}
+				std::printf("\n");
+				LedgerVignette::Camera Narrow = *QuadCam;
+				Narrow.FovVerticalDeg = 39.0;
+				const std::string N = LedgerSurface::ShotControlQuadLine(
+					Narrow, QuadCam->Id, 3, true, 1280, 720);
+				Check(QA.find("shotControlQuadsAtMostPctOfFrame=0.00") == std::string::npos
+				      && N != QA,
+				      "the at-most percentage is a projection that moves with the field of "
+				      "view and not a literal, which is why no bound is set on it here",
+				      QA + " | " + N);
+			}
 		}
 	}
 	// THE SEARCH-PATH FORMATTER ON ITS OWN, both ways round the cap, because
@@ -2451,6 +2554,227 @@ int main(int argc, char** argv)
 		Check(N.find("lightAimStatus=AGREES") == std::string::npos,
 		      "and NOTHING-MEASURED is not the passing word, so the guard fails closed");
 		Check(EveryTokenIsKeyValue(N), "the nothing-measured lightAim line is space-free too");
+	}
+
+	// ---- THE NULL SERIES, DISCOVERED ON THE LIVE FILE --------------------
+	//
+	// C4 as amended: the noise floor is a SPREAD over every frame this engine
+	// renders identically, not one subtraction. The accepting fixture is the
+	// committed spec, which is this project's rule for a tool that checks the
+	// project itself, and the thing being checked is the DISCOVERY: the group
+	// is found from the conditions, so nobody has to keep a list of seven shot
+	// ids in a header. The statistics are synthetic, because no frame exists in
+	// this container, and the model is named rather than assumed: a signal
+	// linear in sky intensity plus a bounded per-shot noise.
+	{
+		std::printf("  null series, the spread that C4 reads the grid against\n");
+		// THE SIGNAL AND THE NOISE, BOTH CHOSEN HERE SO THE EXPECTED VERDICT
+		// IS ARITHMETIC AND NOT A GUESS. Signal: 0.20 of luma per unit of sky,
+		// so the smallest sky step in the grid (0.35 to 0.50) is 0.0300.
+		// Noise: 0.0005 times the shot index modulo 4, so no spread over any
+		// identical-input group can exceed 0.0015.
+		std::vector<LedgerVignette::FrameSample> Samples;
+		for (size_t I = 0; I < S.Shots.size(); ++I)
+		{
+			const LedgerVignette::Condition* C = 0;
+			for (size_t J = 0; J < S.Conditions.size(); ++J)
+			{
+				if (S.Conditions[J].Id == S.Shots[I].ConditionId) { C = &S.Conditions[J]; }
+			}
+			if (C == 0) { continue; }
+			LedgerVignette::FrameSample F;
+			F.ShotId = S.Shots[I].Id;
+			F.CameraId = S.Shots[I].CameraId;
+			F.Applied      = LedgerVignette::AppliedFieldsUnreal(*C, true);
+			F.AppliedNoSky = LedgerVignette::AppliedFieldsUnreal(*C, false);
+			F.SkyIntensity = C->SkyIntensity;
+			F.bMeasured = true;
+			F.MeanLuma  = 0.30 + 0.20 * C->SkyIntensity + 0.0005 * (double)(I % 4);
+			F.GroundP05 = F.MeanLuma * 0.50;
+			F.GroundP50 = F.MeanLuma * 0.80;
+			Samples.push_back(F);
+		}
+		const std::string NS = LedgerVignette::NullSeriesLine(Samples);
+		std::printf("    %s\n", NS.c_str());
+		Check(NS.find("nullSeriesSamples=7/of=25/") != std::string::npos
+		      && NS.find("nullSeriesMeasured=25/of=25/") != std::string::npos,
+		      "the live file's largest identical-input group in THIS engine is seven "
+		      "frames of twenty-five, which is the review's own arithmetic recovered "
+		      "from the conditions rather than from a list of ids", NS);
+		Check(NS.find("nullSeriesIds=vign_hook_day;vign_grid_sky100_sun003;"
+		              "vign_fog_maxop0450;vign_wet_000;vign_wet_060;vign_wet_100;"
+		              "vign_grid_null_repeat") != std::string::npos,
+		      "and they are the seven shots the review named, in shot order, with the "
+		      "judged hook frame among them", NS);
+		Check(NS.find("nullSeriesExcludes=wetness/because-VignetteShot.cpp-has-no-read-"
+		              "site-for-it-on-this-commit") != std::string::npos,
+		      "the line says which field it excluded and why, because three of the seven "
+		      "are null samples HERE only for want of a read site", NS);
+		Check(NS.find("nullSeriesStatus=READ") != std::string::npos
+		      && NS.find("nullSeriesVerdict=CLEAR") != std::string::npos
+		      && NS.find("nullSeriesClear=3/of=3/") != std::string::npos,
+		      "on a fixture whose noise is 0.0015 at most and whose smallest sky step is "
+		      "0.0300, all three statistics read CLEAR and the denominator says three",
+		      NS);
+		// THE SKY STEP IS READ OFF THE LINE AND CHECKED AS A NUMBER, with the
+		// tolerance being the noise the fixture itself plants: 0.20 per unit of
+		// sky times the 0.15 step is 0.0300, plus or minus 0.0015.
+		{
+			const size_t At = NS.find("skyStepSmallestMeanLuma=");
+			const double Step = At == std::string::npos ? -1.0
+			                  : std::atof(NS.c_str() + At + 24);
+			std::printf("    skyStepSmallestMeanLuma read back as %.4f, fixture "
+			            "arithmetic says 0.0300 plus or minus 0.0015\n", Step);
+			Check(Step > 0.0285 - 1e-9 && Step < 0.0315 + 1e-9,
+			      "the smallest sky step is the 0.35-to-0.50 step of the grid, within "
+			      "the noise the fixture plants, and it is found without naming a cell",
+			      NS);
+		}
+		Check(NS.find("nullSpreadMeanLuma=0.0015/max=") != std::string::npos
+		      && NS.find("nullDriftMeanLuma=") != std::string::npos
+		      && NS.find("nullOrderMeanLuma=") != std::string::npos,
+		      "the spread, the one-pair drift in shot order and whether the group is "
+		      "monotone all print, which is what separates a drift from a step", NS);
+		Check(EveryTokenIsKeyValue(NS),
+		      "the null series line is space-free, every token a key with a value", NS);
+		// AND THE CASE THE GATE MUST REFUSE, PLANTED RATHER THAN WAITED FOR.
+		// Rule 5b: a guard needs a run where the thing it asserts CAN happen.
+		// The same frames with the noise raised to 0.05 per step is a rig whose
+		// own repeat moves further than the grid's smallest sky step, which is
+		// exactly the condition that made the sun ladder unreadable.
+		{
+			std::vector<LedgerVignette::FrameSample> Loud = Samples;
+			for (size_t I = 0; I < Loud.size(); ++I)
+			{
+				const double N2 = 0.05 * (double)(I % 4);
+				Loud[I].MeanLuma  = 0.30 + 0.20 * Loud[I].SkyIntensity + N2;
+				Loud[I].GroundP05 = Loud[I].MeanLuma * 0.50;
+				Loud[I].GroundP50 = Loud[I].MeanLuma * 0.80;
+			}
+			const std::string LN = LedgerVignette::NullSeriesLine(Loud);
+			std::printf("    planted: %s\n", LN.substr(0, 220).c_str());
+			Check(LN.find("nullSeriesVerdict=NO-READ/no-cell-may-be-quoted")
+			      != std::string::npos
+			      && LN.find("nullFloorMeanLuma=NOT-SMALLER/") != std::string::npos,
+			      "a rig whose null spread is wider than the smallest sky step makes the "
+			      "grid a NO-READ, and the key names which statistic failed", LN);
+		}
+		// AND A RUN THAT MEASURED NOTHING, WHICH IS NOT A CLEAN RESULT.
+		std::vector<LedgerVignette::FrameSample> None;
+		const std::string Z = LedgerVignette::NullSeriesLine(None);
+		std::printf("    %s\n", Z.c_str());
+		Check(Z.find("nullSeriesStatus=NOTHING-MEASURED") != std::string::npos
+		      && Z.find("nullSeriesSamples=nothing-measured/of=0/") != std::string::npos
+		      && Z.find("nullSeriesVerdict=CLEAR") == std::string::npos,
+		      "a run with no measured frame prints the words and never the passing "
+		      "verdict, so an empty series cannot read as a clear one", Z);
+		// ONE MEASURED FRAME IS NOT A SPREAD EITHER.
+		std::vector<LedgerVignette::FrameSample> One;
+		if (!Samples.empty()) { One.push_back(Samples[0]); }
+		const std::string O = LedgerVignette::NullSeriesLine(One);
+		Check(O.find("nullSeriesStatus=TOO-FEW-SAMPLES") != std::string::npos
+		      && O.find("nullSeriesVerdict=nothing-measured/one-frame-cannot-hold-a-spread")
+		         != std::string::npos,
+		      "and one frame says so rather than printing a spread of zero", O);
+		Check(EveryTokenIsKeyValue(Z) && EveryTokenIsKeyValue(O),
+		      "both refusing null series lines are space-free too");
+		// AMENDMENT 5: THE TIE COUNTER COUNTS GROUPS, AND THIS IS THE RUN THAT
+		// FAILS ON THE CODE THAT COUNTED FRAMES.
+		//
+		// Section 9 of game-design/decision-2026-09-10-ruling-the-four-lane-
+		// batch.md. The old loop in NullSeriesLine ran over FRAMES and
+		// incremented once per frame of a rival group, so ONE rival group of
+		// seven frames printed nullSeriesTiedGroups=7 and read as seven rival
+		// groups. Nothing in the repository asserted the key: one grep hit, the
+		// emit itself, which is how it stayed latent while the live spec had a
+		// single largest group.
+		//
+		// WHAT MAKES THESE CATCHING RUNS AND NOT DECORATION. On the old
+		// frame-counting code the two-way fixture below prints 3 and the
+		// three-way fixture prints 6, because every frame of every rival group
+		// incremented once. Both Checks fail there and pass here. The ties are
+		// PLANTED, because the committed spec has exactly one largest group and
+		// a tie cannot be waited for; the accepting case is the live line NS
+		// above, read by name so the no-tie reading is watched too.
+		Check(NS.find("nullSeriesTiedGroups=0/of=19/distinct-groups-examined/") != std::string::npos,
+		      "the live spec has ONE largest group so the tie count is zero, and the zero "
+		      "ships the denominator saying nineteen distinct groups were examined", NS);
+		{
+			// TWO GROUPS OF THREE PLUS A SINGLETON, so the tie count and the
+			// denominator are different numbers and neither can stand in for
+			// the other. One rival group: the answer is 1, never 3.
+			const char* Two[7] = { "gA", "gA", "gA", "gB", "gB", "gB", "gC" };
+			std::vector<LedgerVignette::FrameSample> Tie;
+			for (int I = 0; I < 7; ++I)
+			{
+				LedgerVignette::FrameSample F;
+				char Sid[32];
+				std::snprintf(Sid, sizeof(Sid), "tie_%02d", I);
+				F.ShotId = Sid;
+				F.CameraId = "cam_tie";
+				F.Applied = Two[I];
+				F.AppliedNoSky = Two[I];
+				F.SkyIntensity = 1.0;
+				F.bMeasured = true;
+				F.MeanLuma = 0.50;
+				F.GroundP05 = 0.25;
+				F.GroundP50 = 0.40;
+				Tie.push_back(F);
+			}
+			const std::string T2 = LedgerVignette::NullSeriesLine(Tie);
+			std::printf("    planted two-way tie: %s\n",
+			            T2.substr(0, 260).c_str());
+			Check(T2.find("nullSeriesTiedGroups=1/of=3/distinct-groups-examined/"
+			              "groups-not-frames/") != std::string::npos,
+			      "one rival group of three frames prints ONE tied GROUP of three "
+			      "distinct groups examined, where the frame-counting code printed 3",
+			      T2);
+			Check(T2.find("nullSeriesIds=tie_00;tie_01;tie_02") != std::string::npos,
+			      "and the kept group on a tie is still the first in shot order, which "
+			      "the strict greater-than preserves", T2);
+			Check(EveryTokenIsKeyValue(T2),
+			      "the tied line is space-free, every token a key with a value", T2);
+		}
+		{
+			// THREE GROUPS OF THREE, A SINGLETON, AND ONE UNMEASURED FRAME
+			// CARRYING A KEY OF ITS OWN. Two rival groups, four distinct groups
+			// examined, and the unmeasured frame must enter NEITHER number: a
+			// denominator larger than the set examined turns a clean result
+			// into a false claim with a number on it.
+			const char* Three[11] = { "gA", "gA", "gA", "gB", "gB", "gB",
+			                          "gC", "gC", "gC", "gD", "gZ" };
+			std::vector<LedgerVignette::FrameSample> Tie3;
+			for (int I = 0; I < 11; ++I)
+			{
+				LedgerVignette::FrameSample F;
+				char Sid[32];
+				std::snprintf(Sid, sizeof(Sid), "t3_%02d", I);
+				F.ShotId = Sid;
+				F.CameraId = "cam_tie";
+				F.Applied = Three[I];
+				F.AppliedNoSky = Three[I];
+				F.SkyIntensity = 1.0;
+				F.bMeasured = (I != 10);
+				F.MeanLuma = 0.50;
+				F.GroundP05 = 0.25;
+				F.GroundP50 = 0.40;
+				Tie3.push_back(F);
+			}
+			const std::string T3 = LedgerVignette::NullSeriesLine(Tie3);
+			std::printf("    planted three-way tie: %s\n",
+			            T3.substr(0, 260).c_str());
+			Check(T3.find("nullSeriesTiedGroups=2/of=4/distinct-groups-examined/"
+			              "groups-not-frames/") != std::string::npos,
+			      "two rival groups of three frames each print TWO tied GROUPS of four "
+			      "distinct groups examined, where the frame-counting code printed 6",
+			      T3);
+			Check(T3.find("nullSeriesMeasured=10/of=11/shots-offered") != std::string::npos,
+			      "and the unmeasured frame is outside both the tie count and the "
+			      "distinct-group denominator, while the measured count still names the "
+			      "eleven offered", T3);
+			Check(EveryTokenIsKeyValue(T3),
+			      "the three-way tied line is space-free too", T3);
+		}
 	}
 
 	std::printf("%s: %d of %d check(s) failed\n",

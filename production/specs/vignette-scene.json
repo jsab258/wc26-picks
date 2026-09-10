@@ -362,7 +362,7 @@
   },
 
   "held_props": {
-    "what": "The meshes under ledger/Assets/Props/base-mesh that THIS street wants, placed by name. Every one is named by a line of production/specs/vignette-bill-of-materials.json; the bill of materials decides WHICH, and the directory listing decides nothing. 16 of the 37 held props are placed here in 23 instances, and the 21 that are not are listed in not_placed below with the reason, because a fetched prop that no line names is the failure this project keeps finding.",
+    "what": "The meshes under ledger/Assets/Props/base-mesh that THIS street wants, placed by name. Every one is named by a line of production/specs/vignette-bill-of-materials.json; the bill of materials decides WHICH, and the directory listing decides nothing. 18 of the 39 held props are placed here in 40 instances, and the 21 that are not are listed in not_placed below with the reason, because a fetched prop that no line names is the failure this project keeps finding. THE COUNT MOVED ON 2026-09-10 AND THE TWO IT MOVED BY WERE AUTHORED HERE, not fetched: fascia_cornice_01 and fascia_console_01 are LEDGER's own geometry, written by production/art/fascia-01/author/make_fascia_mouldings.py and named by the bill of materials line C15_fascia_cornice_console. Until this change they sat in ledger/Assets/Props/base-mesh named by NOTHING, which is rule 6 exactly: built is not running.",
     "dims_source": "MEASURED, per prop, from the shipped .glb's own POSITION accessors walked through its node transforms (the same axis-aligned box glTFast hands Unity). dims_m is [along-x, up-y, across-z] in the glTF frame, which is the frame the piece list uses. These are NOT the numbers in content/props/manifest.json's measured block: that block describes the CLEANED LOD0 outputs, which are not in this repository, and it quotes Blender's z-up dims for the sources. Where the two agree they agree to a millimetre; where the pivot is concerned they do not agree at all, which is why the emitter aligns the loaded bounding box rather than trusting an origin.",
     "pivot_note": "THE SOURCE PIVOTS ARE NOT ALL AT THE BASE, measured: awning_02's origin is at its top-back (min y -1.318) because it hangs off a wall, poster and framed_poster are centred (min y -0.50 and -0.40), drainage_grate_01 hangs 15 mm below its origin, and the rest stand on it. So a placement here names where the prop's BOUNDING BOX CENTRE goes, exactly like every other piece in the list, and each emitter puts the loaded mesh's own bounds centre there. Nothing is ever scaled: the dims policy forbids inventing a size, and a prop that is the wrong size is a prop to replace, not to stretch.",
     "place_kinds": {
@@ -505,6 +505,125 @@
         "side": "east", "x_m": 24.0, "place": "wall", "wall_block": "east_parade",
         "wall_y": "top_at_fascia_bottom", "yaw_deg": 180,
         "note": "The second one, four bays up, so cam_B has one in frame and cam_A sees both in perspective. Two of six units, not six: a parade where every unit has its awning out is a parade nobody has looked at."
+      },
+      {
+        "bom": "C15_fascia_cornice_console", "asset": "fascia_cornice_01",
+        "dims_m": [5.8920, 0.1500, 0.2150], "surface": "wood",
+        "side": "east", "x_m": 6.0, "place": "wall", "wall_block": "east_parade",
+        "wall_centre_m": 3.475, "yaw_deg": 0,
+        "note": "MANDATORY, one per bay, and the LENGTH IS THE DERIVED NUMBER RATHER THAN THE BAY. 5.8920 is 6.0000 (east_parade_fascia0.sx_m) less the 0.068 m D5 downpipe and twice the package's 0.0200 m clearance, because the five east downpipes stand on the party pilaster centres at x=9,15,21,27,33 and a 6.0000 run passes through all five. The run therefore stops 0.0200 m each side of every pipe and 0.0540 m short of each end of the terrace, which is what a real cornice does at a rainwater pipe. wall_centre_m 3.4750 stands its SOFFIT on the fascia band's top: the band is 2.95 to 3.50 in world with the 0.100 threshold on, so 0.100 + 3.4750 - 0.0750 = 3.5000 exactly. THE ONE NUMBER HERE THAT IS A SECOND COPY, said out loud rather than hidden: the emitter has a top_at_fascia_bottom rule for the awning and no top_at_fascia_top rule, so this 3.4750 duplicates the storey height the shopfront block already carries, and the acceptance check that catches it going stale is cornice bottom minus fascia band top equals 0.0000."
+      },
+      {
+        "bom": "C15_fascia_cornice_console", "asset": "fascia_cornice_01",
+        "dims_m": [5.8920, 0.1500, 0.2150], "surface": "wood",
+        "side": "east", "x_m": 12.0, "place": "wall", "wall_block": "east_parade",
+        "wall_centre_m": 3.475, "yaw_deg": 0,
+        "note": "One per bay. Bay 1 of six, butting its neighbour across the party pilaster."
+      },
+      {
+        "bom": "C15_fascia_cornice_console", "asset": "fascia_cornice_01",
+        "dims_m": [5.8920, 0.1500, 0.2150], "surface": "wood",
+        "side": "east", "x_m": 18.0, "place": "wall", "wall_block": "east_parade",
+        "wall_centre_m": 3.475, "yaw_deg": 0,
+        "note": "One per bay. Bay 2 of six, butting its neighbour across the party pilaster."
+      },
+      {
+        "bom": "C15_fascia_cornice_console", "asset": "fascia_cornice_01",
+        "dims_m": [5.8920, 0.1500, 0.2150], "surface": "wood",
+        "side": "east", "x_m": 24.0, "place": "wall", "wall_block": "east_parade",
+        "wall_centre_m": 3.475, "yaw_deg": 0,
+        "note": "One per bay. Bay 3 of six, butting its neighbour across the party pilaster."
+      },
+      {
+        "bom": "C15_fascia_cornice_console", "asset": "fascia_cornice_01",
+        "dims_m": [5.8920, 0.1500, 0.2150], "surface": "wood",
+        "side": "east", "x_m": 30.0, "place": "wall", "wall_block": "east_parade",
+        "wall_centre_m": 3.475, "yaw_deg": 0,
+        "note": "One per bay. Bay 4 of six, butting its neighbour across the party pilaster."
+      },
+      {
+        "bom": "C15_fascia_cornice_console", "asset": "fascia_cornice_01",
+        "dims_m": [5.8920, 0.1500, 0.2150], "surface": "wood",
+        "side": "east", "x_m": 36.0, "place": "wall", "wall_block": "east_parade",
+        "wall_centre_m": 3.475, "yaw_deg": 0,
+        "note": "One per bay. Bay 5 of six, butting its neighbour across the party pilaster."
+      },
+      {
+        "bom": "C15_fascia_cornice_console", "asset": "fascia_console_01",
+        "dims_m": [0.2400, 0.5500, 0.1800], "surface": "wood",
+        "side": "east", "x_m": 3.175, "place": "wall", "wall_block": "east_parade",
+        "wall_centre_m": 3.125, "yaw_deg": 0,
+        "note": "MANDATORY, one at each end of each bay's fascia, standing on the pilaster centre the C5 emitter already put there. ELEVEN OF TWELVE, and the twelfth is designed out rather than forgotten: bay 3 carries no fascia lettering, so it is the parade's empty unit, and its right-hand console at x=26.825 is gone the way a console goes in a port town, knocked off and never replaced. WIDTH 0.2400 IS A MEASURED CLEARANCE, not a taste: the largest round 10 mm width that clears the 0.068 m downpipe at x=9 from a pilaster centre 0.175 m away, measuring 0.0210 m of air. wall_centre_m 3.1250 puts the console across the whole fascia band, 0.100 + 3.1250 = 3.2250, which is east_parade_fascia0.y_m to the millimetre. Timber on a brick_red pier is correct: the pilaster is the pier and the console is shopfront joinery fixed to it. yaw_deg 0 AND NOT 180: this mesh is authored with its projection along the glTF -Z that asset-interface.md names as forward, which the yaw_rule says outright is a fact about the file and is written per prop."
+      },
+      {
+        "bom": "C15_fascia_cornice_console", "asset": "fascia_console_01",
+        "dims_m": [0.2400, 0.5500, 0.1800], "surface": "wood",
+        "side": "east", "x_m": 8.825, "place": "wall", "wall_block": "east_parade",
+        "wall_centre_m": 3.125, "yaw_deg": 0,
+        "note": "Pilaster centre x=8.825."
+      },
+      {
+        "bom": "C15_fascia_cornice_console", "asset": "fascia_console_01",
+        "dims_m": [0.2400, 0.5500, 0.1800], "surface": "wood",
+        "side": "east", "x_m": 9.175, "place": "wall", "wall_block": "east_parade",
+        "wall_centre_m": 3.125, "yaw_deg": 0,
+        "note": "Pilaster centre x=9.175."
+      },
+      {
+        "bom": "C15_fascia_cornice_console", "asset": "fascia_console_01",
+        "dims_m": [0.2400, 0.5500, 0.1800], "surface": "wood",
+        "side": "east", "x_m": 14.825, "place": "wall", "wall_block": "east_parade",
+        "wall_centre_m": 3.125, "yaw_deg": 0,
+        "note": "Pilaster centre x=14.825."
+      },
+      {
+        "bom": "C15_fascia_cornice_console", "asset": "fascia_console_01",
+        "dims_m": [0.2400, 0.5500, 0.1800], "surface": "wood",
+        "side": "east", "x_m": 15.175, "place": "wall", "wall_block": "east_parade",
+        "wall_centre_m": 3.125, "yaw_deg": 0,
+        "note": "Pilaster centre x=15.175."
+      },
+      {
+        "bom": "C15_fascia_cornice_console", "asset": "fascia_console_01",
+        "dims_m": [0.2400, 0.5500, 0.1800], "surface": "wood",
+        "side": "east", "x_m": 20.825, "place": "wall", "wall_block": "east_parade",
+        "wall_centre_m": 3.125, "yaw_deg": 0,
+        "note": "Pilaster centre x=20.825."
+      },
+      {
+        "bom": "C15_fascia_cornice_console", "asset": "fascia_console_01",
+        "dims_m": [0.2400, 0.5500, 0.1800], "surface": "wood",
+        "side": "east", "x_m": 21.175, "place": "wall", "wall_block": "east_parade",
+        "wall_centre_m": 3.125, "yaw_deg": 0,
+        "note": "Pilaster centre x=21.175."
+      },
+      {
+        "bom": "C15_fascia_cornice_console", "asset": "fascia_console_01",
+        "dims_m": [0.2400, 0.5500, 0.1800], "surface": "wood",
+        "side": "east", "x_m": 27.175, "place": "wall", "wall_block": "east_parade",
+        "wall_centre_m": 3.125, "yaw_deg": 0,
+        "note": "Pilaster centre x=27.175."
+      },
+      {
+        "bom": "C15_fascia_cornice_console", "asset": "fascia_console_01",
+        "dims_m": [0.2400, 0.5500, 0.1800], "surface": "wood",
+        "side": "east", "x_m": 32.825, "place": "wall", "wall_block": "east_parade",
+        "wall_centre_m": 3.125, "yaw_deg": 0,
+        "note": "Pilaster centre x=32.825."
+      },
+      {
+        "bom": "C15_fascia_cornice_console", "asset": "fascia_console_01",
+        "dims_m": [0.2400, 0.5500, 0.1800], "surface": "wood",
+        "side": "east", "x_m": 33.175, "place": "wall", "wall_block": "east_parade",
+        "wall_centre_m": 3.125, "yaw_deg": 0,
+        "note": "Pilaster centre x=33.175."
+      },
+      {
+        "bom": "C15_fascia_cornice_console", "asset": "fascia_console_01",
+        "dims_m": [0.2400, 0.5500, 0.1800], "surface": "wood",
+        "side": "east", "x_m": 38.825, "place": "wall", "wall_block": "east_parade",
+        "wall_centre_m": 3.125, "yaw_deg": 0,
+        "note": "Pilaster centre x=38.825."
       }
     ],
     "not_placed": [
@@ -968,7 +1087,7 @@
       "fog_max_opacity": 0.450,
       "lanterns": "off",
       "window_practicals": "off",
-      "note": "ONE-RUN PROBE ROW, ordered by section 4.1 (A1a), BLOCKING of game-design/decision-2026-09-09-ruling-the-grid-not-the-ladder.md, and the item that reads this run removes it in the same change: rows kept by default are rows nobody chose. THE GRID'S OWN NULL CELL, and it is a standing instrument rather than a rung. Every field is a character-for-character duplicate of grid_sky100_sun003, the grid's reference cell, and it is shot LAST so that every other shot, every condition change and every light probe stands between the pair: maximum order separation on identical inputs. Run 38 carried this same test as ladder_sun003 against vign_camA_day, IT FAILED at 0.1106 of whole-frame mean luma and 0.1172 at band.ground.p05, and nobody read it. A hundredfold of sun moved the dark end by 1.06 of that null, which is why the ladder measured nothing. READ THIS PAIR BEFORE ANY CELL: if the three differences are not each smaller than the smallest sky step in the grid, the grid is a NO-READ and the reader escalates rather than quoting a cell."
+      "note": "ONE-RUN PROBE ROW, ordered by section 4.1 (A1a), BLOCKING of game-design/decision-2026-09-09-ruling-the-grid-not-the-ladder.md, and the item that reads this run removes it in the same change: rows kept by default are rows nobody chose. THE GRID'S OWN NULL CELL, and it is a standing instrument rather than a rung. Every field is a character-for-character duplicate of grid_sky100_sun003, the grid's reference cell, and it is shot LAST while its twin grid_sky100_sun003 is shot 7 of 25, so the two are eighteen shots apart on identical inputs, with every condition change and every light probe between them. Run 38 carried this same test as ladder_sun003 against vign_camA_day, IT FAILED at 0.1106 of whole-frame mean luma and 0.1172 at band.ground.p05, and nobody read it. A hundredfold of sun moved the dark end by 1.06 of that null, which is why the ladder measured nothing. READ THIS PAIR BEFORE ANY CELL: if the three differences are not each smaller than the smallest sky step in the grid, the grid is a NO-READ and the reader escalates rather than quoting a cell."
     },
     {
       "id": "fog_maxop0450",
@@ -1038,7 +1157,7 @@
       "fog_max_opacity": 0.450,
       "lanterns": "off",
       "window_practicals": "off",
-      "note": "ONE-RUN PROBE ROW, ordered by section 4.3 (A3) of game-design/decision-2026-09-09-ruling-the-grid-not-the-ladder.md, and the item that reads this run removes it in the same change: rows kept by default are rows nobody chose. A3 WETNESS ROW 1 of 3, wetness 0.00 at the grid's reference cell (sky 1.00, sun 3, fog_max_opacity 0.450), shot at cam_hook. Until this commit `wetness` was parsed by both readers and read by NEITHER renderer: three hits in the whole ue-probe tree, all in VignetteSpec.h, and none in VignetteShot.cpp. CLAUDE.md rule 6, built is not running. A SERIES AND NOT A VALUE, both ends plus the value the judged conditions already carry, so a later session can see whether 0.60 was ever chosen or merely typed. WHAT THESE THREE ROWS CAN AND CANNOT ANSWER, STATED RATHER THAN ASSUMED: as this row is written there is STILL NO READ SITE for wetness in ue-probe/Source/LedgerProbe/Private/VignetteShot.cpp, and no base-material parameter for it, so in Unreal these three frames measure the ABSENCE and are the BEFORE half of the call-site grep that condition C10 of the ruling asks for; the read site is queue 186's work and is named, not assumed. A frame is what would answer it, never a readback: a value that lands on the game thread and never reaches the render proxy reads back as the same number. NO CONSTANT IS SET FROM THIS ROW."
+      "note": "ONE-RUN PROBE ROW, ordered by section 4.3 (A3) of game-design/decision-2026-09-09-ruling-the-grid-not-the-ladder.md, and the item that reads this run removes it in the same change: rows kept by default are rows nobody chose. A3 WETNESS ROW 1 of 3, wetness 0.00 at the grid's reference cell (sky 1.00, sun 3, fog_max_opacity 0.450), shot at cam_hook. Until this commit `wetness` was parsed by both readers and applied by ONE renderer and not the other: three hits in the whole ue-probe tree, all in VignetteSpec.h, and none in VignetteShot.cpp. CLAUDE.md rule 6, built is not running. A SERIES AND NOT A VALUE, both ends plus the value the judged conditions already carry, so a later session can see whether 0.60 was ever chosen or merely typed. WHAT THESE THREE ROWS CAN AND CANNOT ANSWER, STATED RATHER THAN ASSUMED: as this row is written there is STILL NO READ SITE for wetness in ue-probe/Source/LedgerProbe/Private/VignetteShot.cpp, and no base-material parameter for it, so in Unreal these three frames measure the ABSENCE and are the BEFORE half of the call-site grep that condition C10 of the ruling asks for; the read site is queue 186's work and is named, not assumed. THE OTHER ENGINE DOES READ IT: ledger/Assets/Scripts/Game/StreetVignetteHost.cs line 715 calls AssetLibrary.SetWetness with this field, so these three rows are a three-point series in Unity and the absence in Unreal, which is two answers and not one. A frame is what would answer it, never a readback: a value that lands on the game thread and never reaches the render proxy reads back as the same number. NO CONSTANT IS SET FROM THIS ROW."
     },
     {
       "id": "wet_060",
@@ -1052,7 +1171,7 @@
       "fog_max_opacity": 0.450,
       "lanterns": "off",
       "window_practicals": "off",
-      "note": "ONE-RUN PROBE ROW, ordered by section 4.3 (A3) of game-design/decision-2026-09-09-ruling-the-grid-not-the-ladder.md, and the item that reads this run removes it in the same change: rows kept by default are rows nobody chose. A3 WETNESS ROW 2 of 3, wetness 0.60 at the grid's reference cell (sky 1.00, sun 3, fog_max_opacity 0.450), shot at cam_hook. Until this commit `wetness` was parsed by both readers and read by NEITHER renderer: three hits in the whole ue-probe tree, all in VignetteSpec.h, and none in VignetteShot.cpp. CLAUDE.md rule 6, built is not running. A SERIES AND NOT A VALUE, both ends plus the value the judged conditions already carry, so a later session can see whether 0.60 was ever chosen or merely typed. WHAT THESE THREE ROWS CAN AND CANNOT ANSWER, STATED RATHER THAN ASSUMED: as this row is written there is STILL NO READ SITE for wetness in ue-probe/Source/LedgerProbe/Private/VignetteShot.cpp, and no base-material parameter for it, so in Unreal these three frames measure the ABSENCE and are the BEFORE half of the call-site grep that condition C10 of the ruling asks for; the read site is queue 186's work and is named, not assumed. A frame is what would answer it, never a readback: a value that lands on the game thread and never reaches the render proxy reads back as the same number. NO CONSTANT IS SET FROM THIS ROW."
+      "note": "ONE-RUN PROBE ROW, ordered by section 4.3 (A3) of game-design/decision-2026-09-09-ruling-the-grid-not-the-ladder.md, and the item that reads this run removes it in the same change: rows kept by default are rows nobody chose. A3 WETNESS ROW 2 of 3, wetness 0.60 at the grid's reference cell (sky 1.00, sun 3, fog_max_opacity 0.450), shot at cam_hook. Until this commit `wetness` was parsed by both readers and applied by ONE renderer and not the other: three hits in the whole ue-probe tree, all in VignetteSpec.h, and none in VignetteShot.cpp. CLAUDE.md rule 6, built is not running. A SERIES AND NOT A VALUE, both ends plus the value the judged conditions already carry, so a later session can see whether 0.60 was ever chosen or merely typed. WHAT THESE THREE ROWS CAN AND CANNOT ANSWER, STATED RATHER THAN ASSUMED: as this row is written there is STILL NO READ SITE for wetness in ue-probe/Source/LedgerProbe/Private/VignetteShot.cpp, and no base-material parameter for it, so in Unreal these three frames measure the ABSENCE and are the BEFORE half of the call-site grep that condition C10 of the ruling asks for; the read site is queue 186's work and is named, not assumed. THE OTHER ENGINE DOES READ IT: ledger/Assets/Scripts/Game/StreetVignetteHost.cs line 715 calls AssetLibrary.SetWetness with this field, so these three rows are a three-point series in Unity and the absence in Unreal, which is two answers and not one. A frame is what would answer it, never a readback: a value that lands on the game thread and never reaches the render proxy reads back as the same number. NO CONSTANT IS SET FROM THIS ROW."
     },
     {
       "id": "wet_100",
@@ -1066,7 +1185,7 @@
       "fog_max_opacity": 0.450,
       "lanterns": "off",
       "window_practicals": "off",
-      "note": "ONE-RUN PROBE ROW, ordered by section 4.3 (A3) of game-design/decision-2026-09-09-ruling-the-grid-not-the-ladder.md, and the item that reads this run removes it in the same change: rows kept by default are rows nobody chose. A3 WETNESS ROW 3 of 3, wetness 1.00 at the grid's reference cell (sky 1.00, sun 3, fog_max_opacity 0.450), shot at cam_hook. Until this commit `wetness` was parsed by both readers and read by NEITHER renderer: three hits in the whole ue-probe tree, all in VignetteSpec.h, and none in VignetteShot.cpp. CLAUDE.md rule 6, built is not running. A SERIES AND NOT A VALUE, both ends plus the value the judged conditions already carry, so a later session can see whether 0.60 was ever chosen or merely typed. WHAT THESE THREE ROWS CAN AND CANNOT ANSWER, STATED RATHER THAN ASSUMED: as this row is written there is STILL NO READ SITE for wetness in ue-probe/Source/LedgerProbe/Private/VignetteShot.cpp, and no base-material parameter for it, so in Unreal these three frames measure the ABSENCE and are the BEFORE half of the call-site grep that condition C10 of the ruling asks for; the read site is queue 186's work and is named, not assumed. A frame is what would answer it, never a readback: a value that lands on the game thread and never reaches the render proxy reads back as the same number. NO CONSTANT IS SET FROM THIS ROW."
+      "note": "ONE-RUN PROBE ROW, ordered by section 4.3 (A3) of game-design/decision-2026-09-09-ruling-the-grid-not-the-ladder.md, and the item that reads this run removes it in the same change: rows kept by default are rows nobody chose. A3 WETNESS ROW 3 of 3, wetness 1.00 at the grid's reference cell (sky 1.00, sun 3, fog_max_opacity 0.450), shot at cam_hook. Until this commit `wetness` was parsed by both readers and applied by ONE renderer and not the other: three hits in the whole ue-probe tree, all in VignetteSpec.h, and none in VignetteShot.cpp. CLAUDE.md rule 6, built is not running. A SERIES AND NOT A VALUE, both ends plus the value the judged conditions already carry, so a later session can see whether 0.60 was ever chosen or merely typed. WHAT THESE THREE ROWS CAN AND CANNOT ANSWER, STATED RATHER THAN ASSUMED: as this row is written there is STILL NO READ SITE for wetness in ue-probe/Source/LedgerProbe/Private/VignetteShot.cpp, and no base-material parameter for it, so in Unreal these three frames measure the ABSENCE and are the BEFORE half of the call-site grep that condition C10 of the ruling asks for; the read site is queue 186's work and is named, not assumed. THE OTHER ENGINE DOES READ IT: ledger/Assets/Scripts/Game/StreetVignetteHost.cs line 715 calls AssetLibrary.SetWetness with this field, so these three rows are a three-point series in Unity and the absence in Unreal, which is two answers and not one. A frame is what would answer it, never a readback: a value that lands on the game thread and never reaches the render proxy reads back as the same number. NO CONSTANT IS SET FROM THIS ROW."
     }
   ],
 
@@ -1098,7 +1217,7 @@
     { "id": "vign_grid_null_repeat", "camera": "cam_hook", "condition": "grid_null_repeat" }
   ],
 
-  "shots_note": "FOUR MATCHED FRAMES, and they are two cameras by two conditions rather than four camera positions. That is not a shortcut: the re-scope ruling defines decisively better as the Unreal frame being preferred in at least three of the four pairs, and production/specs/vignette-bill-of-materials.md states in as many words that two cameras by two conditions IS the four pairs the ruling judges on. Four camera positions by two conditions would be eight pairs and would silently change the bar the engine decision is made against. Both engines shoot these four ids and no others, and the paired judging is by id.",
+  "shots_note": "FOUR MATCHED FRAMES, and they are two cameras by two conditions rather than four camera positions. That is not a shortcut: the re-scope ruling defines decisively better as the Unreal frame being preferred in at least three of the four pairs, and production/specs/vignette-bill-of-materials.md states in as many words that two cameras by two conditions IS the four pairs the ruling judges on. Four camera positions by two conditions would be eight pairs and would silently change the bar the engine decision is made against. Both engines shoot these four ids and JUDGE ON THEM ALONE; the paired judging is by id. The probe rows added 2026-09-09 are shot in addition and are not judged pairs, and which engine renders which probe row is recorded in game-design/decision-2026-09-09-ruling-the-grid-batch-review.md.",
 
   "lighting_grid_note": "THREE REQUIRED FIELDS ON EVERY CONDITION: sun_intensity and sky_intensity, added 2026-09-09 by queue 205, and fog_max_opacity, added the same evening by section 4.4 of game-design/decision-2026-09-09-ruling-the-grid-not-the-ladder.md. All three were bare numbers inside the two emitters: the sun was the literal 3.0f at VignetteShot.cpp:1240, the sky was kSkyIntensityDay 1.0 or kSkyIntensityNight 0.35 picked by whether the sun was on, and the fog cap was const float kFogMaxOpacityWithSky = 0.45f. None was ever measured. THE VALUES CARRIED BY overcast_day AND wet_night ARE THE OLD LITERALS UNCHANGED, so this file moves where the numbers live and moves no number. Required rather than defaulted in both readers: a condition that does not name its sun, its sky or its fog cap refuses loudly instead of inheriting a value nobody chose. THE SUN LADDER IS RETIRED AND ITS SERIES IS PRESERVED IN SECTION 3 OF THAT RULING, which is the condition queue 206 set for removing it: five rungs at 3, 10, 30, 100 and 300 moved band.ground.p05 by 0.1243 across a HUNDREDFOLD of sun, against a null of 0.1172 measured between two shots of one condition, so the ladder measured 1.06 nulls and the rungs were rendered in increasing order, which confounds a drift in shot order with a response to the sun. WHAT REPLACES IT IS A GRID AT cam_hook: sky 1.00, 0.70, 0.50 and 0.35 crossed with sun 3, 10 and 30, twelve cells, interleaved so the shot order is not monotone in sky, plus ITS OWN NULL CELL (grid_null_repeat) shot last, plus four fog rows and three wetness rows at the reference cell. EVERY ROW ADDED HERE IS A ONE-RUN PROBE ROW and the item that reads the run removes it: at about 1.67 MB of committed PNG per row per run, rows kept by default are rows nobody chose. NO CONSTANT IS SET FROM ANY OF THEM.",
 

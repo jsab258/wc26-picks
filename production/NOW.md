@@ -9,6 +9,87 @@ session would otherwise duplicate, abandon, or wait for forever.
 Keep it current or delete it. A stale NOW is worse than none, because it
 looks like a live state.
 
+## 2026-09-10 07:30Z: A STANDING PROMPT RULE, AND A BUDGET FAULT OF THE RESIDENT'S
+
+THE PROMPT RULE, Jafar 2026-09-10, and it applies to every image spec this lane
+ever writes: A NEGATIVE VETOES BUT CANNOT SUMMON. ANYTHING THAT MUST APPEAR IS
+NAMED IN THE POSITIVE HALF.
+
+It has a measurement behind it, AND THE RESIDENT'S FIRST READING OF THAT
+MEASUREMENT WAS WRONG, corrected 07:40Z the same morning it was written. The
+Hook spec's negative names pleasure marina, yacht, leisure moorings and pontoon,
+and the sheet still came back a pleasant basin rather than a working port. The
+resident wrote "THE NEGATIVE DID ITS JOB, there is no yacht in the picture".
+IT DID NOT. The negative was never evaluated at all.
+
+tools/imagegen/imagegen.py's own negative_state says so in its docstring, read
+from stable-diffusion.cpp's resolve_guidance on 25 August: a negative prompt at
+cfg 1.0 DOES NOTHING, because use_uncond is set only when img_cfg differs from
+txt_cfg and a model with no image conditioning has img_cfg forced to 1.0. Every
+item in this lane runs at cfg 1.0 and every one reports negativeActive=False.
+THE NEGATIVE HALF OF EVERY SPEC THIS LANE HAS EVER SHIPPED IS DOCUMENTATION AND
+NOT A CONTROL. The absence of a yacht is the positive prompt's doing or it is
+chance; it is not the veto working.
+
+THAT MAKES JAFAR'S RULE STRONGER RATHER THAN WEAKER. He ruled a negative vetoes
+but cannot summon. At this lane's settings a negative cannot even veto, so
+anything that must appear and anything that must not appear are BOTH the
+positive half's problem, and the negative is a note to the next reader. Queue
+233 and queue 234.
+
+The Fairview spec already satisfies both halves, measured rather than assumed:
+positiveExclusions=0/542wordsScanned across its items, and nine working objects
+named positively. It goes as authored.
+
+THE BUDGET FAULT, AND IT IS THE RESIDENT'S. Two turns ended on a ceiling that
+does not exist. The ceiling is SEVENTY-FIVE PER CENT ON THE HIGHER OF TWO
+METERS, read by Jafar off a screen nothing in this container can see, and his
+opening "Readings: total 45, Fable 41" are those two meter values. The resident
+read 75 as a COUNT and counted its own tool calls toward it, stopping twice with
+27 points of real budget left and the queue full. A UNIT ERROR, not an
+arithmetic one, which is why it survived a day: both readings sat in the
+thirties and forties, so the wrong measure never contradicted itself out loud.
+NO SESSION MAY EVER STOP ON A SELF-COUNTED NUMBER. Full record in
+production/budget.md and production/findings.txt.
+
+## 2026-09-10 05:10Z: FOUR RULINGS FROM JAFAR, AND THE LANE CHANGES OWNER
+
+1. THE LOCAL IMAGE LANE IS THE CONCEPT ROUTE. Codex's sheets stay as REFERENCE
+   only. Ours are produced by the three-pass method and the remaining six
+   district sheets follow, ONE PER DAY IN THE BRIEF. The next sheet is the test
+   of ORIGINAL concept art: its prompt is authored from the form bible, the
+   atlas and the research, with NO USE OF CODEX'S PROMPT FILES, and it goes in
+   the brief beside Codex's sheet for the same district WITH A PROVENANCE TABLE
+   saying which words came from which source. The Hook proved the lane can
+   DRAW; this proves whether it can AUTHOR, and reaching for their prompt files
+   is the exact failure it exists to detect.
+2. ONE CHANNEL FIX IS ALLOWED AND NO MORE: the brief must carry its pictures
+   AND its two buttons in ONE message, queue 232. "Nothing else on the channel."
+3. EVERY BUILDER BRIEF OPENS WITH: produce at a clean boundary first, refine
+   second. Three agents burned their whole budgets reading on the night of the
+   9th and shipped nothing. AND VERIFY RUNS ALONE, NEVER BESIDE AGENTS, per
+   queue 225, because contention makes it report failures it did not measure.
+4. THE OUTSIDE ACCOUNT IS RETIRED FROM PRODUCTION, kept for an audit every few
+   weeks. Nothing is handed to it again for images, recipes or research.
+
+THE ORDER OF WORK HE SET: the three blocking amendments, then the sun-fixed
+render dispatched with the seven-frame null accounted for, and the before and
+after of the street; the Hook pass-2 result into the brief with an honest
+caption; the fascia package to a real mesh in the street; the next Blender
+recipe written IN-HOUSE rather than adapted from Codex's, so the 3D route is
+tested the same way as the image route; and rung 1 continuing with SKY DOWN
+BEFORE WETNESS, each step verified by opening the frame against the panel.
+
+PASS 2 OF THE HOOK LANDED AND THE CORRECTION WORKED ON WHAT IT TARGETED.
+imagegenVerdict=BANKED wroteThisRun=4 blankThisRun=0. The three objects the
+model DROPPED in pass 1, the rope, the dustbin and the crate, are present on all
+four draws, and the lettering discipline held: two named fascias rather than a
+terrace of invented ones. Honest against pass 1: the panels sit smaller in more
+cream margin and the street reads emptier than pass 1's best seed, and the beer
+firkin came back as a plain wooden crate on all four. Best of four is the lead
+seed, and choosing one of four is what Codex did too, so the comparison stays
+symmetric and the caption says so.
+
 ## 2026-09-09 22:40Z: A CONTAINER RESTART KILLED TWO BUILDERS MID-EDIT
 
 WHAT WAS LOST AND WHAT WAS NOT. The container restarted, both builders died

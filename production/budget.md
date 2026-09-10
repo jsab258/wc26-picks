@@ -42,6 +42,36 @@ than any single row.
 
 Ceiling for LEDGER: 80% of the weekly limit. The other 20% is his.
 
+THE MISREAD THAT ENDED TWO TURNS EARLY, 2026-09-10, and it is a resident fault
+recorded here because this is the file whose wording was misread.
+
+WHAT WAS MISREAD. The rows of the table above carry TWO PERCENTAGE METERS, as
+their own cells show: 6% and 8%, then 16% and 17%, then 25% and 24%. The ceiling
+sentence in those same rows reads "THE CEILING IS 75 ON THE GOVERNING METER",
+and the 75 is SEVENTY-FIVE PERCENT ON THE HIGHER OF THOSE TWO METERS. The
+resident read it as a COUNT, and read Jafar's opening line "Readings: total 45,
+Fable 41" as a tally of its own tool calls rather than as the two meter values
+he had just read off his own screen. It then counted its own calls toward 75 and
+STOPPED TWICE ON A NUMBER THE SESSION HAD INVENTED, with 27 points of real
+budget remaining and a queue full of work.
+
+WHY IT SURVIVED A WHOLE DAY. The two readings happened to be near each other in
+magnitude, so a session counting calls and a session reading a meter both
+produced numbers in the thirties and forties on the same afternoon. The
+arithmetic never contradicted itself, which is exactly the shape of a unit error
+that lives a long time: it is not the value that is wrong, it is what the value
+is a measure OF. That is the same fault class as reading a peak as a median or a
+difference as a ratio, applied to the budget rather than to a frame.
+
+THE RULE, AND IT IS ABSOLUTE. THE BUDGET IS A PERCENTAGE ON A METER ONLY JAFAR
+CAN READ. Nothing in the container can read it, nothing in the container may
+estimate it, and NO SESSION MAY EVER STOP ON A SELF-COUNTED NUMBER. A session
+that has not been given a fresh reading does not know the budget; an unknown
+budget is not permission to spend without limit, and it is equally not a reason
+to stop. The stopping conditions are the ones CLAUDE.md rule 13 names: a reading
+FROM JAFAR at or over the ceiling, a session or model limit, or a genuine
+blocker. A count of turns, calls, readings or tokens is none of those.
+
 HOW TO WRITE A PER-SESSION CEILING SO A MACHINE READS IT, added 2026-09-09 after
 it went wrong once. When Jafar sets a ceiling for a session, his number wins over
 the standing 80 above, and `tools/glance.py` reads it OUT OF THE ROW'S OWN NOTE.

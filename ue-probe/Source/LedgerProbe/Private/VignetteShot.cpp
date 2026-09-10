@@ -457,6 +457,14 @@ namespace
 	// a frame can show what a WORKING material instance looks like beside
 	// the street that is not showing one.
 	std::vector<LedgerSurface::QuadResult> GQuads;
+	// C4 AS AMENDED: THE NULL SERIES IS A SPREAD OVER SEVEN FRAMES AND NOT
+	// ONE PAIR, so the run keeps the three statistics C4 reads per shot
+	// instead of discarding the band stats at the end of the scoped block
+	// that measured them. One record per MEASURED shot, in shot order,
+	// which is the only order that can answer whether a drift is monotone.
+	// The grouping, the arithmetic and every string are in VignetteSpec.h,
+	// where g++ runs them before any dispatch.
+	std::vector<LedgerVignette::FrameSample> GFrameSamples;
 	std::vector<std::string> GQuadLines;
 	// THE CONTROL QUAD ACTORS THEMSELVES, KEPT so that a shot which is not
 	// the one they were placed for can hide them. They are an instrument, and
@@ -483,6 +491,9 @@ namespace
 	// list from; declared here because BuildScene calls it.
 	void LookForNamedHdri();
 	void SpawnControlQuads(UWorld* World, UStaticMesh* Plane);
+	// A1(d): the per-sample control-quad declaration needs the camera the
+	// quads were placed from, and MeasureShot is written above the lookup.
+	const Camera* ControlCamera();
 
 	FString NoSp(const FString& In) { return In.Replace(TEXT(" "), TEXT("~")); }
 
@@ -2020,6 +2031,14 @@ namespace
 		// the per-sample shotCellAgrees word each shot line carries.
 		Out.Add(FString(UTF8_TO_TCHAR(LedgerVignette::CellAgreeLine(
 			(int)GCellsAgree, (int)GCellsRead, (int)GSpec.Shots.size()).c_str())));
+		// C4 AS AMENDED, AND AMENDMENT 2'S ENGINE FORM: THE NOISE FLOOR IS A
+		// SPREAD OVER EVERY FRAME THIS ENGINE RENDERS IDENTICALLY AT ONE
+		// CAMERA, with its denominator, its extreme pair named, the one-pair
+		// drift in shot order beside it, and the grid's smallest sky step to
+		// read it against. A whole-run line, because every number on it is a
+		// statistic OVER the run's frames and none is true of one frame.
+		Out.Add(FString(UTF8_TO_TCHAR(
+			LedgerVignette::NullSeriesLine(GFrameSamples).c_str())));
 		// A6: WHERE THE FOUR DIRECTIONAL LIGHTS WERE AIMED, ASKED BESIDE READ.
 		// A WHOLE-RUN LINE, because the rotation is written once at spawn and
 		// never rewritten, and it sits beside the other whole-run lines for
@@ -2233,6 +2252,27 @@ namespace
 		     + " shotCaptureViaStat=per-sample/the-path-is-adopted-run-wide-once-candidate-A-fails-once";
 	}
 
+	// A1(d), AMENDMENT 1 OF THE BATCH REVIEW: WHETHER THIS LINE'S OWN
+	// WHOLE-FRAME KEYS INCLUDE THE INSTRUMENT. Every string and every
+	// projection is in SurfaceBind.h where the test runs; this supplies the
+	// camera, the control camera's identity, how many quad actors the build
+	// spawned, and whether this line carries whole-frame keys at all. A line
+	// written because no file landed carries none, and says so rather than
+	// making a claim about a frame that does not exist.
+	std::string ShotControlQuadsNow(const Shot& S, bool bWholeFrameKeysOnThisLine)
+	{
+		const Camera* C = FindCamera(S.CameraId);
+		if (C == nullptr)
+		{
+			return std::string("shotWholeFrameIncludesControlQuads=nothing-measured"
+			                   "/no-camera-of-that-id-in-the-spec");
+		}
+		const Camera* QuadCam = ControlCamera();
+		return LedgerSurface::ShotControlQuadLine(
+			*C, QuadCam != nullptr ? QuadCam->Id : std::string(),
+			(int)GQuadActors.Num(), bWholeFrameKeysOnThisLine, kShotW, kShotH);
+	}
+
 	// MEASURE THE FILE THAT IS ABOUT TO BE COMMITTED, not the buffer the
 	// engine had in memory, and let the maths and the string come from the
 	// tested header.
@@ -2248,7 +2288,8 @@ namespace
 				TCHAR_TO_UTF8(*GCamEdge), Median, kTimedFrames, kWarmFrames,
 				kShotW, kShotH, VFov, HFov, 0, "NO-FILE", "none",
 				std::string(TCHAR_TO_UTF8(*GNote)))
-				+ " " + ShotCamAndCaptureNow());
+				+ " " + ShotCamAndCaptureNow()
+				+ " " + ShotControlQuadsNow(S, false));
 			return;
 		}
 		const int64 Bytes = IFileManager::Get().FileSize(*PngPath);
@@ -2262,7 +2303,8 @@ namespace
 				TCHAR_TO_UTF8(*GCamEdge), Median, kTimedFrames, kWarmFrames,
 				0, 0, VFov, HFov, (long long)Bytes, "UNDECODABLE",
 				TCHAR_TO_UTF8(*FPaths::GetCleanFilename(PngPath)), Note)
-				+ " " + ShotCamAndCaptureNow());
+				+ " " + ShotCamAndCaptureNow()
+				+ " " + ShotControlQuadsNow(S, false));
 			return;
 		}
 		const LedgerFrame::FrameStats St =
@@ -2307,6 +2349,27 @@ namespace
 				Px, W, H, "ground", 0.0, LedgerFrame::GroundY0(), 1.0, 1.0);
 			Line += " ";
 			Line += LedgerFrame::SkyBandLine(SkyTop, SkyCentre, Ground);
+			// AND KEPT, for the null-series spread on the done line. The
+			// determinism repeat is deliberately NOT kept: it is not a shot
+			// the file asked for, and counting it would put one frame in the
+			// group twice.
+			if (!GRepeating)
+			{
+				LedgerVignette::FrameSample FS;
+				FS.ShotId   = S.Id;
+				FS.CameraId = S.CameraId;
+				if (const Condition* CC = FindCondition(S.ConditionId))
+				{
+					FS.Applied      = LedgerVignette::AppliedFieldsUnreal(*CC, true);
+					FS.AppliedNoSky = LedgerVignette::AppliedFieldsUnreal(*CC, false);
+					FS.SkyIntensity = CC->SkyIntensity;
+				}
+				FS.bMeasured = Ground.Measured && !St.Blank;
+				FS.MeanLuma  = St.MeanLuma;
+				FS.GroundP05 = Ground.P05;
+				FS.GroundP50 = Ground.P50;
+				GFrameSamples.push_back(FS);
+			}
 		}
 		// AND WHAT LIT IT, READ OFF THE COMPONENTS RATHER THAN OFF THE ROW
 		// OF THE FILE THAT ASKED FOR IT. Per-sample keys on the sample line.
@@ -2318,6 +2381,14 @@ namespace
 		// that is not the last one the run placed.
 		Line += " ";
 		Line += ShotCamAndCaptureNow();
+		// AND WHETHER THE WHOLE-FRAME KEYS ABOVE INCLUDE THE THREE CONTROL
+		// QUADS, A1(d). shotMeanLuma, the exposure bands and band.ground are
+		// means over every pixel of this frame, so on the camera the controls
+		// were placed from they include three saturated swatches standing in
+		// the carriageway, and a reader comparing cells across cameras had no
+		// way to tell which lines carry them.
+		Line += " ";
+		Line += ShotControlQuadsNow(S, true);
 		GShotLines.push_back(Line);
 		// ---- THE FIRST SHOT'S PIXELS, KEPT FOR THE REPEAT AT THE END -----
 		//
@@ -3231,7 +3302,8 @@ namespace
 				GShotLines.push_back(ShotLine(S.Id, S.CameraId, S.ConditionId, 0.0, "none",
 					-1.0, kTimedFrames, kWarmFrames, kShotW, kShotH, 0.0, 0.0, 0,
 					"NO-SUCH-CAMERA-OR-CONDITION", "none", "nothing-measured")
-					+ " " + ShotCamAndCaptureNow());
+					+ " " + ShotCamAndCaptureNow()
+					+ " " + ShotControlQuadsNow(S, false));
 				++GShotIndex;
 				// A SKIPPED SHOT IS STILL A PASS. Without this the NEXT
 				// shot's preamble would read as already written and it

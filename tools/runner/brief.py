@@ -43,6 +43,44 @@ record a reader cannot classify prints as unreadable and turns a working
 channel into a fault report. Separate folder, separate pattern, separate
 denominator.
 
+THE PICTURE RIDES THE SAME SEND, QUEUE 232, AND NOTHING NEW SENDS IT. Jafar:
+"Images and clips arrive INSIDE the message, never as links", and "every
+message carries two buttons". Before this, no single sender did both: this file
+owned the buttons and had no attachment path at all, and `outbox.py` owned the
+picture through a `<stem>.photo.txt` sidecar whose button code is a decision
+card's. So this file now reads THAT SIDECAR GRAMMAR (`outbox.photo_ref_rel`,
+`outbox.read_media_ref`), THAT SIZE CHECK (`outbox.photo_refusal`), THAT
+CAPTION LIMIT (`outbox.CAPTION_CAP`) and THAT RECEIPT
+(`outbox.render_captioned_receipt`), calls them rather than copying them, and
+hands the keyboard to a `photo_sender(path, caption, keyboard)` that is
+`sendPhoto` with a `reply_markup`. ONE SENDER, ONE MESSAGE A DAY, one receipt
+naming both halves. No second way to send a brief was added: there is still
+exactly one `send_brief`, and a brief still never goes near
+`production/outbox/`.
+
+ONE PICTURE PER MESSAGE, AS A COMPOSITE, AND THAT IS THE PLATFORM'S ANSWER AND
+NOT A SHORTCUT. `sendPhoto` takes a `reply_markup` and carries exactly one
+file; `sendMediaGroup`, the only way to put several pictures in one place,
+takes no `reply_markup` at all and delivers an album of separate messages a
+client groups, so there would be no single message for the pair to sit on and
+no one message a day. Several pictures therefore arrive as one composite
+image, which is also what the sidecar already says: it names exactly ONE
+attachment (`outbox.MEDIA_REF_KEYS`, "a message carries exactly one").
+
+WHICH WAY THIS PATH DEGRADES, RULED BY WHAT THE CHANNEL MEASURES. `outbox.py`
+refuses to send a message at all when its picture cannot ride, because a test
+request that promised a picture and arrived as bare text is ruling 5's
+incident. THE DAILY MESSAGE IS THE OTHER WAY ROUND and deliberately so: the
+two buttons are the only measure of this channel, a day never sent is a day of
+the streak that cannot be recovered, and the queue item that created this work
+rejected the trade in that direction in its own words ("it would have carried
+the image and dropped the buttons, which trades the measure for the
+illustration"). So a picture that cannot ride is DROPPED, the message goes with
+its two buttons, and the drop is named in three places a reader cannot miss:
+its own say line, `briefPhoto=<reason>` with `briefPhotoCarried=0/1` on the
+done line, and a `photoNote:` sentence in the receipt. A brief that carried no
+picture is never indistinguishable from one that never named a picture.
+
 WHY THE STREAK ARITHMETIC IS HERE AND NOT IN THE CONTAINER TOOL THAT PRINTS
 IT. The instruments rule of 25 August: the tally, the maths and the string
 live where the tests run. `tools/producer-day.py` supplies the files and the
@@ -77,6 +115,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
 import inbox                                                  # noqa: E402
+# AT MODULE LEVEL SINCE QUEUE 232, and still standard library only with no
+# network: the picture half of this file borrows six names from outbox.py
+# (photo_ref_rel, read_media_ref, photo_refusal, CAPTION_CAP, sizes_key and
+# render_captioned_receipt) and a lazy import at six call sites is six chances
+# for one of them to drift onto a copy. `BriefReceipts` still takes the module
+# injected, because its tests swap it.
+import outbox                                                 # noqa: E402
 
 #: Where the one message a day sits, repository relative. Same string as
 #: `producer-check.py:GATE_TREES[1]` and as producer.md's own convention: the
@@ -106,6 +151,14 @@ WANT_CONSECUTIVE = 7
 #: apart from a decision-card ruling tap (`cards.callback_data`, prefix "r"),
 #: and the bot tries this parser first.
 CB_PREFIX = "b"
+
+#: THE TWO `receipt:` VALUES THAT BOTH MEAN "THIS DAY'S BRIEF REACHED HIM",
+#: one per shape `send_brief` can write: words with buttons, or a picture with
+#: the same buttons as its caption. Read by `sent_days_from_receipts`, which is
+#: the denominator of the acceptance, so a third shape added here without
+#: adding it there would make the streak read over a smaller population than
+#: was actually sent.
+SENT_RECEIPTS = ("sent", "sent-with-photo")
 
 #: A tap record, and nothing else, in the folder below. The pattern IS the
 #: denominator: a README dropped in that folder is outside every count, the
@@ -218,13 +271,171 @@ def keyboard(day):
 
 
 # --------------------------------------------------------------------------
+# THE PICTURE THAT RIDES INSIDE THE SAME MESSAGE. Queue 232.
+# --------------------------------------------------------------------------
+#: EVERY WAY THE PICTURE HALF OF ONE SEND CAN COME OUT, as the tokens that go
+#: on a key=value line: no spaces, one hyphenated word each, and the list is
+#: closed so a reader of `briefPhoto=` never meets a value this file does not
+#: name. `nothing-measured` is the never-ran case and is first for the reason
+#: rule 3b gives: a pass that never looked for a picture must not read like a
+#: pass that looked and found none.
+PHOTO_STATES = ("nothing-measured",        # nothing was given to look at
+                "none-named",              # looked, no sidecar on disk
+                "sidecar-unreadable",      # a sidecar that does not parse
+                "not-a-picture",           # the sidecar names a clip
+                "file-unusable",           # missing, empty or over the limit
+                "caption-over-cap",        # the words exceed the caption cap
+                "no-sender-wired",         # no photo sender given to the pass
+                "sent-but-no-descriptor",  # went, arrival as a photo unproven
+                "carried")                 # the only state that carried one
+
+
+def brief_photo_ref_rel(day):
+    """Where this day's brief NAMES the picture it carries.
+
+    `production/briefs/<day>.photo.txt`, built by `outbox.photo_ref_rel` from
+    the brief's own path so the grammar has one implementation. Two such
+    sidecars already exist beside older messages in production/outbox/.
+
+    IT IS INVISIBLE TO THE REGISTER AND THAT WAS CHECKED, not assumed:
+    `producer-check.py:gate` walks `rglob("*.md")` under its trees, so a
+    `.photo.txt` in production/briefs/ is outside the gate's denominator and
+    nothing about what the Producer writes or how it is graded changes.
+    `briefs_on_disk` is a date pattern, so it is outside that count too.
+    """
+    return outbox.photo_ref_rel(brief_rel(day))
+
+
+def resolve_photo(repo, day, outbox_mod=None):
+    """What this day's brief asks to carry, read off the disk. Never raises.
+
+    Returns the dict `photo_plan` reads: `sidecar` always, `kind` and `ref`
+    when one is named, `full` and `bytes` when the file was measured, and
+    `why` the sentence when something is wrong with it.
+
+    THIS IS THE ONLY PART OF THE PICTURE PATH THAT TOUCHES THE DISK, which is
+    why it does almost nothing: the decision, the counts and every string live
+    in `photo_plan` and `send_brief` below, where the selftest drives them with
+    no repository at all.
+    """
+    ob = outbox_mod or outbox
+    rel = brief_rel(day)
+    out = {"sidecar": ob.photo_ref_rel(rel), "kind": None, "ref": None,
+           "full": None, "bytes": None, "why": ""}
+    kind, named, why = ob.read_media_ref(repo, rel)
+    if why:
+        out["why"] = why
+        return out
+    if kind is None:
+        return out
+    out["kind"], out["ref"] = kind, named
+    if kind != "photo":
+        out["why"] = ("%s names a %s and this sender carries a picture; a "
+                      "clip on the daily message is not wired up"
+                      % (out["sidecar"], kind))
+        return out
+    out["full"] = ob.full_path(repo, named)
+    ok, mwhy, nbytes = ob.photo_refusal(repo, out["full"])
+    out["bytes"] = nbytes
+    if not ok:
+        out["why"] = mwhy
+    return out
+
+
+def photo_plan(body, photo, photo_sender, cap=None):
+    """Does this brief carry its picture, and if not WHY NOT, in words.
+
+    PURE: every branch is a selftest row with no disk and no wire. `photo` is
+    `resolve_photo`'s dict or None, and None means this pass never looked.
+
+    EVERY BRANCH THAT DOES NOT CARRY THE PICTURE STILL SENDS THE MESSAGE, the
+    opposite of `outbox.sweep`'s direction, for the reason written out at the
+    top of this file: the two buttons are the only measure of this channel and
+    a day not sent is a day of the streak nobody can recover. The drop is
+    named rather than quiet.
+    """
+    cap = outbox.CAPTION_CAP if cap is None else cap
+    plan = {"carry": False, "state": "nothing-measured", "ref": None,
+            "full": None, "sidecar": None, "why": "", "overBy": 0,
+            "cap": cap, "chars": len(body or "")}
+    if photo is None:
+        plan["why"] = ("this pass was given no picture to look for, so "
+                       "nothing was measured about one")
+        return plan
+    plan["sidecar"] = photo.get("sidecar")
+    plan["ref"] = photo.get("ref")
+    plan["full"] = photo.get("full")
+    if photo.get("why"):
+        plan["why"] = photo["why"]
+        if not photo.get("ref"):
+            plan["state"] = "sidecar-unreadable"
+        elif photo.get("kind") != "photo":
+            plan["state"] = "not-a-picture"
+        else:
+            plan["state"] = "file-unusable"
+        return plan
+    if not photo.get("ref"):
+        plan["state"] = "none-named"
+        plan["why"] = ("no picture is named for this day: %s is not on this "
+                       "disk" % plan["sidecar"])
+        return plan
+    if photo_sender is None:
+        plan["state"] = "no-sender-wired"
+        plan["why"] = ("this day names a picture and this pass has no photo "
+                       "sender wired in, so the message goes as words with "
+                       "its two buttons")
+        return plan
+    if plan["chars"] > cap:
+        # ANNOUNCED WHERE IT BITES, AND NOT TRUNCATED. A picture's caption is
+        # capped by the platform at CAPTION_CAP and his words are not the safe
+        # part to cut, so the picture is what gives way. The overflow is
+        # measured rather than described: 150 words of brief has run to 1065
+        # characters before (production/briefs/2026-09-05.md), so this is a
+        # case the register can legally produce and not a theoretical one.
+        plan["state"] = "caption-over-cap"
+        plan["overBy"] = plan["chars"] - cap
+        plan["why"] = ("this brief is %d character(s) and the caption limit "
+                       "on a picture is %d, so it is %d over; the words go "
+                       "whole with their two buttons and the picture does "
+                       "not ride"
+                       % (plan["chars"], cap, plan["overBy"]))
+        return plan
+    plan["carry"], plan["state"] = True, "carried"
+    return plan
+
+
+def photo_receipt_note(plan, arrived_sizes=None):
+    """The sentence the RECEIPT carries about the picture, ALWAYS present.
+
+    A brief receipt says what happened to the picture even when there was
+    none, because a missing line is the one thing a later reader cannot tell
+    apart from a reader who did not look. The carried case needs no note: the
+    receipt is a `sent-with-photo` record whose `photoSizes` is the platform's
+    own proof, and a sentence beside it would be a second claim about one
+    fact.
+    """
+    if plan.get("state") == "carried" and arrived_sizes:
+        return ""
+    return ("the picture did not ride this message (%s): %s"
+            % (plan.get("state"), plan.get("why") or "no reason was recorded"))
+
+
+# --------------------------------------------------------------------------
 # Sending it. THE WORDS ARE NOT TOUCHED HERE.
 # --------------------------------------------------------------------------
-def send_brief(day, text, sender, store, check=None, say=None):
-    """Send one day's brief with its two buttons. Returns a result dict.
+def send_brief(day, text, sender, store, check=None, say=None, photo=None,
+               photo_sender=None):
+    """Send one day's brief with its two buttons and its picture. A dict back.
 
     `sender(text, keyboard)` is the wire, injected so every case below runs
-    with no network. `store` is the receipt store (`BriefReceipts`), injected
+    with no network. `photo` is `resolve_photo`'s dict and `photo_sender(path,
+    caption, keyboard)` is `sendPhoto` with a `reply_markup`: when the two are
+    present and the picture is usable, THE PICTURE AND THE PAIR LEAVE IN ONE
+    MESSAGE through that sender, and `sender` is not called at all. Both
+    default to None so a caller that predates queue 232 sends exactly what it
+    sent before, with `briefPhoto=nothing-measured` saying it never looked.
+
+    `store` is the receipt store (`BriefReceipts`), injected
     so they run with no repository either. `check(rel)` is
     tools/producer-check.py, injected for the same reason AND because its
     place in the order is the ruling: the check runs AFTER the Producer wrote
@@ -246,7 +457,14 @@ def send_brief(day, text, sender, store, check=None, say=None):
     res = {"day": day, "rel": brief_rel(day), "chars": len(body),
            "sent": None, "already": None, "refused": None, "clause": "",
            "messageId": None, "records": [], "checked": False,
-           "buttons": 0}
+           "buttons": 0,
+           # THE PICTURE HALF OF ONE SEND. `photoState` is one of
+           # PHOTO_STATES and starts at the never-ran value, so a pass that
+           # returns early (empty, already sent, held, refused) reports
+           # nothing measured about a picture rather than a clean zero.
+           "photoState": "nothing-measured", "photoRef": None,
+           "photoSizes": "", "photoArrived": False, "photoWhy": "",
+           "photoOverBy": 0}
     if not body:
         res["refused"] = "the brief for %s is empty, so there is nothing to " \
                          "send" % day
@@ -275,17 +493,62 @@ def send_brief(day, text, sender, store, check=None, say=None):
                 % (res["rel"], clause))
             return res
     mark = keyboard(day)
-    result = sender(body, mark)
+    plan = photo_plan(body, photo, photo_sender)
+    res["photoState"] = plan["state"]
+    res["photoRef"] = plan["ref"]
+    res["photoWhy"] = plan["why"]
+    res["photoOverBy"] = plan["overBy"]
+    if not plan["carry"]:
+        # LOUD, ON ITS OWN LINE, BEFORE THE SEND. A picture that silently did
+        # not ride is the whole fault queue 232 exists about.
+        say("  brief: NO PICTURE ON THIS MESSAGE (%s): %s. It still goes "
+            "with its two buttons, because the buttons are the only measure "
+            "of this channel." % (plan["state"], plan["why"]))
+    # ONE MESSAGE EITHER WAY, AND ONLY ONE OF THESE TWO WIRES IS CALLED.
+    result = (photo_sender(plan["full"], body, mark) if plan["carry"]
+              else sender(body, mark))
     mid = (result or {}).get("message_id")
     res["messageId"] = mid
     res["buttons"] = len(mark["inline_keyboard"])
     res["sent"] = res["rel"]
-    rec = store.sent(day, len(body), mid)
+    sizes = []
+    if plan["carry"]:
+        # THE PLATFORM'S OWN PROOF THAT IT ARRIVED AS A PICTURE, the same
+        # descriptor `outbox.render_photo_receipt` trusts and nothing else: a
+        # file filed as a document comes back with no `photo` array. The send
+        # is NOT held when it is missing (the message and its buttons did
+        # arrive, and a hold would re-send the day and duplicate it); the
+        # receipt records a send with no proven picture and says so.
+        sizes = (result or {}).get("photo") or []
+        res["photoArrived"] = bool(sizes)
+        res["photoSizes"] = outbox.sizes_key(sizes)
+        if not sizes:
+            res["photoState"] = "sent-but-no-descriptor"
+            res["photoWhy"] = ("the platform returned no photo descriptor, "
+                               "which is what a file filed as a document "
+                               "looks like, so this send carries no proof a "
+                               "picture arrived")
+            plan = dict(plan, state=res["photoState"], why=res["photoWhy"])
+            say("  brief: THE PICTURE'S ARRIVAL IS UNPROVEN (%s): %s"
+                % (res["photoState"], res["photoWhy"]))
+    if res["photoArrived"]:
+        rec = store.sent_with_photo(day, len(body), mid, plan["ref"],
+                                    sizes, res["buttons"])
+    else:
+        rec = store.sent(day, len(body), mid, res["buttons"],
+                         photo_receipt_note(plan, sizes))
     if rec:
         res["records"].append(rec)
-    say("  brief sent: %s chars=%d buttons=%d messageId=%s"
+    # THREE KEYS, THREE MEANINGS, ON THE MESSAGE'S OWN LINE: what was named,
+    # what happened to it, and the platform's descriptor for what arrived.
+    # `photoRef` carries a path and never a state word, because a reader
+    # greping it for a path would otherwise silently collect reason tokens.
+    say("  brief sent: %s chars=%d buttons=%d messageId=%s photoRef=%s "
+        "photoState=%s photoSizes=%s"
         % (res["rel"], len(body), res["buttons"],
-           "none" if mid is None else mid))
+           "none" if mid is None else mid,
+           res["photoRef"] or "none", res["photoState"],
+           res["photoSizes"] or "nothing-measured"))
     return res
 
 
@@ -294,12 +557,16 @@ def brief_done_line(res):
 
     WHOLE-PASS NUMBERS ONLY. The per-brief numbers are on the `brief sent:`
     line above, because a reader grepping across lines would otherwise read
-    two moments as one.
+    two moments as one. `briefPhotoCarried` is CUMULATIVE OVER THE PASS and
+    the pass is one brief, so its denominator is 1; the picture's own
+    descriptor is on the `brief sent:` line with the message it arrived on,
+    and is deliberately not repeated here under a second name.
     """
     day = res.get("day") or "nothing-measured"
     return ("brief-send done: briefDay=%s briefSent=%d/1 briefAlready=%d/1 "
             "briefRefused=%d/1 briefChecked=%s briefButtons=%d "
-            "briefChars=%d messageId=%s records=%d clause=%s"
+            "briefChars=%d messageId=%s records=%d briefPhotoCarried=%d/1 "
+            "briefPhoto=%s briefPhotoCapOverBy=%s clause=%s"
             % (day, 1 if res.get("sent") else 0,
                1 if res.get("already") else 0,
                1 if res.get("refused") else 0,
@@ -307,6 +574,9 @@ def brief_done_line(res):
                res.get("buttons") or 0, res.get("chars") or 0,
                res.get("messageId") if res.get("messageId") else "none",
                len(res.get("records") or []),
+               1 if res.get("photoArrived") else 0,
+               res.get("photoState") or "nothing-measured",
+               res.get("photoOverBy") or 0,
                (res.get("refused") or "none").replace(" ", "-")[:90]))
 
 
@@ -371,22 +641,57 @@ class BriefReceipts:
                             "once you know whether it arrived" % held[-1])
         return "unsent", ""
 
-    def sent(self, day, chars, message_id):
+    def _commit(self, rel):
+        """(sha, epoch, why-not). THE UNPACK WAS WRONG AND THE RECEIPT ON DISK
+        IS THE EVIDENCE, not an analysis of it. `outbox.commit_epoch` returns
+        THREE values; this read TWO into `commit, epoch` inside a bare
+        `except Exception`, so every brief receipt ever written reported
+        `fileCommit: none` and `outboundLatencySec: nothing-measured` with the
+        sentence "the brief is not committed yet" attached. The one live
+        sample, production/outbound/brief-2026-09-09.receipt.txt, says exactly
+        that while `git log -1 -- production/briefs/2026-09-09.md` gives
+        884f049c at 1788951280 against a send at 1788951344: a 64 second
+        latency that printed as nothing measured. The except stays, because a
+        git call can still fail on a PC mid-reset, but it no longer swallows an
+        arity mistake in silence: the REASON is carried into the record.
+        """
+        try:
+            return self.outbox.commit_epoch(self.repo, rel)
+        except Exception as e:                                # noqa: BLE001
+            return None, None, ("the commit instant could not be read on this "
+                                "PC (%s)" % type(e).__name__)
+
+    def sent(self, day, chars, message_id, buttons=None, photo_note=""):
         rel = brief_rel(day)
         slot = brief_slot(day)
-        commit, epoch = None, None
-        try:
-            commit, epoch = self.outbox.commit_epoch(self.repo, rel)
-        except Exception:                                     # noqa: BLE001
-            commit, epoch = None, None
+        commit, epoch, why_no = self._commit(rel)
         when = self._when()
         latency = None if epoch is None else when - int(epoch)
         return self._write(
             self.outbox.receipt_rel(slot),
             self.outbox.render_receipt(rel, "brief", when, message_id or 0,
                                        chars, commit, epoch, latency,
-                                       "" if epoch is not None
-                                       else "the brief is not committed yet"))
+                                       why_no, buttons, photo_note))
+
+    def sent_with_photo(self, day, chars, message_id, photo_rel, sizes,
+                        buttons=None):
+        """THE ONE RECEIPT THAT NAMES BOTH HALVES, queue 232.
+
+        `outbox.render_captioned_receipt` unchanged and uncopied, which is what
+        puts this brief in `outbox.outbound_summary`'s `captioned` bucket
+        beside every other message that arrived as a picture. `photoSizes` is
+        the platform's proof of the image, `buttons` of the pair.
+        """
+        rel = brief_rel(day)
+        slot = brief_slot(day)
+        commit, epoch, why_no = self._commit(rel)
+        when = self._when()
+        latency = None if epoch is None else when - int(epoch)
+        return self._write(
+            self.outbox.receipt_rel(slot),
+            self.outbox.render_captioned_receipt(
+                rel, "brief", photo_rel, when, message_id or 0, chars, sizes,
+                commit, epoch, latency, why_no, buttons))
 
     def hold(self, day, clause):
         slot = brief_slot(day)
@@ -597,6 +902,14 @@ def sent_days_from_receipts(records):
     brief` line and a `file:` under production/briefs, so this cannot drift
     from what `outbox.outbound_summary` counts as sent.
 
+    BOTH SHAPES A BRIEF SEND CAN WRITE, SINCE QUEUE 232. A brief that carried
+    its picture writes `receipt: sent-with-photo` rather than `receipt: sent`,
+    and reading only the first would have dropped the denominator of the
+    acceptance to zero on the very day the pictures started riding: the streak
+    would have said seven readable taps over nothing sent. So the test is the
+    set below, and `kind: brief` is still what keeps every other captioned
+    message out of this count.
+
     WHAT IT DOES NOT COUNT, NAMED SO THE ZERO IS READABLE: the briefs sent
     before 2026-09-09 out of production/outbox/ as `<date>-<slug>.brief.md`.
     Their receipts exist and they reached him, but they carry no day in the
@@ -613,7 +926,8 @@ def sent_days_from_receipts(records):
             if ":" in line:
                 k, v = line.split(":", 1)
                 fields[k.strip()] = v.strip()
-        if fields.get("receipt") != "sent" or fields.get("kind") != "brief":
+        if (fields.get("receipt") not in SENT_RECEIPTS
+                or fields.get("kind") != "brief"):
             continue
         day = day_of(fields.get("file", ""))
         if day:
@@ -721,13 +1035,24 @@ class _FakeStore:
 
     def __init__(self, state="unsent", detail=""):
         self._state, self._detail = state, detail
-        self.sent_days, self.holds = [], []
+        self.sent_days, self.holds, self.captioned = [], [], []
+        self.notes, self.buttons = [], []
 
     def state(self, _day):
         return self._state, self._detail
 
-    def sent(self, day, chars, mid):
+    def sent(self, day, chars, mid, buttons=None, photo_note=""):
         self.sent_days.append((day, chars, mid))
+        self.notes.append(photo_note)
+        self.buttons.append(buttons)
+        self._state, self._detail = "sent", "messageId=%s" % mid
+        return "production/outbound/%s.receipt.txt" % brief_slot(day)
+
+    def sent_with_photo(self, day, chars, mid, photo_rel, sizes,
+                        buttons=None):
+        self.sent_days.append((day, chars, mid))
+        self.captioned.append((day, photo_rel, outbox.sizes_key(sizes)))
+        self.buttons.append(buttons)
         self._state, self._detail = "sent", "messageId=%s" % mid
         return "production/outbound/%s.receipt.txt" % brief_slot(day)
 
@@ -745,17 +1070,20 @@ def _tap_records(rows):
     return out
 
 
-def _receipts(days, kind="brief"):
+def _receipts(days, kind="brief", receipt="sent"):
+    """{path: content} for sent-brief receipts. `receipt` is one of
+    SENT_RECEIPTS, because both shapes mean the day's brief reached him."""
     out = {}
     for i, day in enumerate(days):
         out["production/outbound/%s.receipt.txt" % brief_slot(day)] = (
-            "receipt: sent\nfile: %s\nkind: %s\nsentEpoch: %d\n"
-            "messageId: %d\n" % (brief_rel(day), kind, 1757000000 + i, 40 + i))
+            "receipt: %s\nfile: %s\nkind: %s\nsentEpoch: %d\n"
+            "messageId: %d\n" % (receipt, brief_rel(day), kind,
+                                 1757000000 + i, 40 + i))
     return out
 
 
 def _selftest():
-    passed, failed, bad = 0, 0, []
+    passed, failed, bad, skipped = 0, 0, [], []
 
     def check(name, cond, detail=""):
         nonlocal passed, failed
@@ -799,6 +1127,94 @@ def _selftest():
           and "briefRefused=0/1" in brief_done_line(r1)
           and " " not in brief_done_line(r1).split("briefDay=")[1].split()[0],
           brief_done_line(r1))
+    # ---- ACCEPTING: THE PICTURE AND THE PAIR IN ONE MESSAGE, QUEUE 232 ----
+    # THE WHOLE POINT OF THE QUEUE ITEM, AND IT IS THE FIRST PICTURE ROW:
+    # one send, the image inside it, the readable/unreadable pair on it.
+    shot = {"sidecar": brief_photo_ref_rel("2026-09-10"), "kind": "photo",
+            "ref": "game-design/sim-shots/brief_2026-09-10.jpg",
+            "full": "/nowhere/brief_2026-09-10.jpg", "bytes": 750203,
+            "why": ""}
+    pwire, twire, pstore = [], [], _FakeStore()
+    rp = send_brief(
+        "2026-09-10", body,
+        lambda t, k: twire.append((t, k)) or {"message_id": 404}, pstore,
+        check=lambda _rel: (True, "", ""),
+        photo=shot,
+        photo_sender=lambda p, c, k: (
+            pwire.append((p, c, k))
+            or {"message_id": 601, "photo": [{"width": 90, "height": 51},
+                                             {"width": 1280, "height": 720}]}))
+    check("accept/the-picture-and-the-two-buttons-leave-in-ONE-message",
+          len(pwire) == 1 and not twire
+          and pwire[0][0] == shot["full"]
+          and pwire[0][1] == body.strip()
+          and [b[0]["text"] for b in pwire[0][2]["inline_keyboard"]]
+          == ["Readable", "Unreadable"]
+          and rp["messageId"] == 601, (len(pwire), len(twire), rp))
+    check("accept/the-platform-descriptor-is-what-proves-it-arrived-as-one",
+          rp["photoArrived"] is True
+          and rp["photoSizes"] == "90x51/1280x720"
+          and rp["photoState"] == "carried", rp)
+    check("accept/the-done-line-counts-the-picture-beside-its-denominator",
+          "briefPhotoCarried=1/1" in brief_done_line(rp)
+          and "briefPhoto=carried" in brief_done_line(rp)
+          and "briefButtons=2" in brief_done_line(rp)
+          and all(" " not in v for v in brief_done_line(rp).split()[1:]),
+          brief_done_line(rp))
+    check("accept/the-receipt-written-is-the-one-that-names-both-halves",
+          pstore.captioned == [("2026-09-10", shot["ref"],
+                                "90x51/1280x720")]
+          and pstore.buttons == [2] and not pstore.notes, pstore.captioned)
+    # AND THE RECORD ITSELF, BECAUSE THE ACCEPTANCE IS A RECEIPT NAMING BOTH.
+    rec_both = outbox.render_captioned_receipt(
+        brief_rel("2026-09-10"), "brief", shot["ref"], 1757500000, 601,
+        len(body.strip()), [{"width": 90, "height": 51},
+                            {"width": 1280, "height": 720}],
+        "c" * 40, 1757499900, 100, "", 2)
+    check("accept/that-record-names-the-image-and-the-pair-on-one-record",
+          "receipt: sent-with-photo" in rec_both
+          and "photoSizes: 90x51/1280x720" in rec_both
+          and "photoSizeCount: 2" in rec_both
+          and "buttons: 2/2" in rec_both
+          and ("photoRef: %s" % shot["ref"]) in rec_both
+          and "kind: brief" in rec_both, rec_both.replace("\n", " "))
+    # AND THE BUTTONS ON THE PICTURE ARE THE SAME PAIR, not a copy of them.
+    # THE EMPTY CASE IS READ OFF A LOCAL AND NOT INDEXED IN THE ROW: with the
+    # picture wiring broken `pwire` is empty, and an IndexError here ended the
+    # whole suite on a traceback at exit 1 instead of its own count at exit 3.
+    # Caught by planting that regression rather than by reading the code.
+    pmark = pwire[0][2] if pwire else {"inline_keyboard": []}
+    prows = [r[0].get("callback_data") for r in pmark["inline_keyboard"]]
+    check("accept/the-pair-on-the-picture-parses-back-to-its-day",
+          len(prows) == 2
+          and parse_callback(prows[0]) == ("2026-09-10", READABLE, "")
+          and parse_callback(prows[1]) == ("2026-09-10", UNREADABLE, ""),
+          str(prows))
+    # AND A CAPTIONED BRIEF RECEIPT STILL COUNTS AS A BRIEF THAT WAS SENT,
+    # which is the denominator the acceptance is read over.
+    check("accept/a-captioned-brief-receipt-counts-in-the-sent-denominator",
+          sorted(sent_days_from_receipts(_receipts(["2026-09-10"],
+                                                   receipt="sent-with-photo")))
+          == ["2026-09-10"],
+          sorted(sent_days_from_receipts(
+              _receipts(["2026-09-10"], receipt="sent-with-photo"))))
+    # AND THE LIVE PROJECT IS THE ACCEPTING FIXTURE FOR THE SIDECAR ITSELF.
+    live_day = today()
+    live = resolve_photo(outbox.REPO, live_day)
+    if live.get("ref"):
+        check("accept/live/%s-names-a-picture-that-is-on-this-disk" % live_day,
+              live["why"] == "" and live["kind"] == "photo"
+              and (live["bytes"] or 0) > 0
+              and photo_plan(body, live, lambda p, c, k: None)["carry"] is True,
+              live)
+    else:
+        # NOT A PASS AND NOT A FAILURE: no sidecar for today is a real state,
+        # and it prints its denominator rather than reading as clean.
+        skipped.append("accept/live/%s-names-a-picture" % live_day)
+        print("  NOT MEASURED accept/live/%s-names-a-picture: %s"
+              % (live_day, live.get("why") or "no sidecar for today on this "
+                 "disk, so the live accepting fixture was not available"))
+
     # THE TAP ROUND TRIP, still accepting.
     data = wire[0][1]["inline_keyboard"][0][0]["callback_data"]
     day, verdict, why = parse_callback(data)
@@ -890,6 +1306,120 @@ def _selftest():
           in render_reason("2026-09-10", "x" * (REASON_CAP + 20), 1, 2),
           render_reason("2026-09-10", "x" * (REASON_CAP + 20), 1, 2)[-60:])
 
+    # ---- THE PICTURE IS MISSING, AND THE MESSAGE STILL GOES (queue 232) ---
+    # NOT A REFUSAL SECTION: every row here is a picture that could not ride
+    # and a brief that went anyway, with its two buttons, down the text wire.
+    # The opposite direction is outbox.sweep's and is wrong here, because the
+    # buttons are the only measure of this channel.
+    def _degraded(day, photo, with_sender=True, text=body):
+        tw, pw, st = [], [], _FakeStore()
+        ps = None
+        if with_sender:
+            ps = (lambda p, c, k: pw.append((p, c, k))
+                  or {"message_id": 700, "photo": [{"width": 9, "height": 9}]})
+        r = send_brief(day, text,
+                       lambda t, k: tw.append((t, k)) or {"message_id": 701},
+                       st, check=lambda _rel: (True, "", ""), photo=photo,
+                       photo_sender=ps)
+        return r, tw, pw, st
+
+    def _went_with_buttons(r, tw, pw, st, state, text=body):
+        """One predicate for all six drops: the words went whole, the pair went
+        with them, no picture went, and the drop is named in the done line and
+        in the receipt's own note."""
+        return (len(tw) == 1 and not pw
+                and tw[0][0] == text.strip()
+                and [b[0]["text"] for b in tw[0][1]["inline_keyboard"]]
+                == ["Readable", "Unreadable"]
+                and r["sent"] == brief_rel(r["day"])
+                and r["photoArrived"] is False
+                and r["photoState"] == state
+                and "briefPhotoCarried=0/1" in brief_done_line(r)
+                and ("briefPhoto=%s" % state) in brief_done_line(r)
+                and st.buttons == [2]
+                and st.notes and state in st.notes[0]
+                and not st.captioned)
+
+    none_named = {"sidecar": brief_photo_ref_rel("2026-09-14"), "kind": None,
+                  "ref": None, "full": None, "bytes": None, "why": ""}
+    r_n, tw_n, pw_n, st_n = _degraded("2026-09-14", none_named)
+    check("drop/no-sidecar-at-all-still-sends-the-words-and-the-two-buttons",
+          _went_with_buttons(r_n, tw_n, pw_n, st_n, "none-named")
+          and none_named["sidecar"] in st_n.notes[0],
+          (brief_done_line(r_n), st_n.notes))
+    broken_side = dict(none_named, why="%s exists but no key: value line in "
+                                       "the record" % none_named["sidecar"])
+    r_b, tw_b, pw_b, st_b = _degraded("2026-09-14", broken_side)
+    check("drop/a-sidecar-that-does-not-parse-drops-the-picture-not-the-brief",
+          _went_with_buttons(r_b, tw_b, pw_b, st_b, "sidecar-unreadable"),
+          brief_done_line(r_b))
+    gone = {"sidecar": brief_photo_ref_rel("2026-09-15"), "kind": "photo",
+            "ref": "game-design/sim-shots/nope.jpg", "full": "/nowhere/nope.jpg",
+            "bytes": None,
+            "why": "the photo file is not on this disk: /nowhere/nope.jpg"}
+    r_g, tw_g, pw_g, st_g = _degraded("2026-09-15", gone)
+    check("drop/a-named-picture-that-is-not-on-the-disk-is-named-in-the-note",
+          _went_with_buttons(r_g, tw_g, pw_g, st_g, "file-unusable")
+          and "not on this disk" in st_g.notes[0], st_g.notes)
+    clip = {"sidecar": brief_photo_ref_rel("2026-09-16"), "kind": "clip",
+            "ref": "production/d1-probe/ue-crime.gif", "full": None,
+            "bytes": None,
+            "why": "%s names a clip and this sender carries a picture; a clip "
+                   "on the daily message is not wired up"
+                   % brief_photo_ref_rel("2026-09-16")}
+    r_c, tw_c, pw_c, st_c = _degraded("2026-09-16", clip)
+    check("drop/a-sidecar-naming-a-clip-is-not-guessed-at-as-a-picture",
+          _went_with_buttons(r_c, tw_c, pw_c, st_c, "not-a-picture"),
+          brief_done_line(r_c))
+    r_w, tw_w, pw_w, st_w = _degraded("2026-09-17", dict(shot), False)
+    check("drop/a-pass-with-no-photo-sender-wired-says-so-and-still-sends",
+          _went_with_buttons(r_w, tw_w, pw_w, st_w, "no-sender-wired"),
+          brief_done_line(r_w))
+    # HIS WORDS BEAT THE PICTURE WHEN BOTH CANNOT FIT, AND THE CUT IS NAMED.
+    long_body = "HEADLINE: " + ("rain on the wet street again. "
+                                * 40) + "\n"
+    r_o, tw_o, pw_o, st_o = _degraded("2026-09-18", dict(shot),
+                                      text=long_body)
+    check("drop/words-over-the-caption-cap-go-whole-and-the-picture-gives-way",
+          _went_with_buttons(r_o, tw_o, pw_o, st_o, "caption-over-cap",
+                             long_body)
+          and r_o["photoOverBy"] == len(long_body.strip()) - outbox.CAPTION_CAP
+          and r_o["photoOverBy"] > 0
+          and ("briefPhotoCapOverBy=%d" % r_o["photoOverBy"])
+          in brief_done_line(r_o)
+          and r_o["chars"] == len(long_body.strip()),
+          (r_o["photoOverBy"], brief_done_line(r_o)))
+    # A PASS THAT NEVER LOOKED SAYS NOTHING MEASURED, NEVER A CLEAN ZERO.
+    r_u, tw_u, pw_u, st_u = _degraded("2026-09-19", None)
+    check("drop/a-pass-given-no-picture-prints-nothing-measured",
+          _went_with_buttons(r_u, tw_u, pw_u, st_u, "nothing-measured")
+          and "briefPhoto=nothing-measured" in brief_done_line(r_u),
+          brief_done_line(r_u))
+    # AND A SEND THE PLATFORM WOULD NOT CALL A PHOTO IS NOT CLAIMED AS ONE.
+    tw_d, pw_d, st_d = [], [], _FakeStore()
+    r_d = send_brief("2026-09-20", body,
+                     lambda t, k: tw_d.append((t, k)) or {"message_id": 801},
+                     st_d, check=lambda _rel: (True, "", ""), photo=dict(shot),
+                     photo_sender=lambda p, c, k: (
+                         pw_d.append((p, c, k)) or {"message_id": 802}))
+    check("drop/a-document-not-a-photo-is-recorded-as-a-send-with-no-picture",
+          len(pw_d) == 1 and not tw_d and r_d["messageId"] == 802
+          and r_d["photoArrived"] is False
+          and r_d["photoState"] == "sent-but-no-descriptor"
+          and not st_d.captioned and st_d.notes
+          and "sent-but-no-descriptor" in st_d.notes[0]
+          and "briefPhotoCarried=0/1" in brief_done_line(r_d),
+          brief_done_line(r_d))
+    # THE REJECTING FIXTURE FOR THE SIDECAR READER IS A DAY THAT EXISTS
+    # NOWHERE, so doing the work this tool asks for can never break it.
+    nothing_there = resolve_photo(outbox.REPO, "1999-01-01")
+    check("reject/live/a-day-with-no-brief-and-no-sidecar-names-no-picture",
+          nothing_there["ref"] is None and nothing_there["why"] == ""
+          and nothing_there["sidecar"]
+          == "production/briefs/1999-01-01.photo.txt"
+          and photo_plan(body, nothing_there, lambda p, c, k: None)["state"]
+          == "none-named", nothing_there)
+
     # ---- REJECTING: the send path refuses rather than guessing -----------
     empty_store = _FakeStore()
     r_empty = send_brief("2026-09-11", "   ", lambda t, k: {"message_id": 1},
@@ -942,9 +1472,15 @@ def _selftest():
           len(taps_bad["unreadableRecords"]) == 1
           and taps_bad["records"] == 1, taps_bad["unreadableRecords"])
 
-    print("brief selftest: %d passed, %d failed, %d checks run%s"
-          % (passed, failed, passed + failed,
-             "" if not bad else " FAILED: " + ", ".join(bad[:4])))
+    # EVERY ZERO BESIDE ITS DENOMINATOR, INCLUDING THE ONE THAT DID NOT RUN.
+    # `notMeasured` is the live-fixture row the disk could not offer; a run
+    # that printed "0 failed" without it would read the same whether it
+    # checked the project or checked nothing.
+    print("brief selftest: %d passed, %d failed, %d checks run, "
+          "notMeasured=%d%s%s"
+          % (passed, failed, passed + failed, len(skipped),
+             "" if not bad else " FAILED: " + ", ".join(bad[:4]),
+             "" if not skipped else " NOT MEASURED: " + ", ".join(skipped[:4])))
     return 0 if not failed else 3
 
 

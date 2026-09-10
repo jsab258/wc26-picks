@@ -273,17 +273,28 @@ def multipart(fields, files, boundary=None):
     return ("multipart/form-data; boundary=%s" % boundary, b"".join(out))
 
 
-def send_photo(token, chat_id, path, caption, timeout=180):
-    """One picture, AS A PICTURE. Returns the platform's result payload.
+def send_photo(token, chat_id, path, caption, timeout=180, markup=None):
+    """One picture, AS A PICTURE, optionally WITH BUTTONS ON IT. The payload.
 
     `sendPhoto` rather than `sendDocument` on purpose: a document arrives as a
     file to tap, and the deliverable is the photo in the chat. The proof of
     which one happened is the `photo` array in the answer, which the receipt
     carries; this function does not judge it, it returns it.
+
+    `markup` IS WHAT MAKES QUEUE 232 ONE MESSAGE AND NOT TWO. `sendPhoto`
+    takes the same `reply_markup` field `sendMessage` does, so the daily
+    brief's readable/unreadable pair rides the picture it is about rather
+    than a second message underneath it. It is the SAME keyboard object
+    `send` takes and the same JSON encoding, because two encoders for one
+    field is how a button arrives unparseable on one path only. Default None,
+    so every caller that predates this sends exactly what it sent before.
     """
     with open(path, "rb") as fh:
         blob = fh.read()
-    ctype, body = multipart({"chat_id": str(chat_id), "caption": caption},
+    fields = {"chat_id": str(chat_id), "caption": caption}
+    if markup is not None:
+        fields["reply_markup"] = json.dumps(markup)
+    ctype, body = multipart(fields,
                             {"photo": (os.path.basename(path), blob,
                                        "image/jpeg")})
     return _post(token, "sendPhoto", body, {"Content-Type": ctype}, timeout)
@@ -1591,7 +1602,12 @@ def brief_pass(creds, repo=None, say=None, day=None):
         return {"day": day, "rel": rel, "sent": None, "already": None,
                 "refused": None, "clause": "", "messageId": None,
                 "records": [], "checked": False, "buttons": 0, "chars": 0,
-                "missing": True}
+                "missing": True,
+                # NOTHING MEASURED ABOUT A PICTURE EITHER, said in the words
+                # rather than left to a default: no brief means nobody looked.
+                "photoState": "nothing-measured", "photoRef": None,
+                "photoSizes": "", "photoArrived": False, "photoWhy": "",
+                "photoOverBy": 0}
 
     def sender(body, keyboard):
         try:
@@ -1599,11 +1615,35 @@ def brief_pass(creds, repo=None, say=None, day=None):
         except ApiError as e:
             raise outbox.SendFailed(str(e))
 
+    def photo_sender(path, caption, keyboard):
+        """THE PICTURE AND THE PAIR IN ONE CALL, queue 232.
+
+        `sendPhoto` with a `reply_markup`, which is the whole mechanism: no
+        second message, no album, no link. A wire failure here is NOT retried
+        as plain text in the same pass, deliberately: the upload may have
+        reached him, and a second send of the one message a day is itself a
+        channel failure. It stays unsent and the next pass tries again, which
+        is the rule a Producer message already follows.
+        """
+        try:
+            return send_photo(creds.token, str(creds.chat_id), path, caption,
+                              markup=keyboard)
+        except ApiError as e:
+            raise outbox.SendFailed(str(e))
+        except OSError as e:
+            raise outbox.SendFailed("could not read the picture (%s)"
+                                    % type(e).__name__)
+
     def check(rel_to_check):
         return outbox.run_check(repo, "brief", rel_to_check)
 
+    # WHAT THE DAY ASKS TO CARRY, read off the disk here because here is the
+    # sending side; every decision about it is `brief.photo_plan`'s, where the
+    # tests run. A day naming nothing is the ordinary case and not an error.
+    photo = brief.resolve_photo(repo, day)
     res = brief.send_brief(day, text, sender, brief.BriefReceipts(repo),
-                           check=check, say=say)
+                           check=check, say=say, photo=photo,
+                           photo_sender=photo_sender)
     say(brief.brief_done_line(res))
     if res["records"]:
         push = inbox.push_pending(repo, say)
@@ -2212,6 +2252,39 @@ def _selftest_cases(ok, bad, state):
           posted.get("method") == "sendVideo" and posted.get("size", 0) > 8,
           posted)
 
+    # AND THE PHOTO WIRE CAN CARRY BUTTONS, QUEUE 232. The body is read back
+    # byte for byte rather than trusted to look right: `reply_markup` in a
+    # multipart field is the whole of what makes the daily brief ONE message
+    # with its picture and its pair, and a kwarg that silently went nowhere
+    # would leave the picture arriving with no buttons on it.
+    shot_posts = []
+    tmpshot = os.path.join(home, "one.jpg")
+    with open(tmpshot, "wb") as fh:
+        fh.write(b"\xff\xd8\xff\xe0 bytes")
+    try:
+        globals()["_post"] = lambda tok, method, body, hdr, to: (
+            shot_posts.append((method, body))
+            or {"message_id": 4, "photo": [{"width": 1, "height": 1}]})
+        real_photo(_Creds.token, _Creds.chat_id, tmpshot, "one caption",
+                   markup=brief.keyboard("2026-09-10"))
+        real_photo(_Creds.token, _Creds.chat_id, tmpshot, "one caption")
+    finally:
+        globals()["_post"] = real_post
+    # THE PAIRED READING: the same wire called with the keyboard and without
+    # it, both bodies read back, so "it carries buttons" cannot be satisfied
+    # by a field that was always there or by one that is never there.
+    with_markup = shot_posts[0][1] if len(shot_posts) == 2 else b""
+    without_markup = shot_posts[1][1] if len(shot_posts) == 2 else b""
+    check("accept/queue232-the-photo-wire-posts-the-keyboard-with-the-bytes",
+          len(shot_posts) == 2
+          and [m for m, _b in shot_posts] == ["sendPhoto", "sendPhoto"]
+          and b"name=\"reply_markup\"" in with_markup
+          and b"b|2026-09-10|R" in with_markup
+          and b"b|2026-09-10|U" in with_markup
+          and b"name=\"photo\"" in with_markup
+          and b"name=\"reply_markup\"" not in without_markup,
+          str((len(shot_posts), len(with_markup), len(without_markup))))
+
     # AND A GIF TAKES THE OTHER METHOD. Both arms are asserted because a
     # router with one arm tested is a router nobody has tested: a GIF handed
     # to sendVideo is delivered as a file to tap, not a clip that plays,
@@ -2680,6 +2753,111 @@ def _selftest_cases(ok, bad, state):
     check("reject/a-day-with-no-brief-is-nothing-measured-not-a-send",
           missing.get("missing") is True and missing["sent"] is None
           and len(wired) == 1, brief.brief_done_line(missing))
+
+    # ---- THE SAME PASS CARRYING ITS PICTURE, QUEUE 232 -------------------
+    # THE WIRING ROW FOR THE HALF THAT WAS MISSING. `brief.py --selftest`
+    # proves the decision, the counts and the strings; this proves that
+    # `brief_pass` finds the day's sidecar on disk, reaches `sendPhoto` AND
+    # NOT `sendMessage`, puts the same two buttons on that one call, and
+    # writes the receipt that names both halves. Two days: one whose picture
+    # is there, one whose picture is named and absent, because the second is
+    # the case that must still send the message with its buttons.
+    pday, gday = "2026-09-12", "2026-09-13"
+    shot_rel = "game-design/sim-shots/brief_%s.jpg" % pday
+    shot_full = os.path.join(b9.repo, *shot_rel.split("/"))
+    os.makedirs(os.path.dirname(shot_full), exist_ok=True)
+    with open(shot_full, "wb") as fh:
+        fh.write(b"\xff\xd8\xff\xe0 not a real jpeg, only bytes with a size")
+    for d, ref in ((pday, shot_rel),
+                   (gday, "game-design/sim-shots/brief_never_rendered.jpg")):
+        with open(os.path.join(b9.repo, *brief.brief_rel(d).split("/")), "w",
+                  encoding="utf-8", newline="\n") as fh:
+            fh.write(brief_body)
+        with open(os.path.join(b9.repo,
+                               *brief.brief_photo_ref_rel(d).split("/")), "w",
+                  encoding="utf-8", newline="\n") as fh:
+            fh.write("photo: %s\n" % ref)
+    shots, texts = [], []
+    real_send4, real_photo4 = send, send_photo
+    real_push4, real_check4 = inbox.push_pending, outbox.run_check
+    try:
+        globals()["send"] = lambda token, chat, text, markup=None: (
+            texts.append((text, markup)) or {"message_id": 950})
+        globals()["send_photo"] = lambda token, chat, path, caption, **k: (
+            shots.append((path, caption, k.get("markup")))
+            or {"message_id": 960, "photo": [{"width": 90, "height": 51},
+                                             {"width": 1280, "height": 720}]})
+        inbox.push_pending = lambda repo, say=None, **k: {
+            "ok": True, "pushed": [], "pending": [], "commit": "e" * 40,
+            "replaced": False, "detail": "stubbed", "plain": ""}
+        outbox.run_check = lambda repo, kind, rel, timeout=120: (True, "",
+                                                                "stubbed")
+        carried = brief_pass(creds, b9.repo, lambda _s: None, pday)
+        dropped = brief_pass(creds, b9.repo, lambda _s: None, gday)
+    finally:
+        globals()["send"], globals()["send_photo"] = real_send4, real_photo4
+        inbox.push_pending, outbox.run_check = real_push4, real_check4
+
+    # ONE CALL PER DAY AND THE DAY IS IN THE BUTTONS, which is what tells the
+    # two passes apart here: both days carry the same body, so the day inside
+    # `callback_data` is the only thing that says which wire each went down.
+    # The carried day must appear on the PHOTO call and nowhere else.
+    shot_days = [str((s[2] or {}).get("inline_keyboard")) for s in shots]
+    text_days = [str((t[1] or {}).get("inline_keyboard")) for t in texts]
+    check("accept/the-brief-pass-reaches-sendPhoto-with-the-two-buttons-on-it",
+          len(shots) == 1
+          and shots[0][0] == shot_full
+          and shots[0][1] == brief_body.strip()
+          and [b[0]["text"] for b in
+               (shots[0][2] or {}).get("inline_keyboard", [])]
+          == ["Readable", "Unreadable"]
+          and ("b|%s|R" % pday) in shot_days[0]
+          and not any(("b|%s|" % pday) in t for t in text_days)
+          and carried["messageId"] == 960
+          and carried["photoArrived"] is True,
+          str((len(shots), len(texts), shot_days, text_days)))
+    carried_rec = open(os.path.join(
+        b9.repo, *outbox.receipt_rel(brief.brief_slot(pday)).split("/")),
+        encoding="utf-8").read()
+    check("accept/and-that-receipt-on-disk-names-the-image-and-the-pair",
+          "receipt: sent-with-photo" in carried_rec
+          and ("photoRef: %s" % shot_rel) in carried_rec
+          and "photoSizes: 90x51/1280x720" in carried_rec
+          and "buttons: 2/2" in carried_rec
+          and "kind: brief" in carried_rec,
+          carried_rec.replace("\n", " "))
+    check("drop/a-named-picture-that-is-absent-still-sends-with-its-buttons",
+          len(shots) == 1 and len(texts) == 1
+          and ("b|%s|R" % gday) in text_days[0]
+          and texts[0][0] == brief_body.strip()
+          and [b[0]["text"] for b in texts[0][1]["inline_keyboard"]]
+          == ["Readable", "Unreadable"]
+          and dropped["sent"] == brief.brief_rel(gday)
+          and dropped["photoState"] == "file-unusable"
+          and "briefPhotoCarried=0/1" in brief.brief_done_line(dropped),
+          brief.brief_done_line(dropped))
+    dropped_rec = open(os.path.join(
+        b9.repo, *outbox.receipt_rel(brief.brief_slot(gday)).split("/")),
+        encoding="utf-8").read()
+    check("drop/and-its-receipt-says-in-words-why-no-picture-rode",
+          "receipt: sent\n" in dropped_rec and "buttons: 2/2" in dropped_rec
+          and "photoNote: the picture did not ride" in dropped_rec
+          and "file-unusable" in dropped_rec
+          and "photoSizes" not in dropped_rec,
+          dropped_rec.replace("\n", " "))
+    # AND BOTH DAYS COUNT IN THE DENOMINATOR THE ACCEPTANCE IS READ OVER.
+    outbound_now = {}
+    for n in sorted(os.listdir(os.path.join(b9.repo,
+                                            *outbox.OUTBOUND_DIR.split("/")))):
+        if n.startswith("brief-") and n.endswith(".receipt.txt"):
+            outbound_now["%s/%s" % (outbox.OUTBOUND_DIR, n)] = open(
+                os.path.join(b9.repo, *outbox.OUTBOUND_DIR.split("/"), n),
+                encoding="utf-8").read()
+    check("accept/a-captioned-brief-and-a-plain-one-both-count-as-sent",
+          sorted(brief.sent_days_from_receipts(outbound_now))
+          == [day, pday, gday] and len(outbound_now) == 3,
+          sorted(brief.sent_days_from_receipts(outbound_now)))
+
     # AND THE CALLBACK THAT COMES BACK FROM THOSE BUTTONS IS A RECORD.
     tap_data = wired[0][1]["inline_keyboard"][1][0]["callback_data"]
     bT = Captured()

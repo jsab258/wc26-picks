@@ -3448,3 +3448,25 @@ recapture was keyed on the CONDITION id, so two shots naming one condition in a
 row shared a capture and the second was shot against a cubemap a whole shot old.
 Run 38's list happens to name no condition twice in a row, so it is latent rather
 than that run's fault, and it is keyed on the pass now.
+
+--------------------------------------------------------------------------------
+2026-09-10, THE BUDGET WAS A PERCENTAGE AND THE RESIDENT COUNTED ITS OWN CALLS.
+
+Two turns ended on a ceiling that did not exist. production/budget.md's rows
+carry two PERCENTAGE meters, printed in their own cells as 6% and 8%, 16% and
+17%, 25% and 24%, and the ceiling sentence beside them reads "THE CEILING IS 75
+ON THE GOVERNING METER". Seventy-five per cent, on the higher of the two, read
+by Jafar off a screen no container can see. The resident read 75 as a COUNT and
+read his "Readings: total 45, Fable 41" as a tally of its own tool calls.
+
+IT IS A UNIT ERROR, NOT AN ARITHMETIC ONE, which is why nothing caught it: a
+session counting calls and a session reading a meter both landed in the thirties
+and forties on the same afternoon, so the two never disagreed out loud. Same
+class as reading a peak as a median, or a difference as a ratio: the value was
+plausible and what it was a measure OF was wrong.
+
+THE COST was two turns ended with 27 points of real budget left and the queue
+full, after Jafar had ruled twice that a turn ends only at the ceiling, a limit
+or a genuine blocker, and that neither lane ends a turn with work in it.
+
+Full record and the standing rule in production/budget.md.

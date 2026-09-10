@@ -625,3 +625,19 @@ Per rule 13 the resident works these while budget and ceiling remain and arms
 the resume rather than stopping on a landed batch.
 
 <!--RULING spawn=2026-09-09T21:28:40Z-->
+
+## CORRECTION 2026-09-10
+
+Amendment 1 of `game-design/decision-2026-09-10-ruling-the-four-lane-batch.md`
+section 2, applied verbatim.
+
+CORRECTION 2026-09-10. The sentence in this record stating that seven
+frames share identical rendering inputs was wrong as written. By applied
+fields alone the largest identical group is NINE, because vign_camA_day and
+vign_camB_day also carry overcast_day: their applied fields match and their
+pictures do not. Camera id is a rendering input. The null-spread fingerprint
+now includes the camera id and the test asserts seven of twenty-five, named
+individually. A spread computed over the nine would have reported a CAMERA
+difference as a noise floor, which is the failure mode this record exists to
+prevent. The correction is upheld by the director's ruling of 2026-09-10;
+this record remains the authority for everything else in it.
