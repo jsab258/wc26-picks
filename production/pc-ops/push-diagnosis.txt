@@ -1,4 +1,4 @@
-# LEDGER push diagnosis - 665e530 @1789026139
+# LEDGER push diagnosis - 6e72e9e @1789029498
 # Line 1 names the commit this was read on. READ ONLY: nothing here
 # writes to his checkout, pushes, or prints any credential value.
 diagRepo=C:\Users\Jafar\wc26-picks diagRepoExists=True
@@ -12,17 +12,17 @@ credentialHelper=manager
 pushDryRunExit=0
 pushDryRunSaid=Everything~up-to-date
 receiptsOnDisk=40 newestShown=16/16 (+24 older not shown)
+receipt file=production/briefs/2026-09-09.md messageId=56 sent=2026-09-09T10:55:44+00:00
 receipt file=production/briefs/2026-09-10.md messageId=63 sent=2026-09-10T04:44:37+00:00
-receipt file=production/outbound/2026-09-09T183320Z-reply-62.receipt.txt messageId=62 sent=2026-09-09T18:33:20+00:00
 receipt file=production/outbound/2026-09-09T183320Z-reply-61.receipt.txt messageId=61 sent=2026-09-09T18:33:20+00:00
+receipt file=production/outbound/2026-09-09T183320Z-reply-62.receipt.txt messageId=62 sent=2026-09-09T18:33:20+00:00
 receipt file=? messageId=52 sent=2026-09-09T08:54:05+00:00
 receipt file=? messageId=50 sent=2026-09-09T08:54:05+00:00
 receipt file=? messageId=49 sent=2026-09-09T08:54:05+00:00
-receipt file=? messageId=54 sent=2026-09-09T08:54:06+00:00
 receipt file=? messageId=55 sent=2026-09-09T08:54:06+00:00
-receipt file=? messageId=51 sent=2026-09-09T08:54:05+00:00
+receipt file=? messageId=54 sent=2026-09-09T08:54:06+00:00
 receipt file=? messageId=53 sent=2026-09-09T08:54:05+00:00
-receipt file=production/briefs/2026-09-09.md messageId=56 sent=2026-09-09T10:55:44+00:00
+receipt file=? messageId=51 sent=2026-09-09T08:54:05+00:00
 receipt file=production/outbound/2026-09-09T123408Z-reply-60.receipt.txt messageId=60 sent=2026-09-09T12:34:08+00:00
 receipt file=production/outbound/2026-09-09T123310Z-reply-58.receipt.txt messageId=58 sent=2026-09-09T12:33:10+00:00
 receipt file=production/outbound/2026-09-09T123310Z-reply-57.receipt.txt messageId=57 sent=2026-09-09T12:33:10+00:00
