@@ -1,0 +1,15 @@
+LEDGER imagegen - progress
+==========================================================
+batch     fairview-sheet-2026-09-10
+status    DONE
+updated   2026-09-10 10:03:30 local
+elapsed   12 min
+done      4 written, 0 already there, 0 failed, of 4 in the batch
+still to do  0
+
+  [made]    fairview_sheet             688x1024  189s
+  [made]    fairview_sheet_s2          688x1024  187s
+  [made]    fairview_sheet_short       688x1024  171s
+  [made]    fairview_sheet_short_s2    688x1024  171s
+
+Every image is review=pending until a human has looked at it.

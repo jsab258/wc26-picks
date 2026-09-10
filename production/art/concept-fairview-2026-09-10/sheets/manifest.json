@@ -1,0 +1,275 @@
+{
+  "batch": "fairview-sheet-2026-09-10",
+  "written": "2026-09-10T10:03:30",
+  "status": "DONE",
+  "run": {
+    "sha": "e80f9ad",
+    "started": "2026-09-10T09:51:29",
+    "what": "the commit this batch was generated on; 'local' means it was run by hand rather than by CI"
+  },
+  "generator": {
+    "tool": "stable-diffusion.cpp",
+    "tool_licence": "MIT",
+    "tool_release": "master-827-97d2990",
+    "backend": "vulkan",
+    "exe": "C:\\Users\\Jafar\\ledger-imagegen\\runtime-vulkan\\sd-cli.exe"
+  },
+  "model": {
+    "name": "Z-Image-Turbo",
+    "upstream": "Tongyi-MAI/Z-Image-Turbo",
+    "licence": "Apache-2.0",
+    "licence_note": "Apache-2.0 model weights; outputs unrestricted. No account, no terms to accept, no purchase.",
+    "params": "6B DiT + Qwen3-4B text encoder",
+    "steps": 8,
+    "cfg": 1.0,
+    "quant": "Q4_K",
+    "file": "z_image_turbo-Q4_K.gguf"
+  },
+  "text_encoder": {
+    "file": "Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+    "licence": "Apache-2.0 (Qwen3, Alibaba)"
+  },
+  "vae": {
+    "file": "ae.safetensors",
+    "licence": "Apache-2.0 (Z-Image / FLUX.1 autoencoder)"
+  },
+  "machine_plan": {
+    "vendor": "amd",
+    "vram_gb": 9.98,
+    "vram_known": true,
+    "backend": "vulkan",
+    "quant": "Q4_K",
+    "flags": [
+      "--offload-to-cpu",
+      "--diffusion-fa"
+    ]
+  },
+  "content_rules": "invented fictional shop name only, no real company names, no real brand logos, no trade marks, no real person, no recognisable faces, no celebrity likeness",
+  "rights": "Model weights Apache-2.0; outputs unrestricted by the model licence. No third-party asset was an input. Prompts name only in-world Meridian businesses. NOTHING SHIPS UNREVIEWED: every image below is review=pending until a human has looked for anything resembling a real mark or a real face.",
+  "caps": [
+    "--only: 4 of 4 item(s) selected by name",
+    "--limit: at most 4 picture(s) GENERATED this run; items already on disk that pass the skip check do not count against it",
+    "wall-clock cap 30.0 min"
+  ],
+  "blank_check": {
+    "what": "every written PNG is decoded and its luminance measured; a uniform image is the known Vulkan failure (leejet/stable-diffusion.cpp#1031: blank PNG, exit success)",
+    "bound": "blank when spread <= 2/255 AND stdev <= 1.0, or alpha is 0 everywhere sampled",
+    "checked": 4,
+    "blank": 0,
+    "undecodable": 0,
+    "rechecked": 0,
+    "remade": 0,
+    "remade_blank": 0,
+    "remade_unrecorded": 0,
+    "remade_recipe_changed": 0
+  },
+  "resume": {
+    "what": "recipe = prompt + negative(if it can act) + size + cfg + steps + seed; a match is skipped, a mismatch is made again",
+    "record": "nothing on record; 0 item(s) on record in total",
+    "kept": 0,
+    "prompt_changed": 0,
+    "unrecorded": 0
+  },
+  "negatives": {
+    "what": "--negative-prompt is passed whenever an item has one; it only ACTS when cfg != 1.0, because sd-cli evaluates the unconditional branch only then",
+    "carried": 4,
+    "active": 0,
+    "inert_at_cfg1": 4
+  },
+  "items_in_spec": 4,
+  "items_selected": 4,
+  "selection": {
+    "only": [
+      "fairview_sheet",
+      "fairview_sheet_s2",
+      "fairview_sheet_short",
+      "fairview_sheet_short_s2"
+    ],
+    "limit": 4,
+    "selected": 4,
+    "of": 4,
+    "what": "only = the ids asked for by name; limit = how many pictures this run may GENERATE, which skipped items do not count against"
+  },
+  "items_attempted": 4,
+  "items_written": 4,
+  "items_failed": 0,
+  "items_skipped": 0,
+  "not_attempted": [],
+  "images": [
+    {
+      "id": "fairview_sheet",
+      "kind": "concept",
+      "binds_to": "CONCEPT SHEET - reviewed by eye, bound to no mesh, no material and no bill-of-materials row. Fairview, the second of seven district sheets drawn by this lane, and the first whose prompt was authored from this project's own sources. Jafar 2026-09-10.",
+      "prompt": "one printed sheet filling the frame edge to edge, A concept sheet for FAIRVIEW, the residential hills of Meridian, a fictional British port town, in 1990. Two stacked photoreal panels inside a pale paper border: top an orientation view, bottom the same district at standing eye height. TOP: from the crest road at 40 m, looking south and downhill. Contour-following terraces step down the slope in ranks of dull red clay tile and grow older as they descend: rendered council cottage pairs in groups of four on the high ground, bay-fronted semis with hipped roofs and pebbledash upper storeys on the middle slopes, soot-darkened brick terraces lowest near the work, one short cul-de-sac of small thin-brick 1980s houses on the last plot. Party-wall chimney stacks with clay pots, a television aerial on every stack, one round satellite dish on a gable end. Stone retaining walls and flights of steps between streets. A slate-roofed chapel and a railed school yard mid-slope. Beyond the last roofs and 40 m below, the grey water of the harbour basin, dock cranes in silhouette, a tall brick works chimney further right. Slate-grey overcast sky. BOTTOM: camera at 1.6 m on the steep lower length of Chapel Road, gradient 1 in 9, looking uphill along a terrace of council cottages, chapel gate 60 m up. ONE ROW UNDER TWO MAINTENANCE REGIMES, house by house: the near house, bought from the council, has a new hardwood door with a sunburst glass panel, a brick porch added to the front, white plastic casement windows, stone cladding across the ground floor and a front garden paved over with a mass-market saloon on it; its neighbour, still rented, keeps the council's plain painted door, painted timber windows, a low chain-link fence and a clipped privet hedge. Party walls step up in half-storey jumps as the ground climbs and the end house sits on an underbuild, a cellar at one end and a garage at the other. Kerb and pavement run unbroken uphill, the pavement stepped with a steel handrail. Galvanised steel dustbins with lids against the wall by a side door, a wire crate of glass milk bottles on a doorstep, a concrete coal bunker in the side passage, sheets on a wire washing line in the back yard seen through the passage, a thread of coal smoke from one chimney, a steel lamp column. Flat overcast light after rain, wet tarmac, damp render, soot streaks below the gutters, moss in the kerb joints. Three nonidentifiable people in ordinary British clothes of 1990, one in a black donkey jacket with leather shoulder panels walking uphill. EXACTLY THREE PIECES OF LETTERING IN THE WHOLE SHEET: the title FAIRVIEW, the small subtitle CONCEPT PROPOSAL, and a pressed metal street nameplate on a garden wall reading CHAPEL ROAD in black capitals on white; each crisp and correctly spelled, every other surface plain unlettered render, brick, paint and glass. Two small rows along the bottom of the sheet: an upper row of four flat material swatches, light warm grey pebbledash, dull red clay roof tile, dark green privet, grey-brown coursed retaining stone; below it three objects against the paper border, a wire crate of glass milk bottles, a low timber garden gate, a leather school satchel. Both rows plain and unlabelled. Photoreal throughout, everything period-correct for 1990. A proposal drawn for review., invented fictional shop name only, no real company names, no real brand logos, no trade marks, no real person, no recognisable faces, no celebrity likeness",
+      "negative": "sunshine, bright sunlight, blue sky, hard shadows, golden hour, thatched cottage, village green, leafy suburb, flower beds in bloom, hanging baskets, manicured lawn, tourist postcard, illustration, stylised illustration, cartoon, painterly, digital painting, watercolour, modern car, contemporary car, modern tech, mobile phone, computer screen, flat panel display, wheelie bin, wheeled bin, plastic recycling box, crowd, street festival, bunting, HUD, heads-up display, game interface overlay, screenshot, game screenshot, real brand logo, trade mark, real company name, lettering on doors, shop fascia lettering, captions under the swatches, label text, handwriting, watermark, signature",
+      "negative_active": false,
+      "negative_note": "RECORDED BUT INERT: at cfg 1.0 sd-cli never evaluates the unconditional branch (resolve_guidance sets use_uncond only when img_cfg != txt_cfg), so this negative prompt was not encoded and changed nothing",
+      "seen_on_run": "e80f9ad",
+      "review": "pending",
+      "probe": true,
+      "recipe": "105f74873ffebcd3",
+      "width": 688,
+      "height": 1024,
+      "seed": 20260916,
+      "steps": 8,
+      "cfg": 1.0,
+      "sampler": "sd-cli model-specific default (not overridden)",
+      "flags": [
+        "--offload-to-cpu",
+        "--diffusion-fa"
+      ],
+      "seconds": 188.8,
+      "blank_check": {
+        "verdict": "varied",
+        "why": "luminance spread 254/255, stdev 80.881, 255 distinct levels over 28290 of 704512 pixels",
+        "spread": 254,
+        "stdev": 80.881,
+        "distinct": 255,
+        "sampled": 28290,
+        "pixels": 704512
+      },
+      "status": "OK",
+      "bytes": 1403106,
+      "sha256": "4aeace726c296587f3e031ce7a9429643b1a970a7e54400adb3a2d2d8813d078",
+      "file": "fairview_sheet.png",
+      "made_on_run": "e80f9ad"
+    },
+    {
+      "id": "fairview_sheet_s2",
+      "kind": "concept",
+      "binds_to": "CONCEPT SHEET - reviewed by eye, bound to no mesh, no material and no bill-of-materials row. Fairview, the second of seven district sheets drawn by this lane, and the first whose prompt was authored from this project's own sources. Jafar 2026-09-10.",
+      "prompt": "one printed sheet filling the frame edge to edge, A concept sheet for FAIRVIEW, the residential hills of Meridian, a fictional British port town, in 1990. Two stacked photoreal panels inside a pale paper border: top an orientation view, bottom the same district at standing eye height. TOP: from the crest road at 40 m, looking south and downhill. Contour-following terraces step down the slope in ranks of dull red clay tile and grow older as they descend: rendered council cottage pairs in groups of four on the high ground, bay-fronted semis with hipped roofs and pebbledash upper storeys on the middle slopes, soot-darkened brick terraces lowest near the work, one short cul-de-sac of small thin-brick 1980s houses on the last plot. Party-wall chimney stacks with clay pots, a television aerial on every stack, one round satellite dish on a gable end. Stone retaining walls and flights of steps between streets. A slate-roofed chapel and a railed school yard mid-slope. Beyond the last roofs and 40 m below, the grey water of the harbour basin, dock cranes in silhouette, a tall brick works chimney further right. Slate-grey overcast sky. BOTTOM: camera at 1.6 m on the steep lower length of Chapel Road, gradient 1 in 9, looking uphill along a terrace of council cottages, chapel gate 60 m up. ONE ROW UNDER TWO MAINTENANCE REGIMES, house by house: the near house, bought from the council, has a new hardwood door with a sunburst glass panel, a brick porch added to the front, white plastic casement windows, stone cladding across the ground floor and a front garden paved over with a mass-market saloon on it; its neighbour, still rented, keeps the council's plain painted door, painted timber windows, a low chain-link fence and a clipped privet hedge. Party walls step up in half-storey jumps as the ground climbs and the end house sits on an underbuild, a cellar at one end and a garage at the other. Kerb and pavement run unbroken uphill, the pavement stepped with a steel handrail. Galvanised steel dustbins with lids against the wall by a side door, a wire crate of glass milk bottles on a doorstep, a concrete coal bunker in the side passage, sheets on a wire washing line in the back yard seen through the passage, a thread of coal smoke from one chimney, a steel lamp column. Flat overcast light after rain, wet tarmac, damp render, soot streaks below the gutters, moss in the kerb joints. Three nonidentifiable people in ordinary British clothes of 1990, one in a black donkey jacket with leather shoulder panels walking uphill. EXACTLY THREE PIECES OF LETTERING IN THE WHOLE SHEET: the title FAIRVIEW, the small subtitle CONCEPT PROPOSAL, and a pressed metal street nameplate on a garden wall reading CHAPEL ROAD in black capitals on white; each crisp and correctly spelled, every other surface plain unlettered render, brick, paint and glass. Two small rows along the bottom of the sheet: an upper row of four flat material swatches, light warm grey pebbledash, dull red clay roof tile, dark green privet, grey-brown coursed retaining stone; below it three objects against the paper border, a wire crate of glass milk bottles, a low timber garden gate, a leather school satchel. Both rows plain and unlabelled. Photoreal throughout, everything period-correct for 1990. A proposal drawn for review., invented fictional shop name only, no real company names, no real brand logos, no trade marks, no real person, no recognisable faces, no celebrity likeness",
+      "negative": "sunshine, bright sunlight, blue sky, hard shadows, golden hour, thatched cottage, village green, leafy suburb, flower beds in bloom, hanging baskets, manicured lawn, tourist postcard, illustration, stylised illustration, cartoon, painterly, digital painting, watercolour, modern car, contemporary car, modern tech, mobile phone, computer screen, flat panel display, wheelie bin, wheeled bin, plastic recycling box, crowd, street festival, bunting, HUD, heads-up display, game interface overlay, screenshot, game screenshot, real brand logo, trade mark, real company name, lettering on doors, shop fascia lettering, captions under the swatches, label text, handwriting, watermark, signature",
+      "negative_active": false,
+      "negative_note": "RECORDED BUT INERT: at cfg 1.0 sd-cli never evaluates the unconditional branch (resolve_guidance sets use_uncond only when img_cfg != txt_cfg), so this negative prompt was not encoded and changed nothing",
+      "seen_on_run": "e80f9ad",
+      "review": "pending",
+      "probe": true,
+      "recipe": "00a03280cd4dd38a",
+      "width": 688,
+      "height": 1024,
+      "seed": 20260917,
+      "steps": 8,
+      "cfg": 1.0,
+      "sampler": "sd-cli model-specific default (not overridden)",
+      "flags": [
+        "--offload-to-cpu",
+        "--diffusion-fa"
+      ],
+      "seconds": 187.0,
+      "blank_check": {
+        "verdict": "varied",
+        "why": "luminance spread 254/255, stdev 82.627, 255 distinct levels over 28290 of 704512 pixels",
+        "spread": 254,
+        "stdev": 82.627,
+        "distinct": 255,
+        "sampled": 28290,
+        "pixels": 704512
+      },
+      "status": "OK",
+      "bytes": 1445433,
+      "sha256": "e235917ba0d5dcb1e8b69ecc998ba5ade502b5a32074627b38439283d420830d",
+      "file": "fairview_sheet_s2.png",
+      "made_on_run": "e80f9ad"
+    },
+    {
+      "id": "fairview_sheet_short",
+      "kind": "concept",
+      "binds_to": "CONCEPT SHEET - reviewed by eye, bound to no mesh, no material and no bill-of-materials row. Fairview, the second of seven district sheets drawn by this lane, and the first whose prompt was authored from this project's own sources. Jafar 2026-09-10.",
+      "prompt": "one printed sheet filling the frame edge to edge, A concept sheet for FAIRVIEW, the residential hills of Meridian, a fictional British port town, in 1990. Two stacked photoreal panels inside a pale paper border: top an orientation view, bottom the same district at standing eye height. TOP: from the crest road at 40 m, looking south and downhill. Contour-following terraces step down the slope in ranks of dull red clay tile and grow older as they descend, rendered council cottage pairs high and soot-darkened brick terraces lowest near the work. Chimney stacks with clay pots, a television aerial on every stack, one round satellite dish. Stone retaining walls and flights of steps between streets. A slate-roofed chapel and a railed school yard mid-slope. Beyond the last roofs and 40 m below, the grey harbour basin and dock cranes in silhouette. Slate-grey overcast sky. BOTTOM: camera at 1.6 m on the steep lower length of Chapel Road, gradient 1 in 9, looking uphill along a terrace of council cottages. ONE ROW UNDER TWO MAINTENANCE REGIMES, house by house: the near house, bought from the council, has a new door with a sunburst glass panel, a brick porch, white plastic casement windows, stone cladding across the ground floor and a front garden paved over with a mass-market saloon on it; its neighbour, still rented, keeps the council's plain painted door, painted timber windows and a clipped privet hedge. The pavement steps uphill with a steel handrail. Galvanised steel dustbins with lids by a side door, a wire crate of glass milk bottles on a doorstep, sheets on a wire washing line seen through the passage, a thread of coal smoke from one chimney. Overcast light after rain, wet tarmac, soot streaks below the gutters. Three nonidentifiable people in ordinary 1990 British clothes, one in a black donkey jacket with leather shoulder panels. EXACTLY THREE PIECES OF LETTERING IN THE WHOLE SHEET: the title FAIRVIEW, the small subtitle CONCEPT PROPOSAL, and a street nameplate reading CHAPEL ROAD in black capitals on white; each crisp and correctly spelled, every other surface plain unlettered render, brick and paint. Two small rows along the bottom: four flat material swatches, pebbledash, dull red clay roof tile, dark green privet, grey-brown retaining stone; below them three objects against the paper border, a crate of glass milk bottles, a low timber garden gate, a leather school satchel. Both rows plain and unlabelled. Photoreal throughout, period-correct for 1990., invented fictional shop name only, no real company names, no real brand logos, no trade marks, no real person, no recognisable faces, no celebrity likeness",
+      "negative": "sunshine, bright sunlight, blue sky, hard shadows, golden hour, thatched cottage, village green, leafy suburb, flower beds in bloom, hanging baskets, manicured lawn, tourist postcard, illustration, stylised illustration, cartoon, painterly, digital painting, watercolour, modern car, contemporary car, modern tech, mobile phone, computer screen, flat panel display, wheelie bin, wheeled bin, plastic recycling box, crowd, street festival, bunting, HUD, heads-up display, game interface overlay, screenshot, game screenshot, real brand logo, trade mark, real company name, lettering on doors, shop fascia lettering, captions under the swatches, label text, handwriting, watermark, signature",
+      "negative_active": false,
+      "negative_note": "RECORDED BUT INERT: at cfg 1.0 sd-cli never evaluates the unconditional branch (resolve_guidance sets use_uncond only when img_cfg != txt_cfg), so this negative prompt was not encoded and changed nothing",
+      "seen_on_run": "e80f9ad",
+      "review": "pending",
+      "probe": true,
+      "recipe": "615c059d2a1d6ff1",
+      "width": 688,
+      "height": 1024,
+      "seed": 20260918,
+      "steps": 8,
+      "cfg": 1.0,
+      "sampler": "sd-cli model-specific default (not overridden)",
+      "flags": [
+        "--offload-to-cpu",
+        "--diffusion-fa"
+      ],
+      "seconds": 171.2,
+      "blank_check": {
+        "verdict": "varied",
+        "why": "luminance spread 255/255, stdev 89.492, 256 distinct levels over 28290 of 704512 pixels",
+        "spread": 255,
+        "stdev": 89.492,
+        "distinct": 256,
+        "sampled": 28290,
+        "pixels": 704512
+      },
+      "status": "OK",
+      "bytes": 1409818,
+      "sha256": "a0f637c9d1d6dd2f29bfe456e3bf2c6537ce6e18293958ccbb6637b89b3aba49",
+      "file": "fairview_sheet_short.png",
+      "made_on_run": "e80f9ad"
+    },
+    {
+      "id": "fairview_sheet_short_s2",
+      "kind": "concept",
+      "binds_to": "CONCEPT SHEET - reviewed by eye, bound to no mesh, no material and no bill-of-materials row. Fairview, the second of seven district sheets drawn by this lane, and the first whose prompt was authored from this project's own sources. Jafar 2026-09-10.",
+      "prompt": "one printed sheet filling the frame edge to edge, A concept sheet for FAIRVIEW, the residential hills of Meridian, a fictional British port town, in 1990. Two stacked photoreal panels inside a pale paper border: top an orientation view, bottom the same district at standing eye height. TOP: from the crest road at 40 m, looking south and downhill. Contour-following terraces step down the slope in ranks of dull red clay tile and grow older as they descend, rendered council cottage pairs high and soot-darkened brick terraces lowest near the work. Chimney stacks with clay pots, a television aerial on every stack, one round satellite dish. Stone retaining walls and flights of steps between streets. A slate-roofed chapel and a railed school yard mid-slope. Beyond the last roofs and 40 m below, the grey harbour basin and dock cranes in silhouette. Slate-grey overcast sky. BOTTOM: camera at 1.6 m on the steep lower length of Chapel Road, gradient 1 in 9, looking uphill along a terrace of council cottages. ONE ROW UNDER TWO MAINTENANCE REGIMES, house by house: the near house, bought from the council, has a new door with a sunburst glass panel, a brick porch, white plastic casement windows, stone cladding across the ground floor and a front garden paved over with a mass-market saloon on it; its neighbour, still rented, keeps the council's plain painted door, painted timber windows and a clipped privet hedge. The pavement steps uphill with a steel handrail. Galvanised steel dustbins with lids by a side door, a wire crate of glass milk bottles on a doorstep, sheets on a wire washing line seen through the passage, a thread of coal smoke from one chimney. Overcast light after rain, wet tarmac, soot streaks below the gutters. Three nonidentifiable people in ordinary 1990 British clothes, one in a black donkey jacket with leather shoulder panels. EXACTLY THREE PIECES OF LETTERING IN THE WHOLE SHEET: the title FAIRVIEW, the small subtitle CONCEPT PROPOSAL, and a street nameplate reading CHAPEL ROAD in black capitals on white; each crisp and correctly spelled, every other surface plain unlettered render, brick and paint. Two small rows along the bottom: four flat material swatches, pebbledash, dull red clay roof tile, dark green privet, grey-brown retaining stone; below them three objects against the paper border, a crate of glass milk bottles, a low timber garden gate, a leather school satchel. Both rows plain and unlabelled. Photoreal throughout, period-correct for 1990., invented fictional shop name only, no real company names, no real brand logos, no trade marks, no real person, no recognisable faces, no celebrity likeness",
+      "negative": "sunshine, bright sunlight, blue sky, hard shadows, golden hour, thatched cottage, village green, leafy suburb, flower beds in bloom, hanging baskets, manicured lawn, tourist postcard, illustration, stylised illustration, cartoon, painterly, digital painting, watercolour, modern car, contemporary car, modern tech, mobile phone, computer screen, flat panel display, wheelie bin, wheeled bin, plastic recycling box, crowd, street festival, bunting, HUD, heads-up display, game interface overlay, screenshot, game screenshot, real brand logo, trade mark, real company name, lettering on doors, shop fascia lettering, captions under the swatches, label text, handwriting, watermark, signature",
+      "negative_active": false,
+      "negative_note": "RECORDED BUT INERT: at cfg 1.0 sd-cli never evaluates the unconditional branch (resolve_guidance sets use_uncond only when img_cfg != txt_cfg), so this negative prompt was not encoded and changed nothing",
+      "seen_on_run": "e80f9ad",
+      "review": "pending",
+      "probe": true,
+      "recipe": "5add97c9cfc719c4",
+      "width": 688,
+      "height": 1024,
+      "seed": 20260919,
+      "steps": 8,
+      "cfg": 1.0,
+      "sampler": "sd-cli model-specific default (not overridden)",
+      "flags": [
+        "--offload-to-cpu",
+        "--diffusion-fa"
+      ],
+      "seconds": 171.1,
+      "blank_check": {
+        "verdict": "varied",
+        "why": "luminance spread 255/255, stdev 90.28, 256 distinct levels over 28290 of 704512 pixels",
+        "spread": 255,
+        "stdev": 90.28,
+        "distinct": 256,
+        "sampled": 28290,
+        "pixels": 704512
+      },
+      "status": "OK",
+      "bytes": 1450989,
+      "sha256": "6ccc5c5889573a18d74200c4b1761c2d648e365159099549552b8afd85bcf06d",
+      "file": "fairview_sheet_short_s2.png",
+      "made_on_run": "e80f9ad"
+    }
+  ],
+  "downloads": [
+    {
+      "file": "z_image_turbo-Q4_K.gguf",
+      "bytes": 3864250304,
+      "url": "already on disk",
+      "licence": "Apache-2.0",
+      "sha256": "244527f44f1c16ba13eeb3ca9467e8926760d597357dd3f5e77a6dcf5fc76ca1 (first 64MB only)"
+    },
+    {
+      "file": "Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+      "bytes": 2497281120,
+      "url": "already on disk",
+      "licence": "Apache-2.0 (Qwen3, Alibaba)",
+      "sha256": "97428507a1be5ffd4064a2acdc1d132b47db90cab28a3ca7758a1138774578a9 (first 64MB only)"
+    },
+    {
+      "file": "ae.safetensors",
+      "bytes": 335304388,
+      "url": "already on disk",
+      "licence": "Apache-2.0 (Z-Image / FLUX.1 autoencoder)",
+      "sha256": "39e440a13a5f2fa7decb5289644e4af2db44e083bef720c252edd5a8447659a0 (first 64MB only)"
+    }
+  ]
+}

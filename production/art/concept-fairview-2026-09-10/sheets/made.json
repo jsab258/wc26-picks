@@ -1,0 +1,34 @@
+{
+  "_what": "The resume record: what is on disk and which recipe made it. Delete this file to have everything made again, or delete one PNG to have just that one made again.",
+  "written": "2026-09-10T10:03:30",
+  "items": {
+    "fairview_sheet": {
+      "recipe": "105f74873ffebcd3",
+      "seed": 20260916,
+      "file": "fairview_sheet.png",
+      "when": "2026-09-10T09:54:38",
+      "from": "made by this run"
+    },
+    "fairview_sheet_s2": {
+      "recipe": "00a03280cd4dd38a",
+      "seed": 20260917,
+      "file": "fairview_sheet_s2.png",
+      "when": "2026-09-10T09:57:46",
+      "from": "made by this run"
+    },
+    "fairview_sheet_short": {
+      "recipe": "615c059d2a1d6ff1",
+      "seed": 20260918,
+      "file": "fairview_sheet_short.png",
+      "when": "2026-09-10T10:00:38",
+      "from": "made by this run"
+    },
+    "fairview_sheet_short_s2": {
+      "recipe": "5add97c9cfc719c4",
+      "seed": 20260919,
+      "file": "fairview_sheet_short_s2.png",
+      "when": "2026-09-10T10:03:30",
+      "from": "made by this run"
+    }
+  }
+}

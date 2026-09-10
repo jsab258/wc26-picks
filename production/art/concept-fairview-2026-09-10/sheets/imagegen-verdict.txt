@@ -1,0 +1,15 @@
+# LEDGER imagegen - e80f9ad @1789027413
+# Line 1 names the commit this was measured on. No value has a space.
+# Every blankness number here was re-measured from the PNG itself, not copied from the manifest.
+
+steps selftest=success,probe=success,generate=success,attribution=success,shaFrom=checkout,stopper=none
+manifestRun=e80f9ad thisRun=e80f9ad manifestIsThisRun=yes manifestState=read batchStatus=DONE outDir=sheets
+bound blank-when-spread<=2/255-AND-stdev<=1.0,-or-alpha-0-everywhere-sampled
+image fairview_sheet status=OK madeThisRun=yes file=fairview_sheet.png size=688x1024 seconds=188.8 inCommit=new-in-this-commit remeasured=varied/spread254/stdev80.881/levels255/28290of704512px/1403106B
+image fairview_sheet_s2 status=OK madeThisRun=yes file=fairview_sheet_s2.png size=688x1024 seconds=187.0 inCommit=new-in-this-commit remeasured=varied/spread254/stdev82.627/levels255/28290of704512px/1445433B
+image fairview_sheet_short status=OK madeThisRun=yes file=fairview_sheet_short.png size=688x1024 seconds=171.2 inCommit=new-in-this-commit remeasured=varied/spread255/stdev89.492/levels256/28290of704512px/1409818B
+image fairview_sheet_short_s2 status=OK madeThisRun=yes file=fairview_sheet_short_s2.png size=688x1024 seconds=171.1 inCommit=new-in-this-commit remeasured=varied/spread255/stdev90.28/levels256/28290of704512px/1450989B
+disk pngsInOutDir=4 namedByThisManifest=4 blankFilesOnDisk=0 missingFromDisk=0
+done imagegenVerdict=BANKED why=none wroteThisRun=4 failed=0 skipped=0 selected=4 inSpec=4 limit=4 blankThisRun=0 undecodableThisRun=0 checkedThisRun=4 remade=0 remadeBlank=0 remadeUnrecorded=0 remadeRecipeChanged=0 rechecked=0 remeasured=4 remeasuredBlank=0 remeasuredUnreadable=0 missingFromDisk=0 bytes=5709346
+commit picsThisRun=4 newInThisCommit=4 alreadyInRepoIdentical=0 notInThisCommit=0 stagedList=read/9paths headList=read/0paths repoRoot=given
+# authority: imagegenVerdict answers 'did THIS commit bank pictures'. batchStatus answers 'is the 45-item batch finished'. INCOMPLETE beside BANKED is normal and means there is more to do.

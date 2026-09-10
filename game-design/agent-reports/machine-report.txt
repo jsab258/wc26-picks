@@ -1,11 +1,11 @@
 LEDGER - image generation, machine report
 ============================================================
-written   2026-09-10 06:43:58 local
+written   2026-09-10 10:03:30 local
 host      JAFAR-DESKTOP
 os        Microsoft Windows 11 Pro  (26200)
 cpu       AMD Ryzen 5 5600X 6-Core Processor  x6 cores
 ram       31.9 GB
-free disk 58.4 GB on C:
+free disk 57.8 GB on C:
 python    C:\Users\Jafar\miniconda3\python.exe
 probe     ok  (probe version 2)
 
@@ -49,12 +49,12 @@ RUN
     SENDING BACK IS OFF: switched off for this run
   LEDGER - image generation, machine report
 ============================================================
-written   2026-09-10 06:33:11 local
+written   2026-09-10 09:51:29 local
 host      JAFAR-DESKTOP
 os        Microsoft Windows 11 Pro  (26200)
 cpu       AMD Ryzen 5 5600X 6-Core Processor  x6 cores
 ram       31.9 GB
-free disk 58.4 GB on C:
+free disk 57.8 GB on C:
 python    C:\Users\Jafar\miniconda3\python.exe
 probe     ok  (probe version 2)
 
@@ -98,32 +98,32 @@ SENDING BACK
   Sending back is OFF: switched off for this run
   Zip the pictures folder named above and send it, plus this file.
 
-  spec file=tools\imagegen\compare-hook-2026-09-09-pass2.json source=--spec schema=2 itemsInSpec=4
+  spec file=production\art\concept-fairview-2026-09-10\fairview-sheet-2026-09-10.json source=--spec schema=2 itemsInSpec=4
   Downloading about 6.7 GB, once. It resumes if interrupted.
     generator: C:\Users\Jafar\ledger-imagegen\runtime-vulkan\sd-cli.exe
   
-  Generating into production\art\compare\hook-2026-09-09-pass2 from tools\imagegen\compare-hook-2026-09-09-pass2.json
-    4 item(s) selected of 4 in the batch, by name: hook_pass2,hook_pass2_s2,hook_pass2_s3,hook_pass2_s4
+  Generating into production\art\concept-fairview-2026-09-10\sheets from production\art\concept-fairview-2026-09-10\fairview-sheet-2026-09-10.json
+    4 item(s) selected of 4 in the batch, by name: fairview_sheet,fairview_sheet_s2,fairview_sheet_short,fairview_sheet_short_s2
     --limit 4: at most 4 picture(s) will be GENERATED this run. Items already on disk are skipped and do not count against it.
     --fail-on-blank: the first blank or unreadable PNG stops the run and the exit code is 6.
-    [1/4] hook_pass2  688x1024  seed 20260910  cfg 1.0  about 152s
+    [1/4] fairview_sheet  688x1024  seed 20260916  cfg 1.0  about 152s
         negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
-        ok  161s  1233 KB  varied: spread 254/255, 255 levels over 28290 of 704512 px
-        first image took 161s, so the batch projects to about 11 min for 4 images
-    [2/4] hook_pass2_s2  688x1024  seed 20260913  cfg 1.0  about 152s
+        ok  189s  1370 KB  varied: spread 254/255, 255 levels over 28290 of 704512 px
+        first image took 189s, so the batch projects to about 13 min for 4 images
+    [2/4] fairview_sheet_s2  688x1024  seed 20260917  cfg 1.0  about 152s
         negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
-        ok  161s  1248 KB  varied: spread 254/255, 255 levels over 28290 of 704512 px
-    [3/4] hook_pass2_s3  688x1024  seed 20260914  cfg 1.0  about 152s
+        ok  187s  1412 KB  varied: spread 254/255, 255 levels over 28290 of 704512 px
+    [3/4] fairview_sheet_short  688x1024  seed 20260918  cfg 1.0  about 152s
         negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
-        ok  161s  1248 KB  varied: spread 254/255, 253 levels over 28290 of 704512 px
-    [4/4] hook_pass2_s4  688x1024  seed 20260915  cfg 1.0  about 152s
+        ok  171s  1377 KB  varied: spread 255/255, 256 levels over 28290 of 704512 px
+    [4/4] fairview_sheet_short_s2  688x1024  seed 20260919  cfg 1.0  about 152s
         negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
-        ok  161s  1318 KB  varied: spread 253/255, 254 levels over 28290 of 704512 px
+        ok  171s  1417 KB  varied: spread 255/255, 256 levels over 28290 of 704512 px
   
   DONE: 4 written, 0 skipped, 0 failed, 4 attempted of 4 in the batch
     blank check: 0 blank, 0 undecodable, of 4 PNGs decoded (blank when spread <= 2/255 AND stdev <= 1.0, or alpha is 0 everywhere sampled)
     already made: 0 skipped, 0 remade because what was on disk was blank or unreadable, of 0 PNGs found already on disk
-    images and manifest: production\art\compare\hook-2026-09-09-pass2
+    images and manifest: production\art\concept-fairview-2026-09-10\sheets
     every image is review=pending until a human has looked at it
 
 SENDING BACK
