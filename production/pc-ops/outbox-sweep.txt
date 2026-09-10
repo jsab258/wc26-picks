@@ -1,4 +1,4 @@
-# LEDGER one outbox sweep - d690ad2 @1789046705
+# LEDGER one outbox sweep - 4d75256 @1789047393
 # Line 1 names the commit this was run on. This step SENDS: it runs
 # tools/runner/telegram-bot.py --send-outbox once, which is the same
 # pass the bot's own loop makes. Streamed, so a timeout still leaves
@@ -12,12 +12,12 @@ sweepPython=C:\Users\Jafar\wc26-picks\tools\voice-live\env-export\Scripts\python
 # commits its own evidence, so sweepCheckoutAheadCommits above 0 is normal.
 # sweepCheckoutBehindSecByCommitTime is the run's committer time minus the
 # checkout head's, so positive means his files are older.
-sweepCheckoutRunSha=d690ad26c496a5d9cd8dae67b5089c8d3854bd77 sweepCheckoutPcHeadSha=d690ad26c496a5d9cd8dae67b5089c8d3854bd77 sweepCheckoutContains=yes sweepCheckoutOutcome=contains sweepCheckoutDecision=send
-sweepCheckoutBehindCommits=0 sweepCheckoutAheadCommits=0 sweepCheckoutBehindSecByCommitTime=0 sweepCheckoutPcHeadCommitIso=2026-09-10T13:20:55Z
-sweepCheckoutWaitedSec=0/90 sweepCheckoutPolls=1 sweepCheckoutPollSec=5 sweepCheckoutSeries=0s/d690ad26c4 sweepCheckoutSeriesShown=1/1
+sweepCheckoutRunSha=4d752561b7ff0bc92d94d370f9da6bddbb438314 sweepCheckoutPcHeadSha=4d752561b7ff0bc92d94d370f9da6bddbb438314 sweepCheckoutContains=yes sweepCheckoutOutcome=contains sweepCheckoutDecision=send
+sweepCheckoutBehindCommits=0 sweepCheckoutAheadCommits=0 sweepCheckoutBehindSecByCommitTime=0 sweepCheckoutPcHeadCommitIso=2026-09-10T13:36:08Z
+sweepCheckoutWaitedSec=15/90 sweepCheckoutPolls=4 sweepCheckoutPollSec=5 sweepCheckoutSeries=0s/f99a9ebc84,15s/4d752561b7 sweepCheckoutSeriesShown=2/2
 sweepCheckoutReason=his-checkout-contains-this-runs-commit/the-files-this-step-reads-are-at-or-ahead-of-the-push
-sweepStatus=EXITED sweepWaitedSec=3 sweepExitCode=0
+sweepStatus=EXITED sweepWaitedSec=3 sweepExitCode=1
 sweepStream=sweep-raw.txt sweepLines=2
-15:25:07  outbox done: outboxFiles=17 sent=0 captionedSent=0 captionedClipsSent=0 refused=0 unsent=0 alreadySent=17 held=0 sendFailed=0 receiptRefused=0 recordsWritten=0 latencySamples=0/0 outboundLatencySecAtWorst=nothing-measured
-15:25:07  nothing measured: all 17 file(s) in production/outbox already carry a receipt, so no message was checked or sent this pass.
+15:36:51    outbox: NOT SENT production/outbox/2026-09-10-the-archive-landed.answer.md (Telegram said no (HTTP 400: Bad Request: message is too long)). It stays unsent and the next pass tries again.
+15:36:51  outbox done: outboxFiles=18 sent=0 captionedSent=0 captionedClipsSent=0 refused=0 unsent=1 alreadySent=17 held=0 sendFailed=1 receiptRefused=0 recordsWritten=0 latencySamples=0/0 outboundLatencySecAtWorst=nothing-measured
 sweepStream=sweep-raw.txt.err sweepLines=0

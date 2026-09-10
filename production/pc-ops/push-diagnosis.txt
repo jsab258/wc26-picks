@@ -1,8 +1,8 @@
-# LEDGER push diagnosis - d690ad2 @1789046703
+# LEDGER push diagnosis - 4d75256 @1789047391
 # Line 1 names the commit this was read on. READ ONLY: nothing here
 # writes to his checkout, pushes, or prints any credential value.
 diagRepo=C:\Users\Jafar\wc26-picks diagRepoExists=True
-lsRemoteExit=0 lsRemoteSec=0.6 lsRemoteSha=2a7a234cec416cef9a7701c458dc8ccce76a4932
+lsRemoteExit=0 lsRemoteSec=0.5 lsRemoteSha=2a7a234cec416cef9a7701c458dc8ccce76a4932
 localTipRef=2a7a234cec416cef9a7701c458dc8ccce76a4932
 onDisk_production_inbox=2
 onDisk_production_outbound=40
