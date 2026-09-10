@@ -1,0 +1,252 @@
+{
+  "_DRAFT": [
+    "STATUS: AUTHORED, NOT RUN, 2026-09-10. Written by the art lane in the",
+    "studio checkout under the in-house clause. NO RUN WAS STARTED and no",
+    "sentinel was appended: the runner is held by another lane today and the",
+    "brief that produced this file forbade starting one. Every claim below is",
+    "about the SPEC. Nothing here has been drawn, so nothing here is measured."
+  ],
+  "schema": 2,
+  "batch_name": "fairview-pair-2026-09-10",
+  "_comment": [
+    "WHY THERE IS A SECOND FAIRVIEW SPEC. Three faults in the first one, two of",
+    "them found by finishing the sheet and one by reading the atlas.",
+    "",
+    "1. THE PANELS WERE NOT PAIRED. The outside sheet's two panels are one",
+    "   place looking opposite ways and say so, and that is the only item on",
+    "   that sheet which is a concept decision rather than a formatting one.",
+    "   The first spec drew two unrelated viewpoints, so the finished sheet can",
+    "   truthfully say the two streets are JOINED and cannot say they are the",
+    "   same place. This spec fixes it at the source: ONE STATION, TWO",
+    "   HEADINGS, at the head of School Steps on School Brow.",
+    "",
+    "2. THE FIRST SPEC CONTRADICTED ITSELF AND CONTRADICTED OUR RESEARCH. Its",
+    "   top panel puts 'rendered council cottage pairs in groups of four on the",
+    "   high ground' and its bottom panel then stands on the LOWER length of",
+    "   Chapel Road 'looking uphill along a terrace of council cottages'. Our",
+    "   own dated series says the council estate took the top where the land",
+    "   was cheap and the byelaw terraces sit at the bottom near the work. The",
+    "   Right to Buy row is a COUNCIL row, so it belongs on the crest. Moving",
+    "   the eye-level panel to the crest fixes the contradiction and the",
+    "   pairing with one move, which is why they are one spec.",
+    "",
+    "3. LETTERING. The first spec asked for THREE strings. Two came back right",
+    "   and one garbled, and the model added three more nobody asked for, all",
+    "   for, both garbled. The instruction not to caption the bottom rows lived",
+    "   in the negative prompt, and AT CFG 1.0 THE NEGATIVE IS NEVER EVALUATED,",
+    "   so it did nothing. This spec asks for NO lettering at all and says so",
+    "   in the POSITIVE half, because a negative vetoes and cannot summon, and",
+    "   at this cfg it cannot even veto. Every string on the finished sheet is",
+    "   composited afterwards, where a string is a string.",
+    "",
+    "ALSO CHANGED: the weather clause is now explicit and in the positive half",
+    "in both panels, because canon's visual target is wet, overcast, grimy",
+    "Britain and the first draw came back saturated and evenly lit; and the",
+    "bottom strip is EIGHT tiles rather than seven, because the atlas carries",
+    "four Fairview materials and four Fairview objects and the eighth had to be",
+    "cropped out of the lower panel to fill the row.",
+    "",
+    "SIZE UNCHANGED AT 688 BY 1024 ON PURPOSE. Drawing the two panels as",
+    "separate full-frame photographs would end the 1.55x upscale the finished",
+    "sheet does, and the tool already accepts a per-box source file so it could",
+    "assemble them. It is not done here because the only size this lane has",
+    "banked concept output at is 688 by 1024, 12 PNGs of the 60 examined under",
+    "production/, and none at any landscape size. That is a next rung with a",
+    "named risk, not a change to make on the same pass as three fixes."
+  ],
+  "content_rules": {
+    "_comment": [
+      "COPIED BYTE FOR BYTE from tools/imagegen/prompts.json content_rules, and",
+      "verified equal by comparing the loaded values rather than by eye:",
+      "rules_clause identical True, forbidden_tokens identical True at 45 tokens",
+      "each. Carried rather than hand-listed because writing one of these files",
+      "from scratch last night dropped this block, and the only thing that caught",
+      "it was the tool's own dry run.",
+      "",
+      "The renderer appends rules_clause to every positive prompt and refuses to",
+      "build a prompt that does not carry it. It is the one exclusion clause",
+      "allowed in a positive prompt, because at cfg 1.0 the negative channel is",
+      "inert and moving it there would delete the only anti-brand instruction the",
+      "model receives."
+    ],
+    "rules_clause": "invented fictional shop name only, no real company names, no real brand logos, no trade marks, no real person, no recognisable faces, no celebrity likeness",
+    "forbidden_tokens": [
+      "coca-cola",
+      "coca cola",
+      "pepsi",
+      "guinness",
+      "carlsberg",
+      "heineken",
+      "bass ",
+      "watneys",
+      "courage",
+      "whitbread",
+      "tetley",
+      "boddingtons",
+      "woolworths",
+      "marks and spencer",
+      "tesco",
+      "sainsbury",
+      "wimpy",
+      "british rail",
+      "royal mail",
+      "bt ",
+      "british telecom",
+      "post office",
+      "walkers",
+      "cadbury",
+      "mcvitie",
+      "hovis",
+      "bovril",
+      "oxo",
+      "silk cut",
+      "benson and hedges",
+      "embassy",
+      "regal",
+      "players",
+      "castella",
+      "ford ",
+      "vauxhall",
+      "austin rover",
+      "leyland",
+      "shell",
+      "esso",
+      "bp ",
+      "thatcher",
+      "princess diana",
+      "the queen",
+      "elizabeth ii"
+    ]
+  },
+  "style": {
+    "_comment": [
+      "framing_required is copied verbatim from tools/imagegen/prompts.json line",
+      "172. The library's default prefix and suffix are deliberately NOT",
+      "inherited: they ask for a flat orthographic texture sheet with uniform",
+      "lighting on one single flat surface, which is right for a decal and wrong",
+      "for a two-panel concept sheet with two different cameras in it.",
+      "by_kind.concept.prefix is the shortest wording that satisfies",
+      "build_prompt's framing check, which reads the PREFIX and not the composed",
+      "text, while describing nothing the prompt does not already ask for: a",
+      "printed sheet filling the frame is what this is.",
+      "by_kind.concept.suffix is PRESENT AND EMPTY. Omitting the key would",
+      "inherit the library suffix, which ends `one single flat surface`."
+    ],
+    "framing_required": "filling the frame edge to edge",
+    "by_kind": {
+      "concept": {
+        "prefix": "one printed sheet filling the frame edge to edge,",
+        "suffix": ""
+      }
+    }
+  },
+  "defaults": {
+    "steps": 8,
+    "cfg": 1.0,
+    "sampler": "unset - sd-cli picks its model-specific default",
+    "seed_base": 8025,
+    "_comment": [
+      "steps and cfg are the library's measured settings, unchanged. cfg 1.0 is",
+      "where this distilled model is measured and where the negative channel is",
+      "inert; raising it is a named next rung and not this run. seed_base is never",
+      "reached because every item carries its own seed.",
+      "width and height are 688 by 1024, which is where this lane has banked 8 of",
+      "8 non-blank concept sheets (4 in production/art/compare/hook-2026-09-09 and",
+      "4 in hook-2026-09-09-pass2, blank 0 of 4 checked in the pass-2 manifest).",
+      "The outside Fairview sheet is 1024 by 1536, aspect 0.6667; ours is 0.6719,",
+      "which is the same 0.005 difference the Hook pair already sits at, so the",
+      "two sheets still read as a pair side by side."
+    ]
+  },
+  "source": {
+    "what": "Second Fairview district sheet. Photographs only; the sheet furniture is composited.",
+    "authored_by": "the art lane, in house, 2026-09-10",
+    "ruling": "Jafar 2026-09-10: the district sheets finished to the standard of the outside ones.",
+    "supersedes": "production/art/concept-fairview-2026-09-10/fairview-sheet-2026-09-10.json",
+    "negative_is_inert": "cfg is 1.0, where this distilled model never evaluates the negative channel. The negative block is carried unchanged so the two specs can be diffed, and NOTHING IS RELIED ON IT. Everything that must not appear is stated positively.",
+    "changed_phrases": [
+      {
+        "phrase": "ONE CAMERA STATION TURNED ABOUT ... both panels stand at the head of a stone stair shortcut on the crest road, 40 m above the water",
+        "label": "ATLAS-DERIVED",
+        "source": "atlas routes id=steps (School Steps) runs [320,820] to [320,915] and its head lies on route id=crest (School Brow). Interpolating the atlas contours at east 320 puts the 35 m line at north 880.6 and the 45 m line at north 947.9, so north 915 is 40.1 m. Computed by tools/imagegen/sheet-furniture.py, not asserted."
+      },
+      {
+        "phrase": "camera at 1.6 m",
+        "label": "PROJECT-SPEC",
+        "source": "production/specs/vignette-pieces.json, cam_A and cam_B both eye_height_above_ground_m 1.6, over 3 camera rows examined, the third being cam_hook at 1.65."
+      },
+      {
+        "phrase": "one row of rendered council cottage pairs on the crest",
+        "label": "RESEARCH-CITED",
+        "source": "production/art/atlas-02/research/hillside-housing-dated-series.md: the council estate took the top where the land was cheap, and Tudor Walters cottages come in groups of four to six."
+      },
+      {
+        "phrase": "ONE ROW UNDER TWO MAINTENANCE REGIMES",
+        "label": "RESEARCH-CITED-MECHANISM-ASSUMED-DETAIL",
+        "source": "same file: over 1 million council houses sold under Right to Buy by 1990, Housing Act 1980, House of Lords Library. The specific alterations remain that file's HOLE 4 and are carried as its own flagged assumption, not upgraded here."
+      },
+      {
+        "phrase": "heavy overcast after rain, flat grey light with no sun and no shadows",
+        "label": "CANON",
+        "source": "canon.md lines 42 to 44: photoreal, wet, overcast, grimy Britain, weather and grime are the strategy."
+      },
+      {
+        "phrase": "EVERY SURFACE IS PLAIN UNLETTERED RENDER",
+        "label": "MEASURED-BY-THIS-LANE",
+        "source": "fairview_sheet_short_s2.png, 6 regions opened: 5 carry lettering and 1 does not, and those 5 hold 6 strings. 2 are correct and legible, the title and the subtitle, and both are large and on the paper margin. 4 are garbled, and all 4 are small and inside a photograph. Only 3 strings were asked for, so 3 of the 4 garbled ones were never requested at all."
+      },
+      {
+        "phrase": "one row of eight small photographic tiles",
+        "label": "ATLAS",
+        "source": "atlas districts id=fairview carries 4 materials and 4 objects, which is where the eight labels on the finished sheet come from."
+      }
+    ],
+    "not_opened": "production/art/atlas-01/data/concept-prompts.json, concept-edit-prompts.json, concept-final-prompts.json, concept-period-prompts.json and pilot-image-inputs.json were not read for this spec or any other district, as for the first spec."
+  },
+  "items": [
+    {
+      "kind": "concept",
+      "probe": true,
+      "binds_to": "CONCEPT SHEET - reviewed by eye, bound to no mesh, no material and no bill-of-materials row. Fairview, second pass. The sheet furniture is composited by tools/imagegen/sheet-furniture.py and is NOT asked of the model, so this prompt asks for photographs only.",
+      "width": 688,
+      "height": 1024,
+      "prompt": "A concept sheet for FAIRVIEW, the residential hills of Meridian, a fictional British port town, in 1990. Two stacked photoreal panels inside a pale paper border, ONE CAMERA STATION TURNED ABOUT: both panels stand at the head of a stone stair shortcut on the crest road, 40 m above the water, camera at 1.6 m. TOP, LOOKING SOUTH AND DOWNHILL: the flight of stone steps drops away in the foreground between high retaining walls, and beyond it the hill falls in ranks of contour-following terraces that grow older as they descend, soot-darkened brick lowest near the work, bay-fronted semis with hipped roofs and pebbledash upper storeys on the middle slopes, and 40 m below and 700 m off the grey harbour basin with dock cranes in silhouette and a tall brick works chimney further right, all of it going pale with haze. BOTTOM, THE SAME STATION TURNED ABOUT, LOOKING NORTH AND UPHILL: one row of rendered council cottage pairs on the crest, ONE ROW UNDER TWO MAINTENANCE REGIMES house by house: the near house, bought from the council, has a new hardwood door with a sunburst glass panel, a brick porch, white plastic casement windows, stone cladding across the ground floor and a front garden paved over with a mass-market saloon on it; its neighbour, still rented, keeps the council's plain painted door, painted timber windows, a clipped privet hedge and the council's fence. Party-wall chimney stacks with clay pots, a television aerial on every stack, one round satellite dish on a gable end, a thread of coal smoke from one chimney. Galvanised steel dustbins with lids by a side door, a wire crate of glass milk bottles on a doorstep, sheets on a wire washing line, a low timber garden gate. Three nonidentifiable people in ordinary 1990 British clothes, one in a black donkey jacket with leather shoulder panels. WEATHER IN BOTH PANELS: heavy overcast after rain, flat grey light with no sun and no shadows, standing water on the tarmac, wet slate and wet brick, mist thickening with distance so the far hill and the cranes go pale, soot streaks below the gutters, low colour throughout. EVERY SURFACE IS PLAIN UNLETTERED RENDER: every door, gate, wall, board and plate is blank painted material with no writing on it anywhere in the sheet. Along the bottom of the sheet one row of eight small photographic tiles butted edge to edge, plain and unlabelled: pebbledash, dull red clay roof tile, dark green privet, grey-brown retaining stone, sheets on a wire washing line, a low timber garden gate, a wire crate of glass milk bottles, a leather school satchel. Photoreal throughout, period-correct for 1990.",
+      "negative": "sunshine, bright sunlight, blue sky, hard shadows, golden hour, thatched cottage, village green, leafy suburb, flower beds in bloom, hanging baskets, manicured lawn, tourist postcard, illustration, stylised illustration, cartoon, painterly, digital painting, watercolour, modern car, contemporary car, modern tech, mobile phone, computer screen, flat panel display, wheelie bin, wheeled bin, plastic recycling box, crowd, street festival, bunting, HUD, heads-up display, game interface overlay, screenshot, game screenshot, real brand logo, trade mark, real company name, lettering on doors, shop fascia lettering, captions under the swatches, label text, handwriting, watermark, signature",
+      "id": "fairview_pair",
+      "seed": 20260920
+    },
+    {
+      "kind": "concept",
+      "probe": true,
+      "binds_to": "CONCEPT SHEET - reviewed by eye, bound to no mesh, no material and no bill-of-materials row. Fairview, second pass. The sheet furniture is composited by tools/imagegen/sheet-furniture.py and is NOT asked of the model, so this prompt asks for photographs only.",
+      "width": 688,
+      "height": 1024,
+      "prompt": "A concept sheet for FAIRVIEW, the residential hills of Meridian, a fictional British port town, in 1990. Two stacked photoreal panels inside a pale paper border, ONE CAMERA STATION TURNED ABOUT: both panels stand at the head of a stone stair shortcut on the crest road, 40 m above the water, camera at 1.6 m. TOP, LOOKING SOUTH AND DOWNHILL: the flight of stone steps drops away in the foreground between high retaining walls, and beyond it the hill falls in ranks of contour-following terraces that grow older as they descend, soot-darkened brick lowest near the work, bay-fronted semis with hipped roofs and pebbledash upper storeys on the middle slopes, and 40 m below and 700 m off the grey harbour basin with dock cranes in silhouette and a tall brick works chimney further right, all of it going pale with haze. BOTTOM, THE SAME STATION TURNED ABOUT, LOOKING NORTH AND UPHILL: one row of rendered council cottage pairs on the crest, ONE ROW UNDER TWO MAINTENANCE REGIMES house by house: the near house, bought from the council, has a new hardwood door with a sunburst glass panel, a brick porch, white plastic casement windows, stone cladding across the ground floor and a front garden paved over with a mass-market saloon on it; its neighbour, still rented, keeps the council's plain painted door, painted timber windows, a clipped privet hedge and the council's fence. Party-wall chimney stacks with clay pots, a television aerial on every stack, one round satellite dish on a gable end, a thread of coal smoke from one chimney. Galvanised steel dustbins with lids by a side door, a wire crate of glass milk bottles on a doorstep, sheets on a wire washing line, a low timber garden gate. Three nonidentifiable people in ordinary 1990 British clothes, one in a black donkey jacket with leather shoulder panels. WEATHER IN BOTH PANELS: heavy overcast after rain, flat grey light with no sun and no shadows, standing water on the tarmac, wet slate and wet brick, mist thickening with distance so the far hill and the cranes go pale, soot streaks below the gutters, low colour throughout. EVERY SURFACE IS PLAIN UNLETTERED RENDER: every door, gate, wall, board and plate is blank painted material with no writing on it anywhere in the sheet. Along the bottom of the sheet one row of eight small photographic tiles butted edge to edge, plain and unlabelled: pebbledash, dull red clay roof tile, dark green privet, grey-brown retaining stone, sheets on a wire washing line, a low timber garden gate, a wire crate of glass milk bottles, a leather school satchel. Photoreal throughout, period-correct for 1990.",
+      "negative": "sunshine, bright sunlight, blue sky, hard shadows, golden hour, thatched cottage, village green, leafy suburb, flower beds in bloom, hanging baskets, manicured lawn, tourist postcard, illustration, stylised illustration, cartoon, painterly, digital painting, watercolour, modern car, contemporary car, modern tech, mobile phone, computer screen, flat panel display, wheelie bin, wheeled bin, plastic recycling box, crowd, street festival, bunting, HUD, heads-up display, game interface overlay, screenshot, game screenshot, real brand logo, trade mark, real company name, lettering on doors, shop fascia lettering, captions under the swatches, label text, handwriting, watermark, signature",
+      "id": "fairview_pair_s2",
+      "seed": 20260921
+    },
+    {
+      "kind": "concept",
+      "probe": true,
+      "binds_to": "CONCEPT SHEET - reviewed by eye, bound to no mesh, no material and no bill-of-materials row. Fairview, second pass. The sheet furniture is composited by tools/imagegen/sheet-furniture.py and is NOT asked of the model, so this prompt asks for photographs only.",
+      "width": 688,
+      "height": 1024,
+      "prompt": "A concept sheet for FAIRVIEW, the residential hills of Meridian, a fictional British port town, in 1990. Two stacked photoreal panels inside a pale paper border, ONE CAMERA STATION TURNED ABOUT: both panels stand at the head of a stone stair shortcut on the crest road, 40 m above the water, camera at 1.6 m. TOP, LOOKING SOUTH AND DOWNHILL: the flight of stone steps drops away in the foreground between high retaining walls, and beyond it the hill falls in ranks of contour-following terraces that grow older as they descend, soot-darkened brick lowest near the work, pebbledash semis on the middle slopes, and 40 m below the grey harbour basin with dock cranes in silhouette, going pale with haze. BOTTOM, THE SAME STATION TURNED ABOUT, LOOKING NORTH AND UPHILL: one row of rendered council cottage pairs on the crest, ONE ROW UNDER TWO MAINTENANCE REGIMES house by house: the near house, bought from the council, has a new door with a sunburst glass panel, a brick porch, white plastic casement windows, stone cladding and a front garden paved over with a mass-market saloon on it; its neighbour, still rented, keeps the council's plain painted door, painted timber windows and a clipped privet hedge. Chimney stacks with clay pots, a television aerial on every stack, one satellite dish, a thread of coal smoke. Galvanised steel dustbins, a wire crate of glass milk bottles on a doorstep, sheets on a wire washing line. Three nonidentifiable people in ordinary 1990 British clothes. WEATHER IN BOTH PANELS: heavy overcast after rain, flat grey light with no sun and no shadows, standing water on the tarmac, wet slate and wet brick, mist thickening with distance, soot streaks below the gutters, low colour throughout. EVERY SURFACE IS PLAIN UNLETTERED RENDER: every door, gate, wall and board is blank painted material with no writing on it anywhere in the sheet. Along the bottom of the sheet one row of eight small photographic tiles butted edge to edge, plain and unlabelled: pebbledash, dull red clay roof tile, dark green privet, grey-brown retaining stone, a wire washing line, a timber garden gate, glass milk bottles, a leather school satchel. Photoreal throughout, period-correct for 1990.",
+      "negative": "sunshine, bright sunlight, blue sky, hard shadows, golden hour, thatched cottage, village green, leafy suburb, flower beds in bloom, hanging baskets, manicured lawn, tourist postcard, illustration, stylised illustration, cartoon, painterly, digital painting, watercolour, modern car, contemporary car, modern tech, mobile phone, computer screen, flat panel display, wheelie bin, wheeled bin, plastic recycling box, crowd, street festival, bunting, HUD, heads-up display, game interface overlay, screenshot, game screenshot, real brand logo, trade mark, real company name, lettering on doors, shop fascia lettering, captions under the swatches, label text, handwriting, watermark, signature",
+      "id": "fairview_pair_short",
+      "seed": 20260922
+    },
+    {
+      "kind": "concept",
+      "probe": true,
+      "binds_to": "CONCEPT SHEET - reviewed by eye, bound to no mesh, no material and no bill-of-materials row. Fairview, second pass. The sheet furniture is composited by tools/imagegen/sheet-furniture.py and is NOT asked of the model, so this prompt asks for photographs only.",
+      "width": 688,
+      "height": 1024,
+      "prompt": "A concept sheet for FAIRVIEW, the residential hills of Meridian, a fictional British port town, in 1990. Two stacked photoreal panels inside a pale paper border, ONE CAMERA STATION TURNED ABOUT: both panels stand at the head of a stone stair shortcut on the crest road, 40 m above the water, camera at 1.6 m. TOP, LOOKING SOUTH AND DOWNHILL: the flight of stone steps drops away in the foreground between high retaining walls, and beyond it the hill falls in ranks of contour-following terraces that grow older as they descend, soot-darkened brick lowest near the work, pebbledash semis on the middle slopes, and 40 m below the grey harbour basin with dock cranes in silhouette, going pale with haze. BOTTOM, THE SAME STATION TURNED ABOUT, LOOKING NORTH AND UPHILL: one row of rendered council cottage pairs on the crest, ONE ROW UNDER TWO MAINTENANCE REGIMES house by house: the near house, bought from the council, has a new door with a sunburst glass panel, a brick porch, white plastic casement windows, stone cladding and a front garden paved over with a mass-market saloon on it; its neighbour, still rented, keeps the council's plain painted door, painted timber windows and a clipped privet hedge. Chimney stacks with clay pots, a television aerial on every stack, one satellite dish, a thread of coal smoke. Galvanised steel dustbins, a wire crate of glass milk bottles on a doorstep, sheets on a wire washing line. Three nonidentifiable people in ordinary 1990 British clothes. WEATHER IN BOTH PANELS: heavy overcast after rain, flat grey light with no sun and no shadows, standing water on the tarmac, wet slate and wet brick, mist thickening with distance, soot streaks below the gutters, low colour throughout. EVERY SURFACE IS PLAIN UNLETTERED RENDER: every door, gate, wall and board is blank painted material with no writing on it anywhere in the sheet. Along the bottom of the sheet one row of eight small photographic tiles butted edge to edge, plain and unlabelled: pebbledash, dull red clay roof tile, dark green privet, grey-brown retaining stone, a wire washing line, a timber garden gate, glass milk bottles, a leather school satchel. Photoreal throughout, period-correct for 1990.",
+      "negative": "sunshine, bright sunlight, blue sky, hard shadows, golden hour, thatched cottage, village green, leafy suburb, flower beds in bloom, hanging baskets, manicured lawn, tourist postcard, illustration, stylised illustration, cartoon, painterly, digital painting, watercolour, modern car, contemporary car, modern tech, mobile phone, computer screen, flat panel display, wheelie bin, wheeled bin, plastic recycling box, crowd, street festival, bunting, HUD, heads-up display, game interface overlay, screenshot, game screenshot, real brand logo, trade mark, real company name, lettering on doors, shop fascia lettering, captions under the swatches, label text, handwriting, watermark, signature",
+      "id": "fairview_pair_short_s2",
+      "seed": 20260923
+    }
+  ]
+}

@@ -1,0 +1,227 @@
+{
+  "schema": 1,
+  "_what": [
+    "SHEET FURNITURE for the Fairview district sheet: the header, the tagline,",
+    "the eight labelled tiles, the panel annotations and the footer, as DATA.",
+    "tools/imagegen/sheet-furniture.py reads this file, reads the atlas and the",
+    "camera rows, computes the geometry, and lays the furniture over the drawn",
+    "panels. Nothing here is a string the diffusion model was asked for.",
+    "",
+    "WHY THIS FILE EXISTS. Jafar, 2026-09-10: the district sheets finished to",
+    "the standard of the outside ones. The outside sheets carry a header, a",
+    "tagline, eight labelled swatches, panel annotations and a footer. This",
+    "lane's measured record is that lettering asked of the model garbles once",
+    "it is small and inside a photograph. On the drawn sheet named below, 6",
+    "regions were opened: 5 carry lettering and 1 does not, and those 5 hold 6",
+    "strings. 2 are correct and legible, the title and the subtitle, and both",
+    "are large and on the paper margin. 4 are garbled and all four are small and",
+    "inside a photograph. Only 3 strings were asked for, so 3 of the 4 garbled",
+    "ones were never requested at all. So the furniture is composited, where a",
+    "string is a string.",
+    "",
+    "EVERY NUMBER THE TOOL PRINTS IS READ OR COMPUTED, NEVER TYPED HERE. The",
+    "height band comes from the atlas district record, the heights from the",
+    "atlas contours, the bearings from atlas coordinates, the eye height from",
+    "the project's own camera rows. A number the tool cannot source is left off",
+    "the sheet and named in the verdict as an omission with its reason."
+  ],
+  "district": "fairview",
+  "year": 1990,
+  "year_source": "canon.md line 32 gives the working window 1988 to 1992. 1990 is its middle year and is the year the image spec already chose, so the sheet and the drawing agree.",
+  "sheet_no": 2,
+  "sheet_of": 7,
+  "sheet_of_source": "canon.md lines 9 to 12 name seven districts. The Hook sheet was drawn 2026-09-09, Fairview 2026-09-10.",
+  "source_png": "production/art/concept-fairview-2026-09-10/sheets/fairview_sheet_short_s2.png",
+  "source_item": "fairview_sheet_short_s2",
+  "source_seed": 20260919,
+  "source_note": "Chosen from the four drawn seeds because it is the only one whose lower panel carries the wire washing line, which is one of the atlas's four Fairview objects and is the eighth tile.",
+  "_boxes_note": [
+    "Boxes are (x0,y0,x1,y1) in the 688 by 1024 source, PIL convention, x1 and",
+    "y1 exclusive. MEASURED, not eyeballed: the cream paper of the drawn sheet",
+    "was sampled at the corner (253,252,242) and every row and column scored",
+    "for distance from it, which gave the panel edges at x 30..657, panel A at",
+    "y 97..474, panel B at y 504..895 and seven tiles in the bottom strip. The",
+    "tool re-runs that test on load and refuses a box that has gone to paper,",
+    "so a changed source fails loudly instead of cropping the margin."
+  ],
+  "boxes": {
+    "panel_a": [
+      30,
+      97,
+      658,
+      475
+    ],
+    "panel_b": [
+      30,
+      504,
+      658,
+      896
+    ],
+    "swatch_1": [
+      30,
+      924,
+      100,
+      993
+    ],
+    "swatch_2": [
+      105,
+      924,
+      175,
+      993
+    ],
+    "swatch_3": [
+      180,
+      924,
+      249,
+      993
+    ],
+    "swatch_4": [
+      255,
+      924,
+      322,
+      993
+    ],
+    "object_crate": [
+      363,
+      933,
+      439,
+      998
+    ],
+    "object_gate": [
+      451,
+      930,
+      554,
+      989
+    ],
+    "object_satchel": [
+      566,
+      921,
+      659,
+      1000
+    ],
+    "panel_b_washing_line": [
+      424,
+      736,
+      506,
+      818
+    ]
+  },
+  "_box_trims": {
+    "object_gate": "The measured tile runs to y 993, but the model drew a garbled caption under the gate at y 990 to 1002 even though the prompt asked for the rows to be plain and unlabelled. The instruction lived in the negative prompt, and at cfg 1.0 the negative is never evaluated. The box stops at 989 so the garble is outside the crop.",
+    "panel_b_washing_line": "Not a tile the model drew in the bottom strip. The atlas names four Fairview objects and the drawn strip carries three, so the fourth is cropped from the place it actually occurs, on the line in the lower panel."
+  },
+  "_tiles_note": "atlas is 'material:<index>' or 'object:<index>' into the atlas record for this district. The label text and, for materials, the hex, are read from the atlas at build time. Nothing is typed here.",
+  "tiles": [
+    {
+      "atlas": "material:0",
+      "box": "swatch_1"
+    },
+    {
+      "atlas": "material:1",
+      "box": "swatch_2"
+    },
+    {
+      "atlas": "material:2",
+      "box": "swatch_3"
+    },
+    {
+      "atlas": "material:3",
+      "box": "swatch_4"
+    },
+    {
+      "atlas": "object:0",
+      "box": "panel_b_washing_line"
+    },
+    {
+      "atlas": "object:1",
+      "box": "object_gate"
+    },
+    {
+      "atlas": "object:2",
+      "box": "object_crate"
+    },
+    {
+      "atlas": "object:3",
+      "box": "object_satchel"
+    }
+  ],
+  "_cameras_note": [
+    "The panel cameras as the image spec fixed them, expressed in atlas",
+    "coordinates so the annotations can be computed rather than asserted.",
+    "panel_a is a point on a named route; panel_b is a LENGTH of a named route",
+    "because the spec says 'the steep lower length of Chapel Road' and never",
+    "fixes a station, so the tool prints a height range for it and no single",
+    "height. A number the spec does not fix is not invented."
+  ],
+  "cameras": {
+    "panel_a": {
+      "kind": "orientation",
+      "route": "crest",
+      "point": [
+        320,
+        915
+      ],
+      "point_why": "The atlas route 'crest' (School Brow) passes through [320,915]. It is also the head of the atlas foot route 'steps' (School Steps), which is the vertex the tie line uses.",
+      "looks_at_landmark": "H2",
+      "looks_at_why": "The image spec's upper panel looks south and downhill to the harbour basin. H2 Old Basin is the atlas's harbour basin landmark, so the bearing is computed to it.",
+      "eye_height_m": null,
+      "eye_height_why": "The spec gives no camera height for the orientation panel, so none is printed."
+    },
+    "panel_b": {
+      "kind": "eye",
+      "route": "hill",
+      "leg": [
+        [
+          270,
+          700
+        ],
+        [
+          320,
+          820
+        ]
+      ],
+      "leg_why": "The lower length of the atlas route 'hill' (Chapel Road), which is the leg the image spec names.",
+      "looks": "uphill",
+      "eye_height_from_camera_row": "cam_A",
+      "eye_height_why": "The project's own street camera height, read from production/specs/vignette-pieces.json rather than typed."
+    }
+  },
+  "_tie_note": "The one concept item on this sheet. See the delivery for the reasoning.",
+  "tie": {
+    "route": "steps",
+    "joins": [
+      "hill",
+      "crest"
+    ],
+    "claim": "joins",
+    "not_claimed": "SAME LOCATION. The outside sheet's two panels are one place looking opposite ways and say so. These two drawn panels are not, and no composited caption can make them so, so the sheet states the join, which is true, instead of the identity, which is not. The pairing itself is adopted for the next draw and is written into the revised image spec beside this file."
+  },
+  "_strings_note": "The only authored strings on the sheet. Each carries the file it is quoted from. Everything else is read from the atlas, the camera rows or canon.",
+  "tagline": [
+    {
+      "text": "A hillside town is read by its dates.",
+      "source": "production/art/atlas-02/research/hillside-housing-dated-series.md, quoted from the file's own opening summary."
+    },
+    {
+      "text": "One row, two maintenance regimes.",
+      "source": "production/art/atlas-02/research/hillside-housing-dated-series.md, quoted from the Right to Buy section, which is the sheet's lower panel."
+    }
+  ],
+  "footer_note": {
+    "text": "STREET NAMES ARE ATLAS PROPOSALS",
+    "source": "canon.md line 13 mints Quay Street, Weighhouse Lane and Tannery Row and no others. The atlas carries Chapel Road and School Brow with the word proposal in their names, so the sheet says so rather than presenting them as canon."
+  },
+  "_rejected": {
+    "repaint_the_garbled_nameplate": [
+      "CONSIDERED AND NOT DONE. The model drew a garbled nameplate in the upper",
+      "panel and a crisp composited plate could have replaced it. Measured, the",
+      "object is 35 by 12 pixels of a 628 by 378 panel, which is 0.18 per cent",
+      "of it, and it sits at the kerb beside the yellow line rather than on a",
+      "wall. A legible plate painted there would put a street sign in the",
+      "gutter, which is a worse picture than a small garble. The street is",
+      "named in the panel annotation instead, which is what the annotation is",
+      "for, and the revised image spec asks for signage at a size the model can",
+      "actually draw."
+    ]
+  }
+}
