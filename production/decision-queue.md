@@ -31,9 +31,50 @@ Irreversible items wait for Jafar and never guess.
 
 ## WAITING
 
-Nothing waits here. Ruled by Jafar 2026-09-09: the studio takes every decision
-that has a recommendation and a default. A card appears below only when the studio
-has looked and CANNOT form one, at most one a week, and it carries buttons.
+Ruled by Jafar 2026-09-09: the studio takes every decision that has a
+recommendation and a default. A card appears below only when the studio has
+looked and CANNOT form one, at most one a week, and it carries buttons.
+
+### LEDGER's own repository: three things only you can do
+CLASS: DECISION
+added 2026-09-10, from ruling 2 of the cleanup batch, plan at
+production/repo-move-plan.md
+
+You ruled that LEDGER gets its own repository named `ledger`, this branch as
+main, large files under LFS, the old one kept as the archive, and the move done
+last. The move is prepared and it stops here, because three of its steps use
+your account and the studio has none.
+
+1. Create the empty repository and grant the Claude GitHub App access to it.
+   Without the second half no session can push to it and the move cannot be
+   proven before the old branch is frozen.
+2. Re-register the self-hosted Windows runner against the new repository. Nine
+   of the eighteen workflows run on it. THIS IS THE PART THAT MATTERS MOST:
+   the build machine is the only channel the studio can read, so a move that
+   leaves it behind blinds the studio until it is done.
+3. Read the included large-file allowance off your own billing page and weigh
+   it against 1113.2 MB, which is what the 101 files over 2MB come to. The
+   studio could not read that figure: the documentation host is blocked from
+   here, and a number nobody read is not a number. If the allowance does not
+   cover it, extra capacity is a purchase, and every purchase is yours.
+
+THE SHAPE QUESTION, which is a real decision and not a task:
+
+- A. CLEAN START. The new repository begins as one commit holding today's
+  tree. Large files go under LFS from the first commit, so it clones small.
+  Every commit reference in 170 written decisions becomes a pointer into the
+  archive.
+- B. CARRY THE HISTORY. References keep working, the clone is about 2.6 GB,
+  and LFS helps only files added from then on. It cannot reach backwards.
+
+RECOMMENDATION A. Your own ruling keeps the old repository as the archive,
+which is where a history belongs, and LFS for large files only actually
+happens under A.
+DEFAULT: nothing moves. The studio will not create anything under your account
+and will not freeze the old branch until one round trip has been proven on the
+new one.
+DEADLINE: 2026-09-14. Nothing decays while it waits; the work simply continues
+in the old place.
 
 
 ## ON US, NOT ON HIM
