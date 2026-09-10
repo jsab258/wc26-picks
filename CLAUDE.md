@@ -169,11 +169,12 @@ through CI. Make each run maximally informative, not a blind attempt.
 ## The studio split
 
 The main session is the DIRECTOR (tier 1): it decides, reviews builder diffs,
-commits, dispatches and writes the record. It does not implement and does not
-address Jafar: it talks to files and to the Producer. Tier 2
-(Opus, read-only) are the verifiers in `.claude/agents/`. Tier 3 (Opus) are the
-builders: all implementation happens there, the finding in the brief, and a
-standing instruction not to commit.
+commits, dispatches and writes the record. It does not implement or address
+Jafar: it talks to files and the Producer. Tier 2 (read-only) are the
+verifiers, tier 3 the builders: all implementation happens there, the finding
+in the brief, a standing instruction not to commit. Each `.claude/agents/`
+definition carries its model; a spawn above it needs a written reason
+(2026-09-10).
 
 Escalation is mechanical, never judged, NARROWED by Jafar 2026-09-06 because
 the studio was building itself: a director is spawned for SIMULATION changes,
@@ -187,8 +188,7 @@ builder work no ruling covers; a ruling is a record under `game-design/` with a
 `<!--RULING spawn=...-->` stamp naming a spawn row newer than the reference
 commit. A spawn alone is attendance, and a resident never stamps the ruling.
 
-Reasoning, incidents and the two residual holes:
-`ledger-v2/studio-v2/organization.md`.
+Reasoning and incidents: `ledger-v2/studio-v2/organization.md`.
 
 ## The standard
 

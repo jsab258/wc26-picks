@@ -57,7 +57,9 @@ import datetime
 import json
 import os
 import pathlib
+import re
 import statistics
+import subprocess
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -517,6 +519,96 @@ def selftest():
     ok("a 2-column row from .claude/agent-log.tsv is counted short, not "
        "given a turn count", rows == [] and short == 1, (rows, short))
 
+    print("\n  ROUTING DRIFT (--routing-drift), both named traps PLANTED:\n")
+    droot = pathlib.Path(tempfile.mkdtemp(prefix="spawn-cost-drift-"))
+    (droot / ".claude" / "agents").mkdir(parents=True)
+    (droot / ".claude" / "agents" / "worker.md").write_text(
+        "---\nname: worker\nmodel: opus\n---\nbody\n", encoding="utf-8")
+    turns_log = droot / TURNS_LOG
+    turns_log.parent.mkdir(parents=True, exist_ok=True)
+    turns_log.write_text(
+        "\t".join(COLUMNS) + "\n"
+        # TRAP 1: one agentId, SIX snapshot rows, climbing turns. Summed,
+        # this alone would read 45+68+83+105+122+162=585 turns for one
+        # spawn; last-wins must read 162.
+        + "2026-09-01T00:00:00Z\tworker\topus\t45\t80\tclimb1\n"
+        + "2026-09-01T00:01:00Z\tworker\topus\t68\t120\tclimb1\n"
+        + "2026-09-01T00:02:00Z\tworker\topus\t83\t150\tclimb1\n"
+        + "2026-09-01T00:03:00Z\tworker\topus\t105\t190\tclimb1\n"
+        + "2026-09-01T00:04:00Z\tworker\topus\t122\t220\tclimb1\n"
+        + "2026-09-01T00:05:00Z\tworker\topus\t162\t290\tclimb1\n"
+        # A genuine disagreement: declared opus, ran fable.
+        + "2026-09-02T00:00:00Z\tworker\tfable\t9\t15\tdisagree1\n"
+        # TRAP 2: a built-in type with no definition file on disk.
+        + "2026-09-02T01:00:00Z\tgeneral-purpose\topus\t30\t50\tnodecl1\n",
+        encoding="utf-8")
+    d = routing_drift(droot)
+    ok("distinct agentId count is 3, one per agentId, not one per row",
+       d["distinct"] == 3, d["distinct"])
+    ok("TRAP 1: last-wins reads 162 turns for the climbing spawn, never "
+       "the 585-turn sum of all six snapshots",
+       d["agreements"] == 1, d["agreements"])   # climb1 agrees: opus==opus
+    ok("TRAP 2: general-purpose (no definition) is excluded from the "
+       "numerator, not counted as a disagreement",
+       d["noDeclaration"] == 1 and d["noDeclarationNames"] == ["general-purpose"],
+       (d["noDeclaration"], d["noDeclarationNames"]))
+    ok("the one real disagreement (declared opus, ran fable) is bucketed "
+       "with its 9 turns, not the climbing spawn's 162 or 585",
+       d["buckets"] == [{"declared": "opus", "ran": "fable", "agents": 1,
+                        "turns": 9, "whenMin": "2026-09-02T00:00:00Z",
+                        "whenMax": "2026-09-02T00:00:00Z"}],
+       d["buckets"])
+    ok("totalTurns is 162+9+30=201, never 585+9+30 from summing the "
+       "climbing snapshots", d["totalTurns"] == 201, d["totalTurns"])
+    d_missing = routing_drift(pathlib.Path(tempfile.mkdtemp(prefix="spawn-cost-nolog-")))
+    ok("NEVER-RAN: no turns log at all reads rows=None, not an empty drift",
+       d_missing.get("rows") is None, d_missing)
+    ok("with no git repository at all, committed model reads as unknown and "
+       "nothing is excluded as pre-ruling (0 of 3 agentIds)",
+       d["preRuling"] == 0, d["preRuling"])
+    shutil.rmtree(droot, ignore_errors=True)
+
+    print("\n  PRE-RULING (the director's correction, 2026-09-10): a row "
+          "CANNOT violate a declaration that postdates it, PLANTED:\n")
+    proot = pathlib.Path(tempfile.mkdtemp(prefix="spawn-cost-preruling-"))
+
+    def run_git(*args):
+        subprocess.run(["git", "-C", str(proot)] + list(args),
+                       capture_output=True, text=True, check=True)
+    (proot / ".claude" / "agents").mkdir(parents=True)
+    worker_md = proot / ".claude" / "agents" / "worker.md"
+    worker_md.write_text("---\nname: worker\nmodel: opus\n---\nbody\n",
+                         encoding="utf-8")
+    run_git("init", "-q")
+    run_git("config", "user.email", "t@t")
+    run_git("config", "user.name", "t")
+    run_git("add", "-A")
+    run_git("commit", "-q", "-m", "worker: opus, the committed declaration")
+    # THE RECLASSIFICATION, uncommitted, exactly as the live ruling left the
+    # real nine definitions: working tree says sonnet, HEAD still says opus.
+    worker_md.write_text("---\nname: worker\nmodel: sonnet\n---\nbody\n",
+                         encoding="utf-8")
+    ptlog = proot / TURNS_LOG
+    ptlog.parent.mkdir(parents=True, exist_ok=True)
+    ptlog.write_text(
+        "\t".join(COLUMNS) + "\n"
+        # PLANTED: ran opus, long before the reclassification -- compliance
+        # with the rule as it THEN stood (declared opus, ran opus), not a
+        # disagreement with the rule as it stands now (declared sonnet).
+        + "2020-01-01T00:00:00Z\tworker\topus\t50\t90\told1\n",
+        encoding="utf-8")
+    dp = routing_drift(proot)
+    ok("a row predating its agent's reclassification lands in preRuling "
+       "(1 row, 50 turns), not the violation count",
+       dp["preRuling"] == 1 and dp["preRulingTurns"] == 50, dp)
+    ok("and it is NOT counted as an agreement either (it was never judged "
+       "against the new declaration at all)", dp["agreements"] == 0,
+       dp["agreements"])
+    ok("and the violation buckets are empty: the ONLY row on file is the "
+       "pre-ruling one", dp["buckets"] == [] and dp["disagreeAgents"] == 0,
+       (dp["buckets"], dp["disagreeAgents"]))
+    shutil.rmtree(proot, ignore_errors=True)
+
     print("\nspawn-cost --selftest: %s. %d passed, %d failed"
           % ("PASS" if not failed else "FAILED", passed, len(failed)))
     for f in failed:
@@ -540,6 +632,309 @@ def _spawn_rows(root=None):
     return n
 
 
+# -------------------------------------------- E4: declared vs ran (a join)
+# 2026-09-10 routing ruling, director follow-up: `.claude/agent-log.tsv`'s
+# model column (log-agent.sh, same day) records what was ASKED FOR -- the
+# SubagentStart payload's own `.model` field if the harness ever supplies
+# one, else a `.claude/spawn-intent` sidecar, else the agent definition's
+# own `model:` line -- NEVER what actually ran. What ran is recorded
+# separately, at SubagentStop, in THIS file's `tier` column, keyed by
+# `agentId`. Declared-versus-ran is therefore a JOIN on `agentId`, which is
+# the reason that column is on both files, not a read of either alone.
+
+
+def _declared_models(repo):
+    """name -> declared `model:` value, front matter only, from the CURRENT
+    `.claude/agents/*.md` files.
+
+    A DELIBERATELY SMALLER READER than `ledger/verify.py`'s `_agent_model_
+    defs` (the four-value gate, E1), which also classifies nonAgent/
+    noModel/dupModel in detail for refusing a bad definition. This only
+    needs a name-to-value map to compare against a RAN tier, and importing
+    `ledger/verify.py` as a module from here was avoided on purpose: this
+    session was told not to run that file, and keeping this a second,
+    narrower, explicitly-justified reader is the safer reading of that
+    instruction rather than sharing one through an import."""
+    d = pathlib.Path(repo) / ".claude" / "agents"
+    out = {}
+    try:
+        entries = sorted(d.glob("*.md"))
+    except OSError:
+        entries = []
+    for f in entries:
+        try:
+            lines = f.read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            continue
+        if not lines or lines[0].strip() != "---":
+            continue
+        end = None
+        for i in range(1, len(lines)):
+            if lines[i].strip() == "---":
+                end = i
+                break
+        for ln in (lines[1:end] if end else lines[1:]):
+            m = re.match(r"^model:(.*)$", ln)
+            if m:
+                out[f.stem.strip().lower()] = m.group(1).strip()
+                break
+    return out
+
+
+def _committed_model(repo, name):
+    """The `model:` value committed at HEAD for agent `name`, or None when
+    the file does not exist there or carries no recognisable line.
+
+    Read via `git show HEAD:...` rather than the working tree, because the
+    question this answers is "did the declaration change since the last
+    commit", and that question needs BOTH snapshots."""
+    try:
+        p = subprocess.run(
+            ["git", "-C", str(repo), "show",
+             "HEAD:.claude/agents/%s.md" % name],
+            capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if p.returncode != 0:
+        return None
+    lines = p.stdout.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return None
+    end = None
+    for i in range(1, len(lines)):
+        if lines[i].strip() == "---":
+            end = i
+            break
+    for ln in (lines[1:end] if end else lines[1:]):
+        m = re.match(r"^model:(.*)$", ln)
+        if m:
+            return m.group(1).strip()
+    return None
+
+
+def _ruling_cutovers(repo, decl):
+    """name -> epoch seconds after which its CURRENT declared model applies,
+    or None when there is none (every row in the turns log may be judged
+    against it).
+
+    A ROW BEFORE ITS AGENT'S CUTOVER CANNOT VIOLATE A RULE THAT DID NOT YET
+    EXIST FOR THAT AGENT (the director's correction, 2026-09-10): the
+    fable and opus disagreements below are real because producer,
+    studio-director and the opus-declared builders have carried that exact
+    declaration since before any logged spawn, so every row is fairly
+    judged against it. Nine OTHER definitions (planner, content-wrangler
+    and world-designer among them) were reclassified in the SAME session
+    that built this check, so their pre-reclassification runs are being
+    compared against a rule that postdates them -- a retroactive judgement,
+    not a violation.
+
+    MEASURED PER AGENT, NOT BY ONE GLOBAL TIMESTAMP: a single cutoff would
+    also erase the two real buckets, since every one of their rows predates
+    today's table edit too. What actually distinguishes them is whether
+    THIS agent's declaration changed, checked against `git show HEAD:...`
+    rather than the file's own mtime -- `producer.md` was edited again on
+    2026-09-09 for a reason unrelated to its `model:` line (still `fable`
+    both before and after), and a bare mtime comparison would have misread
+    that edit as a reclassification it was not."""
+    out = {}
+    for name, cur in decl.items():
+        committed = _committed_model(repo, name)
+        if committed is None or committed == cur:
+            out[name] = None
+            continue
+        f = pathlib.Path(repo) / ".claude" / "agents" / (name + ".md")
+        try:
+            out[name] = f.stat().st_mtime
+        except OSError:
+            out[name] = None
+    return out
+
+
+def _epoch(s):
+    """One ISO8601 UTC stamp -> epoch seconds, or None. Mirrors
+    `ledger/verify.py`'s `_cadence_epoch` in shape (same project, same
+    contract: a bare `Z` offset, UTC assumed), kept as a second small
+    reader rather than an import for the same reason `_declared_models`
+    is its own reader and not a call into `ledger/verify.py`."""
+    s = (s or "").strip()
+    if not s:
+        return None
+    if s.endswith(("Z", "z")):
+        s = s[:-1] + "+00:00"
+    try:
+        return datetime.datetime.fromisoformat(s).timestamp()
+    except ValueError:
+        return None
+
+
+def routing_drift(repo=None):
+    """DECLARED (what the definition asks for, TODAY) versus RAN (the LAST
+    SubagentStop snapshot per `agentId`), joined on that column.
+
+    THREE TRAPS MEASURED AND NAMED, each asserted against in the selftest
+    so none can return silently:
+
+      LAST-WINS, NEVER SUMMED. `agent-turns.tsv` writes one row per
+      SubagentStop, and a spawn nudged past `maxTurns` writes SEVERAL rows
+      for the SAME agentId with climbing turn counts (45, 68, 83, 105, 122,
+      162 was a real sequence). Summed, that inflates one spawn's turns
+      sixfold and the whole file's turns by roughly 2000 of 10407. This
+      keeps only the LAST row written for each agentId (`read_log`'s own
+      file order, which is chronological) and nothing else.
+
+      NO DECLARATION, NO DISAGREEMENT. `general-purpose` and any other
+      built-in `agent_type` with no `.claude/agents/<type>.md` on disk has
+      nothing to compare against, and is counted in its OWN bucket, never
+      as a violation (rule 3b: a fact this reader cannot judge is not the
+      same fact as one it judged clean).
+
+      PRE-RULING, NOT A VIOLATION. A row whose `when` predates its agent's
+      OWN `_ruling_cutovers` entry is compliance with the rule as it THEN
+      stood, not a disagreement with the rule as it stands now, and is
+      counted in `preRuling` instead (see `_ruling_cutovers`'s own
+      docstring for why this is per-agent and not one global timestamp,
+      and why `preRuling` IS NOT ZERO AND NEVER WILL BE: the ruling
+      reclassified nine definitions on the day it landed, so every run
+      before that day was judged by a different table, permanently, and
+      folding those rows back into the violation count the day this gap
+      is "fixed" would be the exact fault this bucket exists to prevent).
+
+    A FIRST DRAFT OF THIS FUNCTION MISSED THE THIRD TRAP and reported 37 of
+    163 agents where the honest number was 24 of 163: it compared every
+    historical row against TODAY's declaration with no notion that the
+    declaration itself had a start date, so `planner`, `content-wrangler`
+    and `world-designer`'s pre-reclassification opus runs read as
+    violations of a rule that did not exist yet. Caught the same day by
+    the director reading this function's own output against a hand tally
+    that had excluded them correctly by knowing, by hand, which roles had
+    just changed.
+
+    Returns a dict, or `{"rows": None}` when the turns log could not be
+    read at all."""
+    base = pathlib.Path(repo) if repo else REPO
+    decl = _declared_models(base)
+    cutovers = _ruling_cutovers(base, decl)
+    rows, _short, _unmeasured = read_log(log_path(base))
+    if rows is None:
+        return {"rows": None}
+    last = {}
+    for r in rows:
+        if r.get("agentId") and r["agentId"] != "unknown":
+            last[r["agentId"]] = r        # LAST occurrence wins: file order
+    no_decl = []
+    agreements = 0
+    pre_ruling_rows = []
+    pairs = {}                             # (declared, ran) -> [row, ...]
+    for r in last.values():
+        agent = r["agent"].strip().lower()
+        ran = r["tier"].split("+")[0]             # strip a +mixed suffix
+        d = decl.get(agent)
+        if d is None:
+            no_decl.append(agent)
+            continue
+        cutover = cutovers.get(agent)
+        if cutover is not None:
+            e = _epoch(r["when"])
+            if e is None or e < cutover:
+                # UNDATEABLE COUNTS AS PRE-RULING TOO: a row this reader
+                # cannot place in time cannot be shown to postdate the
+                # cutover either, and the safe direction (rule 5b) is the
+                # one that never inflates a violation count.
+                pre_ruling_rows.append(r)
+                continue
+        if d == ran:
+            agreements += 1
+            continue
+        pairs.setdefault((d, ran), []).append(r)
+    buckets = []
+    disagree_agents = disagree_turns = 0
+    for (d, ran), entries in pairs.items():
+        n = len(entries)
+        turns = sum(r["turns"] for r in entries)
+        whens = sorted(r["when"] for r in entries)
+        disagree_agents += n
+        disagree_turns += turns
+        buckets.append({"declared": d, "ran": ran, "agents": n,
+                        "turns": turns, "whenMin": whens[0],
+                        "whenMax": whens[-1]})
+    buckets.sort(key=lambda b: -b["agents"])
+    total_turns = sum(r["turns"] for r in last.values())
+    return {"rows": True, "distinct": len(last), "agreements": agreements,
+            "noDeclaration": len(no_decl),
+            "noDeclarationNames": sorted(set(no_decl)),
+            "preRuling": len(pre_ruling_rows),
+            "preRulingTurns": sum(r["turns"] for r in pre_ruling_rows),
+            "buckets": buckets, "disagreeAgents": disagree_agents,
+            "disagreeTurns": disagree_turns, "totalTurns": total_turns}
+
+
+def report_routing_drift(d):
+    """The printed form of `routing_drift()`'s dict. Every number says what
+    it is a statistic OF (rule: instruments.md), and the three that could
+    be mistaken for each other -- violations, preRuling, noDeclaration --
+    print as three separate counts so none can stand in for another (the
+    director's own framing, 2026-09-10)."""
+    if d.get("rows") is None:
+        print("spawn-cost --routing-drift: %s (no turns log at %s)"
+              % (NOTHING_MEASURED, log_path()))
+        return 2
+    print("spawn-cost --routing-drift: declared (today's .claude/agents/*.md) "
+         "vs ran (last SubagentStop snapshot), joined on agentId")
+    print("  distinct agentId(s) in the turns log, last-wins per id: %d"
+          % d["distinct"])
+    print("  agreements (declared == ran): %d" % d["agreements"])
+    print("  preRuling=%d (%d turns): rows that predate the ruling for "
+          "THEIR agent, compliance with the rule as it then stood, never a "
+          "violation. NOT ZERO AND NEVER WILL BE: the 2026-09-10 ruling "
+          "reclassified nine definitions the day it landed, so every run "
+          "before that day was judged by a different table, permanently -- "
+          "folding these rows back into the violation count would be the "
+          "exact fault this bucket exists to prevent."
+          % (d["preRuling"], d["preRulingTurns"]))
+    print("  noDeclaration=%d excluded from the numerator (no .claude/"
+          "agents/<type>.md on disk, so nothing to disagree with): %s"
+          % (d["noDeclaration"],
+             cap(d["noDeclarationNames"], keep=3) if d["noDeclarationNames"]
+             else "none"))
+    # DIRECTION DECIDES THE WORD, and the ruling is explicit about which
+    # direction it restricts: "a spawn cannot override it upward without a
+    # written reason". Downward is permitted and needs no reason. So a row that
+    # ran BELOW its declared tier is not a violation of anything; it is a
+    # SILENT DEMOTION, which matters for a different reason (a director
+    # declared fable that ran opus was not the model the ruling asks for) and
+    # must not be counted as rule-breaking. Only an upward run with no
+    # resolving reason breaks the ruling as written.
+    RANK = {"haiku": 0, "sonnet": 1, "opus": 2, "fable": 3}
+    up, down = [], []
+    for b in d["buckets"]:
+        r_dec, r_ran = RANK.get(b["declared"], -1), RANK.get(b["ran"], -1)
+        (up if r_ran > r_dec else down).append(b)
+    if not d["buckets"]:
+        print("  0 disagreement(s) of %d agent(s) examined" % d["distinct"])
+    for b in down:
+        print("  SILENT DEMOTION declared %s, ran %s (DOWNWARD, permitted "
+              "without a reason): %d agent(s), %d turns, %s..%s"
+              % (b["declared"], b["ran"], b["agents"], b["turns"],
+                 b["whenMin"], b["whenMax"]))
+    for b in up:
+        print("  VIOLATION declared %s, ran %s (UPWARD, needs a resolving "
+              "reason): %d agent(s), %d turns, %s..%s"
+              % (b["declared"], b["ran"], b["agents"], b["turns"],
+                 b["whenMin"], b["whenMax"]))
+    print("  upwardWithoutReason=%d of %d bucket(s), which is what the ruling "
+          "forbids; downwardUnrecorded=%d, which it permits"
+          % (len(up), len(d["buckets"]), len(down)))
+    print("  declared-versus-ran disagreements after the ruling, BOTH "
+          "DIRECTIONS: %d of %d agent(s) (%.0f%%), "
+          "%d of %d turn(s) (%.0f%%)"
+          % (d["disagreeAgents"], d["distinct"],
+             100.0 * d["disagreeAgents"] / d["distinct"] if d["distinct"] else 0,
+             d["disagreeTurns"], d["totalTurns"],
+             100.0 * d["disagreeTurns"] / d["totalTurns"]
+             if d["totalTurns"] else 0))
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--report", action="store_true")
@@ -552,6 +947,9 @@ def main():
     ap.add_argument("--hook", action="store_true",
                     help="SubagentStop: read the payload on stdin, append one "
                          "row, and ALWAYS exit 0")
+    ap.add_argument("--routing-drift", action="store_true",
+                    help="declared (definition) vs ran (turns log), joined "
+                         "on agentId -- see routing_drift()")
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args()
     if args.selftest:
@@ -564,6 +962,8 @@ def main():
         return 0
     if args.transcripts:
         return series(args.transcripts, args.limit)
+    if args.routing_drift:
+        return report_routing_drift(routing_drift())
     path = args.log or log_path()
     rows, short, unmeasured = read_log(path)
     return report(rows, short, str(path), _spawn_rows(), unmeasured)

@@ -1,4 +1,4 @@
-when	agent
+when	agent	model	reason	agentId
 2026-08-24T16:54:19Z	general-purpose
 2026-08-24T16:54:40Z	general-purpose
 2026-08-24T17:05:01Z	general-purpose
@@ -526,3 +526,8 @@ when	agent
 2026-09-10T12:57:48Z	world-designer
 2026-09-10T13:01:07Z	world-designer
 2026-09-10T13:22:04Z	producer
+2026-09-10T15:21:09Z	studio-director
+2026-09-10T15:33:37Z	instrument-builder
+2026-09-10T15:57:27Z	instrument-builder	opus	
+2026-09-10T16:16:36Z	instrument-builder	opus	default	a8db539191f1905e6
+2026-09-10T16:28:06Z	instrument-builder	opus	default	a8db539191f1905e6

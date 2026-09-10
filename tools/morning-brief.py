@@ -1041,10 +1041,12 @@ def compose(root, today):
     # and the hand-written brief of 2026-09-09 reported the art share where the
     # standing order asks for the studio-versus-game split, which is a different
     # question answered in a different unit. This program cannot compute the art
-    # share honestly: .claude/agent-log.tsv carries two columns, a time and an
-    # agent name, no agent name in it is the art line, and production/budget.md
-    # says the turns-to-points conversion is UNMEASURED. So it says that,
-    # rather than letting the split stand in for it.
+    # share honestly: .claude/agent-log.tsv's rows carry a time and an agent
+    # name (plus, from 2026-09-10, a model, a reason and an agentId on rows
+    # written since the routing ruling -- read_split() above still uses only
+    # the first two), and no column in it names the art line either way, and
+    # production/budget.md says the turns-to-points conversion is UNMEASURED.
+    # So it says that, rather than letting the split stand in for it.
     money += " The art share is not measured here."
 
     if waiting:

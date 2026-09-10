@@ -198,26 +198,118 @@ bash "$HERE/session-start.sh" >/dev/null 2>&1 && say ok "session-start survives 
 # instrument lie: a spawn that goes unrecorded, and a row that corrupts the
 # file every later reading depends on.
 call_log() {  # $1 = raw stdin -> returns the hook's exit code
-    printf '%s' "$1" | AGENT_LOG="$AGENTLOG" bash "$HERE/log-agent.sh" >/dev/null 2>&1
+    printf '%s' "$1" \
+        | AGENT_LOG="$AGENTLOG" AGENT_SPAWN_INTENT="$INTENT" \
+          bash "$HERE/log-agent.sh" >/dev/null 2>&1
 }
 AGENTLOG="$WORK/.claude/agent-log.tsv"
+INTENT="$WORK/.claude/spawn-intent"
 rows() { [ -f "$AGENTLOG" ] && wc -l < "$AGENTLOG" | tr -d ' ' || echo 0; }
+
+# DEFINITION FIXTURES, 2026-09-10 (E2): log-agent.sh now reads model: out of
+# .claude/agents/<agent_type>.md at spawn time and consumes a matching
+# .claude/spawn-intent for an upward or downward override, so the accepting
+# case needs both, in the same sandbox the hook will see.
+mkdir -p "$WORK/.claude/agents"
+cat > "$WORK/.claude/agents/systems-builder.md" <<'DEFEOF'
+---
+name: systems-builder
+model: opus
+---
+fixture agent, selftest only
+DEFEOF
+cat > "$WORK/.claude/agents/low-tier-worker.md" <<'DEFEOF'
+---
+name: low-tier-worker
+model: haiku
+---
+fixture agent, selftest only — body mentions model: opus, must not match
+DEFEOF
 
 # ACCEPTING FIRST, again — the expensive failure is an audit trail that
 # records nothing and looks exactly like a director who delegated nothing.
 call_log '{"agent_type":"systems-builder","session_id":"x"}'
 [ "$(rows)" = "2" ] && say ok "a spawn appends a row under a header" \
                     || say bad "a spawn appends a row under a header (rows=$(rows))"
-grep -q '^when	agent$' "$AGENTLOG" && say ok "the header is written once, first" \
-                                   || say bad "the header is written once, first"
-grep -q '	systems-builder$' "$AGENTLOG" && say ok "the row carries the agent type" \
-                                          || say bad "the row carries the agent type"
-# One line per spawn, and the header is NOT rewritten on the second.
+grep -q '^when	agent	model	reason	agentId$' "$AGENTLOG" \
+    && say ok "the header names all five columns, written once, first" \
+    || say bad "the header names all five columns, written once, first"
+[ "$(tail -1 "$AGENTLOG" | cut -f2)" = "systems-builder" ] \
+    && say ok "the row carries the agent type" \
+    || say bad "the row carries the agent type"
+[ "$(tail -1 "$AGENTLOG" | cut -f3)" = "opus" ] \
+    && say ok "the row carries the model read from the agent's own definition (opus)" \
+    || say bad "the row carries the model read from the agent's own definition (opus)"
+[ "$(tail -1 "$AGENTLOG" | cut -f4)" = "default" ] \
+    && say ok "a spawn at its declared model reads reason=default" \
+    || say bad "a spawn at its declared model reads reason=default"
+
+# A MATCHING spawn-intent: model AND its up: reason token captured together,
+# same row, same read — the paired reading the construction rules ask for.
+echo "agent=systems-builder model=fable reason=up:review:queue/099" > "$INTENT"
+call_log '{"agent_type":"systems-builder","agent_id":"up1"}'
+[ "$(tail -1 "$AGENTLOG" | cut -f3)" = "fable" ] \
+    && say ok "a matching spawn-intent's model (fable) is captured" \
+    || say bad "a matching spawn-intent's model (fable) is captured"
+[ "$(tail -1 "$AGENTLOG" | cut -f4)" = "up:review:queue/099" ] \
+    && say ok "its reason= token is captured in the SAME row" \
+    || say bad "its reason= token is captured in the SAME row"
+[ "$(tail -1 "$AGENTLOG" | cut -f5)" = "up1" ] \
+    && say ok "the row carries the SubagentStart payload's own agentId" \
+    || say bad "the row carries the SubagentStart payload's own agentId"
+[ ! -f "$INTENT" ] && say ok "a matching spawn-intent is consumed (deleted)" \
+                    || say bad "a matching spawn-intent is consumed (deleted)"
+
+# A MISMATCHED spawn-intent (a different agent_type) must survive untouched:
+# an intent meant for a spawn that has not fired yet is not another spawn's
+# to consume.
+echo "agent=some-other-agent model=fable reason=up:review:queue/001" > "$INTENT"
+call_log '{"agent_type":"systems-builder"}'
+[ "$(tail -1 "$AGENTLOG" | cut -f3)" = "opus" ] \
+    && say ok "a MISMATCHED spawn-intent is ignored (model falls back to declared)" \
+    || say bad "a MISMATCHED spawn-intent is ignored (model falls back to declared)"
+[ -f "$INTENT" ] && say ok "a MISMATCHED spawn-intent survives, unconsumed" \
+                  || say bad "a MISMATCHED spawn-intent survives, unconsumed"
+rm -f "$INTENT"
+
+# DOWNWARD via a matching intent: free, recorded as fact, and the intent's
+# own up: reason token (meant for an upward move) is never used for one.
+echo "agent=systems-builder model=haiku reason=up:should-be-ignored" > "$INTENT"
+call_log '{"agent_type":"systems-builder"}'
+[ "$(tail -1 "$AGENTLOG" | cut -f3)" = "haiku" ] \
+    && say ok "a downward spawn-intent's model (haiku) is captured" \
+    || say bad "a downward spawn-intent's model (haiku) is captured"
+[ "$(tail -1 "$AGENTLOG" | cut -f4)" = "down" ] \
+    && say ok "a downward route reads reason=down, never the intent's own up: token" \
+    || say bad "a downward route reads reason=down, never the intent's own up: token"
+
+# An agent_type with NO definition file on disk: the model column says so
+# in the literal word "none" (rule 3b), never a blank read as "no opinion".
+call_log '{"agent_type":"general-purpose"}'
+[ "$(tail -1 "$AGENTLOG" | cut -f3)" = "none" ] \
+    && say ok "an agent_type with no definition file records none, not a guess" \
+    || say bad "an agent_type with no definition file records none, not a guess"
+[ "$(tail -1 "$AGENTLOG" | cut -f4)" = "default" ] \
+    && say ok "with no declared baseline, reason reads default (nothing to override)" \
+    || say bad "with no declared baseline, reason reads default (nothing to override)"
+
+# UPWARD with NO intent file at all: the sentinel, never a blank. Exercises
+# the SubagentStart payload's own optional .model field too (measured absent
+# today, checked anyway per the hook's own comment).
+call_log '{"agent_type":"low-tier-worker","model":"fable"}'
+[ "$(tail -1 "$AGENTLOG" | cut -f3)" = "fable" ] \
+    && say ok "a payload-supplied model (fable) is used when present" \
+    || say bad "a payload-supplied model (fable) is used when present"
+[ "$(tail -1 "$AGENTLOG" | cut -f4)" = "up:MISSING" ] \
+    && say ok "upward with no matching intent writes up:MISSING, never a blank" \
+    || say bad "upward with no matching intent writes up:MISSING, never a blank"
+
+# One line per spawn, and the header is NOT rewritten on a later one.
 call_log '{"agent_type":"claim-auditor"}'
-[ "$(rows)" = "3" ] && say ok "a second spawn appends one line, no new header" \
-                    || say bad "a second spawn appends one line, no new header (rows=$(rows))"
+[ "$(rows)" = "8" ] && say ok "an eighth row appends one line, no new header" \
+                    || say bad "an eighth row appends one line, no new header (rows=$(rows))"
 # The whole point of the file: counting spawns by type must work.
-[ "$(cut -f2 "$AGENTLOG" | grep -c 'auditor\|builder')" = "2" ] \
+[ "$(cut -f2 "$AGENTLOG" | grep -c 'auditor\|builder\|worker\|purpose')" = "7" ] \
     && say ok "spawns are countable by type" || say bad "spawns are countable by type"
 
 # REJECTING — and the requirement is exit 0 with the file untouched, because
@@ -233,31 +325,60 @@ call_log ''
 call_log '{"session_id":"x"}'
 [ "$(cat "$AGENTLOG")" = "$BEFORE" ] && say ok "JSON with no agent_type appends nothing" \
                                      || say bad "JSON with no agent_type appends nothing"
-# A tab in the value would split the row and every later `cut -f2` would
-# read the wrong column — the verdict's no-spaces rule, one file over.
-call_log '{"agent_type":"a\tb"}'
-[ "$(tail -1 "$AGENTLOG" | awk -F'\t' '{print NF}')" = "2" ] \
-    && say ok "a tab in the agent name cannot split the row" \
-    || say bad "a tab in the agent name cannot split the row"
+# A tab in a value would split the row and every later `cut -fN` would read
+# the wrong column — the verdict's no-spaces rule, one file over.
+call_log '{"agent_type":"a\tb","agent_id":"id\tx"}'
+[ "$(tail -1 "$AGENTLOG" | awk -F'\t' '{print NF}')" = "5" ] \
+    && say ok "a tab in a value cannot split the row (all five columns stand)" \
+    || say bad "a tab in a value cannot split the row (all five columns stand)"
+[ "$(tail -1 "$AGENTLOG" | cut -f2)" = "a b" ] \
+    && say ok "the tab in the agent name is itself replaced with a space" \
+    || say bad "the tab in the agent name is itself replaced with a space"
+[ "$(tail -1 "$AGENTLOG" | cut -f5)" = "id x" ] \
+    && say ok "the tab in the agentId is itself replaced with a space" \
+    || say bad "the tab in the agentId is itself replaced with a space"
 
 # THE FALLBACK IS A SECOND IMPLEMENTATION AND THEREFORE A SECOND THING TO
 # TEST. Every test above ran the jq branch, because jq is on this PATH; a
 # container without it would silently take the grep branch and nobody would
 # know until the log came back empty. One idea, two implementations, and the
-# one nobody looks at is the one missing a line.
+# one nobody looks at is the one missing a line. `awk` is added to this PATH
+# too: the model lookup below uses it in BOTH branches (it has nothing to do
+# with the jq/grep fallback), and a PATH missing it would silently read
+# every model as declared-only (never a payload/intent override) rather
+# than fail loudly.
 NOJQ="$WORK/nojq"; mkdir -p "$NOJQ"
-for b in cat grep head sed tr date mkdir dirname bash; do
+for b in cat grep head sed tr date mkdir dirname bash awk rm cut; do
     p=$(command -v "$b") && ln -sf "$p" "$NOJQ/$b"
 done
 FALLLOG="$WORK/.claude/fallback.tsv"
-printf '{"agent_type":"content-wrangler"}' \
-    | PATH="$NOJQ" AGENT_LOG="$FALLLOG" bash "$HERE/log-agent.sh" >/dev/null 2>&1
-grep -q '	content-wrangler$' "$FALLLOG" 2>/dev/null \
+FALLINTENT="$WORK/.claude/fallback-intent"
+printf '{"agent_type":"systems-builder","agent_id":"fb1"}' \
+    | PATH="$NOJQ" AGENT_LOG="$FALLLOG" AGENT_SPAWN_INTENT="$FALLINTENT" \
+      bash "$HERE/log-agent.sh" >/dev/null 2>&1
+[ "$(tail -1 "$FALLLOG" 2>/dev/null | cut -f2)" = "systems-builder" ] \
     && say ok "the no-jq fallback records the spawn too" \
     || say bad "the no-jq fallback records the spawn too"
+[ "$(tail -1 "$FALLLOG" 2>/dev/null | cut -f3)" = "opus" ] \
+    && say ok "the no-jq fallback still reads the model from the definition (awk, not jq)" \
+    || say bad "the no-jq fallback still reads the model from the definition (awk, not jq)"
+[ "$(tail -1 "$FALLLOG" 2>/dev/null | cut -f5)" = "fb1" ] \
+    && say ok "the no-jq fallback extracts agentId too (grep, not jq)" \
+    || say bad "the no-jq fallback extracts agentId too (grep, not jq)"
+echo "agent=systems-builder model=fable reason=up:engine:ledger/Assets/x" > "$FALLINTENT"
+printf '{"agent_type":"systems-builder","agent_id":"fb2"}' \
+    | PATH="$NOJQ" AGENT_LOG="$FALLLOG" AGENT_SPAWN_INTENT="$FALLINTENT" \
+      bash "$HERE/log-agent.sh" >/dev/null 2>&1
+[ "$(tail -1 "$FALLLOG" 2>/dev/null | cut -f3)" = "fable" ] \
+    && say ok "the no-jq fallback also consumes a matching spawn-intent" \
+    || say bad "the no-jq fallback also consumes a matching spawn-intent"
+[ ! -f "$FALLINTENT" ] \
+    && say ok "the no-jq fallback deletes the intent it consumed" \
+    || say bad "the no-jq fallback deletes the intent it consumed"
 printf 'garbage {{{' \
-    | PATH="$NOJQ" AGENT_LOG="$FALLLOG" bash "$HERE/log-agent.sh" >/dev/null 2>&1
-[ "$(wc -l < "$FALLLOG" | tr -d ' ')" = "2" ] \
+    | PATH="$NOJQ" AGENT_LOG="$FALLLOG" AGENT_SPAWN_INTENT="$FALLINTENT" \
+      bash "$HERE/log-agent.sh" >/dev/null 2>&1
+[ "$(wc -l < "$FALLLOG" | tr -d ' ')" = "3" ] \
     && say ok "the no-jq fallback appends nothing for garbage" \
     || say bad "the no-jq fallback appends nothing for garbage"
 

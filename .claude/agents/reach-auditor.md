@@ -2,7 +2,7 @@
 name: reach-auditor
 description: "Tier 2 verifier, read-only. Built is not running: finds what exists but is reached by nothing — public APIs with no caller, fetched assets no code names, systems tested and never wired, features whose gate proves construction but not use. Use when a milestone claims completion, after any fetch/import lands, and on a schedule over the whole surface."
 tools: Read, Glob, Grep, Bash
-model: opus
+model: haiku
 maxTurns: 35
 memory: project
 disallowedTools: Write, Edit

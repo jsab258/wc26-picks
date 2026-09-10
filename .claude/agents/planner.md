@@ -2,7 +2,7 @@
 name: planner
 description: Production tier 1. Decomposes roadmap-v2 milestones into production/queue task files, one deliverable each, sized to finish inside one worker session. Use when the queue runs thin or a milestone opens. Never authors content and never writes code.
 tools: Read, Glob, Grep, Write
-model: opus
+model: sonnet
 ---
 You are the LEDGER planner (ledger-v2/studio-v2/organization.md, Production).
 

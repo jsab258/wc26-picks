@@ -3287,6 +3287,697 @@ def _cadence_fable_agents(repo):
     return sorted(set(names)), files
 
 
+# --------------------------------------------------- agent model routing
+# Jafar's ruling 2026-09-10, amended the same day, enforcement spec section 5
+# of game-design/decision-2026-09-10-ruling-model-routing.md (E1 to E5). THE
+# FOUR VALUES, ladder low to high:
+#
+#     haiku  <  sonnet  <  opus  <  fable
+#
+# "Upward" means toward fable. A downward route needs no reason; an upward
+# one needs a written, RESOLVING reason in the spawn-log row or the run is
+# refused (section 4). Enforcement clause, verbatim: "verify refuses any
+# agent definition whose model is not one of the four; the spawn log gains a
+# model column; an upward override carries a written reason in that row or
+# is refused."
+#
+# BEFORE THIS, a typo in a `model:` line was not an error. Line 3284 above
+# (FABLE_MODEL) is the only other code in this file that ever read one, and
+# all it asked was whether the value equalled the literal string "fable", so
+# `haiiku` fell through as "not fable" and nothing downstream noticed it was
+# not a real model at all, only that it was not this particular one.
+AGENT_MODEL_LADDER = ("haiku", "sonnet", "opus", "fable")
+AGENT_MODEL_SET = frozenset(AGENT_MODEL_LADDER)
+AGENT_MODEL_RANK = {m: i for i, m in enumerate(AGENT_MODEL_LADDER)}
+AGENT_MODEL_LINE_RE = re.compile(r"^model:(.*)$")
+
+
+def _agent_model_defs(repo):
+    """Every `.claude/agents/*.md` file, classified for E1 (agent_model_values)
+    and read for E3 (agent_model_overrides).
+
+    Returns (records, files) where `files` is the COUNT of `.md` files
+    actually read (the denominator, rule 3b) and `records` is a list of one
+    dict per file:
+
+      name      the filename stem, lowercased
+      relpath   repo-relative path, so a refusal can name its own file
+      kind      "nonAgent" (no opening bare "---": not a frontmatter file at
+                all, the README's own case), "ok" (exactly one `model:` line,
+                value on the ladder), "off" (exactly one, value NOT on the
+                ladder), "noModel" (frontmatter present, zero `model:` lines)
+                or "dupModel" (frontmatter present, two or more)
+      value     the raw text after "model:", leading/trailing whitespace
+                stripped, CASE PRESERVED, for kind "ok"/"off"; None otherwise
+
+    CASE IS NOT FOLDED, on purpose, reversing this session's first draft
+    (which lowercased before comparing, mirroring FABLE_MODEL above): the
+    2026-09-10 ruling states the harness's alias matching "is not known to
+    be case-insensitive", so `model: Opus` is refused rather than accepted
+    as a liberal reading of `opus` -- accepting it would be exactly the
+    silent-fallback hole this ruling exists to close, just moved from a
+    string typo to a capitalisation one.
+
+    A FILE IS "AN AGENT" IFF ITS FIRST LINE IS A BARE "---". Checked by that
+    rule and never by filename, so README.md is nonAgent because it opens on
+    "# Agent roster", not because of what it is called. Everything between
+    the first bare "---" and the next one is the frontmatter scanned for
+    `model:` lines; an unterminated frontmatter (no closing "---") is scanned
+    to end of file rather than treated as empty, so a malformed file still
+    gets a chance to be judged rather than silently waved through as
+    nonAgent."""
+    d = pathlib.Path(repo) / DIRECTOR_AGENTS_DIR
+    records = []
+    try:
+        entries = sorted(d.glob("*.md"))
+    except OSError:
+        entries = []
+    for f in entries:
+        try:
+            lines = f.read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            continue                               # unreadable: not examined
+        rel = str(f.relative_to(pathlib.Path(repo)))
+        name = f.stem.strip().lower()
+        if not lines or lines[0].strip() != "---":
+            records.append({"name": name, "relpath": rel, "kind": "nonAgent",
+                            "value": None})
+            continue
+        end = None
+        for i in range(1, len(lines)):
+            if lines[i].strip() == "---":
+                end = i
+                break
+        front = lines[1:end] if end else lines[1:]
+        hits = [m.group(1).strip() for m in
+               (AGENT_MODEL_LINE_RE.match(ln) for ln in front) if m]
+        if not hits:
+            records.append({"name": name, "relpath": rel, "kind": "noModel",
+                            "value": None})
+        elif len(hits) > 1:
+            records.append({"name": name, "relpath": rel, "kind": "dupModel",
+                            "value": None})
+        else:
+            value = hits[0]
+            kind = "ok" if value in AGENT_MODEL_SET else "off"
+            records.append({"name": name, "relpath": rel, "kind": kind,
+                            "value": value})
+    return records, len(records)
+
+
+def agent_model_values(repo=None):
+    """E1, THE FOUR-VALUE CHECK (2026-09-10 ruling, decision record section
+    5). See `_agent_model_defs` above for exactly what counts as an agent,
+    a missing model line, a duplicate, and an off-ladder value; this
+    function only tallies and reports what that reader found.
+
+    THE FOOTER FORMAT IS SPECIFIED, not invented here: the decision record
+    names the exact keys, `agentFiles=15 onList=15 offList=0 noModel=0
+    dupModel=0 nonAgent=1` against the tree as it stood mid-ruling. ARITHMETIC
+    CHECKED AGAINST THAT EXAMPLE, not assumed from the key's name: 15 does
+    not equal 16 (the 15 on-list plus the 1 README), so `agentFiles` is the
+    count of files JUDGED as agent definitions (onList+offList+noModel+
+    dupModel), and `nonAgent` is reported beside it as the complementary
+    fact, not folded in. `files` (the raw directory scan, agentFiles plus
+    nonAgent plus anything unreadable excluded before either count) is this
+    function's own nothing-measured denominator, printed only on that path,
+    so "the scan opened zero files" and "the scan opened files but none were
+    agents" remain two different sentences (rule 3b)."""
+    base = pathlib.Path(repo) if repo else ROOT.parent
+    records, files = _agent_model_defs(base)
+    if files == 0:
+        return False, ("AGENT MODEL VALUES: %s (no *.md read under %s)"
+                       % (NOTHING_MEASURED, DIRECTOR_AGENTS_DIR))
+    by_kind = {"ok": [], "off": [], "noModel": [], "dupModel": [], "nonAgent": []}
+    for r in records:
+        by_kind[r["kind"]].append(r)
+    agent_files = files - len(by_kind["nonAgent"])
+    counts = ("agentFiles=%d onList=%d offList=%d noModel=%d dupModel=%d "
+             "nonAgent=%d" % (agent_files, len(by_kind["ok"]), len(by_kind["off"]),
+                              len(by_kind["noModel"]), len(by_kind["dupModel"]),
+                              len(by_kind["nonAgent"])))
+    if agent_files == 0:
+        return False, ("AGENT MODEL VALUES: %s (%d file(s) read under %s, "
+                       "every one nonAgent: no frontmatter at all) (%s)"
+                       % (NOTHING_MEASURED, files, DIRECTOR_AGENTS_DIR, counts))
+    refused = (["%s=%r" % (r["relpath"], r["value"]) for r in by_kind["off"]]
+              + ["%s (no model: line)" % r["relpath"] for r in by_kind["noModel"]]
+              + ["%s (duplicate model: line)" % r["relpath"]
+                 for r in by_kind["dupModel"]])
+    if refused:
+        return False, ("AGENT MODEL VALUES: %d definition(s) refused: %s (%s)"
+                       % (len(refused), _cap(refused, keep=4, width=60), counts))
+    return True, ("%d definition(s) on the four-value ladder (%s)"
+                 % (len(by_kind["ok"]), counts))
+
+
+def agent_model_values_selftest():
+    """Both outcomes, ACCEPTING FIRST (rule 5b), fixtures drawn from the
+    ruling's own enforcement section rather than invented here: "the live
+    tree after the nine edits is the accepting case; the rejecting fixtures
+    are synthetic files carrying `model: opus ` with a trailing space
+    (accepted: whitespace is stripped), `model: Opus`, `model: inherit`,
+    `model: claude-opus-5`, no model line, two model lines, each refused
+    with its filename in the message." None of these six strings exists in
+    this repository's own `.claude/agents/`, so doing the routing work this
+    check prompts (re-routing a real agent) can never turn a rejecting
+    fixture into a pass."""
+    import shutil
+    passed, failed = 0, []
+
+    def want(label, cond, detail=""):
+        nonlocal passed
+        if cond:
+            passed += 1
+        else:
+            failed.append("%s -- got %r" % (label, detail))
+
+    ok_live, text_live = agent_model_values()
+    want("ACCEPT: the live .claude/agents tree passes today", ok_live, text_live)
+    want("ACCEPT: the live tree's footer names all five counts",
+        all(k in text_live for k in
+            ("agentFiles=", "onList=", "offList=", "noModel=", "dupModel=",
+             "nonAgent=")), text_live)
+
+    tmp = pathlib.Path(tempfile.mkdtemp(prefix="agent-model-values-"))
+    try:
+        def one(subdir, filename, body):
+            d = tmp / subdir / ".claude" / "agents"
+            d.mkdir(parents=True, exist_ok=True)
+            (d / filename).write_text(body, encoding="utf-8")
+            return tmp / subdir
+
+        # ACCEPTING edge case: trailing whitespace is stripped, not refused.
+        r = one("trail", "ok-agent.md",
+               "---\nname: ok-agent\nmodel: opus \n---\nbody\n")
+        ok_r, text_r = agent_model_values(r)
+        want("ACCEPT: model: opus with a trailing space is stripped, not "
+            "refused", ok_r, text_r)
+
+        # REJECTING, one synthetic fixture per row of the ruling's own list.
+        cases = [
+            ("case-upper", "bad-case.md",
+             "---\nname: bad-case\nmodel: Opus\n---\nbody\n"),
+            ("inherit", "bad-inherit.md",
+             "---\nname: bad-inherit\nmodel: inherit\n---\nbody\n"),
+            ("alias", "bad-alias.md",
+             "---\nname: bad-alias\nmodel: claude-opus-5\n---\nbody\n"),
+            ("nomodel", "bad-nomodel.md",
+             "---\nname: bad-nomodel\ntools: Read\n---\nbody\n"),
+            ("dup", "bad-dup.md",
+             "---\nname: bad-dup\nmodel: opus\nmodel: fable\n---\nbody\n"),
+        ]
+        for subdir, filename, body in cases:
+            rr = one(subdir, filename, body)
+            ok_c, text_c = agent_model_values(rr)
+            want("REJECT: %s is refused and names its own file" % filename,
+                (not ok_c) and filename in text_c, text_c)
+
+        nonagent_root = tmp / "nonagent"
+        (nonagent_root / ".claude" / "agents").mkdir(parents=True)
+        (nonagent_root / ".claude" / "agents" / "README.md").write_text(
+            "# nothing, no frontmatter\n", encoding="utf-8")
+        ok_nonagent, text_nonagent = agent_model_values(nonagent_root)
+        want("NEVER-RAN: a directory with only a non-agent file prints the "
+            "words and nonAgent=1, never a clean pass",
+            (not ok_nonagent) and "nonAgent=1" in text_nonagent, text_nonagent)
+
+        ok_missing, text_missing = agent_model_values(tmp / "missing")
+        want("NEVER-RAN: a missing .claude/agents directory prints the words",
+            (not ok_missing) and NOTHING_MEASURED in text_missing, text_missing)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+    label = ("agent-model-values selftest: %d passed, %d failed"
+             % (passed, len(failed)))
+    return (not failed), (label if not failed
+                          else label + " :: " + _cap(failed, keep=6, width=90))
+
+
+# --------------------------------------------- E3: the upward override
+# Section 4 of the ruling: an upward row's reason is ONE TOKEN, no spaces,
+#
+#     up:<class>:<evidence>
+#
+# where <class> is one of eight Jafar named (plus his escalation rule), each
+# permitted for exactly one target tier except `escalation`, whose target is
+# "exactly one tier above" the two referenced rows rather than a fixed tier.
+# "Sufficient" is ALL of: the class is in the table; the class permits THIS
+# row's target tier; the evidence resolves. Refused by name: an empty
+# reason, a full stop, prose, a class with no evidence, evidence that does
+# not resolve, a class not permitted for the target, an escalation skipping
+# a tier -- every one of those is a distinct branch below, not one bare
+# "insufficient" bucket, so a refusal names WHICH rule it failed.
+AGENT_MODEL_REASON_RE = re.compile(r"^up:([a-z0-9-]+):(.*)$")
+
+# The seven classes with ONE fixed permitted target tier.
+AGENT_MODEL_REASON_CLASS_TIER = {
+    "simulation-core": "fable",
+    "simulation-port": "fable",
+    "review": "fable",
+    "core-builder": "opus",
+    "unreal-cpp": "opus",
+    "engine-instrument": "opus",
+    "engine": "opus",
+}
+# The path PREFIX(ES) each path-evidenced class's evidence must fall under.
+# `review` and `escalation` resolve differently (queue/decision path; a row
+# pair) and are handled as their own branches, not through this table.
+AGENT_MODEL_REASON_PATH_PREFIXES = {
+    "simulation-core": ("ledger/Assets/Scripts/Core/",),
+    "core-builder": ("ledger/Assets/Scripts/Core/",),
+    "simulation-port": ("ue-probe/",),
+    "unreal-cpp": ("ue-probe/",),
+    "engine-instrument": ("ledger/Assets/", "ue-probe/"),
+    "engine": ("ledger/Assets/", ".github/workflows/"),
+}
+# Every class name the table above and `escalation` together define -- used
+# only to tell "not one of the eight" apart from "in the table but wrong
+# tier", which are different refusals (rule 3b's cousin: two failure modes
+# must not share one message).
+AGENT_MODEL_REASON_CLASSES = frozenset(
+    list(AGENT_MODEL_REASON_CLASS_TIER) + ["escalation"])
+
+
+def _agent_model_path_resolves(repo, path):
+    """True when `path` names something that exists ON DISK under `repo`
+    ("the tree"), OR appears in the uncommitted diff ("the diff": staged,
+    unstaged or untracked, plus a committed-but-unpushed diff against HEAD
+    is covered by the on-disk check already). Measured live against a real
+    `git status`/`git diff`, never assumed clean, because the evidence this
+    function is asked about is exactly the kind of claim rule 1 says to
+    check rather than recall."""
+    p = (path or "").strip()
+    if not p:
+        return False
+    base = pathlib.Path(repo)
+    if (base / p).exists():
+        return True
+    try:
+        status_out = subprocess.run(
+            ["git", "-C", str(base), "status", "--porcelain", "-uall"],
+            capture_output=True, text=True, timeout=30).stdout
+        diff_out = subprocess.run(
+            ["git", "-C", str(base), "diff", "--name-only", "HEAD"],
+            capture_output=True, text=True, timeout=30).stdout
+    except (OSError, subprocess.SubprocessError):
+        return False
+    candidates = [l[3:].strip() for l in status_out.splitlines() if l.strip()]
+    candidates += [l.strip() for l in diff_out.splitlines() if l.strip()]
+    return any(c == p or c.startswith(p) or p.startswith(c.rstrip("/") + "/")
+              for c in candidates if c)
+
+
+def _agent_model_review_resolves(repo, evidence):
+    """`review`'s own evidence shape: a queue item `queue/NNN` (a file under
+    `production/queue/` whose name starts with NNN) or a
+    `game-design/decision-*.md` path that exists."""
+    base = pathlib.Path(repo)
+    m = re.match(r"^queue/(\d+)$", evidence.strip())
+    if m:
+        qdir = base / "production" / "queue"
+        try:
+            return any(qdir.glob(m.group(1) + "*"))
+        except OSError:
+            return False
+    if evidence.startswith("game-design/decision-") and evidence.endswith(".md"):
+        return _agent_model_path_resolves(repo, evidence)
+    return False
+
+
+def _agent_model_escalation_resolves(repo, agent, target_rank, evidence):
+    """`escalation`'s own evidence shape: TWO `when` values, joined by `..`
+    (this project's structure separator for a value that must carry no
+    space), naming two rows in `.claude/agent-log.tsv` for the SAME agent
+    whose model is EXACTLY ONE TIER BELOW the target -- "never straight to
+    Fable" becomes, mechanically, "fable is reached only from two opus
+    rows", and a pair one tier further down (sonnet, skipping opus) is an
+    escalation that skipped a tier and does not resolve.
+
+    Returns (ok, why), the distinct reasons a reader can tell apart rather
+    than one bare False."""
+    parts = [p.strip() for p in evidence.split("..")]
+    if len(parts) != 2 or not all(parts):
+        return False, "escalation evidence is not two when values joined by .."
+    if target_rank <= 0:
+        return False, "escalation cannot target haiku, the floor of the ladder"
+    need_tier = AGENT_MODEL_LADDER[target_rank - 1]
+    log = pathlib.Path(repo) / DIRECTOR_LOG
+    if not log.exists():
+        return False, "%s not found" % DIRECTOR_LOG
+    found = {w: False for w in parts}
+    for line in log.read_text(encoding="utf-8", errors="replace").splitlines():
+        cols = line.split("\t")
+        if not cols or cols[0].strip() == "when":
+            continue
+        when = cols[0].strip()
+        if when not in found:
+            continue
+        a = cols[1].strip().lower() if len(cols) > 1 else ""
+        model = cols[2].strip() if len(cols) > 2 else ""
+        if a == agent and model == need_tier:
+            found[when] = True
+    if all(found.values()):
+        return True, "resolves"
+    missing = [w for w, ok in found.items() if not ok]
+    return False, ("%d/2 referenced row(s) not found as agent=%s model=%s "
+                   "(an escalation skipping a tier reads the same as a "
+                   "missing row): %s"
+                   % (2 - len(missing), agent, need_tier, _cap(missing, keep=2)))
+
+
+def _agent_model_reason_resolve(repo, agent, row_model_rank, reason):
+    """(ok, why) for ONE upward override's reason token, per section 4 of
+    the ruling. `row_model_rank` is the TARGET tier's rank: the row's own
+    (already-upward) model -- the tier the spawn actually ran at, which the
+    reason must justify reaching.
+
+    REFUSED BY NAME, matching the ruling's own list one branch at a time
+    rather than one bare "insufficient" bucket: an empty reason; anything
+    that is not the `up:<class>:<evidence>` shape (a full stop, prose such
+    as "hard task" or "see brief", or the hook's own `up:MISSING` sentinel,
+    none of which carry a second colon); a class not among the eight; a
+    class whose permitted tier is not this row's tier; a class with no
+    evidence; and evidence that does not resolve."""
+    s = (reason or "").strip()
+    if not s:
+        return False, "empty reason"
+    m = AGENT_MODEL_REASON_RE.match(s)
+    if not m:
+        return False, ("not the up:<class>:<evidence> shape (a full stop, "
+                       "prose, a bare word, or up:MISSING all land here)")
+    cls, evidence = m.group(1), m.group(2).strip()
+    if cls not in AGENT_MODEL_REASON_CLASSES:
+        return False, "class %r is not one of the eight" % cls
+    if cls == "escalation":
+        if not evidence:
+            return False, "escalation class with no evidence"
+        return _agent_model_escalation_resolves(repo, agent, row_model_rank,
+                                                evidence)
+    permitted_tier = AGENT_MODEL_REASON_CLASS_TIER[cls]
+    if AGENT_MODEL_RANK[permitted_tier] != row_model_rank:
+        return False, ("class %r is permitted only for %s, not %s"
+                       % (cls, permitted_tier, AGENT_MODEL_LADDER[row_model_rank]))
+    if not evidence:
+        return False, "class %r has no evidence" % cls
+    if cls == "review":
+        ok = _agent_model_review_resolves(repo, evidence)
+    else:
+        prefixes = AGENT_MODEL_REASON_PATH_PREFIXES[cls]
+        under_prefix = any(evidence.startswith(pfx) for pfx in prefixes)
+        ok = under_prefix and _agent_model_path_resolves(repo, evidence)
+    if not ok:
+        return False, "evidence %r does not resolve for class %r" % (evidence, cls)
+    return True, "resolves"
+
+
+def agent_model_overrides(repo=None):
+    """E3, THE UPWARD-OVERRIDE CHECK: a spawn logged with a model that ranks
+    ABOVE its agent definition's CURRENT model must carry a reason that
+    RESOLVES per `_agent_model_reason_resolve`, or this check refuses,
+    quoting the row (section 5, E3: "verify goes red on any row whose model
+    is above declared and whose reason fails section 4, quoting the row").
+
+    ROWS THIS CANNOT JUDGE, each its own bucket, never folded into "0
+    violations" (rule 3b):
+      preRuling      rows with fewer than 3 columns: written before E2
+                     landed, carrying no model at all. Named `preRuling`
+                     to match the same count in the decision record and in
+                     `spawn-cost.py --routing`'s planned reading, so one
+                     number is not three names.
+      noDefinition   the model column reads the literal word "none": a
+                     spawn of a built-in agent_type with no matching
+                     `.claude/agents/<type>.md` (log-agent.sh's own
+                     contract), so there is no declared baseline to rank
+                     against.
+      unrankedModel  the model column holds a value that is not one of the
+                     four (should not happen once E1 is green on every
+                     commit, counted anyway rather than assumed impossible)
+      unknownAgent   the row names an agent with no RANKABLE definition on
+                     file today: missing entirely, or itself off the ladder
+                     (E1 owns refusing that fault; this bucket only means
+                     "this check cannot say what the baseline was")
+    Everything else is ranked against the CURRENT definition, which means a
+    definition raised or lowered after a spawn changes how that old row
+    reads -- the only baseline available without snapshotting every
+    definition at every spawn, stated here so a future reader does not
+    mistake this for a per-spawn snapshot it is not."""
+    base = pathlib.Path(repo) if repo else ROOT.parent
+    records, _files = _agent_model_defs(base)
+    def_rank = {r["name"]: AGENT_MODEL_RANK[r["value"]] for r in records
+               if r["kind"] == "ok"}
+
+    log = base / DIRECTOR_LOG
+    if not log.exists():
+        return False, ("AGENT MODEL OVERRIDES: %s (%s not found)"
+                       % (NOTHING_MEASURED, DIRECTOR_LOG))
+
+    total = pre_ruling = no_definition = unranked_row = unknown_agent = 0
+    downward = ok_override = 0
+    bad_rows = []
+    first = True
+    for line in log.read_text(encoding="utf-8", errors="replace").splitlines():
+        if not line.strip():
+            continue
+        cols = line.split("\t")
+        if first and cols[0].strip() == "when":
+            first = False
+            continue
+        first = False
+        total += 1
+        if len(cols) < 3 or not cols[2].strip():
+            pre_ruling += 1
+            continue
+        agent = cols[1].strip().lower() if len(cols) > 1 else ""
+        model = cols[2].strip()
+        reason = cols[3] if len(cols) > 3 else ""
+        if model == "none":
+            no_definition += 1
+            continue
+        rank_row = AGENT_MODEL_RANK.get(model)
+        if rank_row is None:
+            unranked_row += 1
+            continue
+        if agent not in def_rank:
+            unknown_agent += 1
+            continue
+        base_rank = def_rank[agent]
+        if rank_row > base_rank:
+            ok, why = _agent_model_reason_resolve(base, agent, rank_row, reason)
+            if ok:
+                ok_override += 1
+            else:
+                bad_rows.append("%s %s->%s reason=%r (%s)" % (
+                    agent, AGENT_MODEL_LADDER[base_rank],
+                    AGENT_MODEL_LADDER[rank_row], reason[:40], why))
+        else:
+            downward += 1
+
+    if total == 0:
+        return False, ("AGENT MODEL OVERRIDES: %s (%s has a header but 0 "
+                       "data row(s))" % (NOTHING_MEASURED, DIRECTOR_LOG))
+    examined = total - pre_ruling - no_definition - unranked_row - unknown_agent
+    tail = ("(rows=%d preRuling=%d noDefinition=%d unrankedModel=%d "
+            "unknownAgent=%d examinedForRank=%d justifiedUp=%d downOrSame=%d)"
+            % (total, pre_ruling, no_definition, unranked_row, unknown_agent,
+               examined, ok_override, downward))
+    if bad_rows:
+        # WIDTH 160, NOT THE USUAL 70: the informative half of this message
+        # is the WHY clause after the reason, appended by _cap's own
+        # per-item cap, and a narrower width cut it off before a reader (or
+        # this check's own selftest) ever saw which of the six refusal
+        # branches fired. Measured on the fixture set 2026-09-10: the
+        # longest why clause is 95 characters, so 160 clears every branch
+        # with room, and the cap still announces if a future branch grows
+        # past it.
+        return False, ("AGENT MODEL OVERRIDES: %d upward override(s) with "
+                       "no resolving reason: %s %s"
+                       % (len(bad_rows), _cap(bad_rows, keep=3, width=160), tail))
+    return True, "0 unjustified upward override(s) %s" % tail
+
+
+def agent_model_overrides_selftest():
+    """Both outcomes, ACCEPTING FIRST, plus the PLANTED CONDITION rule 5b
+    asks for beyond a bare pass/fail: several upward overrides, one of
+    every refusal branch in `_agent_model_reason_resolve`, each proven
+    caught, and one of every accepting shape (a resolving path class, the
+    review class, the escalation class, a downward route) proven to pass.
+
+    The live repository, run as-is, is the first accepting case: every one
+    of the ~529 rows in `.claude/agent-log.tsv` pre-dates the model column
+    (E2 has not landed in the live log itself this session, only in
+    `log-agent.sh`), so this reads 0 examinable rows and 0 violations among
+    them, printed with that denominator rather than a bare, indistinguish-
+    able-from-clean zero."""
+    import shutil
+    passed, failed = 0, []
+
+    def want(label, cond, detail=""):
+        nonlocal passed
+        if cond:
+            passed += 1
+        else:
+            failed.append("%s -- got %r" % (label, detail))
+
+    ok_live, text_live = agent_model_overrides()
+    want("ACCEPT: the live spawn log (all pre-E2 rows) passes and says so "
+        "with its denominator",
+        ok_live and "preRuling=" in text_live, text_live)
+
+    tmp = pathlib.Path(tempfile.mkdtemp(prefix="agent-model-overrides-"))
+    try:
+        def agents_dir(root, name, model):
+            d = root / ".claude" / "agents"
+            d.mkdir(parents=True, exist_ok=True)
+            (d / (name + ".md")).write_text(
+                "---\nname: %s\nmodel: %s\n---\nbody\n" % (name, model),
+                encoding="utf-8")
+
+        def write_log(root, rows):
+            d = root / ".claude"
+            d.mkdir(parents=True, exist_ok=True)
+            lines = ["when\tagent\tmodel\treason\tagentId"]
+            for r in rows:
+                lines.append("\t".join(r))
+            (d / "agent-log.tsv").write_text("\n".join(lines) + "\n",
+                                             encoding="utf-8")
+
+        def case(label, root_name, agent, declared, row_model, reason,
+                 want_ok, name_hint=None):
+            r = tmp / root_name
+            agents_dir(r, agent, declared)
+            write_log(r, [("2026-09-10T00:00:00Z", agent, row_model, reason,
+                          "a1")])
+            ok_c, text_c = agent_model_overrides(r)
+            cond = (ok_c == want_ok) and (name_hint is None
+                                          or name_hint in text_c)
+            want(label, cond, text_c)
+
+        # ACCEPTING: a downward route needs no reason, never flagged.
+        case("ACCEPT: a DOWNWARD route (opus row, fable definition) needs "
+            "no reason", "r-down", "worker", "fable", "opus", "", True)
+
+        # ACCEPTING: every resolving shape, one per kind of evidence. THE
+        # PATH IS CREATED BEFORE THE CHECK RUNS, not after: a fixture
+        # asserted to pass while the evidence it names does not yet exist
+        # would be proving nothing about resolution, only about the shape
+        # of the token.
+        core_root = tmp / "r-core"
+        (core_root / "ledger" / "Assets" / "Scripts" / "Core").mkdir(
+            parents=True, exist_ok=True)
+        (core_root / "ledger" / "Assets" / "Scripts" / "Core"
+         / "Sim.cs").write_text("// fixture\n", encoding="utf-8")
+        case("ACCEPT: core-builder resolves against a real Core path "
+            "(planted, not assumed)", "r-core", "worker", "sonnet", "opus",
+            "up:core-builder:ledger/Assets/Scripts/Core/Sim.cs", True)
+
+        qroot = tmp / "r-review"
+        agents_dir(qroot, "worker", "sonnet")
+        (qroot / "production" / "queue").mkdir(parents=True, exist_ok=True)
+        (qroot / "production" / "queue" / "099-fixture.md").write_text(
+            "fixture\n", encoding="utf-8")
+        write_log(qroot, [("2026-09-10T00:00:00Z", "worker", "fable",
+                          "up:review:queue/099", "a1")])
+        ok_review, text_review = agent_model_overrides(qroot)
+        want("ACCEPT: review resolves against a real queue/NNN item",
+            ok_review, text_review)
+
+        # THE AGENT'S DECLARED TIER IS OPUS, matching the two evidence rows:
+        # "fails a task twice [at its own tier] escalates one tier" means
+        # the two referenced spawns are ORDINARY runs at the declared tier
+        # (model == declared -> "default", never flagged themselves), and
+        # only the THIRD, escalated spawn is upward. Declaring the agent at
+        # sonnet while the evidence rows run at opus would make those two
+        # rows their own unjustified upward overrides and prove nothing
+        # about escalation specifically.
+        eroot = tmp / "r-escalation"
+        agents_dir(eroot, "worker", "opus")
+        write_log(eroot, [
+            ("2026-09-10T01:00:00Z", "worker", "opus", "", "a1"),
+            ("2026-09-10T02:00:00Z", "worker", "opus", "", "a2"),
+            ("2026-09-10T03:00:00Z", "worker", "fable",
+             "up:escalation:2026-09-10T01:00:00Z..2026-09-10T02:00:00Z",
+             "a3")])
+        ok_esc, text_esc = agent_model_overrides(eroot)
+        want("ACCEPT: escalation resolves against two real opus rows one "
+            "tier below fable", ok_esc, text_esc)
+
+        # PLANTED CONDITIONS (rule 5b): every refusal branch, each proven
+        # caught rather than assumed, each naming why.
+        case("REJECT: empty reason", "r-empty", "worker", "opus", "fable",
+            "", False, "empty reason")
+        case("REJECT: a bare full stop is prose, not the up: shape",
+            "r-fullstop", "worker", "opus", "fable", ".", False,
+            "up:<class>:<evidence> shape")
+        case("REJECT: free prose is not the up: shape", "r-prose", "worker",
+            "opus", "fable", "hard task, trust me", False,
+            "up:<class>:<evidence> shape")
+        case("REJECT: the hook's own up:MISSING sentinel", "r-missing",
+            "worker", "opus", "fable", "up:MISSING", False,
+            "up:<class>:<evidence> shape")
+        case("REJECT: a class not in the eight", "r-badclass", "worker",
+            "opus", "fable", "up:because:reasons", False,
+            "not one of the eight")
+        case("REJECT: a class permitted for a DIFFERENT tier (review is "
+            "fable-only, row is opus)", "r-wrongtier", "worker", "sonnet",
+            "opus", "up:review:queue/001", False, "permitted only for")
+        case("REJECT: a class with no evidence", "r-noevidence", "worker",
+            "sonnet", "opus", "up:core-builder:", False, "no evidence")
+        case("REJECT: evidence that does not resolve (path never created)",
+            "r-unresolved", "worker", "sonnet", "opus",
+            "up:core-builder:ledger/Assets/Scripts/Core/Ghost.cs", False,
+            "does not resolve")
+        # An escalation whose referenced rows exist but at the WRONG tier:
+        # fable needs two rows at opus (one below it); these two are
+        # logged at sonnet (two below), the tier-skip the ruling names by
+        # name ("never straight to Fable"). Rows planted, not merely
+        # absent, so this proves the TIER check and not just "not found".
+        skip_root = tmp / "r-skip"
+        agents_dir(skip_root, "worker", "opus")
+        write_log(skip_root, [
+            ("2026-09-10T01:00:00Z", "worker", "sonnet", "", "a1"),
+            ("2026-09-10T02:00:00Z", "worker", "sonnet", "", "a2"),
+            ("2026-09-10T03:00:00Z", "worker", "fable",
+             "up:escalation:2026-09-10T01:00:00Z..2026-09-10T02:00:00Z",
+             "a3")])
+        ok_skip, text_skip = agent_model_overrides(skip_root)
+        want("REJECT: escalation skipping a tier (evidence rows are "
+            "sonnet, not the opus one tier below fable)",
+            (not ok_skip) and "referenced row(s) not found" in text_skip,
+            text_skip)
+
+        # Buckets: preRuling (old short rows), noDefinition (no file on
+        # disk for the agent_type), unrankedModel (a value off the ladder).
+        mixed = tmp / "r-mixed"
+        agents_dir(mixed, "worker", "opus")
+        d = mixed / ".claude"
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "agent-log.tsv").write_text(
+            "when\tagent\n"
+            "2026-09-10T00:00:00Z\tworker\n"                         # preRuling
+            "2026-09-10T01:00:00Z\tgeneral-purpose\tnone\t\ta1\n"     # noDefinition
+            "2026-09-10T02:00:00Z\tworker\tclaude-opus-5\t\ta2\n",    # unrankedModel
+            encoding="utf-8")
+        ok_mixed, text_mixed = agent_model_overrides(mixed)
+        want("ACCEPT: a mix of preRuling/noDefinition/unrankedModel rows, "
+            "none of them rankable, passes with every bucket counted",
+            ok_mixed and all(k in text_mixed for k in
+                             ("preRuling=1", "noDefinition=1",
+                              "unrankedModel=1")), text_mixed)
+
+        ok_missing, text_missing = agent_model_overrides(tmp / "r5-missing")
+        want("NEVER-RAN: a repo with no agent-log.tsv prints the words",
+            (not ok_missing) and NOTHING_MEASURED in text_missing,
+            text_missing)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+    label = ("agent-model-overrides selftest: %d passed, %d failed"
+             % (passed, len(failed)))
+    return (not failed), (label if not failed
+                          else label + " :: " + _cap(failed, keep=8, width=90))
+
+
 def _cadence_rulings(repo, all_dir_ct, fresh_dir_ct):
     """RULING RECORDS on disk, each paired against a director SPAWN ROW.
 
@@ -6409,6 +7100,7 @@ def main():
     for fn in (director_cadence, footer_strings,
                lint, shape, shadow, tools_tracked, reach, stranger_test, shape_files, voice_cast, voice_gen, barks_current, voice_live, voice_assets, voices_into_build, pc_watcher, slop,
                card_writing, shipped_cards, convo_probe, queue_depth, docs_shape, content_rule, producer_register, claude_md_size,
+               agent_model_values, agent_model_values_selftest, agent_model_overrides, agent_model_overrides_selftest,
                inbox_selftest, inbox_read_selftest, bot_config_selftest, outbox_selftest, supervise_selftest, executor_selftest, wake_queue_selftest, checkout_gate_selftest, brief_selftest, producer_day_selftest, systems_inventory, inbox_tracked,
                template_sync,
                attribution, game_compiles, backend_compiles, conditional_reach, nested_types,
