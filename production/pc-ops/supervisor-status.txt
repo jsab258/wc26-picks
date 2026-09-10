@@ -1,11 +1,11 @@
-# LEDGER supervisor status as CI read it - abee15e @1789034701
+# LEDGER supervisor status as CI read it - d690ad2 @1789046720
 # Line 1 names the commit this was read on.
 # Copied verbatim from the supervisor's own file on his PC.
 # It is written there every 60s and was published nowhere until
 # this step existed, which is why a bot that stopped at 11:30 on
 # 2026-09-07 could not say so.
 statusSource=C:\Users\Jafar\wc26-picks\game-design\pc-jobs\supervisor-status.txt
-statusFound=yes statusBytes=904 statusLines=30 statusAgeSec=20
+statusFound=yes statusBytes=900 statusLines=30 statusAgeSec=33
 statusFresh=yes
 
 supervisor=running
@@ -16,9 +16,9 @@ autostart=removed
 resync=ok/e953e62b
 outboxFiles=17
 outboxReceipts=40
-outboxRefusals=494
-written=2026-09-10T12:04:41
-botSweepPasses=432
+outboxRefusals=0
+written=2026-09-10T15:24:47
+botSweepPasses=526
 botSweepSent=0
 botSweepRefused=0
 botSweepEverySec=120
@@ -26,15 +26,15 @@ botSweepSecSinceLast=0
 botSweepLastResult=sent0/refused0/of17
 botBriefTapsFiled=0
 botBriefReasonsFiled=0
-botUptimeSec=55754
-botSweepWrittenAt=2026-09-10T12:02:31
-botSweepAgeSec=130
+botUptimeSec=67888
+botSweepWrittenAt=2026-09-10T15:24:46
+botSweepAgeSec=1
 botSweepStatus=read/10-key(s)
 executorState=idle
 executorHandled=1
 executorPending=0
 executorLimitResumeIn=none
-studio-watcher=running studio-watcherUptimeSec=55888 studio-watcherStarts=1 studio-watcherStops=0 studio-watcherLastExit=none
-telegram-bot=running telegram-botUptimeSec=55888 telegram-botStarts=1 telegram-botStops=0 telegram-botLastExit=none
-claude-executor=running claude-executorUptimeSec=55888 claude-executorStarts=1 claude-executorStops=0 claude-executorLastExit=none
+studio-watcher=running studio-watcherUptimeSec=67894 studio-watcherStarts=1 studio-watcherStops=0 studio-watcherLastExit=none
+telegram-bot=running telegram-botUptimeSec=67894 telegram-botStarts=1 telegram-botStops=0 telegram-botLastExit=none
+claude-executor=running claude-executorUptimeSec=67894 claude-executorStarts=1 claude-executorStops=0 claude-executorLastExit=none
 
