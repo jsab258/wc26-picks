@@ -1,13 +1,15 @@
-# LEDGER imagegen - fe13e91 @1788986206
+# LEDGER imagegen - a8a4d49 @1789015440
 # Line 1 names the commit this was measured on. No value has a space.
 # Every blankness number here was re-measured from the PNG itself, not copied from the manifest.
 
-steps selftest=success,probe=success,generate=failure,attribution=success,shaFrom=checkout,stopper=none
-manifestRun=fe13e91 thisRun=fe13e91 manifestIsThisRun=yes manifestState=read batchStatus=REFUSED outDir=hook-2026-09-09-pass2
+steps selftest=success,probe=success,generate=success,attribution=success,shaFrom=checkout,stopper=none
+manifestRun=a8a4d49 thisRun=a8a4d49 manifestIsThisRun=yes manifestState=read batchStatus=DONE outDir=hook-2026-09-09-pass2
 bound blank-when-spread<=2/255-AND-stdev<=1.0,-or-alpha-0-everywhere-sampled
-# no picture line above: this run neither generated nor failed a single item
-disk pngsInOutDir=0 namedByThisManifest=0 blankFilesOnDisk=0 missingFromDisk=0
-NO RUN - this commit (fe13e91) generated no picture: nothing generated nothing was attempted. Nothing older is being read as this run's answer.
-done imagegenVerdict=NO-RUN why=nothing-generated-nothing-was-attempted wroteThisRun=0 failed=0 skipped=0 selected=4 inSpec=4 limit=4 blankThisRun=0 undecodableThisRun=0 checkedThisRun=0 remade=0 remadeBlank=0 remadeUnrecorded=0 remadeRecipeChanged=0 rechecked=0 remeasured=0 remeasuredBlank=0 remeasuredUnreadable=0 missingFromDisk=0 bytes=0
-commit picsThisRun=0 newInThisCommit=0 alreadyInRepoIdentical=0 notInThisCommit=0 stagedList=read/3paths headList=read/0paths repoRoot=given
+image hook_pass2 status=OK madeThisRun=yes file=hook_pass2.png size=688x1024 seconds=161.1 inCommit=new-in-this-commit remeasured=varied/spread254/stdev84.258/levels255/28290of704512px/1262182B
+image hook_pass2_s2 status=OK madeThisRun=yes file=hook_pass2_s2.png size=688x1024 seconds=161.0 inCommit=new-in-this-commit remeasured=varied/spread254/stdev82.542/levels255/28290of704512px/1278252B
+image hook_pass2_s3 status=OK madeThisRun=yes file=hook_pass2_s3.png size=688x1024 seconds=160.8 inCommit=new-in-this-commit remeasured=varied/spread254/stdev82.013/levels253/28290of704512px/1277836B
+image hook_pass2_s4 status=OK madeThisRun=yes file=hook_pass2_s4.png size=688x1024 seconds=160.9 inCommit=new-in-this-commit remeasured=varied/spread253/stdev82.839/levels254/28290of704512px/1349577B
+disk pngsInOutDir=4 namedByThisManifest=4 blankFilesOnDisk=0 missingFromDisk=0
+done imagegenVerdict=BANKED why=none wroteThisRun=4 failed=0 skipped=0 selected=4 inSpec=4 limit=4 blankThisRun=0 undecodableThisRun=0 checkedThisRun=4 remade=0 remadeBlank=0 remadeUnrecorded=0 remadeRecipeChanged=0 rechecked=0 remeasured=4 remeasuredBlank=0 remeasuredUnreadable=0 missingFromDisk=0 bytes=5167847
+commit picsThisRun=4 newInThisCommit=4 alreadyInRepoIdentical=0 notInThisCommit=0 stagedList=read/8paths headList=read/3paths repoRoot=given
 # authority: imagegenVerdict answers 'did THIS commit bank pictures'. batchStatus answers 'is the 45-item batch finished'. INCOMPLETE beside BANKED is normal and means there is more to do.

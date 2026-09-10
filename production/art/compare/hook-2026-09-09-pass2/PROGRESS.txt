@@ -1,0 +1,15 @@
+LEDGER imagegen - progress
+==========================================================
+batch     hook-compare-2026-09-09-pass2
+status    DONE
+updated   2026-09-10 06:43:58 local
+elapsed   11 min
+done      4 written, 0 already there, 0 failed, of 4 in the batch
+still to do  0
+
+  [made]    hook_pass2                 688x1024  161s
+  [made]    hook_pass2_s2              688x1024  161s
+  [made]    hook_pass2_s3              688x1024  161s
+  [made]    hook_pass2_s4              688x1024  161s
+
+Every image is review=pending until a human has looked at it.

@@ -1,11 +1,11 @@
 LEDGER - image generation, machine report
 ============================================================
-written   2026-09-09 22:36:44 local
+written   2026-09-10 06:43:58 local
 host      JAFAR-DESKTOP
 os        Microsoft Windows 11 Pro  (26200)
 cpu       AMD Ryzen 5 5600X 6-Core Processor  x6 cores
 ram       31.9 GB
-free disk 58.7 GB on C:
+free disk 58.4 GB on C:
 python    C:\Users\Jafar\miniconda3\python.exe
 probe     ok  (probe version 2)
 
@@ -49,12 +49,12 @@ RUN
     SENDING BACK IS OFF: switched off for this run
   LEDGER - image generation, machine report
 ============================================================
-written   2026-09-09 22:36:44 local
+written   2026-09-10 06:33:11 local
 host      JAFAR-DESKTOP
 os        Microsoft Windows 11 Pro  (26200)
 cpu       AMD Ryzen 5 5600X 6-Core Processor  x6 cores
 ram       31.9 GB
-free disk 58.7 GB on C:
+free disk 58.4 GB on C:
 python    C:\Users\Jafar\miniconda3\python.exe
 probe     ok  (probe version 2)
 
@@ -106,14 +106,22 @@ SENDING BACK
     4 item(s) selected of 4 in the batch, by name: hook_pass2,hook_pass2_s2,hook_pass2_s3,hook_pass2_s4
     --limit 4: at most 4 picture(s) will be GENERATED this run. Items already on disk are skipped and do not count against it.
     --fail-on-blank: the first blank or unreadable PNG stops the run and the exit code is 6.
-    REFUSED TO START: prompts.json is not usable as it stands.
-      - hook_pass2: the POSITIVE prompt still says ['no'] - an exclusion belongs in `negatives`, because a diffusion model reads the noun and draws it. That is what put a sign board on wall_soot_brick.
-      - hook_pass2_s2: the POSITIVE prompt still says ['no'] - an exclusion belongs in `negatives`, because a diffusion model reads the noun and draws it. That is what put a sign board on wall_soot_brick.
-      - hook_pass2_s3: the POSITIVE prompt still says ['no'] - an exclusion belongs in `negatives`, because a diffusion model reads the noun and draws it. That is what put a sign board on wall_soot_brick.
-      - hook_pass2_s4: the POSITIVE prompt still says ['no'] - an exclusion belongs in `negatives`, because a diffusion model reads the noun and draws it. That is what put a sign board on wall_soot_brick.
+    [1/4] hook_pass2  688x1024  seed 20260910  cfg 1.0  about 152s
+        negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
+        ok  161s  1233 KB  varied: spread 254/255, 255 levels over 28290 of 704512 px
+        first image took 161s, so the batch projects to about 11 min for 4 images
+    [2/4] hook_pass2_s2  688x1024  seed 20260913  cfg 1.0  about 152s
+        negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
+        ok  161s  1248 KB  varied: spread 254/255, 255 levels over 28290 of 704512 px
+    [3/4] hook_pass2_s3  688x1024  seed 20260914  cfg 1.0  about 152s
+        negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
+        ok  161s  1248 KB  varied: spread 254/255, 253 levels over 28290 of 704512 px
+    [4/4] hook_pass2_s4  688x1024  seed 20260915  cfg 1.0  about 152s
+        negative prompt recorded but INERT at cfg 1.0 - sd-cli only evaluates it when cfg is not 1.0
+        ok  161s  1318 KB  varied: spread 253/255, 254 levels over 28290 of 704512 px
   
-  REFUSED: 0 written, 0 skipped, 0 failed, 0 attempted of 4 in the batch
-    blank check: 0 blank, 0 undecodable, of 0 PNGs decoded (blank when spread <= 2/255 AND stdev <= 1.0, or alpha is 0 everywhere sampled)
+  DONE: 4 written, 0 skipped, 0 failed, 4 attempted of 4 in the batch
+    blank check: 0 blank, 0 undecodable, of 4 PNGs decoded (blank when spread <= 2/255 AND stdev <= 1.0, or alpha is 0 everywhere sampled)
     already made: 0 skipped, 0 remade because what was on disk was blank or unreadable, of 0 PNGs found already on disk
     images and manifest: production\art\compare\hook-2026-09-09-pass2
     every image is review=pending until a human has looked at it

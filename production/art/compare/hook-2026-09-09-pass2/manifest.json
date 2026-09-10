@@ -1,10 +1,10 @@
 {
   "batch": "hook-compare-2026-09-09-pass2",
-  "written": "2026-09-09T22:36:44",
-  "status": "REFUSED",
+  "written": "2026-09-10T06:43:58",
+  "status": "DONE",
   "run": {
-    "sha": "fe13e91",
-    "started": "2026-09-09T22:36:44",
+    "sha": "a8a4d49",
+    "started": "2026-09-10T06:33:11",
     "what": "the commit this batch was generated on; 'local' means it was run by hand rather than by CI"
   },
   "generator": {
@@ -54,7 +54,7 @@
   "blank_check": {
     "what": "every written PNG is decoded and its luminance measured; a uniform image is the known Vulkan failure (leejet/stable-diffusion.cpp#1031: blank PNG, exit success)",
     "bound": "blank when spread <= 2/255 AND stdev <= 1.0, or alpha is 0 everywhere sampled",
-    "checked": 0,
+    "checked": 4,
     "blank": 0,
     "undecodable": 0,
     "rechecked": 0,
@@ -65,16 +65,16 @@
   },
   "resume": {
     "what": "recipe = prompt + negative(if it can act) + size + cfg + steps + seed; a match is skipped, a mismatch is made again",
-    "record": "",
+    "record": "the previous manifest 0 recorded + 0 reconstructed; 0 item(s) on record in total",
     "kept": 0,
     "prompt_changed": 0,
     "unrecorded": 0
   },
   "negatives": {
     "what": "--negative-prompt is passed whenever an item has one; it only ACTS when cfg != 1.0, because sd-cli evaluates the unconditional branch only then",
-    "carried": 0,
+    "carried": 4,
     "active": 0,
-    "inert_at_cfg1": 0
+    "inert_at_cfg1": 4
   },
   "items_in_spec": 4,
   "items_selected": 4,
@@ -90,17 +90,164 @@
     "of": 4,
     "what": "only = the ids asked for by name; limit = how many pictures this run may GENERATE, which skipped items do not count against"
   },
-  "items_attempted": 0,
-  "items_written": 0,
+  "items_attempted": 4,
+  "items_written": 4,
   "items_failed": 0,
   "items_skipped": 0,
   "not_attempted": [],
-  "images": [],
-  "problems": [
-    "hook_pass2: the POSITIVE prompt still says ['no'] - an exclusion belongs in `negatives`, because a diffusion model reads the noun and draws it. That is what put a sign board on wall_soot_brick.",
-    "hook_pass2_s2: the POSITIVE prompt still says ['no'] - an exclusion belongs in `negatives`, because a diffusion model reads the noun and draws it. That is what put a sign board on wall_soot_brick.",
-    "hook_pass2_s3: the POSITIVE prompt still says ['no'] - an exclusion belongs in `negatives`, because a diffusion model reads the noun and draws it. That is what put a sign board on wall_soot_brick.",
-    "hook_pass2_s4: the POSITIVE prompt still says ['no'] - an exclusion belongs in `negatives`, because a diffusion model reads the noun and draws it. That is what put a sign board on wall_soot_brick."
+  "images": [
+    {
+      "id": "hook_pass2",
+      "kind": "concept",
+      "binds_to": "COMPARISON ONLY - not shipped, not bound to anything. Pass 2 of 2, Jafar 2026-09-09 item 4(a).",
+      "prompt": "the whole board filling the frame edge to edge, Use case: historical-scene. Create one polished portrait environment concept sheet for LEDGER, fictional British port Meridian in 1990. Two clearly separated wide cinematic photoreal panels, top establishing view, bottom pedestrian eye-height view, with restrained cream margins. Title THE HOOK. Small subtitle AI CONCEPT / PROPOSAL. TOP: view from low dock office across an enclosed working stone basin, two-storey red brick warehouses and shop terraces, inland town gently rising behind, quay straight and narrow foot passage off it, working ropes, a commercial cargo basin. BOTTOM: camera at 1.6m standing at south end looking north along Quay Street, 6m wet asphalt carriageway plus 2m pavement each side, continuous brick terraces. On RIGHT/east first bay is Mickey's a SMALL SINGLE 6m-wide two-storey pub under a 35-degree slate roof, party-wall chimneys, maroon fascia MICKEY'S, two doors on near/south part of facade and wide pub window north of them. Fish shop next along right, its fascia reading HARBOUR FISH in painted capitals. ONLY TWO PIECES OF LETTERING IN THE WHOLE SHEET, MICKEY'S and HARBOUR FISH, both crisp and correctly spelled; every other shopfront fascia is plain unlettered painted timber. Soot brick parapet terraces left with one narrow yard slot further up. Daytime overcast soft light, subtle wetness, inhabited with 3 nonidentifiable people in ordinary 1990 clothing, everyday activity. Hand worn paint, soot streaks below gutters, domestic curtains upstairs. Photographic material plausibility, photoreal throughout. Bottom of the sheet carries TWO separate small rows: an upper row of four flat material swatches, red brick, slate, oxblood painted timber and quay stone; and BELOW IT a second row of three objects photographed against the cream margin, a coiled rope fender, a galvanised metal dustbin and a wooden beer firkin. Both rows unlabelled. Fictional unbranded signage only, everything period-correct for 1990. This is proposed art., invented fictional shop name only, no real company names, no real brand logos, no trade marks, no real person, no recognisable faces, no celebrity likeness",
+      "negative": "pleasure marina, yacht, leisure moorings, pontoon, street festival, bunting, fairground, crowd, illustration, stylised illustration, cartoon, painterly, real brand logo, trade mark, real company name, modern tech, computer screen, mobile phone, wheeled bin, wheelie bin, contemporary car, modern car, HUD, heads-up display, game interface overlay, screenshot, game screenshot, lettering on secondary shopfronts, text on other fascias, swatch labels, printed captions, label text under swatches",
+      "negative_active": false,
+      "negative_note": "RECORDED BUT INERT: at cfg 1.0 sd-cli never evaluates the unconditional branch (resolve_guidance sets use_uncond only when img_cfg != txt_cfg), so this negative prompt was not encoded and changed nothing",
+      "seen_on_run": "a8a4d49",
+      "review": "pending",
+      "probe": true,
+      "recipe": "08c07272a5e7a518",
+      "width": 688,
+      "height": 1024,
+      "seed": 20260910,
+      "steps": 8,
+      "cfg": 1.0,
+      "sampler": "sd-cli model-specific default (not overridden)",
+      "flags": [
+        "--offload-to-cpu",
+        "--diffusion-fa"
+      ],
+      "seconds": 161.1,
+      "blank_check": {
+        "verdict": "varied",
+        "why": "luminance spread 254/255, stdev 84.258, 255 distinct levels over 28290 of 704512 pixels",
+        "spread": 254,
+        "stdev": 84.258,
+        "distinct": 255,
+        "sampled": 28290,
+        "pixels": 704512
+      },
+      "status": "OK",
+      "bytes": 1262182,
+      "sha256": "22f56c8fb2d4efe45f8f5395f4840b631038eedf4194570758fe1fb73189e3df",
+      "file": "hook_pass2.png",
+      "made_on_run": "a8a4d49"
+    },
+    {
+      "id": "hook_pass2_s2",
+      "kind": "concept",
+      "binds_to": "COMPARISON ONLY - not shipped, not bound to anything. Pass 2 of 2, Jafar 2026-09-09 item 4(a).",
+      "prompt": "the whole board filling the frame edge to edge, Use case: historical-scene. Create one polished portrait environment concept sheet for LEDGER, fictional British port Meridian in 1990. Two clearly separated wide cinematic photoreal panels, top establishing view, bottom pedestrian eye-height view, with restrained cream margins. Title THE HOOK. Small subtitle AI CONCEPT / PROPOSAL. TOP: view from low dock office across an enclosed working stone basin, two-storey red brick warehouses and shop terraces, inland town gently rising behind, quay straight and narrow foot passage off it, working ropes, a commercial cargo basin. BOTTOM: camera at 1.6m standing at south end looking north along Quay Street, 6m wet asphalt carriageway plus 2m pavement each side, continuous brick terraces. On RIGHT/east first bay is Mickey's a SMALL SINGLE 6m-wide two-storey pub under a 35-degree slate roof, party-wall chimneys, maroon fascia MICKEY'S, two doors on near/south part of facade and wide pub window north of them. Fish shop next along right, its fascia reading HARBOUR FISH in painted capitals. ONLY TWO PIECES OF LETTERING IN THE WHOLE SHEET, MICKEY'S and HARBOUR FISH, both crisp and correctly spelled; every other shopfront fascia is plain unlettered painted timber. Soot brick parapet terraces left with one narrow yard slot further up. Daytime overcast soft light, subtle wetness, inhabited with 3 nonidentifiable people in ordinary 1990 clothing, everyday activity. Hand worn paint, soot streaks below gutters, domestic curtains upstairs. Photographic material plausibility, photoreal throughout. Bottom of the sheet carries TWO separate small rows: an upper row of four flat material swatches, red brick, slate, oxblood painted timber and quay stone; and BELOW IT a second row of three objects photographed against the cream margin, a coiled rope fender, a galvanised metal dustbin and a wooden beer firkin. Both rows unlabelled. Fictional unbranded signage only, everything period-correct for 1990. This is proposed art., invented fictional shop name only, no real company names, no real brand logos, no trade marks, no real person, no recognisable faces, no celebrity likeness",
+      "negative": "pleasure marina, yacht, leisure moorings, pontoon, street festival, bunting, fairground, crowd, illustration, stylised illustration, cartoon, painterly, real brand logo, trade mark, real company name, modern tech, computer screen, mobile phone, wheeled bin, wheelie bin, contemporary car, modern car, HUD, heads-up display, game interface overlay, screenshot, game screenshot, lettering on secondary shopfronts, text on other fascias, swatch labels, printed captions, label text under swatches",
+      "negative_active": false,
+      "negative_note": "RECORDED BUT INERT: at cfg 1.0 sd-cli never evaluates the unconditional branch (resolve_guidance sets use_uncond only when img_cfg != txt_cfg), so this negative prompt was not encoded and changed nothing",
+      "seen_on_run": "a8a4d49",
+      "review": "pending",
+      "probe": true,
+      "recipe": "455d9bbd8ba417a2",
+      "width": 688,
+      "height": 1024,
+      "seed": 20260913,
+      "steps": 8,
+      "cfg": 1.0,
+      "sampler": "sd-cli model-specific default (not overridden)",
+      "flags": [
+        "--offload-to-cpu",
+        "--diffusion-fa"
+      ],
+      "seconds": 161.0,
+      "blank_check": {
+        "verdict": "varied",
+        "why": "luminance spread 254/255, stdev 82.542, 255 distinct levels over 28290 of 704512 pixels",
+        "spread": 254,
+        "stdev": 82.542,
+        "distinct": 255,
+        "sampled": 28290,
+        "pixels": 704512
+      },
+      "status": "OK",
+      "bytes": 1278252,
+      "sha256": "32c34bb87062083d769377a1cd678db568d2ae45a299d583d5f77bc062bca17e",
+      "file": "hook_pass2_s2.png",
+      "made_on_run": "a8a4d49"
+    },
+    {
+      "id": "hook_pass2_s3",
+      "kind": "concept",
+      "binds_to": "COMPARISON ONLY - not shipped, not bound to anything. Pass 2 of 2, Jafar 2026-09-09 item 4(a).",
+      "prompt": "the whole board filling the frame edge to edge, Use case: historical-scene. Create one polished portrait environment concept sheet for LEDGER, fictional British port Meridian in 1990. Two clearly separated wide cinematic photoreal panels, top establishing view, bottom pedestrian eye-height view, with restrained cream margins. Title THE HOOK. Small subtitle AI CONCEPT / PROPOSAL. TOP: view from low dock office across an enclosed working stone basin, two-storey red brick warehouses and shop terraces, inland town gently rising behind, quay straight and narrow foot passage off it, working ropes, a commercial cargo basin. BOTTOM: camera at 1.6m standing at south end looking north along Quay Street, 6m wet asphalt carriageway plus 2m pavement each side, continuous brick terraces. On RIGHT/east first bay is Mickey's a SMALL SINGLE 6m-wide two-storey pub under a 35-degree slate roof, party-wall chimneys, maroon fascia MICKEY'S, two doors on near/south part of facade and wide pub window north of them. Fish shop next along right, its fascia reading HARBOUR FISH in painted capitals. ONLY TWO PIECES OF LETTERING IN THE WHOLE SHEET, MICKEY'S and HARBOUR FISH, both crisp and correctly spelled; every other shopfront fascia is plain unlettered painted timber. Soot brick parapet terraces left with one narrow yard slot further up. Daytime overcast soft light, subtle wetness, inhabited with 3 nonidentifiable people in ordinary 1990 clothing, everyday activity. Hand worn paint, soot streaks below gutters, domestic curtains upstairs. Photographic material plausibility, photoreal throughout. Bottom of the sheet carries TWO separate small rows: an upper row of four flat material swatches, red brick, slate, oxblood painted timber and quay stone; and BELOW IT a second row of three objects photographed against the cream margin, a coiled rope fender, a galvanised metal dustbin and a wooden beer firkin. Both rows unlabelled. Fictional unbranded signage only, everything period-correct for 1990. This is proposed art., invented fictional shop name only, no real company names, no real brand logos, no trade marks, no real person, no recognisable faces, no celebrity likeness",
+      "negative": "pleasure marina, yacht, leisure moorings, pontoon, street festival, bunting, fairground, crowd, illustration, stylised illustration, cartoon, painterly, real brand logo, trade mark, real company name, modern tech, computer screen, mobile phone, wheeled bin, wheelie bin, contemporary car, modern car, HUD, heads-up display, game interface overlay, screenshot, game screenshot, lettering on secondary shopfronts, text on other fascias, swatch labels, printed captions, label text under swatches",
+      "negative_active": false,
+      "negative_note": "RECORDED BUT INERT: at cfg 1.0 sd-cli never evaluates the unconditional branch (resolve_guidance sets use_uncond only when img_cfg != txt_cfg), so this negative prompt was not encoded and changed nothing",
+      "seen_on_run": "a8a4d49",
+      "review": "pending",
+      "probe": true,
+      "recipe": "fefba0167fef24c6",
+      "width": 688,
+      "height": 1024,
+      "seed": 20260914,
+      "steps": 8,
+      "cfg": 1.0,
+      "sampler": "sd-cli model-specific default (not overridden)",
+      "flags": [
+        "--offload-to-cpu",
+        "--diffusion-fa"
+      ],
+      "seconds": 160.8,
+      "blank_check": {
+        "verdict": "varied",
+        "why": "luminance spread 254/255, stdev 82.013, 253 distinct levels over 28290 of 704512 pixels",
+        "spread": 254,
+        "stdev": 82.013,
+        "distinct": 253,
+        "sampled": 28290,
+        "pixels": 704512
+      },
+      "status": "OK",
+      "bytes": 1277836,
+      "sha256": "ffd8de672fdbab175e73caba9c85c6afb796bd8ad241b1d4771529b25b24743e",
+      "file": "hook_pass2_s3.png",
+      "made_on_run": "a8a4d49"
+    },
+    {
+      "id": "hook_pass2_s4",
+      "kind": "concept",
+      "binds_to": "COMPARISON ONLY - not shipped, not bound to anything. Pass 2 of 2, Jafar 2026-09-09 item 4(a).",
+      "prompt": "the whole board filling the frame edge to edge, Use case: historical-scene. Create one polished portrait environment concept sheet for LEDGER, fictional British port Meridian in 1990. Two clearly separated wide cinematic photoreal panels, top establishing view, bottom pedestrian eye-height view, with restrained cream margins. Title THE HOOK. Small subtitle AI CONCEPT / PROPOSAL. TOP: view from low dock office across an enclosed working stone basin, two-storey red brick warehouses and shop terraces, inland town gently rising behind, quay straight and narrow foot passage off it, working ropes, a commercial cargo basin. BOTTOM: camera at 1.6m standing at south end looking north along Quay Street, 6m wet asphalt carriageway plus 2m pavement each side, continuous brick terraces. On RIGHT/east first bay is Mickey's a SMALL SINGLE 6m-wide two-storey pub under a 35-degree slate roof, party-wall chimneys, maroon fascia MICKEY'S, two doors on near/south part of facade and wide pub window north of them. Fish shop next along right, its fascia reading HARBOUR FISH in painted capitals. ONLY TWO PIECES OF LETTERING IN THE WHOLE SHEET, MICKEY'S and HARBOUR FISH, both crisp and correctly spelled; every other shopfront fascia is plain unlettered painted timber. Soot brick parapet terraces left with one narrow yard slot further up. Daytime overcast soft light, subtle wetness, inhabited with 3 nonidentifiable people in ordinary 1990 clothing, everyday activity. Hand worn paint, soot streaks below gutters, domestic curtains upstairs. Photographic material plausibility, photoreal throughout. Bottom of the sheet carries TWO separate small rows: an upper row of four flat material swatches, red brick, slate, oxblood painted timber and quay stone; and BELOW IT a second row of three objects photographed against the cream margin, a coiled rope fender, a galvanised metal dustbin and a wooden beer firkin. Both rows unlabelled. Fictional unbranded signage only, everything period-correct for 1990. This is proposed art., invented fictional shop name only, no real company names, no real brand logos, no trade marks, no real person, no recognisable faces, no celebrity likeness",
+      "negative": "pleasure marina, yacht, leisure moorings, pontoon, street festival, bunting, fairground, crowd, illustration, stylised illustration, cartoon, painterly, real brand logo, trade mark, real company name, modern tech, computer screen, mobile phone, wheeled bin, wheelie bin, contemporary car, modern car, HUD, heads-up display, game interface overlay, screenshot, game screenshot, lettering on secondary shopfronts, text on other fascias, swatch labels, printed captions, label text under swatches",
+      "negative_active": false,
+      "negative_note": "RECORDED BUT INERT: at cfg 1.0 sd-cli never evaluates the unconditional branch (resolve_guidance sets use_uncond only when img_cfg != txt_cfg), so this negative prompt was not encoded and changed nothing",
+      "seen_on_run": "a8a4d49",
+      "review": "pending",
+      "probe": true,
+      "recipe": "0c03f77fa29e4f84",
+      "width": 688,
+      "height": 1024,
+      "seed": 20260915,
+      "steps": 8,
+      "cfg": 1.0,
+      "sampler": "sd-cli model-specific default (not overridden)",
+      "flags": [
+        "--offload-to-cpu",
+        "--diffusion-fa"
+      ],
+      "seconds": 160.9,
+      "blank_check": {
+        "verdict": "varied",
+        "why": "luminance spread 253/255, stdev 82.839, 254 distinct levels over 28290 of 704512 pixels",
+        "spread": 253,
+        "stdev": 82.839,
+        "distinct": 254,
+        "sampled": 28290,
+        "pixels": 704512
+      },
+      "status": "OK",
+      "bytes": 1349577,
+      "sha256": "67f5309b9751bd19046f94e94972df8f14b339fce05ec01f85aed86e73c8891e",
+      "file": "hook_pass2_s4.png",
+      "made_on_run": "a8a4d49"
+    }
   ],
   "downloads": [
     {
