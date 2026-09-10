@@ -3641,3 +3641,44 @@ AND THREE OF THE FOUR GARBLED STRINGS WERE NEVER REQUESTED. The prompt did ask
 for unlabelled rows, but that instruction sat in the NEGATIVE, which at cfg 1.0
 is never evaluated (queue 234). The model captioned a garden gate nobody asked
 it to caption. The negative half has never vetoed anything here.
+
+--------------------------------------------------------------------------------
+2026-09-10, "EVERY CROSS-FRAME NUMBER IS VOID" WAS TOO STRONG, AND THE
+DENOMINATOR THE REVIEW DEMANDED IS WHAT SHOWS IT.
+
+The review refused to let that sentence stand on one camera and one condition
+and made the full first-versus-repeat matrix a condition. Run 39's own null
+group supplies it without a new run: seven frames sharing identical applied
+inputs, named by the run itself, giving 21 pairs.
+
+    nullPairsExamined=21 over 7 frame(s), nullPairMedianAbsDelta=0.0215,
+    nullPairMaxAbsDelta=0.3747/on=vign_hook_day..vign_wet_100
+
+AND THE DISTRIBUTION IS BIMODAL, WHICH IS THE WHOLE FINDING. Every one of the
+six pairs containing vign_hook_day reads between 0.344 and 0.375. Every one of
+the fifteen pairs that does not contain it reads 0.0304 or less. Two populations,
+not one spread, and the median over all 21 hides both.
+
+WHY hook_day IS THE OUTLIER: it is shot 5, taken immediately after a night
+frame, and it came back blown at 0.9591 while the other six sit at 0.59 to 0.62.
+The contaminated population is not "the run", it is "frames that follow
+darkness".
+
+SO THE CORRECTED CLAIM, WHICH IS MORE USEFUL THAN THE ONE IT REPLACES. This
+rig's noise floor on identical inputs is about 0.02 to 0.03 of mean luma among
+frames that did not follow a dark frame, and about 0.35 for one that did. A
+cross-frame difference SMALLER than roughly 0.03 is not readable. A difference
+larger than that may be, provided neither frame followed darkness.
+
+AND IT EXPLAINS THE SKY GRID PRECISELY RATHER THAN DISMISSING IT. The
+well-behaved grid frames span 0.5897 to 0.6241, a range of 0.034, which sits
+just above a noise floor of 0.03. THE SKY SIGNAL AND THE RIG NOISE ARE THE SAME
+SIZE. That is why the grid cannot be read, and it is a sharper reason than
+everything being void: the pin does not need to remove all drift, it needs to
+put the noise floor an order below the sky step.
+
+TWO CAUTIONS ON THIS NUMBER. It is one run, so 21 pairs from 7 frames is a
+denominator and not a distribution over runs. And wet_000 against wet_060 reads
+-0.0002 while wet_000 against wet_100 reads +0.0213, on frames whose only
+differing field is unread in this engine and which are adjacent in shot order,
+so some of the residual is drift within a settled stretch rather than a floor.
