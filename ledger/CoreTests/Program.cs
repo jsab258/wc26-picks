@@ -19492,13 +19492,65 @@ namespace Ledger.CoreTests
             // cam_B are still the four pairs the engine decision is judged on,
             // so the groups are counted APART rather than hidden inside a bare
             // 22, because a bare count would read as the pairing having changed.
-            int judgedConds = 0, probeConds = 0;
+            //
+            // AND THE FIVE ROWS QUEUE 235 ADDS ARE COUNTED APART AGAIN, for
+            // the same reason: four exposure rungs plus the night setter that
+            // puts darkness before each afternight rung. A bare 27 would read
+            // as the grid having grown.
+            int judgedConds = 0, probeConds = 0, pinConds = 0;
             foreach (var cd in plan.Conditions)
                 if (cd.Id == "overcast_day" || cd.Id == "wet_night") judgedConds++;
+                else if (cd.Id.StartsWith("pin_")) pinConds++;
                 else probeConds++;
-            Check(plan.Conditions.Count == 22 && judgedConds == 2 && probeConds == 20,
-                  "two judged conditions plus twenty one-run probe rows",
-                  plan.Conditions.Count + " total, " + judgedConds + " judged, " + probeConds + " probe");
+            Check(plan.Conditions.Count == 27 && judgedConds == 2 && probeConds == 20
+                  && pinConds == 5,
+                  "two judged conditions, twenty one-run probe rows, and the five exposure rows",
+                  plan.Conditions.Count + " total, " + judgedConds + " judged, " + probeConds
+                  + " probe, " + pinConds + " pin");
+
+            // QUEUE 235: THE LADDER IS FOUR RUNGS THAT DIFFER IN THE PIN AND
+            // IN NOTHING ELSE, ASSERTED FIELD BY FIELD against the reference
+            // cell rather than by reading rows of JSON side by side. A rung
+            // that also moved the sky would measure the sky.
+            {
+                StreetVignette.Condition dayRef = default;
+                bool haveDay = false;
+                foreach (var cd in plan.Conditions)
+                    if (cd.Id == "overcast_day") { dayRef = cd; haveDay = true; }
+                var wantPins = new double[] { 0.030, 0.300, 3.000, 10.000 };
+                int rungs = 0, rungsMatching = 0, pinsFound = 0;
+                foreach (var cd in plan.Conditions)
+                {
+                    if (!cd.Id.StartsWith("pin_") || cd.Id == "pin_setter_night") continue;
+                    rungs++;
+                    if (haveDay
+                        && cd.Hdri == dayRef.Hdri && cd.SunOn == dayRef.SunOn
+                        && cd.LanternsOn == dayRef.LanternsOn && cd.WindowsOn == dayRef.WindowsOn
+                        && Math.Abs(cd.SunIntensity - dayRef.SunIntensity) < 1e-12
+                        && Math.Abs(cd.SkyIntensity - dayRef.SkyIntensity) < 1e-12
+                        && Math.Abs(cd.Wetness - dayRef.Wetness) < 1e-12
+                        && Math.Abs(cd.FogDensity - dayRef.FogDensity) < 1e-12
+                        && Math.Abs(cd.FogMaxOpacity - dayRef.FogMaxOpacity) < 1e-12
+                        && cd.ExposurePin > 0.0) rungsMatching++;
+                }
+                foreach (var want in wantPins)
+                    foreach (var cd in plan.Conditions)
+                        if (cd.Id.StartsWith("pin_") && cd.Id != "pin_setter_night"
+                            && Math.Abs(cd.ExposurePin - want) < 1e-12) { pinsFound++; break; }
+                Check(rungs == 4 && rungsMatching == 4 && pinsFound == 4,
+                      "four exposure rungs, each the day reference cell in every field but the pin",
+                      rungs + " rungs, " + rungsMatching + " matching the reference, "
+                      + pinsFound + " of 4 asked pin values found");
+                // AND EVERY ROW OLDER THAN QUEUE 235 STILL ASKS FOR NOTHING,
+                // which is what makes "the field moved no frame that existed
+                // before it" a check rather than a sentence.
+                int pinned = 0, unpinned = 0;
+                foreach (var cd in plan.Conditions)
+                    if (cd.ExposurePin > 0.0) pinned++; else unpinned++;
+                Check(pinned == 4 && unpinned == 23,
+                      "exactly the four rungs are pinned and every other condition asks for nothing",
+                      pinned + " pinned, " + unpinned + " unpinned of " + plan.Conditions.Count);
+            }
 
             // THE GRID IS THE CROSS AND NOTHING ELSE, counted out of the file
             // rather than trusted: four skies by three suns is twelve cells,
@@ -19548,7 +19600,11 @@ namespace Ledger.CoreTests
                   && Math.Abs(nullCell.SkyIntensity - refCell.SkyIntensity) < 1e-12
                   && Math.Abs(nullCell.Wetness - refCell.Wetness) < 1e-12
                   && Math.Abs(nullCell.FogDensity - refCell.FogDensity) < 1e-12
-                  && Math.Abs(nullCell.FogMaxOpacity - refCell.FogMaxOpacity) < 1e-12,
+                  && Math.Abs(nullCell.FogMaxOpacity - refCell.FogMaxOpacity) < 1e-12
+                  // AND THE EXPOSURE PIN, QUEUE 235: a null pair photographed
+                  // at two different exposures is not a null pair, and this
+                  // field is the one the rig has already lost a run to.
+                  && Math.Abs(nullCell.ExposurePin - refCell.ExposurePin) < 1e-12,
                   "the null cell is the reference cell in every field that lights a frame",
                   "a null pair that differs in any input measures the difference, not the rig");
 
@@ -19596,24 +19652,64 @@ namespace Ledger.CoreTests
             // whole-frame key on a probe row photographs the instrument, and at
             // fovV 39.0 band.skyCentre is sky rather than the rooftops it holds
             // at fovV 60.0.
-            int matched = 0, probeShots = 0, probeAtHook = 0;
+            int matched = 0, probeShots = 0, probeAtHook = 0, ladderShots = 0, setterShots = 0;
             foreach (var sh in plan.Shots)
             {
                 bool isJudged = sh.ConditionId == "overcast_day" || sh.ConditionId == "wet_night";
-                if (!isJudged)
+                bool isPin = sh.ConditionId.StartsWith("pin_");
+                if (isPin)
+                {
+                    if (sh.ConditionId == "pin_setter_night") setterShots++; else ladderShots++;
+                    if (sh.CameraId == "cam_hook") probeAtHook++;
+                }
+                else if (!isJudged)
                 {
                     probeShots++;
                     if (sh.CameraId == "cam_hook") probeAtHook++;
                 }
                 else if (sh.CameraId == "cam_A" || sh.CameraId == "cam_B") matched++;
             }
-            Check(plan.Shots.Count == 25,
-                  "four matched shots plus the hook viewpoint plus twenty probe rows",
+            Check(plan.Shots.Count == 37,
+                  "four matched shots plus the hook viewpoint plus twenty probe rows plus the "
+                  + "twelve exposure rows",
                   plan.Shots.Count.ToString());
             Check(matched == 4, "the four judged pairs are still exactly four", matched.ToString());
-            Check(probeShots == 20 && probeAtHook == 20,
-                  "every probe row stands at cam_hook, the camera rung 1 is judged from",
-                  probeAtHook + " of " + probeShots + " probe shots at cam_hook");
+            Check(probeShots == 20 && probeAtHook == 32,
+                  "every probe row and every exposure row stands at cam_hook, the camera rung 1 "
+                  + "is judged from",
+                  probeAtHook + " at cam_hook over " + probeShots + " probe and "
+                  + (ladderShots + setterShots) + " exposure rows");
+            // QUEUE 235: EIGHT LADDER ROWS AND FOUR SETTERS, AND THE PAIRING IS
+            // ASSERTED RATHER THAN TRUSTED TO THE ORDER SOMEBODY TYPED. Every
+            // afternight row must be IMMEDIATELY PRECEDED by a night frame and
+            // every afterday row by a day frame, because that predecessor is
+            // the entire measurement: the fault under test is a frame coming
+            // out blown because the one before it was dark.
+            {
+                int afterNight = 0, afterDay = 0, nightOk = 0, dayOk = 0;
+                for (int i = 0; i < plan.Shots.Count; i++)
+                {
+                    var id = plan.Shots[i].Id;
+                    if (id.IndexOf("_afternight", StringComparison.Ordinal) < 0
+                        && id.IndexOf("_afterday", StringComparison.Ordinal) < 0) continue;
+                    bool wantsNight = id.IndexOf("_afternight", StringComparison.Ordinal) >= 0;
+                    if (wantsNight) afterNight++; else afterDay++;
+                    if (i == 0) continue;
+                    bool prevSunOn = false;
+                    foreach (var cd in plan.Conditions)
+                        if (cd.Id == plan.Shots[i - 1].ConditionId) prevSunOn = cd.SunOn;
+                    if (wantsNight && !prevSunOn) nightOk++;
+                    if (!wantsNight && prevSunOn) dayOk++;
+                }
+                Check(afterNight == 4 && afterDay == 4 && nightOk == 4 && dayOk == 4,
+                      "every exposure rung is photographed twice, once after a night frame and "
+                      + "once after a day frame, and the predecessor in the list agrees",
+                      afterNight + " afternight rows of which " + nightOk + " follow a night frame, "
+                      + afterDay + " afterday rows of which " + dayOk + " follow a day frame");
+                Check(setterShots == 4 && ladderShots == 8,
+                      "four night setters for four rungs, and eight ladder rows",
+                      setterShots + " setters, " + ladderShots + " ladder rows");
+            }
             // THE NULL CELL IS SHOT LAST, which is the whole of its value: its
             // twin grid_sky100_sun003 is shot 7 of 25, so the pair is
             // EIGHTEEN SHOTS APART ON IDENTICAL INPUTS, with every condition

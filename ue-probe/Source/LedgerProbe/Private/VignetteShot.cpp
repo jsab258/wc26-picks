@@ -271,6 +271,42 @@ namespace
 	// series this run prints, in that order.
 	const double kExposureSnapSpeed = 10000.0;
 
+	// ---- AND THE RATE SNAP DID NOT SETTLE IT, QUEUE 235 -------------------
+	//
+	// WHAT THE ACCEPTANCE TEST SAID. On 83dec33, with the rate already at
+	// 10000, one camera under one condition photographed first and again last
+	// read rigDeterminism=DIFFERS, rigDiffPixels=921600/921600,
+	// rigMeanLumaFirst=0.6102 against rigMeanLumaRepeat=0.9562. Five frames
+	// of twenty five were blown, up to 604972/921600 pixels clipped, and one
+	// was nearly black at 0.0623. THE RATE IS THE WRONG LEVER and that is a
+	// measurement, not an argument: it is already at 10000 and the fault
+	// survived it.
+	//
+	// THERE IS NO EXPOSURE CONSTANT IN THIS FILE, AND THAT IS DELIBERATE.
+	// The next lever is the VALUE: AutoExposureMinBrightness equal to
+	// AutoExposureMaxBrightness leaves the histogram nothing to move. The
+	// value cannot be computed from anything this project has committed,
+	// because shotMeanLuma is the mean of a tonemapped 8-bit frame and these
+	// two clamps are scene-luminance inputs read before the tonemap, with no
+	// arithmetic joining them. So the number lives in the shared file as
+	// `exposure_pin` on the CONDITION, four ladder rungs bracket the engine's
+	// own default range, and the run prints what each rung came out at. A
+	// later commit sets the value from that series. Ship the printer, read the
+	// runs, set the bound, in that order, and NO VALUE IS CHOSEN HERE.
+	//
+	// THE COST, PAID THE MOMENT A PIN IS IN FORCE, written here rather than
+	// in a commit message because this is where a future session will look:
+	// A PINNED FRAME CAN NEVER JUDGE AN ADAPTATION MOMENT. Walking out of a
+	// dark alley and having the street bloom open is exactly the thing this
+	// rig stops being able to photograph while a pin is on. That cost was
+	// accepted in writing when the rate was snapped, section 2.3 of
+	// game-design/decision-2026-09-09-ruling-the-settled-exposure-and-the-
+	// two-lanes.md, and it is larger now: with the two clamps equal the
+	// exposure does not merely settle instantly, it does not respond to the
+	// scene at all, so a condition that genuinely is darker renders darker
+	// and a frame can legitimately clip. That is the point of a photometric
+	// rig and it is a loss for anything judging an eye.
+
 	// ---- phase C: the pack's maps and the one asset a script had to make --
 	//
 	// THE BASE MATERIAL IS A BUILD PRODUCT, NOT A HAND-MADE ASSET. Unreal
@@ -438,6 +474,30 @@ namespace
 	// read by MeasureShot, so the pose rides the shot line rather than the
 	// one-per-run line the shot loop used to overwrite.
 	LedgerVignette::ShotCamIn GShotCam;
+
+	// ---- the exposure pin, queue 235 --------------------------------------
+	//
+	// THE PIN THE CONDITION IN FORCE ASKED FOR. Set by ApplyCondition, which
+	// is the one place that holds the Condition, and read by PlaceCamera,
+	// which is the one place that writes post-process values. Two globals and
+	// one writer each: the alternative was handing the condition to
+	// PlaceCamera and giving the exposure a second owner.
+	double GExposurePinNow = 0.0;
+	// WHICH LIGHTING FAMILY THE CONDITION IN FORCE STANDS IN, carried beside
+	// the pin so the shot line can say day or night without a second lookup.
+	bool   GExposurePinFamilySunOn = false;
+	// AND WHAT THE COMPONENT SAID AFTER THE WRITE, PER SHOT. The run-wide
+	// tonemap line is one-per-run and last-wins, which is section 7 fault 5 of
+	// the 2026-09-09 ruling: the action is per camera placement and the
+	// evidence for it was not, and only the evidence is committed.
+	LedgerVignette::ExposurePinIn GShotPin;
+	int32 GPinAsking = 0, GPinRead = 0, GPinHeld = 0;
+	// THE LADDER'S ROWS, COLLECTED IN SHOT ORDER. Only rows whose condition
+	// asks for a pin enter this, and the predecessor's lighting family is READ
+	// off the shot photographed before this one rather than off the row's name.
+	std::vector<LedgerVignette::ExposureLadderSample> GLadder;
+	bool GPrevShotWasDay  = false;
+	bool GPrevShotExists  = false;
 
 	// ---- the material pass -------------------------------------------------
 	FString GTexRoot;
@@ -1411,6 +1471,13 @@ namespace
 	void ApplyCondition(const Condition& C)
 	{
 		++GApplyCalls;
+		// THE EXPOSURE THIS CONDITION ASKS TO BE PHOTOGRAPHED AT, QUEUE 235,
+		// HANDED TO THE ONE PLACE THAT WRITES POST-PROCESS VALUES. Zero or
+		// less is a condition asking for nothing, which is what every
+		// condition written before 2026-09-10 says, and PlaceCamera then
+		// writes no override at all.
+		GExposurePinNow = C.ExposurePin;
+		GExposurePinFamilySunOn = C.SunOn;
 		const FLinearColor DaySky(0.42f, 0.46f, 0.52f, 1.0f);
 		const FLinearColor NightSky(0.05f, 0.05f, 0.07f, 1.0f);
 		const FLinearColor Sky = C.SunOn ? DaySky : NightSky;
@@ -1644,6 +1711,18 @@ namespace
 
 	void PlaceCamera(UWorld* World, const Camera& C)
 	{
+		// THE PIN READING IS CLEARED FIRST, QUEUE 235, so a placement that
+		// never reaches a camera component prints NOT-READ rather than the
+		// LAST shot's reading under this shot's name. The asked value and the
+		// family survive the clear because they are facts about the condition
+		// in force and not about the component.
+		{
+			const double Asked = GExposurePinNow;
+			const bool   bDay  = GExposurePinFamilySunOn;
+			GShotPin = LedgerVignette::ExposurePinIn();
+			GShotPin.Asked  = Asked;
+			GShotPin.bSunOn = bDay;
+		}
 		if (World == nullptr)
 		{
 			// A WORLD THAT WENT AWAY BETWEEN TWO TICKS IS A FINDING, and it
@@ -1722,7 +1801,42 @@ namespace
 				PPW.AutoExposureSpeedUp             = (float)kExposureSnapSpeed;
 				PPW.bOverride_AutoExposureSpeedDown = true;
 				PPW.AutoExposureSpeedDown           = (float)kExposureSnapSpeed;
+				// ---- AND THE VALUE, QUEUE 235, WHEN THE CONDITION ASKS ----
+				//
+				// THE TWO CLAMPS SET TO ONE NUMBER IS WHAT REMOVES ADAPTATION:
+				// the histogram's own answer is clamped into a range of zero
+				// width, so the exposure cannot move however the scene moves.
+				// A condition asking for nothing (exposure_pin 0.0, which is
+				// every condition older than queue 235) writes NO override
+				// here, so the rows that were already being photographed are
+				// photographed exactly as before and this change moves no
+				// frame that existed before it.
+				//
+				// SAME OWNER AS THE SPEEDS. This is the only writer of any
+				// post-process value in this module; the block below reads.
+				// The write sits at the camera placement, which happens once
+				// per shot, so the pin is per frame and not per run.
+				if (LedgerVignette::ExposurePinAsked(GExposurePinNow))
+				{
+					PPW.bOverride_AutoExposureMinBrightness = true;
+					PPW.AutoExposureMinBrightness           = (float)GExposurePinNow;
+					PPW.bOverride_AutoExposureMaxBrightness = true;
+					PPW.AutoExposureMaxBrightness           = (float)GExposurePinNow;
+				}
 				const FPostProcessSettings& PP = CC->PostProcessSettings;
+				// ASKED BESIDE READ, PER SHOT, THE WAY THE LIGHT AIM LINE
+				// DOES IT. A value that lands on the game thread and never
+				// reaches the render proxy reads back as the same pointer it
+				// was written through, so this is necessary and not
+				// sufficient: the row's own frame luma is the other half and
+				// it rides the same shot line.
+				GShotPin.Asked    = GExposurePinNow;
+				GShotPin.bSunOn   = GExposurePinFamilySunOn;
+				GShotPin.ReadMin  = PP.AutoExposureMinBrightness;
+				GShotPin.ReadMax  = PP.AutoExposureMaxBrightness;
+				GShotPin.bOverMin = PP.bOverride_AutoExposureMinBrightness;
+				GShotPin.bOverMax = PP.bOverride_AutoExposureMaxBrightness;
+				GShotPin.bRead    = true;
 				GToneLine = FString::Printf(
 					TEXT("tonemapRead=camera-postprocess-and-cvars ")
 					TEXT("ppAutoExposureMethod=%d ppAutoExposureBias=%.3f ")
@@ -1733,9 +1847,12 @@ namespace
 					TEXT("ppAutoExposureSpeedUpRead=%.1f ppAutoExposureSpeedDownRead=%.1f ")
 					TEXT("ppOverridesSpeedUp/SpeedDown=%d/%d ppBlendWeightRead=%.3f ")
 					TEXT("tonemapStat=last-camera-placement/one-per-run ")
-					TEXT("ppNote=this-probe-overrides-the-two-eye-adaptation-SPEEDS-and-nothing-else/")
-					TEXT("the-values-above-are-the-game-threads-copy-after-the-write/")
-					TEXT("cvars-are-what-is-in-force-for-everything-else"),
+					TEXT("ppNote=this-probe-overrides-the-two-eye-adaptation-SPEEDS-always-and-the-")
+					TEXT("two-BRIGHTNESS-clamps-on-any-shot-whose-condition-names-an-exposure_pin/")
+					TEXT("queue-235/the-values-above-are-the-game-threads-copy-after-the-write/")
+					TEXT("cvars-are-what-is-in-force-for-everything-else/")
+					TEXT("THIS-LINE-IS-ONE-PER-RUN-AND-LAST-WINS-so-the-pin-that-photographed-a-")
+					TEXT("GIVEN-frame-is-on-that-frames-shot-line-under-shotExposurePin"),
 					(int32)PP.AutoExposureMethod, PP.AutoExposureBias,
 					PP.AutoExposureMinBrightness, PP.AutoExposureMaxBrightness,
 					PP.bOverride_AutoExposureMethod ? 1 : 0,
@@ -1921,6 +2038,41 @@ namespace
 		Out.Add(TEXT("#   been rendered and nothing said so. The repeat shot is excluded from the"));
 		Out.Add(TEXT("#   run tally, because it re-photographs shot 0 and would make the"));
 		Out.Add(TEXT("#   denominator larger than the shot list."));
+		Out.Add(TEXT("# shotExposurePin*: QUEUE 235, 2026-09-10. WHAT EXPOSURE THIS FRAME WAS"));
+		Out.Add(TEXT("#   ASKED TO HOLD, BESIDE WHAT THE CAMERA COMPONENT READ BACK, PER SHOT. The"));
+		Out.Add(TEXT("#   rate snap of 2026-09-09 did not settle the rig: at speed 10000 the run on"));
+		Out.Add(TEXT("#   83dec33 still read rigDeterminism=DIFFERS with 921600 of 921600 pixels"));
+		Out.Add(TEXT("#   changed between one camera's first frame and its own repeat. The next lever"));
+		Out.Add(TEXT("#   is the VALUE: AutoExposureMinBrightness equal to MaxBrightness leaves the"));
+		Out.Add(TEXT("#   histogram nothing to move. asked comes from the CONDITION, exposure_pin in"));
+		Out.Add(TEXT("#   the shared file, where 0.0 asks for nothing and is what every condition"));
+		Out.Add(TEXT("#   older than this change carries, so AUTO on a row is not a failure. HELD is"));
+		Out.Add(TEXT("#   the game thread's agreement and NOT a pixel's: a value written through a"));
+		Out.Add(TEXT("#   pointer reads back off that pointer whatever the render proxy did, which is"));
+		Out.Add(TEXT("#   why the row's own frame luma rides the same line. The separator is one part"));
+		Out.Add(TEXT("#   in a thousand and is NOT a measured tolerance: a float round trip is of"));
+		Out.Add(TEXT("#   order 1e-7 and a pin that never landed reads back as the engine default."));
+		Out.Add(TEXT("# ladder.pin*: THE SERIES THE PINNED VALUE IS SET FROM, AND IT IS NOT SET IN"));
+		Out.Add(TEXT("#   THIS RUN. The value cannot be computed from anything committed: shotMeanLuma"));
+		Out.Add(TEXT("#   is the mean of a tonemapped 8-bit frame and the pin is a scene-luminance"));
+		Out.Add(TEXT("#   input read before the tonemap, with no arithmetic joining them, and the"));
+		Out.Add(TEXT("#   adapted exposure is a render-thread quantity this process never reads. So"));
+		Out.Add(TEXT("#   four rungs bracket the engine's own default clamp range and EVERY RUNG IS"));
+		Out.Add(TEXT("#   PHOTOGRAPHED TWICE, once after a night frame and once after a day frame,"));
+		Out.Add(TEXT("#   because the fault under test is a frame coming out blown because the one"));
+		Out.Add(TEXT("#   before it was dark. afterDay and afterNight name the frame photographed"));
+		Out.Add(TEXT("#   IMMEDIATELY BEFORE the row, read off the shot loop and never off the row's"));
+		Out.Add(TEXT("#   name. The pairing prints as a signed DIFFERENCE, never a ratio, because"));
+		Out.Add(TEXT("#   this tonemap is monotone and not linear. ladderSmallestDiffPin NAMES the"));
+		Out.Add(TEXT("#   smallest and calls nothing agreement: a bound on that difference has not"));
+		Out.Add(TEXT("#   been measured, so ladderVerdict stays SERIES-ONLY and a later commit sets"));
+		Out.Add(TEXT("#   the number. Both clip counts ride each rung with their denominators,"));
+		Out.Add(TEXT("#   because a mean cannot see a blown frame and a value chosen on the mean"));
+		Out.Add(TEXT("#   alone would crush or blow one end of the run."));
+		Out.Add(TEXT("# expPin*: the run's tally, with the cost of the pin on the line. A PINNED"));
+		Out.Add(TEXT("#   FRAME CAN NEVER JUDGE AN ADAPTATION MOMENT, walking out of a dark alley"));
+		Out.Add(TEXT("#   being the example, and expPinConstantSet=no says this run printed the"));
+		Out.Add(TEXT("#   series and chose nothing from it."));
 		Out.Add(TEXT("# lightAim*: A6, 2026-09-09. EVERY DIRECTIONAL LIGHT'S ASKED ROTATION BESIDE"));
 		Out.Add(TEXT("#   THE ONE ITS COMPONENT READS BACK, with the signed residual per axis to"));
 		Out.Add(TEXT("#   four decimals. The spec has asked for a sun at pitch -36.0 since it was"));
@@ -2108,6 +2260,16 @@ namespace
 		// never rewritten, and it sits beside the other whole-run lines for
 		// the same reason. lightAimStatus is the key the CI step refuses on.
 		Out.Add(FString(UTF8_TO_TCHAR(LightAimNow().c_str())));
+		// QUEUE 235: THE EXPOSURE LADDER AND THE RUN'S PIN TALLY, IMMEDIATELY
+		// BEFORE THE DETERMINISM LINE THEY EXIST TO REPAIR. The ladder is the
+		// series a later commit reads the pinned value off; the run line says
+		// how many rows asked for a pin, how many held it, and in as many
+		// words that NO CONSTANT WAS SET FROM THIS RUN.
+		Out.Add(FString(UTF8_TO_TCHAR(
+			LedgerVignette::ExposureLadderLine(GLadder).c_str())));
+		Out.Add(FString(UTF8_TO_TCHAR(LedgerVignette::ExposurePinDoneLine(
+			(int)GPinAsking, (int)GPinHeld, (int)GPinRead,
+			(int)GSpec.Shots.size()).c_str())));
 		// THE RIG'S OWN DETERMINISM, BESIDE THE PASS SUMMARIES IT QUALIFIES.
 		Out.Add(FString(UTF8_TO_TCHAR(GRigLine.c_str())));
 		Out.Add(FString(UTF8_TO_TCHAR(DoneLine.c_str())));
@@ -2316,6 +2478,41 @@ namespace
 		     + " shotCaptureViaStat=per-sample/the-path-is-adopted-run-wide-once-candidate-A-fails-once";
 	}
 
+	// WHAT EXPOSURE THIS FRAME WAS ASKED TO HOLD AND WHAT THE COMPONENT SAID,
+	// QUEUE 235. PURE: the tally is taken once per shot at the top of
+	// MeasureShot, not here, because a formatter that counts is a formatter
+	// that counts twice the day something calls it twice. The string itself is
+	// in VignetteSpec.h, where g++ runs it before any dispatch.
+	std::string ExposurePinNow()
+	{
+		return LedgerVignette::ExposurePinSegment(GShotPin);
+	}
+
+	// ONE LADDER ROW, RECORDED FROM EVERY PATH THAT ENDS A SHOT, QUEUE 235.
+	//
+	// A ROW WHOSE FRAME NEVER LANDED IS STILL A ROW THE FILE ASKED FOR. Left
+	// out, `ladderRows=4/of=4` would read as a complete ladder over the four
+	// rows that happened to survive, which is a denominator smaller than the
+	// set examined and the exact shape rule 3b refuses. So the failing paths
+	// record the row with bMeasured false and no luma, and the ladder line
+	// counts it in the denominator and outside the reading.
+	void NoteLadderRow(const std::string& ShotId, bool bAfterNight, bool bMeasured,
+	                   double MeanLuma, long long ClipHi, long long ClipLo, long long Pixels)
+	{
+		if (!LedgerVignette::ExposurePinAsked(GShotPin.Asked)) { return; }
+		LedgerVignette::ExposureLadderSample LS;
+		LS.ShotId      = ShotId;
+		LS.Pin         = GShotPin.Asked;
+		LS.bAfterNight = bAfterNight;
+		LS.bMeasured   = bMeasured;
+		LS.bPinHeld    = LedgerVignette::ExposurePinHeld(GShotPin);
+		LS.MeanLuma    = MeanLuma;
+		LS.ClipHi      = ClipHi;
+		LS.ClipLo      = ClipLo;
+		LS.Pixels      = Pixels;
+		GLadder.push_back(LS);
+	}
+
 	// A1(d), AMENDMENT 1 OF THE BATCH REVIEW: WHETHER THIS LINE'S OWN
 	// WHOLE-FRAME KEYS INCLUDE THE INSTRUMENT. Every string and every
 	// projection is in SurfaceBind.h where the test runs; this supplies the
@@ -2342,6 +2539,30 @@ namespace
 	// tested header.
 	void MeasureShot(const Shot& S, const FString& PngPath, bool bHaveFile)
 	{
+		// THE PIN TALLY IS TAKEN ONCE PER SHOT, HERE, ABOVE EVERY EARLY
+		// RETURN. A row whose frame never landed still asked for an exposure
+		// and still read one back, and leaving it out of the denominator would
+		// turn a run that lost frames into a run that held every pin.
+		bool bAfterNight = false;
+		if (!GRepeating)
+		{
+			if (GShotPin.bRead) { ++GPinRead; }
+			if (LedgerVignette::ExposurePinAsked(GShotPin.Asked))
+			{
+				++GPinAsking;
+				if (LedgerVignette::ExposurePinHeld(GShotPin)) { ++GPinHeld; }
+			}
+			// WHAT THIS ROW FOLLOWED, READ BEFORE THE MEMORY MOVES ON. The
+			// pairing is the measurement and the predecessor is read off the
+			// shot loop, never off the row's name.
+			bAfterNight = GPrevShotExists && !GPrevShotWasDay;
+			// AND THE MEMORY MOVES HERE, ABOVE EVERY EARLY RETURN, because a
+			// shot whose FILE never landed still rendered its condition for
+			// the fifty-six frames before the shutter: what the adaptation
+			// saw is the scene, not the file.
+			GPrevShotWasDay = GShotPin.bSunOn;
+			GPrevShotExists = true;
+		}
 		const double VFov = FindCamera(S.CameraId) ? FindCamera(S.CameraId)->FovVerticalDeg : 0.0;
 		const double HFov = HorizontalFovDeg(VFov, kShotW, kShotH);
 		const double Median = MedianMs(GFrameMs);
@@ -2353,7 +2574,9 @@ namespace
 				kShotW, kShotH, VFov, HFov, 0, "NO-FILE", "none",
 				std::string(TCHAR_TO_UTF8(*GNote)))
 				+ " " + ShotCamAndCaptureNow()
-				+ " " + ShotControlQuadsNow(S, false));
+				+ " " + ShotControlQuadsNow(S, false)
+				+ " " + ExposurePinNow());
+			NoteLadderRow(S.Id, bAfterNight, false, 0.0, 0, 0, 0);
 			return;
 		}
 		const int64 Bytes = IFileManager::Get().FileSize(*PngPath);
@@ -2368,7 +2591,9 @@ namespace
 				0, 0, VFov, HFov, (long long)Bytes, "UNDECODABLE",
 				TCHAR_TO_UTF8(*FPaths::GetCleanFilename(PngPath)), Note)
 				+ " " + ShotCamAndCaptureNow()
-				+ " " + ShotControlQuadsNow(S, false));
+				+ " " + ShotControlQuadsNow(S, false)
+				+ " " + ExposurePinNow());
+			NoteLadderRow(S.Id, bAfterNight, false, 0.0, 0, 0, 0);
 			return;
 		}
 		const LedgerFrame::FrameStats St =
@@ -2393,9 +2618,10 @@ namespace
 		// whose whole ground plane was clipped, because a mean cannot see
 		// clipping; these keys can, and the eight luma bands are the series a
 		// bound gets read off later rather than invented now.
+		const LedgerFrame::ExposureStats Exp =
+			LedgerFrame::MeasureExposure((const unsigned char*)Bgra.GetData(), W, H);
 		Line += " ";
-		Line += LedgerFrame::ExposureLine(
-			LedgerFrame::MeasureExposure((const unsigned char*)Bgra.GetData(), W, H));
+		Line += LedgerFrame::ExposureLine(Exp);
 		// AND WHAT THE SKY AND THE GROUND ARE IN THIS FRAME, QUEUE 186.
 		// shotMeanLuma is a mean over the whole picture and cannot tell a
 		// sky that arrived from a fog colour that never left; three named
@@ -2453,7 +2679,27 @@ namespace
 		// way to tell which lines carry them.
 		Line += " ";
 		Line += ShotControlQuadsNow(S, true);
+		// AND WHAT EXPOSURE THIS FRAME WAS ASKED TO HOLD, QUEUE 235, asked
+		// beside read with the residual. Per-sample, because the write happens
+		// at every camera placement and the run-wide tonemap line is
+		// last-wins.
+		Line += " ";
+		Line += ExposurePinNow();
 		GShotLines.push_back(Line);
+		// ---- THE LADDER'S ROWS, AND WHAT CAME BEFORE THEM -----------------
+		//
+		// A ROW'S PREDECESSOR IS READ OFF THE SHOT LOOP, NEVER OFF ITS NAME.
+		// The pairing is the measurement: the fault under test is a frame
+		// coming out blown because the frame before it was dark, so a row
+		// whose predecessor is not what its name claims must report what it
+		// actually followed. The repeat pass is excluded from both the ladder
+		// and the predecessor memory, because it is not a shot the file asked
+		// for.
+		if (!GRepeating)
+		{
+			NoteLadderRow(S.Id, bAfterNight, !St.Blank && Exp.Measured,
+			              St.MeanLuma, Exp.ClipHiAny, Exp.ClipLoAll, Exp.Pixels);
+		}
 		// ---- THE FIRST SHOT'S PIXELS, KEPT FOR THE REPEAT AT THE END -----
 		//
 		// A COPY, taken before the light probe may move this buffer out from

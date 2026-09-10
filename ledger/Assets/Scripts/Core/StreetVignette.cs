@@ -145,6 +145,19 @@ namespace Ledger.Core
             /// says a missing key is an error precisely so the two engines
             /// cannot quietly build two different streets.
             public double FogMaxOpacity;
+            /// QUEUE 235, 2026-09-10. THE EXPOSURE THIS CONDITION ASKS TO BE
+            /// PHOTOGRAPHED AT, in the renderer's AutoExposureMinBrightness
+            /// units, where a POSITIVE value sets that clamp and its maximum
+            /// twin to the same number and so removes eye adaptation, and
+            /// ZERO OR LESS asks for nothing at all. Every condition written
+            /// before queue 235 carries 0.000, so this field moves no frame
+            /// that existed before it.
+            ///
+            /// THIS READER KNOWS ABOUT IT FOR THE SAME REASON IT KNOWS ABOUT
+            /// THE FOG CAP: a key only one engine knows is a key the two
+            /// engines can disagree about in silence, and the exposure is the
+            /// one setting this rig has already lost a run to.
+            public double ExposurePin;
         }
 
         public struct Shot
@@ -1841,7 +1854,12 @@ namespace Ledger.Core
                     SkyIntensity = Num(o, "sky_intensity"),
                     // REQUIRED ON THE SAME TERMS. Num throws on a missing
                     // key and the caller turns that into plan.Error.
-                    FogMaxOpacity = Num(o, "fog_max_opacity")
+                    FogMaxOpacity = Num(o, "fog_max_opacity"),
+                    // AND THE EXPOSURE PIN, REQUIRED ON THE SAME TERMS AGAIN,
+                    // QUEUE 235. Required precisely BECAUSE its safe value is
+                    // 0.0: an optional field defaulting to zero reads the same
+                    // whether the writer chose auto exposure or forgot the key.
+                    ExposurePin = Num(o, "exposure_pin")
                 });
             }
             foreach (var sh in MiniJson.GetList(root, "shots"))

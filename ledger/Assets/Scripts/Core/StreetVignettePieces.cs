@@ -485,7 +485,15 @@ namespace Ledger.Core
                 // AND THE FOG CAP, WHICH THE UNREAL READER NOW REQUIRES. A
                 // condition written without it fails at parse rather than
                 // falling back on the 0.45f literal this field replaced.
-                sb.Append(Kn("fog_max_opacity", c.FogMaxOpacity));
+                sb.Append(Kn("fog_max_opacity", c.FogMaxOpacity)).Append(',');
+                // AND THE EXPOSURE PIN, QUEUE 235. The Unreal reader requires
+                // it, so a condition written without it fails at parse rather
+                // than photographing a street at whatever exposure the last
+                // frame left behind. A positive number pins the renderer's two
+                // brightness clamps together and removes adaptation; 0.0 asks
+                // for nothing, which is what every condition older than queue
+                // 235 says.
+                sb.Append(Kn("exposure_pin", c.ExposurePin));
                 sb.Append('}');
                 sb.Append(i + 1 < plan.Conditions.Count ? ",\n" : "\n");
             }

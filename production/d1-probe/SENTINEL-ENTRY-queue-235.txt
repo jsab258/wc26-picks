@@ -1,0 +1,80 @@
+# QUEUE 235, THE EXPOSURE LADDER, 2026-09-10. Sentinel entry, not a dispatch.
+#
+# THESE LINES ARE NOT LIVE. This file is a block for a RESIDENT to append to
+# production/d1-probe/DISPATCH, which this commission does not write to: that
+# path is the resident's and is on the do-not-touch list for a builder. Nothing
+# here fires a run.
+
+WHAT THIS RUN IS FOR. The rig cannot photograph one unchanged scene twice. On
+83dec33, with the adaptation RATE already snapped to 10000, the acceptance test
+built for exactly this read rigDeterminism=DIFFERS, rigDiffPixels=921600/921600,
+rigMeanLumaFirst=0.6102 against rigMeanLumaRepeat=0.9562, so every cross-frame
+number that run printed is void and the twelve-cell sky grid cannot be read from
+it. The rate is the wrong lever and that is a measurement rather than an
+argument: it is at 10000 and the fault survived it.
+
+WHAT THIS RUN DOES. It adds a required condition field, exposure_pin, and a
+four-rung ladder that brackets the renderer's own default clamp range
+(0.0300 to 8.0000, read off the tonemap line of that run). A positive pin sets
+AutoExposureMinBrightness AND MaxBrightness to the same number, which leaves the
+histogram nothing to move. Every rung is photographed TWICE, once after a night
+frame and once after a day frame, because the whole fault is that a frame
+following darkness came out blown. Twelve rows, all at cam_hook: four night
+setters that supply the darkness and eight ladder rows.
+
+WHAT THIS RUN ONLY PRINTS, AND SETS NOTHING FROM. THE PINNED VALUE IS NOT SET
+IN THIS COMMIT AND NO CONSTANT ANYWHERE MOVES TO MATCH IT. There is no exposure
+value in VignetteShot.cpp at all: the number lives on the condition, and the
+only conditions carrying one are the four rungs. The verdict says so in its own
+words, expPinConstantSet=no, and the ladder's own verdict word is SERIES-ONLY.
+The value is read off this run's printed series by a LATER commit. Ship the
+printer, read the runs, set the bound, in that order.
+
+WHY THE VALUE COULD NOT BE READ OFF THE COMMITTED VERDICT. shotMeanLuma is the
+mean of a tonemapped 8-bit picture and exposure_pin is a scene-luminance input
+read before the tonemap. No arithmetic joins them, and the adapted exposure is a
+render-thread quantity this process never reads. A number derived from the
+committed luma series would have been invented with arithmetic decoration on it.
+
+WHAT THIS RUN CANNOT SETTLE. It cannot make rigDeterminism read IDENTICAL:
+the twenty five rows that existed before this commit still carry exposure_pin
+0.000, so they are photographed exactly as they were, the determinism repeat is
+of one of them, and the acceptance of queue 235 is NOT met by this run. It
+cannot say what the night level should be, because no night frame in the 83dec33
+run was photographed at a settled exposure: both were far below the level every
+unclamped day frame settled at, so there is no measured night target to match.
+It cannot say that a pin HELD in the renderer: the readback proves the game
+thread agrees and the row's own frame luma is the other half.
+
+WHAT TO READ, IN THIS ORDER.
+1. expPinStatus and expPinRowsHeld=N/of=M. A pin that did not hold makes every
+   ladder number below it a reading of the default clamp range instead.
+2. ladder.pin*.afterDayMinusAfterNightMeanLuma, four signed differences. THE
+   RUNG WHOSE TWO HALVES AGREE IS THE ANSWER and no rung is the answer if none
+   agree. Nothing in this run calls agreement: no bound on that difference has
+   been measured, so the line NAMES the smallest and stops there.
+3. ladder.pin*.afterDayClipHi and afterNightClipLo with their denominators. A
+   mean cannot see a blown frame, and a value chosen on the mean alone would
+   crush or blow one end of the run.
+4. nullSeriesSamples and nullSeriesIds. The ladder rows must NOT be in the null
+   group: exposure_pin is part of the applied-input fingerprint precisely so
+   that the ladder's deliberate spread cannot be published as this run's noise
+   floor. Seven ids at cam_hook is the expected reading.
+5. rigDeterminism, which is expected to still read DIFFERS, and which the next
+   commit is judged on rather than this one.
+
+WHAT IS UNVERIFIED UNTIL THIS RUN. The Unreal layer does not compile in the
+container. UNVERIFIED UNTIL CI: the two override writes
+(bOverride_AutoExposureMinBrightness and bOverride_AutoExposureMaxBrightness
+with their values) reaching the camera component at every placement; the
+readback of those four fields into the shot line; shotExposurePin appearing on
+all thirty seven shot lines; the ladder line and the expPin line reaching the
+verdict; the twelve new shots rendering at all; and the four pinset_night_*
+frames deliberately NOT being staged, because the workflow stages
+ue-vign_*.png by name and those four ids do not carry the prefix.
+
+Everything in the tested layer RAN HERE: 382 checks in
+ue-probe/tests/vignette-spec-test.cpp, 108 in ue-probe/tests/frame-stats-test.cpp,
+and the piece list regenerated and re-read by CoreTests. NO PLAYER LOG in the
+verdict means the sim did not run and reads identically to a compile error and
+to a lost licence seat; read the verdict before the run's colour.

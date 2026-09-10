@@ -3573,3 +3573,63 @@ across every py, yml, yaml and sh returned one file, itself. Rule 6 applied to a
 guard, and worse than an unwired feature, because the comment beside the
 constants told a reader they need not check. It is now wired into ledger/verify.py
 as surface_tint_agreement and the grep returns four hits in the gate.
+
+--------------------------------------------------------------------------------
+2026-09-10, FOUR AGENTS SPENT THEIR WHOLE BUDGET READING, AND THE BRIEFS DID IT.
+
+Jafar ruled on 2026-09-10 that every builder brief opens with "produce at a clean
+boundary first, refine second", after three agents shipped nothing on the night
+of the 9th. EVERY BRIEF SINCE HAS CARRIED THAT LINE AT THE TOP AND THE FAULT KEPT
+HAPPENING. Today: 53 calls and no diff, 54 and no diff, 56 and no ruling, 45 and
+a half-written test block. The line is necessary and it is not sufficient.
+
+THE CAUSE IS THE REST OF THE BRIEF, WHICH IS THE RESIDENT'S. A typical brief here
+names three to five documents to read IN FULL before any work can start: a queue
+item, a ruling, a second queue item, a committed verdict. Reading those is not
+avoidable once they are named, and a reasonable agent reads them first, exactly
+as instructed, and then has nothing left. AN INSTRUCTION TO PRODUCE EARLY CANNOT
+SURVIVE A READING LIST THAT MUST COME FIRST.
+
+THE SHARPER VERSION, and it is worse than verbosity: one brief today asked for a
+value that CANNOT BE DERIVED. It told the builder to set a pinned exposure from a
+printed series, when the series is output luma from a tonemapped 8-bit frame and
+the setting is a scene-luminance input, with no arithmetic between them. The
+project's own record already said the adapted exposure is a render-thread
+quantity this process never reads, which is WHY the rate was snapped instead of
+the value weeks ago. The builder produced nothing because nothing was producible,
+and it was right.
+
+THE REPAIR, PROPOSED AS A RULE AND NOT YET ONE: a brief carries the FACTS INLINE
+and names at most ONE document as required reading. Everything else is offered as
+available rather than required. And before a brief asks for a number, the
+resident checks that the number can be reached from what the agent will have; if
+it cannot, the brief asks for the MEASUREMENT THAT WOULD PRODUCE IT instead.
+
+Cost today, counted rather than estimated: four spawns, roughly two hundred tool
+calls, and two of the four produced no line of code.
+
+--------------------------------------------------------------------------------
+2026-09-10, THE LETTERING RULE WAS WRONG AND THE MEASUREMENT IS SHARPER.
+
+This lane believed, and wrote down twice as a reason to concede labels, that
+every extra string of lettering degrades the lettering that already works. A
+builder measured it instead of inheriting it: six lettering regions opened in
+the Fairview draw, five carrying text, six strings.
+
+    2 of 2 correct: FAIRVIEW and CONCEPT PROPOSAL, both LARGE, both ON THE MARGIN
+    0 of 4 correct: a street nameplate reading GHVAJS, a shop sign, a painted
+                    wall string and a caption, all SMALL, all INSIDE A PHOTOGRAPH
+
+SO THE SPLIT IS SIZE AND PLACEMENT, NOT COUNT. Large-on-margin passed everything;
+small-in-photograph failed everything. The old rule would have predicted the
+title degrading as strings multiplied, and it did not.
+
+THAT DECIDED A DESIGN QUESTION RATHER THAN JUST CORRECTING A BELIEF. A header, a
+tagline, eight labels, annotations and a footer are all small lettering, so
+asking the model for them puts every one in the class with a measured zero per
+cent pass rate. They are composited instead, where text is text.
+
+AND THREE OF THE FOUR GARBLED STRINGS WERE NEVER REQUESTED. The prompt did ask
+for unlabelled rows, but that instruction sat in the NEGATIVE, which at cfg 1.0
+is never evaluated (queue 234). The model captioned a garden gate nobody asked
+it to caption. The negative half has never vetoed anything here.

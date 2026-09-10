@@ -262,9 +262,27 @@ namespace LedgerVignette
 		// in its own text as something that must come down in the same change
 		// as the sky. REQUIRED, like the two intensities: see the parse.
 		double FogMaxOpacity;
+		// QUEUE 235: THE EXPOSURE THIS CONDITION ASKS TO BE PHOTOGRAPHED AT,
+		// IN THE ENGINE'S AutoExposureMinBrightness UNITS, AND ZERO MEANS
+		// LEAVE THE ENGINE ALONE.
+		//
+		// A POSITIVE VALUE sets AutoExposureMinBrightness AND MaxBrightness
+		// to it, which is what removes adaptation: with the two clamps equal
+		// the histogram's own answer cannot move the exposure at all.
+		// ZERO OR LESS asks for nothing, the overrides are not written, and
+		// the condition renders exactly as it did before this field existed.
+		// Every condition that was in the file before queue 235 carries 0.0
+		// for that reason.
+		//
+		// THE UNITS ARE NOT A FRAME LUMA AND NO ARITHMETIC CONNECTS THEM.
+		// shotMeanLuma is the mean of a tonemapped 8-bit picture; this is a
+		// scene-luminance input read by the renderer before the tonemap. The
+		// value a run should use is therefore READ OFF A LADDER, one row per
+		// candidate, and not computed from any committed luma.
+		double ExposurePin;
 		Condition() : SunOn(false), LanternsOn(false), WindowsOn(false),
 		              Wetness(0), FogDensity(0), SunIntensity(0), SkyIntensity(0),
-		              FogMaxOpacity(0) {}
+		              FogMaxOpacity(0), ExposurePin(0) {}
 	};
 
 	struct Shot { std::string Id, CameraId, ConditionId; };
@@ -464,6 +482,15 @@ namespace LedgerVignette
 			// cap the fog at 0.45 and the other at 1.0 and both stills would
 			// look fine, which is the fault the required fields exist for.
 			if (!NeedNum(O, "fog_max_opacity", C.FogMaxOpacity, Err, "condition")) return false;
+			// AND THE EXPOSURE PIN, REQUIRED ON THE SAME TERMS, QUEUE 235.
+			// Required rather than optional precisely BECAUSE its safe value
+			// is 0.0: an optional field defaulting to 0.0 would read the same
+			// whether the writer chose auto exposure or forgot the key, and
+			// the run would photograph a street at an exposure nobody asked
+			// for and print no sign of it. Every condition states its own
+			// answer, and the two engines cannot disagree about which ones
+			// are pinned.
+			if (!NeedNum(O, "exposure_pin", C.ExposurePin, Err, "condition")) return false;
 			Out.Conditions.push_back(C);
 		}
 
@@ -2503,24 +2530,33 @@ namespace LedgerVignette
 	// read it, at ledger/Assets/Scripts/Game/StreetVignetteHost.cs line 715,
 	// so the same arithmetic in Unity gives a different group and this
 	// function is named for the engine it speaks for.
+	// AND THE EXPOSURE PIN IS PART OF THE FINGERPRINT, QUEUE 235. Two
+	// conditions differing only in exposure_pin render the same street at two
+	// different exposures, so they are NOT null samples of each other. Left
+	// out of this key, the eight ladder rows of 2026-09-10 would have formed
+	// the largest identical-input group at cam_hook, nine against the day
+	// group's seven, and the ladder's DELIBERATE spread would have been
+	// published as this run's noise floor: the largest number in the
+	// comparison wearing the name of the smallest, which is the fault
+	// SampleKey's camera half already exists to stop.
 	inline std::string AppliedFieldsUnreal(const Condition& C, bool bWithSky)
 	{
-		char Buf[320];
+		char Buf[384];
 		if (bWithSky)
 		{
 			std::snprintf(Buf, sizeof(Buf),
-				"sun.%s/sunI%.3f/skyI%.4f/hdri.%s/fog%.4f/fogMaxOp%.3f/lant.%s/prac.%s",
+				"sun.%s/sunI%.3f/skyI%.4f/hdri.%s/fog%.4f/fogMaxOp%.3f/lant.%s/prac.%s/expPin%.4f",
 				C.SunOn ? "on" : "off", C.SunIntensity, C.SkyIntensity,
 				NoSpaces(C.Hdri).c_str(), C.FogDensity, C.FogMaxOpacity,
-				C.LanternsOn ? "on" : "off", C.WindowsOn ? "on" : "off");
+				C.LanternsOn ? "on" : "off", C.WindowsOn ? "on" : "off", C.ExposurePin);
 		}
 		else
 		{
 			std::snprintf(Buf, sizeof(Buf),
-				"sun.%s/sunI%.3f/hdri.%s/fog%.4f/fogMaxOp%.3f/lant.%s/prac.%s",
+				"sun.%s/sunI%.3f/hdri.%s/fog%.4f/fogMaxOp%.3f/lant.%s/prac.%s/expPin%.4f",
 				C.SunOn ? "on" : "off", C.SunIntensity,
 				NoSpaces(C.Hdri).c_str(), C.FogDensity, C.FogMaxOpacity,
-				C.LanternsOn ? "on" : "off", C.WindowsOn ? "on" : "off");
+				C.LanternsOn ? "on" : "off", C.WindowsOn ? "on" : "off", C.ExposurePin);
 		}
 		return std::string(Buf);
 	}
@@ -2782,6 +2818,330 @@ namespace LedgerVignette
 			Clear, Judged);
 		Out += Done;
 		return Out;
+	}
+
+	// ========================================================================
+	// QUEUE 235: THE EXPOSURE PIN, ASKED BESIDE READ, AND THE LADDER THAT
+	// SETS ITS VALUE LATER.
+	//
+	// WHAT THE FAULT WAS. On 83dec33 one camera under one condition,
+	// photographed first and again last, differed by 0.3460 of whole-frame
+	// mean luma on 921600 of 921600 pixels, so every cross-frame number that
+	// run printed is void. Snapping the adaptation RATE to 10000 did not fix
+	// it. The next lever is the VALUE: AutoExposureMinBrightness equal to
+	// AutoExposureMaxBrightness leaves the histogram nothing to move.
+	//
+	// WHY THE VALUE IS NOT IN THIS FILE. It cannot be computed from anything
+	// committed. shotMeanLuma is the mean of a tonemapped 8-bit frame and the
+	// pin is a scene-luminance input read before the tonemap; no arithmetic
+	// joins them, and the adapted exposure is a render-thread quantity this
+	// process never reads. So the value is read off a LADDER: rows that
+	// differ in nothing but the pin, each printing what its frame came out
+	// at, and the number is set in a LATER commit from the printed series.
+	// Ship the printer, read the runs, set the bound, in that order.
+	//
+	// AND THE COST, WHICH IS PAID THE MOMENT A PIN IS IN FORCE: a pinned
+	// frame cannot judge an adaptation moment. Walking out of a dark alley
+	// and having the street bloom open is exactly the thing this rig stops
+	// being able to photograph. That cost was accepted in writing when the
+	// rate was snapped and it is restated beside the constant in
+	// VignetteShot.cpp, which is where the value lives.
+	// ========================================================================
+
+	// A PIN IS ASKED FOR ONLY BY A POSITIVE NUMBER. Zero or less is the
+	// condition saying "leave the engine's own policy alone", which is what
+	// every condition written before 2026-09-10 says.
+	inline bool ExposurePinAsked(double Pin) { return Pin > 0.0; }
+
+	// THE SEPARATOR BETWEEN A FLOAT ROUND TRIP AND A PIN THAT NEVER LANDED,
+	// RELATIVE, AND IT IS NOT A MEASURED TOLERANCE. The asked value is a
+	// double handed to a float field, so a read back of 0.30000001 is the
+	// same number; a pin that did not take reads back as the engine default
+	// (0.0300 and 8.0000 on 83dec33), which is wrong by a factor, not by a
+	// rounding. One part in a thousand sits between those two classes with
+	// four orders of magnitude to spare on each side. A residual printed
+	// between 1e-6 and 1e-3 is what a real bound would later be read off.
+	inline double ExposurePinRefuseAtRel() { return 0.0010; }
+
+	// WHAT THE COMPONENT SAID AFTER THE WRITE, WHICH IS THE ONLY THING WORTH
+	// PRINTING. A value that lands on the game thread and never reaches the
+	// render proxy reads back as the same pointer it was written through, so
+	// this is necessary and not sufficient, and the word says which: HELD
+	// means the game thread agrees, not that a pixel obeyed. The frame's own
+	// luma is the other half and it rides the same shot line.
+	struct ExposurePinIn
+	{
+		double Asked;                // the condition's exposure_pin
+		double ReadMin, ReadMax;     // AutoExposureMin/MaxBrightness, read back
+		bool   bOverMin, bOverMax;   // the override flags beside the values
+		bool   bRead;                // a camera component answered at all
+		bool   bSunOn;               // which lighting family this row stands in
+		ExposurePinIn() : Asked(0), ReadMin(0), ReadMax(0),
+		                  bOverMin(false), bOverMax(false), bRead(false), bSunOn(false) {}
+	};
+
+	inline double ExposurePinResidual(double Asked, double Read)
+	{
+		return NoNegZero(Read - Asked);
+	}
+
+	inline bool ExposurePinHeld(const ExposurePinIn& In)
+	{
+		if (!In.bRead || !ExposurePinAsked(In.Asked)) { return false; }
+		if (!In.bOverMin || !In.bOverMax) { return false; }
+		const double Allow = ExposurePinRefuseAtRel() * In.Asked;
+		double DMin = In.ReadMin - In.Asked; if (DMin < 0) { DMin = -DMin; }
+		double DMax = In.ReadMax - In.Asked; if (DMax < 0) { DMax = -DMax; }
+		return DMin <= Allow && DMax <= Allow;
+	}
+
+	inline const char* ExposurePinWord(const ExposurePinIn& In)
+	{
+		if (!In.bRead)                      { return "NOT-READ"; }
+		if (!ExposurePinAsked(In.Asked))    { return "AUTO"; }
+		return ExposurePinHeld(In) ? "PINNED-HELD" : "PINNED-DIFFERS";
+	}
+
+	// PER-SAMPLE KEYS ONLY. The pin is written at every camera placement, so
+	// it is a fact about THIS frame and not about the run; the run-wide
+	// tonemap line is one-per-run and last-wins and cannot answer for a shot
+	// that is not the last one placed.
+	inline std::string ExposurePinSegment(const ExposurePinIn& In)
+	{
+		// ONE KEY SET ON EVERY SHOT LINE, WHATEVER THE ANSWER IS, and that is
+		// the dupkeys rule written into a formatter rather than checked after
+		// it. A key is AMBIGUOUS when it takes different values under two
+		// different line SHAPES, so a segment that printed six keys on an
+		// unpinned row and eight on a pinned one would make every one of them
+		// ambiguous across a file that holds both. The VALUES say which case
+		// this is; the key names never move.
+		const char* Word = ExposurePinWord(In);
+		char Read[64], Resid[64], Over[64];
+		if (!In.bRead)
+		{
+			std::snprintf(Read,  sizeof(Read),  "nothing-measured/nothing-measured");
+			std::snprintf(Resid, sizeof(Resid), "nothing-measured/nothing-measured");
+			std::snprintf(Over,  sizeof(Over),  "nothing-measured/nothing-measured");
+		}
+		else
+		{
+			// THE TWO NUMBERS READ BACK ARE WORTH HAVING ON AN UNPINNED ROW
+			// TOO: they are the engine's own clamp range, which is the bracket
+			// the ladder's rungs are chosen inside.
+			std::snprintf(Read, sizeof(Read), "%.4f/%.4f", In.ReadMin, In.ReadMax);
+			std::snprintf(Over, sizeof(Over), "%d/%d",
+			              In.bOverMin ? 1 : 0, In.bOverMax ? 1 : 0);
+			if (ExposurePinAsked(In.Asked))
+			{
+				std::snprintf(Resid, sizeof(Resid), "%+.6f/%+.6f",
+				              ExposurePinResidual(In.Asked, In.ReadMin),
+				              ExposurePinResidual(In.Asked, In.ReadMax));
+			}
+			else
+			{
+				// A RESIDUAL AGAINST A PIN NOBODY ASKED FOR IS NOT A ZERO.
+				std::snprintf(Resid, sizeof(Resid), "not-applicable/no-pin-asked");
+			}
+		}
+		char Buf[760];
+		std::snprintf(Buf, sizeof(Buf),
+			"shotExposurePin=%s shotExposurePinAsked=%.4f "
+			"shotExposurePinRead=%s shotExposurePinResidual=%s "
+			"shotExposurePinOverrides=%s shotExposurePinFamily=%s "
+			"shotExposurePinRefuseAtRel=%.4f/NOT-A-MEASURED-TOLERANCE/a-class-separator-"
+			"between-a-float-round-trip-and-a-pin-that-read-back-as-the-engine-default "
+			"shotExposurePinStat=per-sample/min-then-max-read-off-the-cameras-post-process-"
+			"after-the-write/residual-is-read-minus-asked/a-row-asking-for-no-pin-reads-AUTO-"
+			"and-its-two-numbers-are-the-engines-own-clamp-range/HELD-is-the-game-threads-"
+			"agreement-and-not-a-pixels",
+			Word, In.Asked, Read, Resid, Over,
+			In.bSunOn ? "day" : "night", ExposurePinRefuseAtRel());
+		return std::string(Buf);
+	}
+
+	// ---- THE LADDER, AND WHY EVERY RUNG IS PHOTOGRAPHED TWICE -------------
+	//
+	// THE PAIRING IS THE MEASUREMENT. The whole fault is that a frame
+	// following darkness came out blown, so a rung photographed only after a
+	// day frame cannot answer whether its pin removed the dependence on what
+	// came before. Each pin value therefore gets two rows, identical in every
+	// applied input, differing only in what the rig photographed IMMEDIATELY
+	// BEFORE them: one after a night frame, one after a day frame. The
+	// predecessor is READ off the shot actually photographed before this one,
+	// never off the row's name.
+	//
+	// WHAT THIS LINE DOES NOT DO: call a winner. The difference between the
+	// two halves of a rung is printed, and the SMALLEST is named, and that is
+	// as far as a first series may go. Calling a rung "agreed" needs a bound
+	// and this run has not measured one, so the verdict word stays
+	// SERIES-ONLY and the number is set in a later commit.
+	struct ExposureLadderSample
+	{
+		std::string ShotId;
+		double      Pin;
+		bool        bAfterNight;  // the frame before this one was a night frame
+		bool        bMeasured;    // a frame landed and was measured
+		bool        bPinHeld;     // the readback agreed with the asked pin
+		double      MeanLuma;
+		long long   ClipHi, ClipLo, Pixels;
+		ExposureLadderSample() : Pin(0), bAfterNight(false), bMeasured(false),
+		                         bPinHeld(false), MeanLuma(0),
+		                         ClipHi(0), ClipLo(0), Pixels(0) {}
+	};
+
+	inline std::string ExposureLadderLine(const std::vector<ExposureLadderSample>& All)
+	{
+		const int Offered = (int)All.size();
+		int Measured = 0;
+		for (size_t I = 0; I < All.size(); ++I) { if (All[I].bMeasured) { ++Measured; } }
+		if (Offered == 0)
+		{
+			return std::string(
+				"ladderStatus=NOTHING-MEASURED ladderRows=0/of=0/ladder-rows-offered "
+				"ladderPinsPaired=0/of=0/pin-values-with-both-halves-measured "
+				"ladderSmallestDiffPin=nothing-measured ladderSmallestDiff=nothing-measured "
+				"ladderVerdict=nothing-measured/no-ladder-row-was-photographed "
+				"ladderStat=whole-run/one-segment-per-pin-value/a-difference-never-a-ratio");
+		}
+		// THE DISTINCT PIN VALUES, IN THE ORDER THE FILE ASKED FOR THEM, so
+		// the series reads as a ladder rather than as a sorted summary.
+		std::vector<double> Pins;
+		for (size_t I = 0; I < All.size(); ++I)
+		{
+			bool bSeen = false;
+			for (size_t J = 0; J < Pins.size(); ++J)
+			{
+				if (Pins[J] == All[I].Pin) { bSeen = true; }
+			}
+			if (!bSeen) { Pins.push_back(All[I].Pin); }
+		}
+		std::string Out;
+		int Paired = 0, HeldRows = 0;
+		bool   bBest = false;
+		double BestDiff = 0.0, BestPin = 0.0;
+		for (size_t P = 0; P < Pins.size(); ++P)
+		{
+			int Rows = 0, RowsMeasured = 0, Held = 0;
+			bool bDay = false, bNight = false;
+			ExposureLadderSample Day, Night;
+			for (size_t I = 0; I < All.size(); ++I)
+			{
+				if (All[I].Pin != Pins[P]) { continue; }
+				++Rows;
+				if (All[I].bPinHeld) { ++Held; ++HeldRows; }
+				if (!All[I].bMeasured) { continue; }
+				++RowsMeasured;
+				// LAST WINS AND IT IS SAID ON THE LINE. A file asking for the
+				// same half twice is a file fault, not a second reading, and
+				// the rows count beside it is what makes it visible.
+				if (All[I].bAfterNight) { Night = All[I]; bNight = true; }
+				else                    { Day = All[I];   bDay = true; }
+			}
+			char Seg[760];
+			if (bDay && bNight)
+			{
+				++Paired;
+				const double Diff = NoNegZero(Day.MeanLuma - Night.MeanLuma);
+				double Abs = Diff; if (Abs < 0) { Abs = -Abs; }
+				if (!bBest || Abs < BestDiff) { bBest = true; BestDiff = Abs; BestPin = Pins[P]; }
+				std::snprintf(Seg, sizeof(Seg),
+					" ladder.pin%.4f.rows=%d/of=%d/rows-this-pin-measured-over-rows-asked"
+					" ladder.pin%.4f.afterDayMeanLuma=%.4f"
+					" ladder.pin%.4f.afterNightMeanLuma=%.4f"
+					" ladder.pin%.4f.afterDayMinusAfterNightMeanLuma=%+.4f"
+					" ladder.pin%.4f.afterDayClipHi=%lld/%lld"
+					" ladder.pin%.4f.afterNightClipHi=%lld/%lld"
+					" ladder.pin%.4f.afterDayClipLo=%lld/%lld"
+					" ladder.pin%.4f.afterNightClipLo=%lld/%lld"
+					" ladder.pin%.4f.pinHeld=%d/of=%d/rows-whose-readback-matched-the-asked-pin"
+					" ladder.pin%.4f.ids=%s;%s",
+					Pins[P], RowsMeasured, Rows,
+					Pins[P], Day.MeanLuma,
+					Pins[P], Night.MeanLuma,
+					Pins[P], Diff,
+					Pins[P], Day.ClipHi, Day.Pixels,
+					Pins[P], Night.ClipHi, Night.Pixels,
+					Pins[P], Day.ClipLo, Day.Pixels,
+					Pins[P], Night.ClipLo, Night.Pixels,
+					Pins[P], Held, Rows,
+					Pins[P], NoSpaces(Day.ShotId).c_str(), NoSpaces(Night.ShotId).c_str());
+			}
+			else
+			{
+				// A RUNG WITH ONE HALF IS NOT A RUNG. It prints which half is
+				// missing rather than a difference against a zero.
+				std::snprintf(Seg, sizeof(Seg),
+					" ladder.pin%.4f.rows=%d/of=%d/rows-this-pin-measured-over-rows-asked"
+					" ladder.pin%.4f.afterDayMeanLuma=%s"
+					" ladder.pin%.4f.afterNightMeanLuma=%s"
+					" ladder.pin%.4f.afterDayMinusAfterNightMeanLuma=nothing-measured"
+					" ladder.pin%.4f.pinHeld=%d/of=%d/rows-whose-readback-matched-the-asked-pin"
+					" ladder.pin%.4f.missing=%s",
+					Pins[P], RowsMeasured, Rows,
+					Pins[P], bDay ? "measured" : "nothing-measured",
+					Pins[P], bNight ? "measured" : "nothing-measured",
+					Pins[P], Pins[P], Held, Rows,
+					Pins[P], bDay ? "the-after-night-half" : "the-after-day-half");
+			}
+			Out += Seg;
+		}
+		char Head[560];
+		std::snprintf(Head, sizeof(Head),
+			"ladderStatus=%s ladderRows=%d/of=%d/ladder-rows-offered "
+			"ladderPinsPaired=%d/of=%d/pin-values-with-both-halves-measured "
+			"ladderRowsHeld=%d/of=%d/ladder-rows-whose-pin-readback-matched",
+			Measured == 0 ? "NOTHING-MEASURED"
+			              : (Measured == Offered ? "ALL" : "PARTIAL"),
+			Measured, Offered, Paired, (int)Pins.size(), HeldRows, Offered);
+		std::string Line(Head);
+		Line += Out;
+		char Tail[700];
+		if (bBest)
+		{
+			std::snprintf(Tail, sizeof(Tail),
+				" ladderSmallestDiffPin=%.4f ladderSmallestDiff=%.4f"
+				" ladderVerdict=SERIES-ONLY/the-smallest-difference-is-NAMED-and-NOTHING-is-"
+				"called-agreement-on-this-run/a-bound-on-this-difference-has-not-been-measured"
+				" ladderStat=whole-run/one-segment-per-pin-value/afterDay-and-afterNight-name-"
+				"the-frame-photographed-IMMEDIATELY-BEFORE-each-row-read-off-the-shot-loop-and-"
+				"not-off-the-rows-name/the-rows-themselves-share-every-applied-input-except-the-"
+				"pin/a-DIFFERENCE-never-a-ratio",
+				BestPin, BestDiff);
+		}
+		else
+		{
+			std::snprintf(Tail, sizeof(Tail),
+				" ladderSmallestDiffPin=nothing-measured ladderSmallestDiff=nothing-measured"
+				" ladderVerdict=SERIES-ONLY/no-pin-value-has-both-halves-so-no-difference-exists-"
+				"to-be-smallest"
+				" ladderStat=whole-run/one-segment-per-pin-value/afterDay-and-afterNight-name-"
+				"the-frame-photographed-IMMEDIATELY-BEFORE-each-row-read-off-the-shot-loop-and-"
+				"not-off-the-rows-name/a-DIFFERENCE-never-a-ratio");
+		}
+		Line += Tail;
+		return Line;
+	}
+
+	// THE WHOLE-RUN PIN LINE. Only numbers that are true of the RUN, and the
+	// cost of the pin restated where a reader of the verdict will meet it.
+	inline std::string ExposurePinDoneLine(int Pinned, int Held, int Read, int Offered)
+	{
+		char Buf[820];
+		std::snprintf(Buf, sizeof(Buf),
+			"expPinStatus=%s expPinRowsAsking=%d/of=%d/shots-offered "
+			"expPinRowsRead=%d/of=%d/shots-offered "
+			"expPinRowsHeld=%d/of=%d/shots-asking-for-a-pin "
+			"expPinConstantSet=no/this-run-prints-the-ladder-series-only/the-value-is-set-in-a-"
+			"later-commit-from-what-it-printed "
+			"expPinCost=a-pinned-frame-can-never-judge-an-adaptation-moment/walking-out-of-a-"
+			"dark-alley-is-the-example "
+			"expPinStat=whole-run/asking-is-a-condition-with-a-positive-exposure_pin/held-is-the-"
+			"readback-agreeing-at-the-placement-that-photographed-the-frame",
+			Offered == 0 ? "NOTHING-MEASURED"
+			             : (Pinned == 0 ? "NONE-ASKED"
+			                            : (Held == Pinned ? "ALL-HELD" : "PARTIAL")),
+			Pinned, Offered, Read, Offered, Held, Pinned);
+		return std::string(Buf);
 	}
 
 	// THE DONE LINE FOR THE WHOLE CAPTURE. Whole-run numbers only, and a run

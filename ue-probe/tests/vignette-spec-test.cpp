@@ -153,7 +153,7 @@ int main(int argc, char** argv)
 	// HUNDREDFOLD of sun moved band.ground.p05 by 1.06 of the null measured
 	// between two shots of one condition.
 	{
-		int Matched = 0, ProbeShots = 0, ProbeAtHook = 0;
+		int Matched = 0, ProbeShots = 0, ProbeAtHook = 0, JudgedAtHook = 0;
 		for (size_t I = 0; I < S.Shots.size(); ++I)
 		{
 			const bool bJudged = (S.Shots[I].ConditionId == "overcast_day"
@@ -167,6 +167,10 @@ int main(int argc, char** argv)
 			{
 				++Matched;
 			}
+			else if (S.Shots[I].CameraId == "cam_hook")
+			{
+				++JudgedAtHook;
+			}
 		}
 		int JudgedConds = 0, ProbeConds = 0;
 		for (size_t I = 0; I < S.Conditions.size(); ++I)
@@ -178,20 +182,39 @@ int main(int argc, char** argv)
 			else { ++ProbeConds; }
 		}
 		std::printf("    rows: cameras=%d judgedConds=%d probeConds=%d shots=%d "
-		            "matchedPairs=%d probeShots=%d probeAtHook=%d\n",
+		            "matchedPairs=%d probeShots=%d probeAtHook=%d judgedAtHook=%d\n",
 		            (int)S.Cameras.size(), JudgedConds, ProbeConds, (int)S.Shots.size(),
-		            Matched, ProbeShots, ProbeAtHook);
-		Check(S.Cameras.size() == 3 && JudgedConds == 2 && ProbeConds == 20
-		      && S.Shots.size() == 25 && Matched == 4,
-		      "three cameras, two judged conditions plus twenty probe rows, and twenty-five "
-		      "shots of which the four judged pairs are still exactly four");
+		            Matched, ProbeShots, ProbeAtHook, JudgedAtHook);
+		// THE TOTAL IS READ AND NOT PINNED, QUEUE 235. Rows are added to this
+		// file by the item that needs them and removed by the item that reads
+		// them, so a literal total is a check that fails for the wrong reason
+		// every time the file legitimately grows. WHAT MUST STAY TRUE is the
+		// pairing and the classification: three cameras, two judged
+		// conditions, the four judged pairs still exactly four, and every
+		// shot falling into exactly one of the classes counted below, which
+		// is the identity a bare total cannot state.
+		Check(S.Cameras.size() == 3 && JudgedConds == 2 && Matched == 4,
+		      "three cameras, two judged conditions, and the four judged pairs are still "
+		      "exactly four whatever else the file has grown");
+		Check((int)S.Shots.size() == Matched + ProbeShots + JudgedAtHook
+		      && JudgedAtHook > 0,
+		      "every shot in the file is one of the four judged pairs, a probe row, or a "
+		      "judged row at the hook camera, and the classes sum to the total read",
+		      "a shot in none of them is a row nothing in this test describes");
 		// EVERY PROBE ROW STANDS AT cam_hook, and that is an instrument
 		// repair as much as it is Jafar's judging camera: the three control
 		// quads are HIDDEN on this camera (controlQuadHidden named
 		// vign_hook_day on run 38), so no whole-frame key on a probe row
 		// photographs the instrument, and at fovV 39.0 band.skyCentre is sky
 		// rather than the rooftops it holds at fovV 60.0.
-		Check(ProbeShots == 20 && ProbeAtHook == 20,
+		// THE INVARIANT, NOT THE COUNT. The number of probe rows moves with
+		// the file; the thing that must never move is that ALL of them stand
+		// at one camera, because a group spanning two cameras is two pixel
+		// populations read as one, which is the fault the batch review caught
+		// in a group of nine. Queue 235's twelve exposure rows are at cam_hook
+		// for exactly this reason, including the night rows that give the
+		// after-night half of each rung its darkness.
+		Check(ProbeShots > 0 && ProbeAtHook == ProbeShots,
 		      "every probe row stands at cam_hook, the camera rung 1 is judged from",
 		      "a probe row at another camera would be two pixel populations read as one");
 		// THE NULL CELL IS SHOT LAST. Identical inputs at maximum order
@@ -2963,11 +2986,47 @@ int main(int argc, char** argv)
 		}
 		const std::string NS = LedgerVignette::NullSeriesLine(Samples);
 		std::printf("    %s\n", NS.c_str());
-		Check(NS.find("nullSeriesSamples=7/of=25/") != std::string::npos
-		      && NS.find("nullSeriesMeasured=25/of=25/") != std::string::npos,
-		      "the live file's largest identical-input group in THIS engine is seven "
-		      "frames of twenty-five, which is the review's own arithmetic recovered "
-		      "from the conditions rather than from a list of ids", NS);
+		// THE GROUP SIZE AND THE DENOMINATORS ARE COUNTED HERE, NOT PINNED.
+		// Rows enter and leave this file by the item that needs them, so a
+		// literal 7 of 25 fails for the wrong reason the first time a row is
+		// added. WHAT IS BEING CHECKED IS THE DISCOVERY, so the expected
+		// numbers are recomputed from the same conditions by an independent
+		// tally here, and the SEVEN NAMED IDS below are what anchors that
+		// tally to the review's own group: if the discovery ever picks a
+		// different group, the id list fails even though both counts agree.
+		int Largest = 0, DistinctGroups = 0;
+		{
+			std::vector<std::string> Keys;
+			std::vector<int> Counts;
+			for (size_t I = 0; I < Samples.size(); ++I)
+			{
+				if (!Samples[I].bMeasured) { continue; }
+				const std::string K = LedgerVignette::SampleKey(Samples[I], true);
+				size_t At = Keys.size();
+				for (size_t J = 0; J < Keys.size(); ++J) { if (Keys[J] == K) { At = J; } }
+				if (At == Keys.size()) { Keys.push_back(K); Counts.push_back(0); }
+				++Counts[At];
+			}
+			DistinctGroups = (int)Keys.size();
+			for (size_t J = 0; J < Counts.size(); ++J)
+			{
+				if (Counts[J] > Largest) { Largest = Counts[J]; }
+			}
+		}
+		char WantSamples[96], WantMeasured[96];
+		std::snprintf(WantSamples, sizeof(WantSamples), "nullSeriesSamples=%d/of=%d/",
+		              Largest, (int)S.Shots.size());
+		std::snprintf(WantMeasured, sizeof(WantMeasured), "nullSeriesMeasured=%d/of=%d/",
+		              (int)Samples.size(), (int)S.Shots.size());
+		std::printf("    counted independently: largestGroup=%d distinctGroups=%d "
+		            "samples=%d of shots=%d\n",
+		            Largest, DistinctGroups, (int)Samples.size(), (int)S.Shots.size());
+		Check(NS.find(WantSamples) != std::string::npos
+		      && NS.find(WantMeasured) != std::string::npos,
+		      "the live file's largest identical-input group in THIS engine is the size an "
+		      "independent tally over the same conditions counts, over the shots the file "
+		      "actually carries, recovered from the conditions and not from a list of ids",
+		      std::string(WantSamples) + " and " + WantMeasured + " against: " + NS);
 		Check(NS.find("nullSeriesIds=vign_hook_day;vign_grid_sky100_sun003;"
 		              "vign_fog_maxop0450;vign_wet_000;vign_wet_060;vign_wet_100;"
 		              "vign_grid_null_repeat") != std::string::npos,
@@ -3063,9 +3122,13 @@ int main(int argc, char** argv)
 		// PLANTED, because the committed spec has exactly one largest group and
 		// a tie cannot be waited for; the accepting case is the live line NS
 		// above, read by name so the no-tie reading is watched too.
-		Check(NS.find("nullSeriesTiedGroups=0/of=19/distinct-groups-examined/") != std::string::npos,
+		char WantTies[112];
+		std::snprintf(WantTies, sizeof(WantTies),
+		              "nullSeriesTiedGroups=0/of=%d/distinct-groups-examined/", DistinctGroups);
+		Check(NS.find(WantTies) != std::string::npos,
 		      "the live spec has ONE largest group so the tie count is zero, and the zero "
-		      "ships the denominator saying nineteen distinct groups were examined", NS);
+		      "ships as its denominator the number of distinct groups an independent tally "
+		      "over the same conditions examined", std::string(WantTies) + " against: " + NS);
 		{
 			// TWO GROUPS OF THREE PLUS A SINGLETON, so the tie count and the
 			// denominator are different numbers and neither can stand in for
@@ -3141,6 +3204,270 @@ int main(int argc, char** argv)
 			      "eleven offered", T3);
 			Check(EveryTokenIsKeyValue(T3),
 			      "the three-way tied line is space-free too", T3);
+		}
+	}
+
+	// ---- QUEUE 235: THE EXPOSURE PIN AND ITS LADDER ----------------------
+	//
+	// ACCEPTING CASE FIRST, on the live file, then the rejecting cases
+	// planted, because a rejection has to be provoked: the repository has no
+	// row whose pin failed to land.
+	{
+		std::printf("  the exposure pin, asked beside read, and the ladder it sets a value from\n");
+		// THE LIVE FILE IS THE ACCEPTING FIXTURE. Every condition must carry
+		// the field, exactly the ladder rungs may ask for a pin, and the four
+		// asked values are read back off the file rather than retyped here.
+		int Pinned = 0, Unpinned = 0, Rungs = 0;
+		double Lo = 0.0, Hi = 0.0;
+		for (size_t I = 0; I < S.Conditions.size(); ++I)
+		{
+			const LedgerVignette::Condition& C = S.Conditions[I];
+			if (LedgerVignette::ExposurePinAsked(C.ExposurePin))
+			{
+				++Pinned;
+				if (Pinned == 1 || C.ExposurePin < Lo) { Lo = C.ExposurePin; }
+				if (Pinned == 1 || C.ExposurePin > Hi) { Hi = C.ExposurePin; }
+			}
+			else { ++Unpinned; }
+			if (C.Id.compare(0, 4, "pin_") == 0 && C.Id != "pin_setter_night") { ++Rungs; }
+		}
+		std::printf("    pins: pinned=%d unpinned=%d rungs=%d span=%.3f..%.3f of %d conditions\n",
+		            Pinned, Unpinned, Rungs, Lo, Hi, (int)S.Conditions.size());
+		Check(Pinned + Unpinned == (int)S.Conditions.size() && Pinned == Rungs && Rungs > 0,
+		      "every condition in the live file answers the pin question, and the only rows "
+		      "asking for a pin are the ladder rungs",
+		      "a row pinned by accident would be photographed at an exposure nobody chose");
+		Check(Hi > Lo * 100.0,
+		      "the ladder spans more than two decades of the engine's own clamp range, which "
+		      "is a bracket rather than a guess",
+		      "the value cannot be computed from any committed luma, so the rungs have to "
+		      "straddle the answer");
+		// THE SEGMENT, FOUR CASES, IN THE ORDER THE RULE ASKS FOR.
+		LedgerVignette::ExposurePinIn Held;
+		Held.Asked = 0.300; Held.ReadMin = 0.300000011920929; Held.ReadMax = 0.300000011920929;
+		Held.bOverMin = true; Held.bOverMax = true; Held.bRead = true; Held.bSunOn = true;
+		const std::string HS = LedgerVignette::ExposurePinSegment(Held);
+		std::printf("    %s\n", HS.c_str());
+		Check(HS.find("shotExposurePin=PINNED-HELD") != std::string::npos
+		      && HS.find("shotExposurePinAsked=0.3000") != std::string::npos
+		      && HS.find("shotExposurePinRead=0.3000/0.3000") != std::string::npos
+		      && HS.find("shotExposurePinOverrides=1/1") != std::string::npos
+		      && HS.find("shotExposurePinFamily=day") != std::string::npos,
+		      "a pin written as a double and read back as a float is HELD, because the "
+		      "separator is one part in a thousand and a float round trip is of order 1e-7",
+		      HS);
+		Check(EveryTokenIsKeyValue(HS), "the held pin segment is space-free", HS);
+		// REJECTING, PLANTED: the readback is the engine's own default range,
+		// which is what a write that never reached the component looks like.
+		LedgerVignette::ExposurePinIn Lost;
+		Lost.Asked = 0.300; Lost.ReadMin = 0.0300; Lost.ReadMax = 8.0000;
+		Lost.bOverMin = false; Lost.bOverMax = false; Lost.bRead = true; Lost.bSunOn = false;
+		const std::string LS = LedgerVignette::ExposurePinSegment(Lost);
+		std::printf("    planted: %s\n", LS.c_str());
+		Check(LS.find("shotExposurePin=PINNED-DIFFERS") != std::string::npos
+		      && LS.find("shotExposurePinRead=0.0300/8.0000") != std::string::npos
+		      && LS.find("shotExposurePinResidual=-0.270000/+7.700000") != std::string::npos
+		      && LS.find("shotExposurePinOverrides=0/0") != std::string::npos
+		      && LS.find("shotExposurePinFamily=night") != std::string::npos,
+		      "a pin that read back as the engine default is DIFFERS, with both signed "
+		      "residuals printed, and HELD is not the word", LS);
+		Check(!LedgerVignette::ExposurePinHeld(Lost)
+		      && LedgerVignette::ExposurePinHeld(Held),
+		      "the held test accepts the float round trip and refuses the default range, "
+		      "which is the pair of outcomes rule 5b asks for");
+		// AND A PIN THAT LANDED ON THE VALUES WITH THE OVERRIDES OFF IS STILL
+		// NOT IN FORCE, which is the case a value-only comparison would pass.
+		LedgerVignette::ExposurePinIn NoFlags = Held;
+		NoFlags.bOverMin = false;
+		Check(!LedgerVignette::ExposurePinHeld(NoFlags),
+		      "a value that matches with its override flag off is not a pin in force, "
+		      "because an unoverridden value is not the value the renderer uses");
+		// AUTO, which is not a failure and must not read as one.
+		LedgerVignette::ExposurePinIn Auto;
+		Auto.Asked = 0.0; Auto.ReadMin = 0.0300; Auto.ReadMax = 8.0000;
+		Auto.bRead = true; Auto.bSunOn = true;
+		const std::string AS = LedgerVignette::ExposurePinSegment(Auto);
+		Check(AS.find("shotExposurePin=AUTO") != std::string::npos
+		      && AS.find("shotExposurePinResidual=not-applicable/no-pin-asked") != std::string::npos
+		      && AS.find("shotExposurePinRead=0.0300/8.0000") != std::string::npos,
+		      "a condition asking for no pin reads AUTO and prints the engine's own clamp "
+		      "range rather than a residual against a number nobody asked for", AS);
+		// AND NOTHING READ, which is not a zero.
+		LedgerVignette::ExposurePinIn Never;
+		Never.Asked = 3.0;
+		const std::string NV = LedgerVignette::ExposurePinSegment(Never);
+		Check(NV.find("shotExposurePin=NOT-READ") != std::string::npos
+		      && NV.find("shotExposurePinRead=nothing-measured/nothing-measured") != std::string::npos
+		      && NV.find("shotExposurePinResidual=nothing-measured") != std::string::npos,
+		      "a placement that reached no camera component prints the words and never a "
+		      "zero residual that would read as agreement", NV);
+		Check(EveryTokenIsKeyValue(AS) && EveryTokenIsKeyValue(NV) && EveryTokenIsKeyValue(LS),
+		      "the auto, not-read and planted pin segments are all space-free");
+		// AND ALL FOUR CASES CARRY ONE KEY SET, WHICH IS THE DUPKEYS RULE AT
+		// WRITE TIME. A key is ambiguous when it takes different values under
+		// two different line SHAPES, and a file holding pinned rows and
+		// unpinned rows holds both shapes. Counted rather than eyeballed.
+		{
+			std::vector<std::string> KH, KA, KN, KL;
+			KeysOf(HS, KH); KeysOf(AS, KA); KeysOf(NV, KN); KeysOf(LS, KL);
+			bool bSame = (KH.size() == KA.size() && KH.size() == KN.size()
+			              && KH.size() == KL.size());
+			for (size_t I = 0; bSame && I < KH.size(); ++I)
+			{
+				if (KH[I] != KA[I] || KH[I] != KN[I] || KH[I] != KL[I]) { bSame = false; }
+			}
+			std::printf("    pin segment keys: held=%d auto=%d notRead=%d planted=%d same=%s\n",
+			            (int)KH.size(), (int)KA.size(), (int)KN.size(), (int)KL.size(),
+			            bSame ? "yes" : "no");
+			Check(bSame && KH.size() == 8,
+			      "a pinned row, an unpinned row, a row that read nothing and a row whose pin "
+			      "did not hold print the SAME eight keys in the same order, so no key on a "
+			      "shot line is ambiguous across the shapes one file holds",
+			      "the values say which case it is; the key names never move");
+		}
+		// ---- THE LADDER LINE, ACCEPTING CASE FIRST ----------------------
+		//
+		// TWO RUNGS, BOTH HALVES EACH, AND THE NUMBERS ARE THE 83dec33
+		// READINGS so the expected difference is arithmetic rather than a
+		// guess: the run's own first frame read 0.6102 and its repeat 0.9562,
+		// a difference of 0.3460, and that pair is what the rung at the wrong
+		// pin is expected to look like.
+		std::vector<LedgerVignette::ExposureLadderSample> L;
+		{
+			LedgerVignette::ExposureLadderSample A;
+			A.ShotId = "vign_pin_003_afterday"; A.Pin = 0.030; A.bAfterNight = false;
+			A.bMeasured = true; A.bPinHeld = true; A.MeanLuma = 0.9562;
+			A.ClipHi = 604972; A.ClipLo = 0; A.Pixels = 921600;
+			L.push_back(A);
+			LedgerVignette::ExposureLadderSample B;
+			B.ShotId = "vign_pin_003_afternight"; B.Pin = 0.030; B.bAfterNight = true;
+			B.bMeasured = true; B.bPinHeld = true; B.MeanLuma = 0.6102;
+			B.ClipHi = 10283; B.ClipLo = 0; B.Pixels = 921600;
+			L.push_back(B);
+			LedgerVignette::ExposureLadderSample C;
+			C.ShotId = "vign_pin_300_afterday"; C.Pin = 3.000; C.bAfterNight = false;
+			C.bMeasured = true; C.bPinHeld = true; C.MeanLuma = 0.4010;
+			C.ClipHi = 0; C.ClipLo = 12; C.Pixels = 921600;
+			L.push_back(C);
+			LedgerVignette::ExposureLadderSample D;
+			D.ShotId = "vign_pin_300_afternight"; D.Pin = 3.000; D.bAfterNight = true;
+			D.bMeasured = true; D.bPinHeld = true; D.MeanLuma = 0.4008;
+			D.ClipHi = 0; D.ClipLo = 12; D.Pixels = 921600;
+			L.push_back(D);
+		}
+		const std::string LL = LedgerVignette::ExposureLadderLine(L);
+		std::printf("    %s\n", LL.c_str());
+		Check(LL.find("ladderStatus=ALL") != std::string::npos
+		      && LL.find("ladderRows=4/of=4/ladder-rows-offered") != std::string::npos
+		      && LL.find("ladderPinsPaired=2/of=2/") != std::string::npos
+		      && LL.find("ladderRowsHeld=4/of=4/") != std::string::npos,
+		      "four rows over two rungs, both halves each, with every count shipping its "
+		      "denominator", LL);
+		Check(LL.find("ladder.pin0.0300.afterDayMinusAfterNightMeanLuma=+0.3460")
+		      != std::string::npos
+		      && LL.find("ladder.pin3.0000.afterDayMinusAfterNightMeanLuma=+0.0002")
+		         != std::string::npos,
+		      "the pairing prints as a signed DIFFERENCE per rung, and on the 83dec33 pair "
+		      "it is the 0.3460 that run measured between one camera and its own repeat", LL);
+		Check(LL.find("ladderSmallestDiffPin=3.0000") != std::string::npos
+		      && LL.find("ladderSmallestDiff=0.0002") != std::string::npos
+		      && LL.find("ladderVerdict=SERIES-ONLY/") != std::string::npos
+		      && LL.find("ladderVerdict=CLEAR") == std::string::npos,
+		      "the smallest difference is NAMED and nothing is called agreement, because no "
+		      "bound on this difference has been measured yet", LL);
+		Check(LL.find("ladder.pin0.0300.afterDayClipHi=604972/921600") != std::string::npos
+		      && LL.find("ladder.pin3.0000.afterNightClipLo=12/921600") != std::string::npos,
+		      "both clip counts ride the line with their denominators, because a mean cannot "
+		      "see a blown frame and a pin chosen on the mean alone would crush or blow one "
+		      "end of the run", LL);
+		Check(EveryTokenIsKeyValue(LL), "the ladder line is space-free", LL);
+		// REJECTING, PLANTED: A RUNG WITH ONE HALF IS NOT A RUNG.
+		{
+			std::vector<LedgerVignette::ExposureLadderSample> Half;
+			Half.push_back(L[0]);
+			const std::string HL = LedgerVignette::ExposureLadderLine(Half);
+			std::printf("    planted: %s\n", HL.c_str());
+			Check(HL.find("ladderPinsPaired=0/of=1/") != std::string::npos
+			      && HL.find("ladder.pin0.0300.missing=the-after-night-half") != std::string::npos
+			      && HL.find("ladder.pin0.0300.afterDayMinusAfterNightMeanLuma=nothing-measured")
+			         != std::string::npos
+			      && HL.find("ladderSmallestDiff=nothing-measured") != std::string::npos,
+			      "a rung photographed only after a day frame names the half it is missing "
+			      "and prints no difference, because a difference against an absent frame "
+			      "would be a number with nothing in it", HL);
+			Check(EveryTokenIsKeyValue(HL), "the half-rung ladder line is space-free", HL);
+		}
+		// AND A ROW THAT NEVER LANDED IS OUTSIDE THE MEASURED COUNT AND STILL
+		// INSIDE THE DENOMINATOR, which is rule 3b.
+		{
+			std::vector<LedgerVignette::ExposureLadderSample> Lost2 = L;
+			Lost2[1].bMeasured = false;
+			const std::string XL = LedgerVignette::ExposureLadderLine(Lost2);
+			Check(XL.find("ladderStatus=PARTIAL") != std::string::npos
+			      && XL.find("ladderRows=3/of=4/ladder-rows-offered") != std::string::npos
+			      && XL.find("ladderPinsPaired=1/of=2/") != std::string::npos,
+			      "a row whose frame never landed leaves the measured count and stays in "
+			      "the denominator, and its rung stops being paired", XL);
+		}
+		// AND A RUN WITH NO LADDER AT ALL SAYS SO.
+		{
+			std::vector<LedgerVignette::ExposureLadderSample> None2;
+			const std::string ZL = LedgerVignette::ExposureLadderLine(None2);
+			std::printf("    %s\n", ZL.c_str());
+			Check(ZL.find("ladderStatus=NOTHING-MEASURED") != std::string::npos
+			      && ZL.find("ladderRows=0/of=0/ladder-rows-offered") != std::string::npos
+			      && ZL.find("ladderSmallestDiff=nothing-measured") != std::string::npos,
+			      "a run that photographed no ladder row prints the words, and its zero "
+			      "ships a denominator", ZL);
+			Check(EveryTokenIsKeyValue(ZL), "the nothing-measured ladder line is space-free", ZL);
+		}
+		// ---- THE WHOLE-RUN PIN LINE, AND THE COST ON IT ------------------
+		const std::string PD = LedgerVignette::ExposurePinDoneLine(8, 8, 37, 37);
+		std::printf("    %s\n", PD.c_str());
+		Check(PD.find("expPinStatus=ALL-HELD") != std::string::npos
+		      && PD.find("expPinRowsAsking=8/of=37/shots-offered") != std::string::npos
+		      && PD.find("expPinRowsHeld=8/of=8/shots-asking-for-a-pin") != std::string::npos
+		      && PD.find("expPinConstantSet=no/") != std::string::npos,
+		      "the run line carries the counts with their denominators and says in as many "
+		      "words that no constant was set from this run", PD);
+		Check(PD.find("expPinCost=a-pinned-frame-can-never-judge-an-adaptation-moment/"
+		              "walking-out-of-a-dark-alley-is-the-example") != std::string::npos,
+		      "and the cost of the pin is restated where a reader of the verdict meets it, "
+		      "not only in a comment", PD);
+		const std::string PZ = LedgerVignette::ExposurePinDoneLine(0, 0, 0, 0);
+		Check(PZ.find("expPinStatus=NOTHING-MEASURED") != std::string::npos
+		      && PZ.find("expPinStatus=ALL-HELD") == std::string::npos,
+		      "a run that offered no shot is NOTHING-MEASURED and not all-held over zero", PZ);
+		const std::string PP2 = LedgerVignette::ExposurePinDoneLine(8, 7, 37, 37);
+		Check(PP2.find("expPinStatus=PARTIAL") != std::string::npos
+		      && PP2.find("expPinRowsHeld=7/of=8/") != std::string::npos,
+		      "one row of eight whose pin did not hold makes the run PARTIAL, which is the "
+		      "reading a count without a denominator could not give", PP2);
+		Check(EveryTokenIsKeyValue(PD) && EveryTokenIsKeyValue(PZ) && EveryTokenIsKeyValue(PP2),
+		      "all three whole-run pin lines are space-free");
+		// AND THE TWO LINES MAY NOT COLLIDE ON A KEY NAME, which is the
+		// write-time half of the rule tools/verdict-dupkeys.py enforces at
+		// read time. KEY NAMES AND NOT SUBSTRINGS: the run line's own prose
+		// says it prints the ladder series only, and a substring test on the
+		// word would refuse a line that shares no key at all.
+		{
+			std::vector<std::string> LK, PK;
+			KeysOf(LL, LK);
+			KeysOf(PD, PK);
+			int Shared = 0;
+			for (size_t A = 0; A < LK.size(); ++A)
+			{
+				for (size_t B = 0; B < PK.size(); ++B)
+				{
+					if (LK[A] == PK[B]) { ++Shared; }
+				}
+			}
+			std::printf("    ladder keys=%d runLine keys=%d shared=%d\n",
+			            (int)LK.size(), (int)PK.size(), Shared);
+			Check(Shared == 0 && !LK.empty() && !PK.empty(),
+			      "the ladder line and the run line share no key name over the keys each "
+			      "carries, so a grep for either cannot return the other's value",
+			      "and the zero ships both denominators");
 		}
 	}
 

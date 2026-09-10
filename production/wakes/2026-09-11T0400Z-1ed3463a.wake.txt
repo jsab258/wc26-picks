@@ -145,3 +145,30 @@ trade research gap once rather than pay it four more times; and mint the two
 owed brand marks, the telephone operator's and the postal cypher, which are now
 blocking a picture rather than just a list. Defaults are recorded in that
 directory's DELIVERY. Take them and log them per his standing order.
+
+AMENDED 2026-09-10 10:20Z. THE SIDECAR IS NOW THE PRODUCER'S JOB AND NOBODY HAD
+BEEN TOLD. The brief can carry a picture as of today, and the sender reads ONE
+sidecar beside the message: production/briefs/<day>.photo.txt, one line reading
+"photo: <path>". The builder that wired it named this gap itself rather than
+leaving it: nothing in the Producer's own brief or in producer-day.py asks for
+that file to be written, so a day with no sidecar sends the words and no
+picture. TODAY'S IS WRITTEN BY HAND and tomorrow's is not.
+
+SO THE PRODUCER TURN NOW HAS AN EIGHTH STEP: after writing the message, write
+the sidecar naming the picture the message describes, and if there is no picture
+worth sending, WRITE NO SIDECAR AND SAY SO IN THE RUN rather than leaving the
+absence to look like a fault. The channel prints briefPhotoCarried=0/1 and
+briefPhoto=none-named in that case, which is visible rather than silent, and
+that is the accepting case and not a failure.
+
+ONE ATTACHMENT PER MESSAGE, decided by the platform and not by taste: sendPhoto
+carries the two buttons, sendMediaGroup cannot carry them at all. So several
+pictures become ONE composite, which tools/brief-sheet.py stack already builds,
+and the caption order in the message must match the stacking order.
+
+WHAT JAFAR ASKED TO SEE, 2026-09-10, so the picture is chosen against it rather
+than against what happens to exist: a street with real shadows and a sky
+comparison he can read, the district sheets finished to the standard of the
+outside ones, and the ladder moving. IF A DAY HAS NONE OF THOSE, say that in one
+plain sentence instead of sending a picture that answers none of them. He asked
+for a brief once a day, not for a picture once a day.

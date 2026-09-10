@@ -34,6 +34,38 @@ has looked and CANNOT form one, at most one a week, and it carries buttons.
 
 ## TAKEN BY THE STUDIO
 
+### 2026-09-10 10:00Z, TWELVE CARDS TAKEN AT THEIR DEFAULTS, ONE OVERRIDDEN
+
+Jafar 2026-09-10: "Take every default." All twelve open cards are therefore
+taken as their authors recommended, logged here, and none is sent.
+
+FASCIA PACKAGE. 1, the burial gate keeps its instrument untouched and 11/40 is
+accepted as a measured and documented reading with queue 228 re-pointed. 2, the
+recipe ships unrendered and the picture half of station 3 stays open. 3, the
+5.892 m cornice stays as authored, one actor per bay. 4, the twelfth console's
+absence at the parade's empty unit stays as designed.
+
+FAIRVIEW. A, two arms of two seeds as shipped. C, the wheeled bin stays excluded
+until a date can be found. D, Copper Row next, which is done.
+
+COPPER ROW. 1, the weighhouse stays set dressing labelled CANON-INFERENCE and
+canon gains nothing. 2, market morning stays unnamed and the weekly schedule
+stays open. 3, the stall rows stay labelled GAP-UNFILLED. 4, the kiosk ships
+unlettered with no pillar box, and a painted mark is refused at review.
+
+THE ONE OVERRIDE, AND IT IS OVERRIDDEN BY HIS OWN LATER SENTENCE. Fairview card
+B and Copper Row card 2 both default to UNLABELLED swatch and object rows,
+conceded on the measured ground that every extra string of lettering degrades
+the lettering that already works. In the same message that says take every
+default, Jafar names what he wants to see: "the district sheets finished to the
+standard of the outside ones". THE OUTSIDE SHEETS LABEL THEIRS, with eight
+labelled swatches, panel annotations, a header block and a footer, and that is
+most of the remaining gap between the two. A default is what the studio does
+when he has not said; here he has said, later and more specifically, so the
+labels go in and the lettering risk is carried deliberately rather than dodged.
+If the labels come back garbled the concession returns and it returns MEASURED.
+
+
 RULED BY JAFAR 2026-09-09
 
 His words: "It takes every decision that has a recommendation and a default,
