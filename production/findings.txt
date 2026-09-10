@@ -3624,6 +3624,14 @@ SO THE SPLIT IS SIZE AND PLACEMENT, NOT COUNT. Large-on-margin passed everything
 small-in-photograph failed everything. The old rule would have predicted the
 title degrading as strings multiplied, and it did not.
 
+CORRECTED SAME DAY, 12:30Z: THE RULE IS TRUE OF US AND FALSE AS A
+GENERALISATION. The outside sheets are model-lettered, not composited, on their
+own PROVENANCE, and their small in-photograph strings are legible where ours
+produced GHVAJS. So the limit is the MODEL and not the size or the placement.
+Ours is Z-Image-Turbo Q4_K at 8 steps and cfg 1.0; theirs is a hosted service of
+another class. Queue 238, which also names the escape already written into our
+own tool.
+
 THAT DECIDED A DESIGN QUESTION RATHER THAN JUST CORRECTING A BELIEF. A header, a
 tagline, eight labels, annotations and a footer are all small lettering, so
 asking the model for them puts every one in the class with a measured zero per
