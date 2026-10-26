@@ -429,10 +429,14 @@ function scriptApi_(method, path, body) {
   if (r.code < 400) return data;
   var msg = (data.error && data.error.message) || 'HTTP ' + r.code;
   if (/Apps Script API|SERVICE_DISABLED|usersettings/i.test(msg)) {
-    throw new Error('Turn on the Apps Script API first at https://script.google.com/home/usersettings, then try again.');
+    throw new Error('Turn on the Google Apps Script API at https://script.google.com/home/usersettings, ' +
+                    'then tap Install update again. (Google said: ' + msg + ')');
   }
   if (/scope/i.test(msg)) {
-    throw new Error('The app lacks permission to update itself: paste appsscript.json from the setup guide, save, and redeploy once.');
+    throw new Error('One-time step missing: the app needs permission to update itself. On a computer open ' +
+      'https://script.google.com/d/' + ScriptApp.getScriptId() + '/edit , go to Project Settings and tick ' +
+      '"Show appsscript.json", replace that file with appsscript.json from the setup guide, save, then ' +
+      'Deploy > Manage deployments > edit > New version > Deploy and allow the new permissions. (Google said: ' + msg + ')');
   }
   throw new Error('Google refused the update: ' + msg);
 }

@@ -6,6 +6,7 @@ Newest first. Each `##` entry becomes the release notes shown by the app's
 ## Easier "connect via sleeper.com"
 - When Sleeper asks for a captcha, a "Connect via sleeper.com" button appears right under the message.
 - Clearer phone steps, and a copy-paste console line for computers.
+- If an update can't install, the message links straight to your script editor and quotes Google's reason.
 
 ## Install updates from the app
 - New "Install update" button: future versions install from GitHub with one tap, no more pasting.
