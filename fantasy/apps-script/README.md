@@ -10,23 +10,31 @@ It runs inside **your own Google account** as an Apps Script web app:
   is never saved.
 - It checks every 30 minutes, even when your computer is off.
 
-## Setup (once, about 3 minutes, on a computer)
+## Setup (once, about 5 minutes, on a computer)
 
-1. Open [script.new](https://script.new) to create a new Apps Script project.
+1. Turn on the **Google Apps Script API** at
+   [script.google.com/home/usersettings](https://script.google.com/home/usersettings).
+   This lets the app install its own updates.
+2. Open [script.new](https://script.new) to create a new Apps Script project.
    Name it *Sleeper Autopilot*.
-2. Open [`dist/SleeperAutopilot.gs`](dist/SleeperAutopilot.gs) (use the
-   **Raw** button), select all and copy. In the editor, replace the sample
-   code with it and press **Ctrl/Cmd + S**.
-3. Click **Deploy → New deployment**, then the gear icon → **Web app**:
+3. Click **⚙️ Project Settings** and tick *Show "appsscript.json" manifest
+   file in editor*. Back in the editor, open `appsscript.json` and replace its
+   contents with [`appsscript.json`](appsscript.json). Save.
+4. Open `Code.gs` and replace it with
+   [`dist/SleeperAutopilot.gs`](dist/SleeperAutopilot.gs) (use the **Raw**
+   button, then select all and copy). Save.
+5. Click **Deploy → New deployment**, then the gear icon → **Web app**:
    - *Execute as*: **Me**
    - *Who has access*: **Only myself**
    - Click **Deploy**.
-4. Authorise it. Google warns *"Google hasn't verified this app"* because you
+6. Authorise it. Google warns *"Google hasn't verified this app"* because you
    just wrote it yourself. Click **Advanced → Go to Sleeper Autopilot**, then
-   **Allow**. It asks for two permissions:
-   - **Connect to an external service:** Sleeper and FantasyPros.
+   **Allow**. It asks for:
+   - **Connect to an external service:** Sleeper, FantasyPros, GitHub.
    - **Run when you are not present:** the 30-minute checks.
-5. Open the **Web app URL** it shows. Bookmark it, or add it to your phone's
+   - **Create and update Apps Script projects and deployments:** installing
+     updates.
+7. Open the **Web app URL** it shows. Bookmark it, or add it to your phone's
    home screen. Then log in with your Sleeper email and password. If Sleeper
    emails you a 4-digit code, enter it there.
 
@@ -39,11 +47,17 @@ It runs inside **your own Google account** as an Apps Script web app:
 It starts in **suggestions only** mode. Look over the plan, then flip the
 switch to turn the autopilot on.
 
-### Updating to a newer version
+### Updates
 
-Paste the new `SleeperAutopilot.gs` over the old code and save. Then go to
-**Deploy → Manage deployments → ✏️ → Version: New version → Deploy**. The URL
-and your login stay the same.
+When a newer version is on GitHub, the app shows **Update available** with
+the release notes. Tap **Install update**, then reload, and that's it. Updates
+come from this repo's `main` branch (or the development branch until it's
+merged), and only when you tap the button. The update permission technically
+lets the app edit your Apps Script projects. It only ever rewrites itself.
+
+If an update can't install (e.g. the Apps Script API is off), it says why.
+The manual way still works: paste the new `SleeperAutopilot.gs`, save, then
+**Deploy → Manage deployments → ✏️ → Version: New version → Deploy**.
 
 ## What you see
 
@@ -93,9 +107,19 @@ The logic is the same as the Python CLI in `../autopilot` (see `../README.md`).
 ```
 node --test fantasy/apps-script/test/*.test.js      # offline tests
 node fantasy/apps-script/dev/bundle.js              # rebuild dist/ after editing Code.gs / Index.html
-DEMO_USER_ID=<sleeper user id> node fantasy/apps-script/dev/server.js
+DEMO_USER_ID=<sleeper user id> node fantasy/apps-script/dev/server.js [--fake-update]
 ```
+
+To ship a change:
+1. Edit `Code.gs` / `Index.html`.
+2. Add an entry at the top of `CHANGES.md`. Those are the release notes, and
+   the entry count is the version number.
+3. Run the bundler, commit and push.
+
+The app then offers the update.
 
 The preview server at http://localhost:8080 runs `Code.gs` on Apps Script
 stand-ins (`dev/gas-stub.js`). It reads real data but fakes logins and never
-sends writes: log in with password `demo` and code `1234`.
+sends writes: log in with password `demo` and code `1234`. Even the page's
+own browser-side Sleeper calls are rerouted to local fakes, so the preview
+can't send a real login.

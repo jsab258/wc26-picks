@@ -262,3 +262,81 @@ test('login: captcha wall gets a clear message; pasted sessions accept JSON or a
   assert.equal(users[1], '/user/jsab258');
   assert.throws(() => gas.connectWithToken('not a token', null, null), /doesn't look like/);
 });
+
+// ---- self-update ----------------------------------------------------------
+const fs = require('fs');
+const path = require('path');
+const DIST = path.join(__dirname, '..', 'dist', 'SleeperAutopilot.gs');
+
+function remoteBuild(version, id) {
+  // A "newer" build: the real dist with a different BUILD_INFO line.
+  return fs.readFileSync(DIST, 'utf8').replace(/\nvar BUILD_INFO = .*;\n$/,
+    '\nvar BUILD_INFO = ' + JSON.stringify({ id, version, title: 'v' + version,
+      notes: [{ title: 'v' + version, items: ['newest'] }, { title: 'v' + (version - 1), items: ['older'] }] }) + ';\n');
+}
+
+function updaterGas(remote, api) {
+  const calls = [];
+  const gas = loadGas({ file: DIST, fetch(url, params) {
+    if (url.includes('raw.githubusercontent.com')) {
+      return url.includes('/main/') ? { code: 404, body: '404' } : { code: 200, body: remote };
+    }
+    if (url.startsWith('https://script.googleapis.com/')) {
+      const body = params.payload ? JSON.parse(params.payload) : null;
+      calls.push([params.method, url.replace('https://script.googleapis.com/v1/projects/', ''), body,
+                  params.headers.Authorization]);
+      return api(params.method, url, body);
+    }
+  } });
+  return { gas, calls };
+}
+
+test('update check: newer build on GitHub is offered with its release notes', () => {
+  const cur = loadGas({ file: DIST }).buildInfo_();
+  const { gas } = updaterGas(remoteBuild(cur.version + 1, 'newer'), () => ({}));
+  const r = plain(gas.checkForUpdate());
+  assert.equal(r.available, true);
+  assert.deepEqual(r.notes.map((n) => n.title), ['v' + (cur.version + 1)]);
+  const same = updaterGas(fs.readFileSync(DIST, 'utf8'), () => ({})).gas.checkForUpdate();
+  assert.equal(same.available, false);
+});
+
+test('install: rewrites code + manifest, cuts a version, repoints only the web app deployment', () => {
+  const cur = loadGas({ file: DIST }).buildInfo_();
+  const remote = remoteBuild(cur.version + 1, 'newer');
+  const { gas, calls } = updaterGas(remote, (method, url) => {
+    if (url.endsWith('/versions')) return { body: { versionNumber: 7 } };
+    if (method === 'get') {
+      return { body: { deployments: [
+        { deploymentId: 'HEAD_ID', deploymentConfig: { scriptId: 'SCRIPT_ID' } },
+        { deploymentId: 'DEPLOY_ID', deploymentConfig: { scriptId: 'SCRIPT_ID', versionNumber: 3 },
+          entryPoints: [{ entryPointType: 'WEB_APP' }] }] } };
+    }
+    return { body: {} };
+  });
+  const r = gas.installUpdate('newer');
+  assert.equal(r.version, 7);
+  assert.deepEqual(calls.map((c) => [c[0], c[1]]), [
+    ['put', 'SCRIPT_ID/content'], ['post', 'SCRIPT_ID/versions'], ['get', 'SCRIPT_ID/deployments'],
+    ['put', 'SCRIPT_ID/deployments/DEPLOY_ID']]);
+  const files = calls[0][2].files;
+  assert.deepEqual(files.map((f) => [f.name, f.type]), [['appsscript', 'JSON'], ['Code', 'SERVER_JS']]);
+  assert.equal(files[1].source, remote);
+  assert.deepEqual(JSON.parse(files[0].source).oauthScopes,
+                   JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'appsscript.json'), 'utf8')).oauthScopes);
+  assert.equal(calls[3][2].deploymentConfig.versionNumber, 7);
+  assert.equal(calls[0][3], 'Bearer ya29.test');
+  assert.match(gas.getJson_('log')[0].title, /Updated to "v/);
+});
+
+test('install: clear guidance when the Apps Script API is off or scopes are missing', () => {
+  const cur = loadGas({ file: DIST }).buildInfo_();
+  const remote = remoteBuild(cur.version + 1, 'newer');
+  const off = updaterGas(remote, () => ({ code: 403, body: { error: {
+    message: 'User has not enabled the Apps Script API. Enable it by visiting https://script.google.com/home/usersettings then retry.' } } }));
+  assert.throws(() => off.gas.installUpdate('newer'), /Turn on the Apps Script API/);
+  const scope = updaterGas(remote, () => ({ code: 403, body: { error: { message: 'Request had insufficient authentication scopes.' } } }));
+  assert.throws(() => scope.gas.installUpdate('newer'), /paste appsscript.json/);
+  const broken = updaterGas('garbage', () => ({}));
+  assert.throws(() => broken.gas.installUpdate(), /incomplete/);
+});

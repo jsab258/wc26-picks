@@ -4,7 +4,8 @@
  * (9 KB property values, 100 KB cache values) so chunking bugs show up here.
  *
  * Safety: every Sleeper GraphQL request is intercepted. Mutations and logins
- * are never sent to Sleeper; tests decide what they return via `gql`.
+ * are never sent to Sleeper; tests decide what they return via `gql`. Apps
+ * Script API calls (self-update) are never sent either: answer them via `fetch`.
  */
 const fs = require('fs');
 const path = require('path');
@@ -97,6 +98,14 @@ function loadGas(opts = {}) {
     UrlFetchApp: {
       fetch(url, params = {}) {
         calls.fetch.push(url);
+        const hooked = opts.fetch ? opts.fetch(url, params) : undefined;
+        if (hooked !== undefined) {
+          const text = typeof hooked.body === 'string' ? hooked.body : JSON.stringify(hooked.body || {});
+          return { getResponseCode: () => hooked.code || 200, getContentText: () => text };
+        }
+        if (url.startsWith('https://script.googleapis.com/')) {
+          throw new Error('test harness refused to call the Apps Script API: ' + url);
+        }
         if (url.startsWith('https://api.sleeper.app/graphql')) {
           const body = JSON.parse(params.payload);
           calls.gql.push({ body, headers: params.headers || {} });
@@ -116,6 +125,9 @@ function loadGas(opts = {}) {
     PropertiesService: { getUserProperties: () => props },
     LockService: { getUserLock: () => ({ tryLock: () => true, releaseLock() {} }) },
     ScriptApp: {
+      getOAuthToken: () => 'ya29.test',
+      getScriptId: () => 'SCRIPT_ID',
+      getService: () => ({ getUrl: () => 'https://script.google.com/macros/s/DEPLOY_ID/exec' }),
       getProjectTriggers: () => triggers.slice(),
       newTrigger: (fn) => ({ timeBased: () => ({ everyMinutes: (n) => ({ create: () => {
         const t = { getHandlerFunction: () => fn, minutes: n }; triggers.push(t); return t; } }) }) }),

@@ -124,7 +124,8 @@
     white-space: pre-wrap; }
 
   /* login */
-  .center { min-height: 80vh; display: grid; place-items: center; }
+  .center { min-height: 80vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .center > .card { width: 100%; max-width: 400px; }
   .login { width: 100%; max-width: 400px; }
   .login h1 { font-size: 22px; margin: 14px 0 4px; letter-spacing: -.02em; }
   .code { letter-spacing: .5em; text-align: center; font-size: 22px; font-weight: 700; }
@@ -152,7 +153,8 @@
 <div class="wrap" id="app"><div class="center"><span class="muted"><span class="spin"></span>Loading…</span></div></div>
 <div class="toast" id="toast"></div>
 <script>
-const S = { state: null, dash: null, loadingDash: false, busy: {}, login: { step: 'password' }, dashError: null };
+const S = { state: null, dash: null, loadingDash: false, busy: {}, login: { step: 'password' }, dashError: null,
+            update: {} };
 
 // ---- server calls ------------------------------------------------------
 function api(fn, ...args) {
@@ -268,6 +270,43 @@ async function boot() {
   catch (e) { $('#app').innerHTML = `<div class="card banner bad">${esc(e.message)}</div>`; return; }
   render();
   if (S.state.connected) loadDashboard();
+  checkUpdate();
+}
+
+async function checkUpdate() {
+  try { S.update = { result: await api('checkForUpdate') }; } catch (e) { S.update = {}; }
+  render();
+}
+
+async function installUpdate() {
+  S.update.error = null;
+  try {
+    const r = await busy('update', () => api('installUpdate', S.update.result.latest.id));
+    S.update.installed = r;
+  } catch (e) { S.update.error = e.message; }
+  render();
+}
+
+const linkify = (t) => esc(t).replace(/https:\/\/[^\s,)]+/g, (u) => `<a href="${u}" target="_blank">${u}</a>`);
+
+function updateBanner() {
+  const U = S.update;
+  if (U.installed) {
+    const url = U.installed.url;
+    return `<div class="card banner ok">✓ Updated to “${esc(U.installed.info.title)}”.
+      ${url ? `<a href="${esc(url)}" target="_top"><b>Reload the app</b></a>` : 'Reload this page'} to use it.</div>`;
+  }
+  const r = U.result;
+  if (!r || !r.available) return '';
+  const notes = (r.notes || []).map((n) => `<div style="margin-top:6px"><b>${esc(n.title)}</b>
+      <ul style="margin:4px 0 0;padding-left:18px">${n.items.map((i) => `<li>${esc(i)}</li>`).join('')}</ul></div>`).join('');
+  return `<div class="card banner info">
+    <div class="row between wrapflex"><b>Update available</b>
+      <button class="small primary" data-action="install-update" ${S.busy.update ? 'disabled' : ''}>
+        ${S.busy.update ? '<span class="spin"></span>Installing…' : 'Install update'}</button></div>
+    <div class="small">${notes}</div>
+    ${U.error ? `<div class="small" style="color:var(--bad);margin-top:8px">${linkify(U.error)}</div>` : ''}
+  </div>`;
 }
 
 async function loadDashboard() {
@@ -293,7 +332,8 @@ function replaceLeague(res) {
 function render() {
   const st = S.state;
   if (!st) return;
-  $('#app').innerHTML = st.connected ? appView(st) : loginView();
+  $('#app').innerHTML = st.connected ? appView(st)
+    : loginView().replace('<div class="center">', '<div class="center">' + updateBanner());
   const first = document.querySelector('[autofocus]');
   if (first && !render._focused) { first.focus(); render._focused = true; }
 }
@@ -367,6 +407,7 @@ function appView(st) {
       <div class="who">${avatar}<span>${esc(u.display_name || '')}</span>
         <button class="ghost small" data-action="logout" title="Disconnect">Log out</button></div>
     </header>
+    ${updateBanner()}
     ${statusCard(st)}
     ${S.dashError ? `<div class="card banner bad">Couldn't load your leagues: ${esc(S.dashError)}
         <div style="margin-top:8px"><button class="small" data-action="reload">Try again</button></div></div>` : ''}
@@ -375,7 +416,8 @@ function appView(st) {
     ${activityCard(st.log || [])}
     <div class="faint small" style="text-align:center;margin-top:18px">
       Rankings: FantasyPros ECR · Data: Sleeper · Refreshed ${S.dash ? 'week ' + esc(S.dash.week) : '…'}
-      · <a href="#" data-action="reload" style="color:inherit">refresh</a></div>`;
+      · <a href="#" data-action="reload" style="color:inherit">refresh</a>
+      <br>Version: ${esc((st.build || {}).title || '?')} · ${esc((st.build || {}).id || '')}</div>`;
 }
 
 function statusCard(st) {
@@ -578,6 +620,7 @@ document.addEventListener('click', async (ev) => {
   if (!el || el.matches('input')) return;
   const a = el.dataset.action, id = el.dataset.league;
   if (a === 'reload') { ev.preventDefault(); loadDashboard(); }
+  if (a === 'install-update') installUpdate();
   if (a === 'login-token') { S.login = { step: 'token' }; render._focused = false; render(); }
   if (a === 'copy-helper') {
     const done = () => toast('Helper copied. Now make the bookmark.');

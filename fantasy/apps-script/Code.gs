@@ -78,6 +78,7 @@ function getState() {
     lastTick: getJson_('lastTick', null),
     autopilotScheduled: hasTrigger_(),
     log: getJson_('log', []),
+    build: buildInfo_(),
     now: Date.now(),
   };
 }
@@ -347,6 +348,100 @@ function hasTrigger_() {
 }
 
 // ===================================================================
+// Self-update from GitHub
+// ===================================================================
+
+// The single-file build carries BUILD_INFO (id, version, release notes) and
+// MANIFEST_JSON. Installing an update rewrites this project's code through the
+// Apps Script API (needs the API switched on + the scopes in appsscript.json),
+// then points the web app deployment at the new version.
+var UPDATE_URLS = [
+  'https://raw.githubusercontent.com/jsab258/wc26-picks/main/fantasy/apps-script/dist/SleeperAutopilot.gs',
+  'https://raw.githubusercontent.com/jsab258/wc26-picks/ccr-23b89428-f20cvp/fantasy/apps-script/dist/SleeperAutopilot.gs',
+];
+var SCRIPT_API = 'https://script.googleapis.com/v1/projects/';
+
+function buildInfo_() {
+  return typeof BUILD_INFO !== 'undefined' ? BUILD_INFO : { id: 'dev', version: 0, title: 'development copy', notes: [] };
+}
+
+function readBuildInfo_(text) {
+  var m = /\nvar BUILD_INFO = (\{.*\});\n/.exec(text);
+  return m ? JSON.parse(m[1]) : { id: 'legacy', version: 0, title: 'older build', notes: [] };
+}
+
+/** Newest build published on GitHub (main first, then the feature branch). */
+function latestBuild_() {
+  var best = null;
+  UPDATE_URLS.forEach(function (url) {
+    var r = fetch_(url, { retries: 1 });
+    if (r.code !== 200) return;
+    var info = readBuildInfo_(r.text);
+    if (!best || info.version > best.info.version) best = { info: info, text: r.text };
+  });
+  return best;
+}
+
+/** UI: is there a newer build than the one running? */
+function checkForUpdate() {
+  var cur = buildInfo_();
+  var latest = latestBuild_();
+  if (!latest) return { current: cur, error: "Couldn't reach GitHub to check for updates." };
+  var available = latest.info.id !== cur.id && latest.info.version >= cur.version;
+  return { current: cur, latest: latest.info, available: available,
+           notes: available ? latest.info.notes.slice(0, Math.max(1, latest.info.version - cur.version)) : [] };
+}
+
+/** UI: install the newest build into this project and the web app deployment. */
+function installUpdate(expectedId) {
+  var latest = latestBuild_();
+  if (!latest) throw new Error("Couldn't download the update from GitHub.");
+  if (expectedId && latest.info.id !== expectedId) throw new Error('An even newer update just appeared. Check again.');
+  var text = latest.text;
+  var manifest = /\nvar MANIFEST_JSON = (".*");\n/.exec(text);
+  if (text.indexOf('function doGet(') < 0 || text.indexOf('\nvar UI_HTML = ') < 0 || !manifest) {
+    throw new Error('The downloaded update looks incomplete, so it was not installed.');
+  }
+  var id = ScriptApp.getScriptId();
+  var label = 'Sleeper Autopilot: ' + latest.info.title;
+  scriptApi_('put', id + '/content', { files: [
+    { name: 'appsscript', type: 'JSON', source: JSON.parse(manifest[1]) },
+    { name: 'Code', type: 'SERVER_JS', source: text },
+  ] });
+  var version = scriptApi_('post', id + '/versions', { description: label }).versionNumber;
+  var webApps = (scriptApi_('get', id + '/deployments').deployments || []).filter(function (d) {
+    return d.deploymentConfig && d.deploymentConfig.versionNumber &&
+      (d.entryPoints || []).some(function (e) { return e.entryPointType === 'WEB_APP'; });
+  });
+  webApps.forEach(function (d) {
+    scriptApi_('put', id + '/deployments/' + d.deploymentId, { deploymentConfig: {
+      scriptId: id, versionNumber: version, manifestFileName: 'appsscript', description: label } });
+  });
+  log_({ level: 'info', title: 'Updated to "' + latest.info.title + '"', lines: ['Apps Script version ' + version] });
+  return { version: version, deployments: webApps.length, info: latest.info, url: appUrl_() };
+}
+
+function scriptApi_(method, path, body) {
+  var r = fetch_(SCRIPT_API + path, { method: method, payload: body, retries: 1,
+                                      headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() } });
+  var data = {};
+  try { data = JSON.parse(r.text || '{}'); } catch (e) { /* keep {} */ }
+  if (r.code < 400) return data;
+  var msg = (data.error && data.error.message) || 'HTTP ' + r.code;
+  if (/Apps Script API|SERVICE_DISABLED|usersettings/i.test(msg)) {
+    throw new Error('Turn on the Apps Script API first at https://script.google.com/home/usersettings, then try again.');
+  }
+  if (/scope/i.test(msg)) {
+    throw new Error('The app lacks permission to update itself: paste appsscript.json from the setup guide, save, and redeploy once.');
+  }
+  throw new Error('Google refused the update: ' + msg);
+}
+
+function appUrl_() {
+  try { return ScriptApp.getService().getUrl(); } catch (e) { return null; }
+}
+
+// ===================================================================
 // Storage
 // ===================================================================
 
@@ -438,7 +533,7 @@ function cached_(key, seconds, fn) {
 
 function fetch_(url, opt) {
   opt = opt || {};
-  var params = { method: opt.payload ? 'post' : 'get', muteHttpExceptions: true,
+  var params = { method: opt.method || (opt.payload ? 'post' : 'get'), muteHttpExceptions: true,
                  headers: opt.headers || {}, followRedirects: true };
   if (opt.payload) {
     params.contentType = 'application/json';
