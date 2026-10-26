@@ -158,8 +158,69 @@ const S = { state: null, dash: null, loadingDash: false, busy: {}, login: { step
 function api(fn, ...args) {
   return new Promise((resolve, reject) => {
     google.script.run.withSuccessHandler(resolve)
-      .withFailureHandler((e) => reject(new Error((e && e.message) || String(e))))[fn](...args);
+      .withFailureHandler((e) => reject(new Error(((e && e.message) || String(e)).replace(/^(Error:\s*)+/, ''))))[fn](...args);
   });
+}
+
+// ---- Sleeper login from this browser ------------------------------------
+// Logging in from your own browser looks like a normal login to Sleeper;
+// the same request from Google's servers gets a "confirm you're human" wall.
+const SLEEPER_GQL = 'https://api.sleeper.app/graphql';
+const Q_LOGIN = 'query login($e: String!, $p: String!, $c: String) {' +
+  ' login(email_or_phone_or_username: $e, password: $p, captcha: $c) { token } }';
+const Q_CONTEXT = 'query login_context_by_email_or_phone_or_username($e: String!) {' +
+  ' login_context_by_email_or_phone_or_username(email_or_phone_or_username: $e) }';
+const M_SEND_CODE = 'mutation create_verification_code($e: String!, $c: String) {' +
+  ' create_verification_code(email_or_phone: $e, captcha: $c) }';
+const CAPTCHA_MSG = 'Sleeper wants a captcha before it lets this login through. Wait a few minutes and ' +
+  'try again, or use "Trouble logging in?" below to connect via sleeper.com.';
+
+class Blocked extends Error {}
+
+async function sleeperGql(query, variables) {
+  let r;
+  try {
+    r = await fetch(SLEEPER_GQL, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                   body: JSON.stringify({ query, variables }) });
+  } catch (e) {
+    throw new Blocked(e.message);  // the browser wouldn't let us call Sleeper directly
+  }
+  const body = await r.json().catch(() => ({}));
+  if (body.errors && body.errors.length) {
+    const err = new Error(body.errors.map((x) => x.message).join('; '));
+    err.codes = body.errors.map((x) => x.code || (x.extensions && x.extensions.code) || '');
+    throw err;
+  }
+  return body.data || {};
+}
+
+async function sleeperContext(identifier) {
+  try {
+    return (await sleeperGql(Q_CONTEXT, { e: identifier })).login_context_by_email_or_phone_or_username || {};
+  } catch (e) { return {}; }
+}
+
+/** Returns {token, userId} | {needsCode, sentTo}; throws Blocked if fetch is impossible. */
+async function browserLogin(identifier, secret) {
+  let data;
+  try {
+    data = await sleeperGql(Q_LOGIN, { e: identifier, p: secret });
+  } catch (e) {
+    if (e instanceof Blocked) throw e;
+    if ((e.codes || []).includes('code_verification_required')) {
+      await sleeperGql(M_SEND_CODE, { e: identifier });
+      const ctx = await sleeperContext(identifier);
+      return { needsCode: true, sentTo: ctx.masked_email || ctx.masked_phone || 'your email' };
+    }
+    if (/human|captcha/i.test(e.message)) throw new Error(CAPTCHA_MSG);
+    throw new Error('Sleeper refused the login: ' + e.message);
+  }
+  if (!data.login || !data.login.token) {
+    throw new Error(/^\d{4}$/.test(secret) ? "That code didn't work. Check the latest email from Sleeper."
+                                           : "Sleeper didn't accept that email/username and password.");
+  }
+  const ctx = await sleeperContext(identifier);
+  return { token: data.login.token, userId: ctx.user_id || null };
 }
 
 // ---- helpers -----------------------------------------------------------
@@ -255,17 +316,28 @@ function loginView() {
   }
   if (L.step === 'token') {
     return `<div class="center"><div class="card login">${header}
+      <div class="small muted" style="margin-top:14px">Log in on Sleeper's own site (it handles the captcha), then
+        bring your session over with a one-tap helper bookmark.</div>
+      <details open><summary>On your phone (Chrome)</summary><ol class="small muted" style="padding-left:18px;margin:8px 0 0">
+        <li>Copy the helper: <button type="button" class="small" data-action="copy-helper">Copy helper</button></li>
+        <li>Bookmark any page (⋮ → ☆), then edit that bookmark: name it <b>sleeper login</b> and replace its URL
+          with the helper you copied.</li>
+        <li>Open <a href="https://sleeper.com" target="_blank">sleeper.com</a> and log in.</li>
+        <li>Tap the address bar, type <b>sleeper login</b> and tap the bookmark. It copies your session.</li>
+        <li>Come back here and paste it below.</li>
+      </ol></details>
+      <details><summary>On a computer</summary><ol class="small muted" style="padding-left:18px;margin:8px 0 0">
+        <li>Drag this to your bookmarks bar:
+          <a href="${esc(BOOKMARKLET)}" class="chip accent" onclick="return false">sleeper login</a></li>
+        <li>Open <a href="https://sleeper.com" target="_blank">sleeper.com</a> (logged in) and click the bookmark.</li>
+        <li>Paste below.</li>
+      </ol></details>
+      <textarea id="helper" readonly rows="2" style="position:absolute;left:-9999px">${esc(BOOKMARKLET)}</textarea>
       <form data-form="token">
-        <ol class="small muted" style="padding-left:18px;margin:14px 0 0">
-          <li>On a computer, drag this button to your bookmarks bar:
-            <a href="${esc(BOOKMARKLET)}" class="chip accent" onclick="return false">Copy Sleeper login</a></li>
-          <li>Open <a href="https://sleeper.com" target="_blank">sleeper.com</a> (logged in) and click the bookmark.</li>
-          <li>Paste here.</li>
-        </ol>
-        <label class="field"><span>Sleeper token</span><textarea name="token" rows="3" autofocus required></textarea></label>
-        <label class="field"><span>Sleeper username</span><input type="text" name="username" autocomplete="username"></label>
+        <label class="field"><span>Paste your Sleeper session</span><textarea name="token" rows="3" required></textarea></label>
         <div class="err">${esc(L.error || '')}</div>
-        <button class="primary" style="width:100%;margin-top:6px" ${S.busy.login ? 'disabled' : ''}>Connect</button>
+        <button class="primary" style="width:100%;margin-top:6px" ${S.busy.login ? 'disabled' : ''}>
+          ${S.busy.login ? '<span class="spin"></span>Connecting…' : 'Connect'}</button>
       </form>
       <button class="ghost small" data-action="login-restart" style="margin-top:8px">← Back to password login</button>
     </div></div>`;
@@ -453,8 +525,11 @@ function activityCard(log) {
 }
 
 // ---- events ------------------------------------------------------------
-const BOOKMARKLET = "javascript:(()=>{const t=localStorage.getItem('token');if(!t){alert('Log in to sleeper.com first.');return}" +
-  "navigator.clipboard.writeText(t).then(()=>alert('Copied! Paste it into Sleeper Autopilot.'),()=>prompt('Copy this:',t))})()";
+// Runs on sleeper.com: copies the session sleeper.com keeps in localStorage.
+const BOOKMARKLET = "javascript:(()=>{const t=localStorage.getItem('token'),u=localStorage.getItem('user_id');" +
+  "if(!t){alert('Log in to sleeper.com first, then tap this again.');return}" +
+  "const s=JSON.stringify({token:t,user_id:u});navigator.clipboard.writeText(s)" +
+  ".then(()=>alert('Copied! Go back to Sleeper Autopilot and paste.'),()=>prompt('Copy this, then paste it into Sleeper Autopilot:',s))})()";
 
 document.addEventListener('submit', async (ev) => {
   const form = ev.target.closest('form[data-form]');
@@ -465,13 +540,29 @@ document.addEventListener('submit', async (ev) => {
   try {
     if (form.dataset.form === 'login') {
       S.login.identifier = f.identifier;
-      const r = await busy('login', () => api('login', f.identifier, f.password));
-      if (r.needsCode) { S.login = { step: 'code', sentTo: r.sentTo }; render._focused = false; render(); return; }
+      const r = await busy('login', async () => {
+        try {
+          const b = await browserLogin(f.identifier, f.password);
+          return b.token ? api('connectWithToken', b.token, f.identifier, b.userId) : Object.assign(b, { via: 'browser' });
+        } catch (e) {
+          if (!(e instanceof Blocked)) throw e;
+          return Object.assign(await api('login', f.identifier, f.password), { via: 'server' });
+        }
+      });
+      if (r.needsCode) {
+        S.login = { step: 'code', sentTo: r.sentTo, via: r.via, identifier: f.identifier };
+        render._focused = false; render(); return;
+      }
       S.state = r;
     } else if (form.dataset.form === 'code') {
-      S.state = await busy('login', () => api('verifyCode', f.code));
+      const L = S.login;
+      S.state = await busy('login', async () => {
+        if (L.via === 'server') return api('verifyCode', f.code);
+        const b = await browserLogin(L.identifier, String(f.code).trim());
+        return api('connectWithToken', b.token, L.identifier, b.userId);
+      });
     } else if (form.dataset.form === 'token') {
-      S.state = await busy('login', () => api('connectWithToken', f.token, f.username));
+      S.state = await busy('login', () => api('connectWithToken', f.token, f.username || null, null));
     }
     S.login = { step: 'password' };
     render();
@@ -488,6 +579,13 @@ document.addEventListener('click', async (ev) => {
   const a = el.dataset.action, id = el.dataset.league;
   if (a === 'reload') { ev.preventDefault(); loadDashboard(); }
   if (a === 'login-token') { S.login = { step: 'token' }; render._focused = false; render(); }
+  if (a === 'copy-helper') {
+    const done = () => toast('Helper copied. Now make the bookmark.');
+    navigator.clipboard.writeText(BOOKMARKLET).then(done, () => {
+      const t = $('#helper'); t.style.position = 'static'; t.select();
+      toast(document.execCommand('copy') ? 'Helper copied. Now make the bookmark.' : 'Select the text and copy it.');
+    });
+  }
   if (a === 'login-restart') { S.login = { step: 'password' }; render._focused = false; render(); }
   if (a === 'logout') {
     if (!confirm('Disconnect from Sleeper? The autopilot stops until you log in again.')) return;

@@ -238,3 +238,27 @@ test('single-file build is current and serves the dashboard by itself', () => {
   assert.match(dist.doGet().getContent(), /<title>Sleeper Autopilot<\/title>/);
   assert.equal(typeof dist.tick, 'function');
 });
+
+test('login: captcha wall gets a clear message; pasted sessions accept JSON or a bare token', () => {
+  const gas = loadGas({
+    gql(body) {
+      if (body.query.includes('login(')) return { errors: [{ message: "Sorry, we're unable to confirm you're human." }] };
+      if (body.query.includes('league_transactions_filtered')) return { data: { league_transactions_filtered: [] } };
+    },
+  });
+  const users = [];
+  gas.sleeper_ = (p) => {
+    if (p === '/state/nfl') return { league_season: '2026' };
+    if (p.includes('/leagues/')) return [{ league_id: 'L' }];
+    users.push(p);
+    return { user_id: p.split('/')[2] === 'jsab258' ? '7' : p.split('/')[2], display_name: 'jsab258' };
+  };
+  assert.throws(() => gas.login('jsab258', 'pw'), /wants a captcha/);
+  const st = gas.connectWithToken(JSON.stringify({ token: 'h.e.s', user_id: '7' }), null, null);
+  assert.equal(st.connected, true);
+  assert.equal(users[0], '/user/7');
+  gas.logout();
+  assert.equal(gas.connectWithToken('"h.e.s"', 'jsab258', null).connected, true);  // username fallback
+  assert.equal(users[1], '/user/jsab258');
+  assert.throws(() => gas.connectWithToken('not a token', null, null), /doesn't look like/);
+});

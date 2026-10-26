@@ -30,6 +30,12 @@ It runs inside **your own Google account** as an Apps Script web app:
    home screen. Then log in with your Sleeper email and password. If Sleeper
    emails you a 4-digit code, enter it there.
 
+   The login request goes from your own browser straight to Sleeper. From
+   Google's servers, Sleeper answers *"unable to confirm you're human"*. If
+   Sleeper still asks for a captcha, tap **Trouble logging in?** You then log
+   in on sleeper.com itself and copy your session over with a small helper
+   bookmark (steps for phone and computer are on that screen).
+
 It starts in **suggestions only** mode. Look over the plan, then flip the
 switch to turn the autopilot on.
 
@@ -78,9 +84,9 @@ The logic is the same as the Python CLI in `../autopilot` (see `../README.md`).
 - If Sleeper ever rejects the saved session, the app forgets it, logs it once
   and shows the login again. Nothing changes on Sleeper until you log back
   in.
-- If the password login stops working (e.g. Sleeper starts requiring a
-  captcha), use **Trouble logging in?** to paste your session from
-  sleeper.com instead.
+- Sleeper puts a captcha in front of logins it finds suspicious. The app
+  never tries to get around that. If it appears, log in on sleeper.com and
+  use **Trouble logging in?** to bring the session over.
 
 ## Development
 

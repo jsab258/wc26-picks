@@ -159,6 +159,7 @@ function login(identifier, password) {
       var ctx = loginContext_(identifier) || {};
       return { needsCode: true, sentTo: ctx.masked_email || ctx.masked_phone || 'your email' };
     }
+    if (/human|captcha/i.test(err.message)) throw new Error(CAPTCHA_MSG);
     throw new Error('Sleeper refused the login: ' + err.message);
   }
   if (!data || !data.login || !data.login.token) {
@@ -175,11 +176,26 @@ function verifyCode(code) {
   return finishLogin_(data.login.token, identifier);
 }
 
-/** Fallback: paste a token copied from sleeper.com. */
-function connectWithToken(token, username) {
-  token = String(token || '').trim().replace(/^"+|"+$/g, '');
-  if (token.split('.').length !== 3) throw new Error("That doesn't look like a Sleeper token.");
-  return finishLogin_(token, username);
+var CAPTCHA_MSG = 'Sleeper wants a captcha before it lets this login through. ' +
+  'Wait a few minutes and try again, or use "Trouble logging in?" to connect via sleeper.com.';
+
+/**
+ * Save a Sleeper session obtained in the browser: either the page logged in
+ * directly with Sleeper, or you pasted what the sleeper.com bookmarklet copied
+ * ({"token": ..., "user_id": ...} or just the token).
+ */
+function connectWithToken(token, username, userId) {
+  token = String(token || '').trim();
+  if (token.charAt(0) === '{') {
+    try {
+      var o = JSON.parse(token);
+      token = o.token || '';
+      userId = userId || o.user_id;
+    } catch (e) { /* fall through to the format check */ }
+  }
+  token = token.replace(/^"+|"+$/g, '');
+  if (token.split('.').length !== 3) throw new Error("That doesn't look like a Sleeper login. Copy it again.");
+  return finishLogin_(token, username, userId);
 }
 
 function logout() {
@@ -189,10 +205,11 @@ function logout() {
   return getState();
 }
 
-function finishLogin_(token, identifier) {
-  var claims = jwtClaims_(token);
+function finishLogin_(token, identifier, userId) {
   var user = null;
-  if (claims.user_id) user = sleeper_('/user/' + claims.user_id);
+  userId = userId || jwtClaims_(token).user_id;
+  if (userId) user = sleeper_('/user/' + userId);
+  if (!user && identifier && identifier.indexOf('@') < 0) user = sleeper_('/user/' + identifier);  // username
   if (!user && identifier) {
     var ctx = loginContext_(identifier);
     if (ctx && ctx.user_id) user = sleeper_('/user/' + ctx.user_id);
@@ -204,7 +221,8 @@ function finishLogin_(token, identifier) {
     try {
       pendingWaivers_(token, leagues[0].league_id);
     } catch (e) {
-      throw new Error(e.expired ? "Sleeper didn't accept that login. Please try again." : e.message);
+      throw new Error(e.expired ? "Sleeper didn't accept that login. Please try again."
+                                : 'Sleeper accepted the login but blocked this app from using it: ' + e.message);
     }
   }
   store_().setProperty('token', token);
