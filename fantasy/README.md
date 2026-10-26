@@ -1,12 +1,19 @@
 # Sleeper autopilot (FantasyPros ECR)
 
 Sets your Sleeper lineups and waiver claims from FantasyPros Expert Consensus
-Rankings, following each league's own rules. Runs on a schedule in GitHub
-Actions. **Dry run by default:** nothing changes on Sleeper until you turn it on.
+Rankings, following each league's own rules.
+
+> **Easiest way to use it:** the web app in [`apps-script/`](apps-script/README.md).
+> You log in with your Sleeper account and get a dashboard, and it runs every
+> 30 minutes in your own Google account, with no token copying.
+>
+> This page describes the Python command-line version, which uses the same
+> logic. It's handy for dry runs on a computer
+> (`python3 -m autopilot all`). The GitHub workflow is now manual-only.
 
 ## What it does
 
-**Lineups** (Thu, Sun ×4, Mon): for every league, it reads the roster slots and
+**Lineups:** for every league, it reads the roster slots and
 scoring, pulls the matching weekly ECR and saves the best legal lineup.
 - It benches players who are Out, IR, Doubtful, suspended or on bye.
 - It never touches a player whose game has started. Sleeper locks those
@@ -18,7 +25,7 @@ scoring, pulls the matching weekly ECR and saves the best legal lineup.
 QBs against RB/WR/TE. On top of that, `superflex_qb_bonus` makes a QB look N
 ECR spots better in the SUPER_FLEX slot, so close calls go to the 2nd QB.
 
-**Waivers** (Tue evening):
+**Waivers:**
 - Uses rest-of-season ECR to find free agents who clearly beat your weakest
   bench player.
 - In superflex and 2QB leagues, QBs are re-valued to superflex worth.
@@ -54,21 +61,16 @@ not per custom scoring, so it's only an approximation there.
    cd fantasy
    python3 -m autopilot all
    ```
-3. Get your Sleeper token. Sign in at sleeper.com in a desktop browser and
-   open DevTools (F12):
+3. To let it change things, get your Sleeper token. Sign in at sleeper.com in
+   a desktop browser and open DevTools (F12):
    - **Network** tab: click any `graphql` request and copy the
      `authorization` request header. Or:
    - **Console**: run `localStorage.getItem("token")`.
 
-   Treat the token like your password.
-4. In GitHub, open **Settings → Secrets and variables → Actions**:
-   - Add the secret `SLEEPER_TOKEN`.
-   - Run the **Sleeper autopilot** workflow manually with *apply* unchecked,
-     then read the job summary.
-   - When you trust it, add the **variable** `AUTOPILOT_APPLY` = `true`. That
-     enables lineups. Set `auto_waivers = true` in `config.toml` to also let it
-     submit claims.
-5. Scheduled runs only fire from the default branch, so merge this to `main`.
+   Treat the token like your password. (The web app does this for you when
+   you log in.)
+4. Optionally, add it as the GitHub secret `SLEEPER_TOKEN` to run the
+   **Sleeper autopilot** workflow by hand from the Actions tab.
 
 Manual runs: `python3 -m autopilot lineup --apply` (needs `SLEEPER_TOKEN` in the
 environment). Use `--league <id>` to target one league.
@@ -80,7 +82,7 @@ Sleeper anyway, but your pending claims and FAAB bids are not. The workflow
 therefore hides claim details unless you set the variable
 `SHOW_WAIVER_DETAILS=true`. Only do that in a private repo. Moving `fantasy/`
 and the workflow into a private repo is the cleanest option, and private repos
-get 2,000 free Actions minutes a month (this uses roughly 30).
+get 2,000 free Actions minutes a month.
 
 ### FantasyPros account
 
@@ -111,12 +113,11 @@ Any key can be overridden per league under `[league."<league id>"]`.
   with your token. They can change without notice, and automated use may go
   against Sleeper's terms. You decide whether that risk is acceptable.
   Scraping FantasyPros pages has the same caveat.
-- When the token expires or is revoked (e.g. logging out everywhere), the
-  workflow fails and GitHub emails you. Paste a fresh token into the secret.
-- Claims go in Tuesday evening, ahead of Sleeper's default Wednesday
-  processing. If a league clears waivers on another day, change the cron.
-  Free-agent pickups after waivers clear are not automated.
-- GitHub pauses scheduled workflows in repos with no commits for 60 days.
+- When the token expires or is revoked (e.g. logging out everywhere), runs
+  fail with "token is invalid". Get a fresh one.
+- Waiver claims are meant to go in before your league's waiver run (Sleeper's
+  default is Wednesday ~07:10 UTC). Free-agent pickups after waivers clear are
+  not automated.
 
 ## Tests
 

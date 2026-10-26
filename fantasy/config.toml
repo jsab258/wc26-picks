@@ -1,7 +1,7 @@
 # Sleeper autopilot settings. No secrets in here: the Sleeper token lives in
 # the SLEEPER_TOKEN env var / GitHub secret.
 
-sleeper_username = "YOUR_SLEEPER_USERNAME"
+sleeper_username = "jsab258"
 
 # Leave empty to manage every NFL league you're in this season.
 leagues = []

@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<base target="_top">
+<title>Sleeper Autopilot</title>
+<style>
+  :root {
+    --bg: #f4f6f9; --surface: #ffffff; --surface-2: #f0f3f7; --border: #e1e6ee;
+    --text: #141a24; --muted: #5f6b7c; --faint: #8b95a5;
+    --accent: #0f9d77; --accent-ink: #ffffff; --accent-soft: #e2f5ef;
+    --warn: #b7791f; --warn-soft: #fdf3e1; --bad: #c2410c; --bad-soft: #fdece4;
+    --info-soft: #e8effc; --info: #2f5fb3;
+    --radius: 14px; --shadow: 0 1px 2px rgba(20, 26, 36, .06), 0 4px 16px rgba(20, 26, 36, .05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117; --surface: #151b24; --surface-2: #1b2330; --border: #273142;
+      --text: #e7ecf3; --muted: #9aa6b8; --faint: #6f7b8e;
+      --accent: #2bd4a4; --accent-ink: #062018; --accent-soft: #11342b;
+      --warn: #f0b354; --warn-soft: #33270f; --bad: #ff8a5c; --bad-soft: #3a1d13;
+      --info-soft: #18263d; --info: #8fb4ff; --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 16px 16px 48px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: -.01em; }
+  .logo { width: 30px; height: 30px; border-radius: 9px; background: var(--accent); color: var(--accent-ink);
+    display: grid; place-items: center; font-size: 16px; }
+  .who { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+  .avatar { width: 26px; height: 26px; border-radius: 50%; background: var(--surface-2); object-fit: cover; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 16px; margin-bottom: 14px; }
+  h2 { font-size: 17px; margin: 0; letter-spacing: -.01em; }
+  h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 18px 0 8px; }
+  .row { display: flex; align-items: center; gap: 10px; }
+  .between { justify-content: space-between; }
+  .wrapflex { flex-wrap: wrap; }
+  .muted { color: var(--muted); } .faint { color: var(--faint); } .small { font-size: 13px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip { font-size: 12px; padding: 3px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted);
+    border: 1px solid var(--border); white-space: nowrap; }
+  .chip.accent { background: var(--accent-soft); color: var(--accent); border-color: transparent; font-weight: 600; }
+  button { font: inherit; cursor: pointer; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); padding: 9px 14px; font-weight: 600; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+  button.ghost { background: transparent; border-color: transparent; color: var(--muted); padding: 6px 8px; }
+  button:disabled { opacity: .55; cursor: default; }
+  button.small { padding: 6px 10px; font-size: 13px; }
+  input[type=text], input[type=password], input[type=email], input[type=number], textarea {
+    font: inherit; width: 100%; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); }
+  input:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  label.field { display: block; margin: 12px 0 0; font-size: 13px; color: var(--muted); }
+  label.field span { display: block; margin-bottom: 5px; }
+
+  /* status hero */
+  .hero { display: grid; gap: 12px; }
+  .status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--faint); flex: none; }
+  .status-dot.on { background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+  .status-dot.off { background: var(--warn); box-shadow: 0 0 0 4px var(--warn-soft); }
+  .hero-title { font-size: 19px; font-weight: 700; }
+  .switch { position: relative; width: 50px; height: 30px; flex: none; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; border-radius: 999px; background: var(--border); transition: .15s; cursor: pointer; }
+  .slider:before { content: ""; position: absolute; width: 24px; height: 24px; left: 3px; top: 3px; border-radius: 50%;
+    background: #fff; transition: .15s; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+  .switch input:checked + .slider { background: var(--accent); }
+  .switch input:checked + .slider:before { transform: translateX(20px); }
+  .switch.sm { width: 40px; height: 24px; }
+  .switch.sm .slider:before { width: 18px; height: 18px; }
+  .switch.sm input:checked + .slider:before { transform: translateX(16px); }
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; }
+  .fact { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; }
+  .fact b { display: block; font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
+
+  /* lineup */
+  .slots { display: grid; gap: 6px; }
+  .slot { display: grid; grid-template-columns: 74px 1fr auto; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 10px; background: var(--surface-2); border: 1px solid transparent; }
+  .slot.new { border-color: var(--accent); background: var(--accent-soft); }
+  .slot.bad { border-color: var(--bad); background: var(--bad-soft); }
+  .slot-tag { font-size: 11px; font-weight: 700; letter-spacing: .03em; color: var(--muted); text-transform: uppercase; }
+  .pname { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pmeta { font-size: 12px; color: var(--muted); }
+  .rank { font-size: 12px; color: var(--muted); text-align: right; white-space: nowrap; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 6px; margin-left: 6px;
+    vertical-align: 1px; }
+  .tag.in { background: var(--accent); color: var(--accent-ink); }
+  .tag.out { background: var(--bad-soft); color: var(--bad); }
+  .tag.lock { background: var(--surface); color: var(--faint); border: 1px solid var(--border); }
+  .banner { border-radius: 10px; padding: 10px 12px; font-size: 14px; margin: 8px 0; }
+  .banner.ok { background: var(--accent-soft); color: var(--accent); }
+  .banner.warn { background: var(--warn-soft); color: var(--warn); }
+  .banner.bad { background: var(--bad-soft); color: var(--bad); }
+  .banner.info { background: var(--info-soft); color: var(--info); }
+  .claim { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; padding: 10px 12px;
+    border-radius: 10px; background: var(--surface-2); margin-bottom: 6px; }
+  .claim .arrow { color: var(--faint); margin: 0 4px; }
+  .add { color: var(--accent); font-weight: 600; } .drop { color: var(--bad); }
+  details summary { cursor: pointer; color: var(--muted); font-size: 13px; margin-top: 10px; list-style: none; }
+  details summary::-webkit-details-marker { display: none; }
+  details summary:before { content: "▸ "; }
+  details[open] summary:before { content: "▾ "; }
+  .settings-grid { display: grid; gap: 10px; margin-top: 10px; }
+  .setting { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .setting .label { font-size: 14px; }
+  .setting .hint { font-size: 12px; color: var(--muted); }
+  input[type=range] { width: 140px; accent-color: var(--accent); }
+  input.num { width: 70px; padding: 6px 8px; }
+
+  /* activity */
+  .feed { display: grid; gap: 2px; }
+  .entry { display: grid; grid-template-columns: 26px 1fr; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--border); }
+  .entry:last-child { border-bottom: 0; }
+  .ico { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; font-size: 13px;
+    background: var(--surface-2); }
+  .ico.change { background: var(--accent-soft); color: var(--accent); }
+  .ico.error { background: var(--bad-soft); color: var(--bad); }
+  .entry pre { margin: 4px 0 0; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted);
+    white-space: pre-wrap; }
+
+  /* login */
+  .center { min-height: 80vh; display: grid; place-items: center; }
+  .login { width: 100%; max-width: 400px; }
+  .login h1 { font-size: 22px; margin: 14px 0 4px; letter-spacing: -.02em; }
+  .code { letter-spacing: .5em; text-align: center; font-size: 22px; font-weight: 700; }
+  .fine { font-size: 12px; color: var(--muted); margin-top: 14px; }
+  .err { color: var(--bad); font-size: 13px; margin-top: 10px; min-height: 1em; }
+
+  /* misc */
+  .skeleton { height: 14px; border-radius: 6px; background: linear-gradient(90deg, var(--surface-2), var(--border), var(--surface-2));
+    background-size: 200% 100%; animation: sh 1.2s infinite; margin: 8px 0; }
+  @keyframes sh { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+  .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent;
+    border-radius: 50%; animation: rot .7s linear infinite; vertical-align: -2px; margin-right: 6px; }
+  @keyframes rot { to { transform: rotate(360deg); } }
+  .toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--text); color: var(--bg);
+    padding: 10px 14px; border-radius: 10px; font-size: 14px; box-shadow: var(--shadow); max-width: calc(100% - 32px);
+    opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; }
+  .toast.show { opacity: 1; }
+  @media (max-width: 480px) {
+    .slot { grid-template-columns: 58px 1fr auto; }
+    .wrap { padding: 12px 12px 40px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><div class="center"><span class="muted"><span class="spin"></span>Loading…</span></div></div>
+<div class="toast" id="toast"></div>
+<script>
+const S = { state: null, dash: null, loadingDash: false, busy: {}, login: { step: 'password' }, dashError: null };
+
+// ---- server calls ------------------------------------------------------
+function api(fn, ...args) {
+  return new Promise((resolve, reject) => {
+    google.script.run.withSuccessHandler(resolve)
+      .withFailureHandler((e) => reject(new Error((e && e.message) || String(e))))[fn](...args);
+  });
+}
+
+// ---- helpers -----------------------------------------------------------
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const $ = (sel) => document.querySelector(sel);
+
+function ago(ts) {
+  if (!ts) return 'never';
+  const s = Math.round((Date.now() - ts) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.round(s / 60) + ' min ago';
+  if (s < 86400) return Math.round(s / 3600) + ' h ago';
+  return new Date(ts).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+}
+const when = (ts) => new Date(ts).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+async function busy(key, fn) {
+  S.busy[key] = true; render();
+  try { return await fn(); }
+  catch (e) { if (!expired(e)) toast(e.message); throw e; }
+  finally { S.busy[key] = false; render(); }
+}
+
+/** Sleeper rejected the saved session: the server dropped it, so show the login again. */
+function expired(e) {
+  if (!/session expired/i.test(e.message)) return false;
+  S.dash = null;
+  S.login = { step: 'password', error: e.message };
+  api('getState').then((st) => { S.state = st; render(); });
+  return true;
+}
+
+// ---- data flow ---------------------------------------------------------
+async function boot() {
+  try { S.state = await api('getState'); }
+  catch (e) { $('#app').innerHTML = `<div class="card banner bad">${esc(e.message)}</div>`; return; }
+  render();
+  if (S.state.connected) loadDashboard();
+}
+
+async function loadDashboard() {
+  S.loadingDash = true; S.dashError = null; render();
+  try {
+    S.dash = await api('getDashboard');
+    S.state = S.dash.state;
+  } catch (e) { if (!expired(e)) S.dashError = e.message; }
+  S.loadingDash = false; render();
+}
+
+function replaceLeague(res) {
+  if (!S.dash) return;
+  const i = S.dash.leagues.findIndex((l) => l.id === res.id);
+  if (i >= 0) {
+    const old = S.dash.leagues[i];
+    S.dash.leagues[i] = Object.assign({}, old, res, {
+      lineup: res.lineup || old.lineup, waivers: res.waivers || old.waivers });
+  }
+}
+
+// ---- rendering ---------------------------------------------------------
+function render() {
+  const st = S.state;
+  if (!st) return;
+  $('#app').innerHTML = st.connected ? appView(st) : loginView();
+  const first = document.querySelector('[autofocus]');
+  if (first && !render._focused) { first.focus(); render._focused = true; }
+}
+
+function loginView() {
+  const L = S.login;
+  const header = `<div class="logo">⚡</div><h1>Sleeper Autopilot</h1>
+    <div class="muted">Sets your lineups and waiver claims from FantasyPros expert rankings, following each league's rules.</div>`;
+  if (L.step === 'code') {
+    return `<div class="center"><div class="card login">${header}
+      <form data-form="code">
+        <label class="field"><span>Sleeper emailed a 4-digit code to ${esc(L.sentTo)}</span>
+          <input class="code" name="code" inputmode="numeric" maxlength="4" autocomplete="one-time-code" autofocus required></label>
+        <div class="err">${esc(L.error || '')}</div>
+        <button class="primary" style="width:100%;margin-top:6px" ${S.busy.login ? 'disabled' : ''}>
+          ${S.busy.login ? '<span class="spin"></span>Checking…' : 'Verify'}</button>
+      </form>
+      <button class="ghost small" data-action="login-restart" style="margin-top:8px">← Start over</button>
+    </div></div>`;
+  }
+  if (L.step === 'token') {
+    return `<div class="center"><div class="card login">${header}
+      <form data-form="token">
+        <ol class="small muted" style="padding-left:18px;margin:14px 0 0">
+          <li>On a computer, drag this button to your bookmarks bar:
+            <a href="${esc(BOOKMARKLET)}" class="chip accent" onclick="return false">Copy Sleeper login</a></li>
+          <li>Open <a href="https://sleeper.com" target="_blank">sleeper.com</a> (logged in) and click the bookmark.</li>
+          <li>Paste here.</li>
+        </ol>
+        <label class="field"><span>Sleeper token</span><textarea name="token" rows="3" autofocus required></textarea></label>
+        <label class="field"><span>Sleeper username</span><input type="text" name="username" autocomplete="username"></label>
+        <div class="err">${esc(L.error || '')}</div>
+        <button class="primary" style="width:100%;margin-top:6px" ${S.busy.login ? 'disabled' : ''}>Connect</button>
+      </form>
+      <button class="ghost small" data-action="login-restart" style="margin-top:8px">← Back to password login</button>
+    </div></div>`;
+  }
+  return `<div class="center"><div class="card login">${header}
+    <form data-form="login" autocomplete="on">
+      <label class="field"><span>Sleeper email or username</span>
+        <input type="text" name="identifier" autocomplete="username" value="${esc(L.identifier || '')}"
+          ${L.identifier ? '' : 'autofocus'} required></label>
+      <label class="field"><span>Password</span>
+        <input type="password" name="password" autocomplete="current-password" ${L.identifier ? 'autofocus' : ''} required></label>
+      <div class="err">${esc(L.error || '')}</div>
+      <button class="primary" style="width:100%;margin-top:6px" ${S.busy.login ? 'disabled' : ''}>
+        ${S.busy.login ? '<span class="spin"></span>Logging in…' : 'Log in with Sleeper'}</button>
+    </form>
+    <div class="fine">Your password is only used to log in to Sleeper and is never saved. This page and your Sleeper
+      session live in your own Google account; nobody else can open it.</div>
+    <button class="ghost small" data-action="login-token" style="margin-top:6px">Trouble logging in?</button>
+  </div></div>`;
+}
+
+function appView(st) {
+  const u = st.user || {};
+  const avatar = u.avatar ? `<img class="avatar" src="https://sleepercdn.com/avatars/thumbs/${esc(u.avatar)}" alt="">` : '';
+  return `<header>
+      <div class="brand"><div class="logo">⚡</div>Sleeper Autopilot</div>
+      <div class="who">${avatar}<span>${esc(u.display_name || '')}</span>
+        <button class="ghost small" data-action="logout" title="Disconnect">Log out</button></div>
+    </header>
+    ${statusCard(st)}
+    ${S.dashError ? `<div class="card banner bad">Couldn't load your leagues: ${esc(S.dashError)}
+        <div style="margin-top:8px"><button class="small" data-action="reload">Try again</button></div></div>` : ''}
+    ${S.loadingDash && !S.dash ? skeletonCards() : ''}
+    ${S.dash ? S.dash.leagues.map(leagueCard).join('') : ''}
+    ${activityCard(st.log || [])}
+    <div class="faint small" style="text-align:center;margin-top:18px">
+      Rankings: FantasyPros ECR · Data: Sleeper · Refreshed ${S.dash ? 'week ' + esc(S.dash.week) : '…'}
+      · <a href="#" data-action="reload" style="color:inherit">refresh</a></div>`;
+}
+
+function statusCard(st) {
+  const on = st.mode === 'auto';
+  const t = st.lastTick;
+  const tickTxt = t ? `${esc(t.msg)} <span class="faint">(${ago(t.ts)})</span>` : 'Not run yet';
+  const exp = st.tokenExpires ? when(st.tokenExpires * 1000) : 'not stated by Sleeper';
+  const expSoon = st.tokenExpires && st.tokenExpires * 1000 - Date.now() < 7 * 86400000;
+  return `<div class="card hero">
+    <div class="row between">
+      <div class="row"><span class="status-dot ${on ? 'on' : 'off'}"></span>
+        <div><div class="hero-title">${on ? 'Autopilot is on' : 'Suggestions only'}</div>
+          <div class="muted small">${on ? 'Changes your lineups (and claims where enabled) automatically.'
+                                         : 'Nothing is changed on Sleeper until you turn autopilot on or tap Apply.'}</div></div></div>
+      <label class="switch" title="Autopilot"><input type="checkbox" data-action="mode" ${on ? 'checked' : ''}
+        ${S.busy.mode ? 'disabled' : ''}><span class="slider"></span></label>
+    </div>
+    <div class="facts">
+      <div class="fact"><b>Last check</b>${t && t.status === 'error' ? `<span style="color:var(--bad)">${tickTxt}</span>` : tickTxt}</div>
+      <div class="fact"><b>Schedule</b>Every 30 min: lineups before games, claims the evening before waivers.</div>
+      <div class="fact"><b>Sleeper session</b>${expSoon ? '<span style="color:var(--warn)">Expires ' + exp + '</span>' : 'Valid · expires ' + exp}</div>
+    </div>
+    <div class="row wrapflex">
+      <button class="small" data-action="run-now" ${S.busy.run ? 'disabled' : ''}>
+        ${S.busy.run ? '<span class="spin"></span>Running…' : 'Check lineups now'}</button>
+      <span class="faint small">${st.autopilotScheduled ? 'Background checks scheduled.' : 'Background checks not scheduled yet.'}</span>
+    </div>
+  </div>`;
+}
+
+function skeletonCards() {
+  return [1, 2].map(() => `<div class="card"><div class="skeleton" style="width:40%"></div>
+    <div class="skeleton"></div><div class="skeleton" style="width:80%"></div><div class="skeleton" style="width:60%"></div>
+    <div class="muted small" style="margin-top:10px"><span class="spin"></span>Pulling rosters from Sleeper and rankings from FantasyPros…</div></div>`).join('');
+}
+
+function rankTxt(p) {
+  if (p.posRank && p.rank) return `${esc(p.posRank)} · #${p.rank}`;
+  if (p.rank) return '#' + p.rank;
+  return '<span class="faint">unranked</span>';
+}
+
+function playerCell(p) {
+  const tags = [];
+  if (p.isNew) tags.push('<span class="tag in">IN</span>');
+  if (p.why) tags.push(`<span class="tag out">${esc(p.why)}</span>`);
+  if (p.locked) tags.push('<span class="tag lock" title="Game started: locked">🔒</span>');
+  return `<div style="min-width:0"><div class="pname">${esc(p.name)}${tags.join('')}</div>
+    <div class="pmeta">${esc(p.pos || '')}${p.team ? ' · ' + esc(p.team) : ''}</div></div>`;
+}
+
+function leagueCard(lg) {
+  const cfg = lg.settings || {};
+  return `<div class="card">
+    <div class="row between wrapflex">
+      <h2>${esc(lg.name)}</h2>
+    </div>
+    <div class="chips">${lg.flags.map((f, i) => `<span class="chip ${i < 2 ? 'accent' : ''}">${esc(f)}</span>`).join('')}</div>
+    ${lg.notes.map((n) => `<div class="banner info">${esc(n)}</div>`).join('')}
+    ${lg.lineup ? lineupSection(lg) : ''}
+    ${lg.waivers ? waiverSection(lg) : ''}
+    ${settingsSection(lg, cfg)}
+  </div>`;
+}
+
+function lineupSection(lg) {
+  const L = lg.lineup;
+  let body;
+  if (L.error) body = `<div class="banner bad">${esc(L.error)}</div>`;
+  else if (L.skipped) body = `<div class="banner info">${esc(L.skipped)}</div>`;
+  else {
+    const status = L.applied ? '<div class="banner ok">✓ Lineup saved to Sleeper.</div>'
+      : L.applyError ? `<div class="banner bad">Couldn't save: ${esc(L.applyError)}</div>`
+      : L.changes ? `<div class="banner warn row between wrapflex"><span><b>${L.changes} change${L.changes > 1 ? 's' : ''}</b>
+            recommended${L.benched.length ? ': bench ' + L.benched.map((p) => esc(p.name) + (p.why ? ' (' + esc(p.why) + ')' : '')).join(', ') : ''}</span>
+            <button class="small primary" data-action="apply-lineup" data-league="${esc(lg.id)}" ${S.busy['l' + lg.id] ? 'disabled' : ''}>
+              ${S.busy['l' + lg.id] ? '<span class="spin"></span>Saving…' : 'Apply now'}</button></div>`
+      : '<div class="banner ok">✓ Lineup is already optimal.</div>';
+    body = status + L.warnings.map((w) => `<div class="banner bad">⚠ ${esc(w)}</div>`).join('') +
+      `<div class="slots">${L.lineup.map((p) => `<div class="slot ${p.isNew ? 'new' : ''} ${p.why && !p.locked ? 'bad' : ''}">
+          <div class="slot-tag">${esc(p.slot.replace('SUPER_FLEX', 'SFLEX').replace('WRRB_FLEX', 'W/R').replace('REC_FLEX', 'W/T'))}</div>
+          ${playerCell(p)}<div class="rank">${rankTxt(p)}</div></div>`).join('')}</div>
+      ${L.bench.length ? `<details><summary>Bench (${L.bench.length})</summary><div class="slots" style="margin-top:8px">
+        ${L.bench.map((p) => `<div class="slot"><div class="slot-tag">BN</div>${playerCell(p)}<div class="rank">${rankTxt(p)}</div></div>`).join('')}
+      </div></details>` : ''}`;
+  }
+  return `<h3>Week ${esc(L.week || '')} lineup</h3>${body}`;
+}
+
+function waiverSection(lg) {
+  const W = lg.waivers, cfg = lg.settings || {};
+  if (W.error) return `<h3>Waivers</h3><div class="banner bad">${esc(W.error)}</div>`;
+  const claims = W.claims.map((c) => `<div class="claim">
+      <div><span class="add">+ ${esc(c.add.name)}</span> <span class="faint small">${esc(c.add.pos)} ${esc(c.add.team || '')}
+        · ${c.kind === 'stream' ? 'this week ' : 'ROS '}${rankTxt(c.add)}</span>
+        ${c.drop ? `<div class="small"><span class="drop">− ${esc(c.drop.name)}</span>${c.drop.why ? `<span class="tag out">${esc(c.drop.why)}</span>` : ''}
+          <span class="faint">${esc(c.drop.pos)} · ${c.kind === 'stream' ? 'this week ' : 'ROS '}${rankTxt(c.drop)}</span></div>`
+          : '<div class="small faint">No drop needed (open roster spot)</div>'}
+        ${c.error ? `<div class="small" style="color:var(--bad)">Failed: ${esc(c.error)}</div>` : ''}</div>
+      <div class="small" style="text-align:right">${c.bid != null ? `<b>$${c.bid}</b><br>` : ''}
+        ${c.submitted ? '<span style="color:var(--accent)">✓ submitted</span>' : `<span class="faint">${c.kind === 'stream' ? 'stream' : 'upgrade'}</span>`}</div>
+    </div>`).join('');
+  const when = cfg.auto_waivers ? (S.state.mode === 'auto' ? 'Autopilot will submit these the evening before waivers run.'
+                                                           : 'Turn autopilot on to submit these automatically.')
+                                : 'Auto-claims are off for this league.';
+  return `<h3>Waiver plan</h3>
+    ${W.pending ? `<div class="banner info">${W.pending} claim${W.pending > 1 ? 's' : ''} already pending on Sleeper (not repeated).</div>` : ''}
+    ${W.claims.length ? claims : '<div class="banner ok">No pickups clearly better than your roster right now.</div>'}
+    ${W.notes.map((n) => `<div class="small faint">• ${esc(n)}</div>`).join('')}
+    ${W.claims.length ? `<div class="row between wrapflex" style="margin-top:8px"><span class="small muted">${esc(when)}</span>
+      <button class="small" data-action="submit-claims" data-league="${esc(lg.id)}" ${S.busy['w' + lg.id] ? 'disabled' : ''}>
+        ${S.busy['w' + lg.id] ? '<span class="spin"></span>Submitting…' : 'Submit claims now'}</button></div>` : ''}
+    <div class="small faint" style="margin-top:6px">Based on ${esc(W.basis)}.</div>`;
+}
+
+function settingsSection(lg, cfg) {
+  const id = esc(lg.id);
+  const toggle = (key, label, hint) => `<div class="setting"><div><div class="label">${label}</div>
+      ${hint ? `<div class="hint">${hint}</div>` : ''}</div>
+      <label class="switch sm"><input type="checkbox" data-setting="${key}" data-league="${id}" ${cfg[key] ? 'checked' : ''}>
+      <span class="slider"></span></label></div>`;
+  const qb = lg.superflex ? `<div class="setting"><div><div class="label">Lean towards a 2nd QB</div>
+      <div class="hint">SUPER_FLEX: a QB counts <b data-out="qb-${id}">${cfg.superflex_qb_bonus}</b> ECR spots better</div></div>
+      <input type="range" min="0" max="40" step="5" value="${cfg.superflex_qb_bonus}" data-setting="superflex_qb_bonus"
+        data-league="${id}"></div>` : '';
+  return `<details><summary>League settings</summary><div class="settings-grid">
+      ${toggle('auto_lineup', 'Auto lineup', 'Autopilot sets the best lineup before games')}
+      ${toggle('auto_waivers', 'Auto waiver claims', 'Autopilot submits the waiver plan before waivers process')}
+      ${toggle('stream_k_def', 'Stream K / DEF', 'Swap kicker/defense for clearly better matchups')}
+      ${qb}
+      <div class="setting"><div><div class="label">Claims per week</div></div>
+        <input class="num" type="number" min="0" max="5" value="${cfg.max_claims}" data-setting="max_claims" data-league="${id}"></div>
+      <div class="setting"><div><div class="label">Minimum upgrade</div><div class="hint">ROS ECR spots a pickup must gain</div></div>
+        <input class="num" type="number" min="0" max="200" step="5" value="${cfg.min_gain}" data-setting="min_gain" data-league="${id}"></div>
+    </div></details>`;
+}
+
+function activityCard(log) {
+  const icon = { change: '✓', error: '!', warn: '!', info: '•' };
+  const items = log.slice(0, 25).map((e) => `<div class="entry">
+      <div class="ico ${esc(e.level)}">${icon[e.level] || '•'}</div>
+      <div><div class="row between"><b style="font-size:14px">${esc(e.title)}</b><span class="faint small">${ago(e.ts)}</span></div>
+        ${e.league ? `<div class="small muted">${esc(e.league)}</div>` : ''}
+        ${e.lines && e.lines.length ? `<pre>${esc(e.lines.join('\n'))}</pre>` : ''}</div></div>`).join('');
+  return `<div class="card"><h2>Activity</h2>
+    <div class="feed" style="margin-top:6px">${items || '<div class="muted small">Nothing yet. Changes the autopilot makes show up here.</div>'}</div></div>`;
+}
+
+// ---- events ------------------------------------------------------------
+const BOOKMARKLET = "javascript:(()=>{const t=localStorage.getItem('token');if(!t){alert('Log in to sleeper.com first.');return}" +
+  "navigator.clipboard.writeText(t).then(()=>alert('Copied! Paste it into Sleeper Autopilot.'),()=>prompt('Copy this:',t))})()";
+
+document.addEventListener('submit', async (ev) => {
+  const form = ev.target.closest('form[data-form]');
+  if (!form) return;
+  ev.preventDefault();
+  const f = Object.fromEntries(new FormData(form));
+  S.login.error = null;
+  try {
+    if (form.dataset.form === 'login') {
+      S.login.identifier = f.identifier;
+      const r = await busy('login', () => api('login', f.identifier, f.password));
+      if (r.needsCode) { S.login = { step: 'code', sentTo: r.sentTo }; render._focused = false; render(); return; }
+      S.state = r;
+    } else if (form.dataset.form === 'code') {
+      S.state = await busy('login', () => api('verifyCode', f.code));
+    } else if (form.dataset.form === 'token') {
+      S.state = await busy('login', () => api('connectWithToken', f.token, f.username));
+    }
+    S.login = { step: 'password' };
+    render();
+    toast('Connected to Sleeper');
+    loadDashboard();
+  } catch (e) {
+    S.login.error = e.message; render._focused = false; render();
+  }
+});
+
+document.addEventListener('click', async (ev) => {
+  const el = ev.target.closest('[data-action]');
+  if (!el || el.matches('input')) return;
+  const a = el.dataset.action, id = el.dataset.league;
+  if (a === 'reload') { ev.preventDefault(); loadDashboard(); }
+  if (a === 'login-token') { S.login = { step: 'token' }; render._focused = false; render(); }
+  if (a === 'login-restart') { S.login = { step: 'password' }; render._focused = false; render(); }
+  if (a === 'logout') {
+    if (!confirm('Disconnect from Sleeper? The autopilot stops until you log in again.')) return;
+    S.state = await api('logout'); S.dash = null; render();
+  }
+  if (a === 'run-now') {
+    S.state = await busy('run', () => api('runNow'));
+    toast(S.state.lastTick ? S.state.lastTick.msg : 'Done');
+    loadDashboard();
+  }
+  if (a === 'apply-lineup') {
+    const res = await busy('l' + id, () => api('applyLineup', id));
+    replaceLeague(res);
+    S.state = await api('getState'); render();
+    toast(res.lineup && res.lineup.applied ? 'Lineup saved to Sleeper' : 'Nothing saved');
+  }
+  if (a === 'submit-claims') {
+    if (!confirm('Submit these waiver claims to Sleeper now?')) return;
+    const res = await busy('w' + id, () => api('submitClaims', id));
+    replaceLeague(res);
+    S.state = await api('getState'); render();
+    toast('Claims sent');
+  }
+});
+
+document.addEventListener('change', async (ev) => {
+  const el = ev.target;
+  if (el.dataset.action === 'mode') {
+    const mode = el.checked ? 'auto' : 'suggest';
+    if (mode === 'auto' && !confirm('Turn autopilot on? It will change lineups on Sleeper by itself '
+        + '(and submit claims in leagues where you enabled auto claims).')) { el.checked = false; return; }
+    S.state = await busy('mode', () => api('setMode', mode));
+    render();
+    toast(mode === 'auto' ? 'Autopilot on' : 'Autopilot paused');
+    return;
+  }
+  if (el.dataset.setting) {
+    const key = el.dataset.setting, id = el.dataset.league;
+    const val = el.type === 'checkbox' ? el.checked : Number(el.value);
+    const cfg = await api('saveLeagueSettings', id, { [key]: val });
+    const lg = S.dash && S.dash.leagues.find((l) => l.id === id);
+    if (lg) lg.settings = cfg;
+    toast('Saved');
+    if (['superflex_qb_bonus', 'stream_k_def', 'max_claims', 'min_gain'].includes(key)) loadDashboard();
+  }
+});
+
+document.addEventListener('input', (ev) => {
+  const el = ev.target;
+  if (el.dataset.setting === 'superflex_qb_bonus') {
+    const out = document.querySelector(`[data-out="qb-${el.dataset.league}"]`);
+    if (out) out.textContent = el.value;
+  }
+});
+
+boot();
+</script>
+</body>
+</html>

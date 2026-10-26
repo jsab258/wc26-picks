@@ -17,7 +17,7 @@ from .net import HttpError, get_json, post_json
 
 REST = "https://api.sleeper.app/v1"
 GRAPHQL = "https://api.sleeper.app/graphql"
-PLAYERS_MAX_AGE = 20 * 3600  # Sleeper asks for at most one players pull a day
+PLAYERS_MAX_AGE = 3 * 3600  # fresh enough for game-day injury news, still light on Sleeper
 
 
 class SleeperRead:
