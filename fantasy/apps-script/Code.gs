@@ -177,8 +177,8 @@ function verifyCode(code) {
   return finishLogin_(data.login.token, identifier);
 }
 
-var CAPTCHA_MSG = 'Sleeper wants a captcha before it lets this login through. ' +
-  'Wait a few minutes and try again, or use "Trouble logging in?" to connect via sleeper.com.';
+var CAPTCHA_MSG = 'Sleeper wants a captcha before it lets this login through (via Google). ' +
+  'Connect via sleeper.com instead.';
 
 /**
  * Save a Sleeper session obtained in the browser: either the page logged in

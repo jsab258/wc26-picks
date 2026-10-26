@@ -39,6 +39,7 @@
   .row { display: flex; align-items: center; gap: 10px; }
   .between { justify-content: space-between; }
   .wrapflex { flex-wrap: wrap; }
+  a { color: var(--accent); }
   .muted { color: var(--muted); } .faint { color: var(--faint); } .small { font-size: 13px; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .chip { font-size: 12px; padding: 3px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted);
@@ -174,8 +175,8 @@ const Q_CONTEXT = 'query login_context_by_email_or_phone_or_username($e: String!
   ' login_context_by_email_or_phone_or_username(email_or_phone_or_username: $e) }';
 const M_SEND_CODE = 'mutation create_verification_code($e: String!, $c: String) {' +
   ' create_verification_code(email_or_phone: $e, captcha: $c) }';
-const CAPTCHA_MSG = 'Sleeper wants a captcha before it lets this login through. Wait a few minutes and ' +
-  'try again, or use "Trouble logging in?" below to connect via sleeper.com.';
+const CAPTCHA_MSG = 'Sleeper wants a captcha before it lets this login through. That usually clears if you ' +
+  'leave it alone for an hour; or connect via sleeper.com now.';
 
 class Blocked extends Error {}
 
@@ -356,23 +357,27 @@ function loginView() {
   }
   if (L.step === 'token') {
     return `<div class="center"><div class="card login">${header}
-      <div class="small muted" style="margin-top:14px">Log in on Sleeper's own site (it handles the captcha), then
-        bring your session over with a one-tap helper bookmark.</div>
-      <details open><summary>On your phone (Chrome)</summary><ol class="small muted" style="padding-left:18px;margin:8px 0 0">
-        <li>Copy the helper: <button type="button" class="small" data-action="copy-helper">Copy helper</button></li>
-        <li>Bookmark any page (⋮ → ☆), then edit that bookmark: name it <b>sleeper login</b> and replace its URL
-          with the helper you copied.</li>
-        <li>Open <a href="https://sleeper.com" target="_blank">sleeper.com</a> and log in.</li>
-        <li>Tap the address bar, type <b>sleeper login</b> and tap the bookmark. It copies your session.</li>
-        <li>Come back here and paste it below.</li>
-      </ol></details>
-      <details><summary>On a computer</summary><ol class="small muted" style="padding-left:18px;margin:8px 0 0">
-        <li>Drag this to your bookmarks bar:
-          <a href="${esc(BOOKMARKLET)}" class="chip accent" onclick="return false">sleeper login</a></li>
-        <li>Open <a href="https://sleeper.com" target="_blank">sleeper.com</a> (logged in) and click the bookmark.</li>
-        <li>Paste below.</li>
-      </ol></details>
-      <textarea id="helper" readonly rows="2" style="position:absolute;left:-9999px">${esc(BOOKMARKLET)}</textarea>
+      <div class="small muted" style="margin-top:14px">Log in on Sleeper's own site, where you can solve its captcha,
+        then copy your session over. You only do this once.</div>
+      <details ${L.desktop ? '' : 'open'}><summary>On your phone (Chrome)</summary>
+        <ol class="small muted" style="padding-left:18px;margin:8px 0 0">
+          <li>Copy this helper: <button type="button" class="small" data-action="copy-helper">Copy helper</button>
+            <textarea id="helper" readonly rows="2" class="small" style="margin-top:6px;font-family:ui-monospace,Menlo,monospace">${esc(BOOKMARKLET)}</textarea></li>
+          <li>Bookmark any page (⋮ → ☆), tap <b>Edit</b>, set the name to <b>sleeper login</b> and replace the URL with
+            the helper.</li>
+          <li>Open <a href="https://sleeper.com/login" target="_blank">sleeper.com/login</a> and log in.</li>
+          <li>There, tap the address bar, type <b>sleeper login</b> and tap the ★ bookmark suggestion. It copies your
+            session (if it shows a box instead, copy the text in it).</li>
+          <li>Come back here and paste it below.</li>
+        </ol></details>
+      <details ${L.desktop ? 'open' : ''}><summary>On a computer</summary>
+        <ol class="small muted" style="padding-left:18px;margin:8px 0 0">
+          <li>Log in at <a href="https://sleeper.com/login" target="_blank">sleeper.com</a>.</li>
+          <li>Press <b>F12</b>, open <b>Console</b> and paste this line, then Enter. If Chrome asks, type
+            <b>allow pasting</b> first.
+            <textarea readonly rows="2" class="small" style="margin-top:6px;font-family:ui-monospace,Menlo,monospace">${esc(CONSOLE_LINE)}</textarea></li>
+          <li>Paste the result below.</li>
+        </ol></details>
       <form data-form="token">
         <label class="field"><span>Paste your Sleeper session</span><textarea name="token" rows="3" required></textarea></label>
         <div class="err">${esc(L.error || '')}</div>
@@ -390,6 +395,8 @@ function loginView() {
       <label class="field"><span>Password</span>
         <input type="password" name="password" autocomplete="current-password" ${L.identifier ? 'autofocus' : ''} required></label>
       <div class="err">${esc(L.error || '')}</div>
+      ${/captcha/i.test(L.error || '') ? `<button type="button" class="small" data-action="login-token"
+          style="width:100%;margin-bottom:8px">Connect via sleeper.com</button>` : ''}
       <button class="primary" style="width:100%;margin-top:6px" ${S.busy.login ? 'disabled' : ''}>
         ${S.busy.login ? '<span class="spin"></span>Logging in…' : 'Log in with Sleeper'}</button>
     </form>
@@ -567,6 +574,8 @@ function activityCard(log) {
 }
 
 // ---- events ------------------------------------------------------------
+// For the DevTools console on sleeper.com.
+const CONSOLE_LINE = 'copy(JSON.stringify({token: localStorage.token, user_id: localStorage.user_id}))';
 // Runs on sleeper.com: copies the session sleeper.com keeps in localStorage.
 const BOOKMARKLET = "javascript:(()=>{const t=localStorage.getItem('token'),u=localStorage.getItem('user_id');" +
   "if(!t){alert('Log in to sleeper.com first, then tap this again.');return}" +
@@ -621,12 +630,15 @@ document.addEventListener('click', async (ev) => {
   const a = el.dataset.action, id = el.dataset.league;
   if (a === 'reload') { ev.preventDefault(); loadDashboard(); }
   if (a === 'install-update') installUpdate();
-  if (a === 'login-token') { S.login = { step: 'token' }; render._focused = false; render(); }
+  if (a === 'login-token') {
+    S.login = { step: 'token', desktop: matchMedia('(pointer: fine)').matches };
+    render._focused = false; render();
+  }
   if (a === 'copy-helper') {
     const done = () => toast('Helper copied. Now make the bookmark.');
     navigator.clipboard.writeText(BOOKMARKLET).then(done, () => {
-      const t = $('#helper'); t.style.position = 'static'; t.select();
-      toast(document.execCommand('copy') ? 'Helper copied. Now make the bookmark.' : 'Select the text and copy it.');
+      const t = $('#helper'); t.select();
+      toast(document.execCommand('copy') ? 'Helper copied. Now make the bookmark.' : 'Long-press the text and copy it.');
     });
   }
   if (a === 'login-restart') { S.login = { step: 'password' }; render._focused = false; render(); }
