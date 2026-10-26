@@ -334,7 +334,7 @@ test('install: clear guidance when the Apps Script API is off or scopes are miss
   const remote = remoteBuild(cur.version + 1, 'newer');
   const off = updaterGas(remote, () => ({ code: 403, body: { error: {
     message: 'User has not enabled the Apps Script API. Enable it by visiting https://script.google.com/home/usersettings then retry.' } } }));
-  assert.throws(() => off.gas.installUpdate('newer'), /Turn on the Apps Script API/);
+  assert.throws(() => off.gas.installUpdate('newer'), /Turn on the Google Apps Script API.*Google said/);
   const scope = updaterGas(remote, () => ({ code: 403, body: { error: { message: 'Request had insufficient authentication scopes.' } } }));
   assert.throws(() => scope.gas.installUpdate('newer'), /script\.google\.com\/d\/SCRIPT_ID\/edit.*insufficient/);
   const broken = updaterGas('garbage', () => ({}));
