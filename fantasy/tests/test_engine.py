@@ -1,0 +1,106 @@
+"""Whole-league run against fixture data and a fake Sleeper writer."""
+
+import unittest
+
+from autopilot import fantasypros as fp
+from autopilot.config import DEFAULTS
+from autopilot.engine import League
+from autopilot.rankings import IdMap, RankList
+
+PLAYERS = {pid: {"full_name": pid, "position": pos, "fantasy_positions": [pos], "team": team}
+           for pid, pos, team in [
+               ("qb_a", "QB", "KC"), ("qb_b", "QB", "BUF"), ("rb_c", "RB", "DET"), ("rb_d", "RB", "NYJ"),
+               ("wr_e", "WR", "MIA"), ("wr_f", "WR", "SEA"), ("te_g", "TE", "LV"), ("k_1", "K", "KC"),
+               ("qb_fa", "QB", "TB"), ("wr_fa", "WR", "CHI"), ("k_fa", "K", "MIN")]}
+PLAYERS["DET"] = {"first_name": "Detroit", "last_name": "Lions", "position": "DEF",
+                  "fantasy_positions": ["DEF"], "team": "DET"}
+PLAYERS["wr_f"]["injury_status"] = "Out"
+NOW, KICKOFF = 1_000, 10_000
+
+
+def ecr(week, rows):
+    return {"week": str(week), "type": "test", "players": [
+        {"player_id": pid, "player_name": pid, "player_position_id": "DST" if pid == "DET" else PLAYERS[pid]["position"],
+         "player_team_id": PLAYERS[pid]["team"], "rank_ecr": rank, "pos_rank": pos_rank,
+         "player_bye_week": "14", "player_opponent": "vs. X", "player_game_kickoff_ts": KICKOFF,
+         "player_game_status": "created"} for pid, rank, pos_rank in rows]}
+
+
+LISTS = {
+    fp.WEEKLY_OP["PPR"]: ecr(7, [("qb_a", 5, "QB1"), ("rb_c", 8, "RB1"), ("wr_e", 10, "WR1"), ("qb_fa", 20, "QB2"),
+                                 ("qb_b", 30, "QB3"), ("rb_d", 45, "RB2"), ("te_g", 60, "TE1"),
+                                 ("wr_fa", 70, "WR2"), ("wr_f", 80, "WR3")]),
+    fp.WEEKLY_K: ecr(7, [("k_fa", 1, "K1"), ("k_1", 12, "K2")]),
+    fp.WEEKLY_DST: ecr(7, [("DET", 3, "DST1")]),
+    fp.ROS_OVERALL["PPR"]: ecr(0, [("rb_c", 5, "RB1"), ("wr_e", 9, "WR1"), ("rb_d", 60, "RB2"), ("qb_a", 70, "QB1"),
+                                   ("te_g", 90, "TE1"), ("qb_fa", 100, "QB2"), ("wr_fa", 150, "WR2"),
+                                   ("qb_b", 200, "QB3"), ("wr_f", 300, "WR3")]),
+}
+
+
+class FakeWrite:
+    def __init__(self):
+        self.calls = []
+
+    def pending_waivers(self, league_id):
+        return []
+
+    def set_starters(self, *args):
+        self.calls.append(("starters", *args))
+
+    def submit_waiver_claim(self, *args):
+        self.calls.append(("claim", *args))
+
+
+class FakeSession:
+    def __init__(self, roster):
+        self.now, self.state, self.players = NOW, {"week": 7}, PLAYERS
+        self.write = FakeWrite()
+        self.read = type("R", (), {"rosters": lambda _, lid: [roster, {"roster_id": 2, "owner_id": "x",
+                                                                        "players": ["wr_x"]}]})()
+        idmap = IdMap(PLAYERS, {pid: pid for pid in PLAYERS})
+        self.lists = {slug: RankList(data, idmap, NOW) for slug, data in LISTS.items()}
+
+    def ranks(self, slug):
+        return self.lists[slug]
+
+
+LEAGUE = {"league_id": "L", "name": "Test", "status": "in_season",
+          "roster_positions": ["QB", "RB", "WR", "TE", "SUPER_FLEX", "K", "DEF", "BN", "BN"],
+          "scoring_settings": {"rec": 1}, "settings": {"waiver_type": 2, "waiver_budget": 100}}
+
+
+class EngineTest(unittest.TestCase):
+    def run_league(self, **cfg):
+        roster = {"roster_id": 1, "owner_id": "me", "settings": {"waiver_budget_used": 0},
+                  "players": ["qb_a", "qb_b", "rb_c", "rb_d", "wr_e", "wr_f", "te_g", "k_1", "DET"],
+                  # Bad lineup: injured WR starts, RB in SUPER_FLEX while a QB sits.
+                  "starters": ["qb_a", "rb_c", "wr_f", "te_g", "rb_d", "k_1", "DET"]}
+        session = FakeSession(roster)
+        league = League(session, LEAGUE, "me", {**DEFAULTS, "auto_waivers": True, **cfg})
+        lines = league.run("all", apply=True, redact=False)
+        return session.write.calls, "\n".join(lines), league
+
+    def test_full_run(self):
+        calls, report, league = self.run_league(min_roster={"WR": 1})
+        self.assertEqual(league.errors, 0, report)
+        self.assertEqual(calls[0], ("starters", "L", 1, ["qb_a", "rb_c", "wr_e", "te_g", "qb_b", "k_1", "DET"]))
+        claims = [c[3:] for c in calls if c[0] == "claim"]
+        # qb_fa is a superflex-valued upgrade; both QBs we have start (protected),
+        # so the weakest droppable player (injured wr_f) goes. K streamed at min bid.
+        self.assertIn(("qb_fa", "wr_f", 25), claims)
+        self.assertIn(("k_fa", "k_1", 0), claims)
+        self.assertIn("superflex", report)
+
+    def test_default_minimums_keep_backup_wr(self):
+        calls, report, _ = self.run_league()
+        self.assertNotIn("qb_fa", [c[3] for c in calls if c[0] == "claim"])
+
+    def test_dry_run_writes_nothing(self):
+        roster_session = FakeSession({"roster_id": 1, "owner_id": "me", "players": ["qb_a"], "starters": []})
+        League(roster_session, LEAGUE, "me", dict(DEFAULTS)).run("all", apply=False, redact=False)
+        self.assertEqual(roster_session.write.calls, [])
+
+
+if __name__ == "__main__":
+    unittest.main()

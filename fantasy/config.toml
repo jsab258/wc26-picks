@@ -1,0 +1,24 @@
+# Sleeper autopilot settings. No secrets in here: the Sleeper token lives in
+# the SLEEPER_TOKEN env var / GitHub secret.
+
+sleeper_username = "YOUR_SLEEPER_USERNAME"
+
+# Leave empty to manage every NFL league you're in this season.
+leagues = []
+
+[defaults]
+auto_lineup = true          # with --apply, set lineups
+auto_waivers = false        # with --apply, also submit waiver claims (turn on once you trust it)
+superflex_qb_bonus = 10     # lean towards a 2nd QB in SUPER_FLEX (in ECR rank spots)
+max_claims = 2              # waiver claims per league per run
+min_gain = 20               # pickup must beat the dropped player by this many ROS ECR spots
+stream_k_def = true         # swap K/DEF for clearly better matchups
+stream_margin = 6
+never_drop = []             # e.g. ["Christian McCaffrey", "4034"]
+faab_tiers = [[30, 0.25], [60, 0.15], [100, 0.08], [150, 0.04]]
+
+# Per-league overrides, keyed by Sleeper league id (it's in the league URL):
+# [league."1234567890123456789"]
+# superflex_qb_bonus = 25
+# min_roster = { QB = 3 }
+# auto_waivers = true
