@@ -364,3 +364,9 @@ test('granular consent: an unticked core permission shows up with an Approve lin
   assert.deepEqual(p.scopes, ['https://www.googleapis.com/auth/script.scriptapp']);
   assert.match(p.url, /approve/);
 });
+
+test('page source has no "://": Google cuts text after // inside the page\'s template strings', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'Index.html'), 'utf8');
+  const bad = html.split('\n').map((l, i) => [i + 1, l]).filter(([, l]) => l.includes('://'));
+  assert.deepEqual(bad, [], 'write URLs as https:\\/\\/... in a quoted constant');
+});

@@ -13,6 +13,8 @@
  * page, like the real deployment. Each request gets a fresh copy of the script
  * (as on Google) with storage kept between requests, so installed updates load.
  * --fake-update pretends GitHub has a newer build ("v99", visibly marked).
+ * --google-cuts imitates Google's page serving, which drops "//..." to the end of
+ * the line unless it's inside a '...' string (it scrambled links in templates).
  */
 const http = require('http');
 const fs = require('fs');
@@ -33,6 +35,18 @@ const fakeToken = () => [b64({ alg: 'none' }), b64({ user_id: process.env.DEMO_U
 
 const fakeUpdate = process.argv.includes('--fake-update');
 const useDist = process.argv.includes('--dist');
+const googleCuts = process.argv.includes('--google-cuts');
+
+function cutLikeGoogle(html) {
+  return html.split('\n').map((line) => {
+    let quoted = false;
+    for (let i = 0; i < line.length - 1; i++) {
+      if (line[i] === "'" && line[i - 1] !== '\\') quoted = !quoted;
+      if (!quoted && line[i] === '/' && line[i + 1] === '/') return line.slice(0, i);
+    }
+    return line;
+  }).join('\n');
+}
 const dist = path.join(__dirname, '..', 'dist', 'SleeperAutopilot.gs');
 
 function fakeRemoteBuild() {
@@ -127,7 +141,7 @@ http.createServer((req, res) => {
   }
   const page = useDist ? withGas((gas) => gas.doGet().getContent())
                        : fs.readFileSync(path.join(__dirname, '..', 'Index.html'), 'utf8');
-  const html = page.replace('<script>', shim + '<script>');
+  const html = (googleCuts ? cutLikeGoogle(page) : page).replace('<script>', shim + '<script>');
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   res.end(html);
 }).listen(port, () => console.log(`preview on http://localhost:${port}`));

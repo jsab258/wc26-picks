@@ -3,6 +3,9 @@
 Newest first. Each `##` entry becomes the release notes shown by the app's
 "Install update" button. Add one with every change to Code.gs / Index.html.
 
+## Fix garbled "On a computer" steps
+- Google cut off everything after "//" in the sleeper.com links, which scrambled the connect steps (and would have broken your profile picture). Links are now written so nothing gets cut.
+
 ## Updates without Google's script API
 - "Install update" now stores the new version inside the app, so it no longer needs Google's Apps Script API, a Cloud project or extra permissions.
 - If an installed update ever fails to load, the app runs the version you pasted and offers to remove the update.
