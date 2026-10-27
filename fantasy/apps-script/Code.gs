@@ -103,7 +103,7 @@ function getDashboard() {
   var leagues = myLeagues_(ctx, user.user_id).map(function (data) {
     var cfg = leagueCfg_(s, data.league_id);
     try {
-      return new League_(ctx, data, user.user_id, cfg).evaluate({ lineup: true, waivers: true });
+      return new League_(ctx, data, user.user_id, cfg).evaluate({ lineup: true, waivers: true, freeAgents: true });
     } catch (e) {
       if (e.expired) throw e;
       // One league failing to load (e.g. Sleeper erroring on its rosters) mustn't hide the others.
@@ -163,6 +163,23 @@ function submitClaims(leagueId, shown) {
         return res;
       }
       lg.applyClaims(res, 'manual');
+      return res;
+    });
+  });
+}
+
+/** Pick up the free agents the page showed (same check as submitClaims). */
+function addFreeAgents(leagueId, shown) {
+  if (!shown) throw new Error('Reload the page and try again.');
+  return withLock_(function () {
+    return withLeague_(leagueId, function (lg) {
+      var res = lg.evaluate({ freeAgents: true });
+      var f = res.freeAgents;
+      if (f && !f.error && !f.waiting && claimKeys_(f.claims) !== shown.map(function (c) { return c.join('|'); }).join(',')) {
+        f.changed = true;
+        return res;
+      }
+      lg.applyFreeAgents(res, 'manual');
       return res;
     });
   });
@@ -426,6 +443,27 @@ function autopilot_(opts) {
         var cfg = leagueCfg_(s, data.league_id);
         var lg = new League_(ctx, data, user.user_id, cfg);
         if (!lg.roster || data.status !== 'in_season') return;
+        // After this week's waivers: fill holes with free agents (no waiver priority spent).
+        if (cfg.auto_waivers && !opts.force && Number(lg.settings.leg) === Number(ctx.state.week)) {
+          var fres = lg.evaluate({ freeAgents: true }), f = fres.freeAgents || {};
+          if (f.error) {
+            summary.push(name + ": couldn't check free agents");
+            fail(lg.id + ':fa', name, 'Free-agent check failed', f.error);
+          } else if (f.claims && f.claims.length && !f.pendingUnknown) {
+            if (auto) {
+              lg.applyFreeAgents(fres, 'autopilot');
+              var added = f.claims.filter(function (c) { return c.submitted; }).length;
+              var failedFa = f.claims.some(function (c) { return c.error; });
+              summary.push(name + ': ' + added + ' free agent' + (added === 1 ? '' : 's') + ' added');
+              notify_(failedFa ? 'action' : 'change', name + (failedFa ? ': a free-agent pickup failed' : ': free agents picked up'),
+                      claimLines_(f, false).join('\n'));
+              if (added) lg = new League_(ctx, data, user.user_id, cfg);  // fresh roster for the lineup below
+            } else if (alerting) {
+              notify_('action', name + ': free agents to add', claimLines_(f, false).join('\n') +
+                      '\nOpen Sleeper Autopilot and tap Add now.', 'fa:' + lg.id + ':' + claimKeys_(f.claims));
+            }
+          }
+        }
         if (lineupWindow && !lg.settings.best_ball && (cfg.auto_lineup || !auto)) {
           var res = lg.evaluate({ lineup: true }), l = res.lineup || {};
           if (l.error) {
@@ -457,6 +495,9 @@ function autopilot_(opts) {
         if (cfg.auto_waivers) {
           var next = nextWaiverWindow_(lg, ctx.now);
           if (next) wake = Math.min(wake, next);
+          // Waivers run the next morning (~03:05 New York time); free agents open up after that.
+          var faOpen = next && next - 7 * 86400 + 17 * 3600;
+          if (faOpen && faOpen > ctx.now) wake = Math.min(wake, faOpen);
         }
         if (cfg.auto_waivers && !opts.force && win && !done[lg.id + ':' + win]) {
           var wres = lg.evaluate({ waivers: true }), w = wres.waivers || {};
@@ -697,7 +738,7 @@ function removeUpdate() {
  */
 var PUBLIC_API = ['getState', 'getDashboard', 'setMode', 'saveLeagueSettings', 'applyLineup', 'submitClaims',
                   'runNow', 'login', 'verifyCode', 'connectWithToken', 'logout', 'checkForUpdate',
-                  'installUpdate', 'removeUpdate', 'saveAlerts', 'testAlert'];
+                  'installUpdate', 'removeUpdate', 'saveAlerts', 'testAlert', 'addFreeAgents'];
 
 function call(name, args) {
   if (PUBLIC_API.indexOf(name) < 0 || typeof GLOBAL_[name] !== 'function') throw new Error('Unknown action: ' + name);
@@ -940,6 +981,34 @@ function submitClaim_(token, leagueId, rosterId, add, drop, bid) {
     v.v_settings = [Math.floor(bid)];
   }
   return gql_(q, v, token, 1);
+}
+
+/**
+ * Pick up a free agent right away (dropping ``drop``, if any), exactly as sleeper.com's
+ * Add button does. Players still on waivers need submit_waiver_claim instead.
+ */
+function addFreeAgent_(token, leagueId, rosterId, add, drop) {
+  var q = 'mutation league_create_transaction($k_adds: [String], $v_adds: [Int], $k_drops: [String], $v_drops: [Int]) {' +
+    ' league_create_transaction(league_id: "' + String(leagueId).replace(/\D/g, '') + '", type: "free_agent",' +
+    ' k_adds: $k_adds, v_adds: $v_adds, k_drops: $k_drops, v_drops: $v_drops) {' +
+    ' adds drops leg roster_ids status transaction_id type } }';
+  var t = gql_(q, { k_adds: [add], v_adds: [rosterId], k_drops: drop ? [drop] : [], v_drops: drop ? [rosterId] : [] },
+               token, 1).league_create_transaction;
+  if (!t || !t.adds || !(add in t.adds) || (t.status && t.status !== 'complete')) {
+    throw new Error("Sleeper didn't complete the pickup" + (t && t.status ? ' (' + t.status + ')' : '') + '.');
+  }
+  return t;
+}
+
+/** Recently dropped players are on waivers until waiver_clears_at: player id -> epoch seconds. */
+function waiverClears_(token, leagueId) {
+  var q = 'query league_players($league_id: String!) { league_players(league_id: $league_id) { player_id settings } }';
+  var out = {};
+  (gql_(q, { league_id: leagueId }, token).league_players || []).forEach(function (p) {
+    var t = p.settings && p.settings.waiver_clears_at;
+    if (t) out[p.player_id] = Number(t);
+  });
+  return out;
 }
 
 /** Find the ``{...}`` that starts at ``start`` (string-aware). Returns end index. */
@@ -1449,6 +1518,12 @@ League_.prototype.evaluate = function (what) {
     if (e.expired) throw e;
     res.waivers = { error: String(e.message || e) };
   }
+  try {
+    if (what.freeAgents) res.freeAgents = this.planWaivers({ freeAgents: true });
+  } catch (e) {
+    if (e.expired) throw e;
+    res.freeAgents = { error: String(e.message || e) };
+  }
   return res;
 };
 
@@ -1538,6 +1613,13 @@ League_.prototype.planLineup = function () {
     benched: current.filter(function (p) { return p !== EMPTY && !after[p]; }).map(vw),
     bench: this.activePlayers().filter(function (p) { return !after[p]; }).map(vw)
       .sort(function (a, b) { return (a.rank || 9999) - (b.rank || 9999); }),
+    // Starting spots nobody healthy can fill this week (and not locked yet).
+    holes: out.starters.map(function (p, i) {
+      var slot = self.slots[i];
+      if (!SLOT_ELIGIBILITY[slot] || (p !== EMPTY && (!info[p].why || info[p].locked))) return null;
+      return { slot: slot, out: p };
+    }).filter(Boolean),
+    lockedIds: Object.keys(locked),
     warnings: out.starters.filter(function (p) {
       return p !== EMPTY && info[p].why && !info[p].locked;
     }).map(function (p) {
@@ -1567,9 +1649,23 @@ League_.prototype.maxDepth = function () {
   return { QB: (c.QB || 0) + (c.SUPER_FLEX || 0) + 1, TE: (c.TE || 0) + 1 };
 };
 
-League_.prototype.planWaivers = function () {
+/**
+ * The waiver plan, or with ``opts.freeAgents`` the free-agent plan: after this week's
+ * waivers have run, unrostered players whose game is still ahead (and who weren't just
+ * dropped) can be added right away, which fills holes without spending waiver priority.
+ */
+League_.prototype.planWaivers = function (opts) {
   var self = this, ctx = this.ctx, cfg = this.cfg;
-  var notes = [];
+  var fa = !!(opts && opts.freeAgents);
+  var notes = [], lp = null, clears = {};
+  if (fa) {
+    if (Number(this.settings.leg) !== Number(ctx.state.week)) {
+      return { freeAgents: true, waiting: "Free agents open up once this week's waivers have run.", claims: [], notes: [] };
+    }
+    lp = this.planLineup();
+    if (lp.skipped) return { freeAgents: true, waiting: lp.skipped, claims: [], notes: [] };
+    clears = waiverClears_(ctx.token, this.id);
+  }
   var rostered = {};
   this.rosters.forEach(function (r) {
     (r.players || []).concat(r.reserve || [], r.taxi || []).forEach(function (p) { rostered[p] = true; });
@@ -1665,14 +1761,14 @@ League_.prototype.planWaivers = function () {
   // Rolling waivers: a successful claim sends you to the back of the line, so a high
   // priority is only spent on a clear upgrade or to fill a starting spot.
   var prio = Number((this.roster.settings || {}).waiver_position) || null, teams = this.rosters.length;
-  var guard = this.rolling && prio && prio <= Math.ceil(teams / 2);
+  var guard = !fa && this.rolling && prio && prio <= Math.ceil(teams / 2);
   var minGain = cfg.min_gain * (guard ? 2 : 1);
   if (guard) {
     notes.push('Your waiver priority is #' + prio + ' of ' + teams + ' and a claim sends you to the back of the line, ' +
                'so upgrades must gain ' + minGain + ' spots instead of ' + cfg.min_gain + ', and kicker/defense ' +
-               'matchup swaps are skipped (add one as a free agent after waivers run: that costs no priority).');
+               'matchup swaps wait until waivers have run, then come from free agency (no priority cost).');
   }
-  var claims = planUpgrades_({
+  var claims = fa ? [] : planUpgrades_({
     freeAgents: fas, myPlayers: mine, value: value, dropValue: dropValue,
     position: function (p) { return self.pos(p); }, protected: core, minimums: this.minimums(),
     maxDepth: this.maxDepth(), healthy: healthy,
@@ -1684,8 +1780,18 @@ League_.prototype.planWaivers = function () {
   var hardMin = { QB: slotCount.QB || 0, RB: slotCount.RB || 0, WR: slotCount.WR || 0, TE: slotCount.TE || 0 };
   // This week's games, if they're still ahead (claims process before them).
   var mainList = this.weeklyList(this.qbPremium ? 'QB' : 'RB');
-  var weekAhead = mainList.week === Number(ctx.state.week) && mainList.firstKickoff() > ctx.now;
+  var weekAhead = fa || (mainList.week === Number(ctx.state.week) && mainList.firstKickoff() > ctx.now);
   var kickoff = weekAhead ? this.weekKickoffs() : {};
+  var kickoffOf = function (pid) { var r = self.weeklyRank(pid); return (r && r.kickoff) || kickoff[self.team(pid)] || 0; };
+  // Free agency: not on anyone's roster, not just dropped (still on waivers), and his game is still ahead.
+  var isFree = function (pid) {
+    return !rostered[pid] && !pendingAdds[pid] && !adding[pid] && !(clears[pid] > ctx.now) && kickoffOf(pid) > ctx.now;
+  };
+  var locked = {}, starting = {};
+  if (fa) {
+    lp.lockedIds.forEach(function (p) { locked[p] = true; });
+    lp.starters.forEach(function (p) { starting[p] = true; });
+  }
   var weekCost = function (pid, slot) {
     if (!self.eligible(pid, slot)) return null;
     var r = self.weeklyRank(pid);
@@ -1714,6 +1820,7 @@ League_.prototype.planWaivers = function () {
     };
     return mine.filter(function (p) {
       var v = dropValue(p), pos = self.pos(p);
+      if (locked[p] || starting[p]) return false;  // free agency: can't drop a player whose game started
       return !core[p] && !need[p] && !pendingDrops[p] && !usedDrops[p] && v !== null && v >= SPARE_MIN &&
         (!healthy(p) || !(pos in hardMin) || healthyAt(pos) - 1 >= hardMin[pos]);
     }).sort(function (a, b) { return dropValue(b) - dropValue(a); })[0] || null;
@@ -1721,7 +1828,40 @@ League_.prototype.planWaivers = function () {
   var openSpots = limit - mine.length - claims.filter(function (c) { return !c.drop; }).length;
   // A starter who can't play this week (bye, Out...) and nobody on the bench who can fill
   // in: pick up the best available player for that spot, for the week.
-  if (cfg.cover_byes && weekAhead) {
+  /** Pick up the best available player for a starting spot nobody can fill; false if impossible. */
+  var fill = function (hole) {
+    var best = null, bestRank = Infinity;
+    SLOT_ELIGIBILITY[hole.slot].forEach(function (pos) {
+      self.weeklyList(pos).byId.forEach(function (r, pid) {
+        if (!self.eligible(pid, hole.slot) || self.whyOut(pid, kickoff)) return;
+        if ((fa ? isFree(pid) : !rostered[pid] && !pendingAdds[pid] && !adding[pid]) && r.rank < bestRank) {
+          best = pid; bestRank = r.rank;
+        }
+      });
+    });
+    var who = hole.out === EMPTY ? 'Your ' + hole.slot + ' spot is empty this week'
+      : name(hole.out) + ' (' + self.pos(hole.out) + ', ' + self.whyOut(hole.out, kickoff) + ") can't play this week";
+    var drop = openSpots > 0 ? null : spare();
+    if (!best || (openSpots <= 0 && !drop)) {
+      notes.push(who + ' and nobody on your bench can fill in, but ' +
+                 (best ? 'no bench player is cheap enough to give up' : 'no free agent is available') +
+                 '. Add one yourself if you can.');
+      return false;
+    }
+    claims.push({ add: best, drop: drop, addValue: bestRank, dropValue: drop ? dropValue(drop) : null, kind: 'cover' });
+    adding[best] = true;
+    if (drop) usedDrops[drop] = true; else openSpots--;
+    notes.push(who + ' and nobody on your bench can fill in, so this ' + (fa ? 'picks up ' : 'adds ') + name(best) +
+               (fa ? ' as a free agent' : ' for the week') +
+               (drop ? ' and drops ' + name(drop) + ', who is easy to replace.' : '.'));
+    return true;
+  };
+  if (fa) {
+    // Holes in the lineup as planned (kickers and defenses included: no waiver claim covered them).
+    lp.holes.forEach(function (hole) {
+      if ((hole.slot === 'K' || hole.slot === 'DEF') ? cfg.stream_k_def : cfg.cover_byes) fill(hole);
+    });
+  } else if (cfg.cover_byes && weekAhead) {
     for (var tries = 0; tries < 3; tries++) {
       var lineup = weekLineup(), hole = null;
       lineup.forEach(function (p, i) {
@@ -1729,28 +1869,7 @@ League_.prototype.planWaivers = function () {
         if (!hole && SLOT_ELIGIBILITY[slot] && slot !== 'K' && slot !== 'DEF' &&
             (p === EMPTY || self.whyOut(p, kickoff))) hole = { slot: slot, out: p };
       });
-      if (!hole) break;
-      var best = null, bestRank = Infinity;
-      SLOT_ELIGIBILITY[hole.slot].forEach(function (pos) {
-        self.weeklyList(pos).byId.forEach(function (r, pid) {
-          if (rostered[pid] || pendingAdds[pid] || adding[pid] || !self.eligible(pid, hole.slot)) return;
-          if (!self.whyOut(pid, kickoff) && r.rank < bestRank) { best = pid; bestRank = r.rank; }
-        });
-      });
-      var who = hole.out === EMPTY ? 'Your ' + hole.slot + ' spot is empty this week'
-        : name(hole.out) + ' (' + self.pos(hole.out) + ', ' + self.whyOut(hole.out, kickoff) + ") can't play this week";
-      var drop = openSpots > 0 ? null : spare();
-      if (!best || (openSpots <= 0 && !drop)) {
-        notes.push(who + ' and nobody on your bench can fill in, but ' +
-                   (best ? 'no bench player is cheap enough to give up' : 'no free agent is available') +
-                   '. Add one yourself if you can.');
-        break;
-      }
-      claims.push({ add: best, drop: drop, addValue: bestRank, dropValue: drop ? dropValue(drop) : null, kind: 'cover' });
-      adding[best] = true;
-      if (drop) usedDrops[drop] = true; else openSpots--;
-      notes.push(who + ' and nobody on your bench can fill in, so this adds ' + name(best) + ' for the week' +
-                 (drop ? ' and drops ' + name(drop) + ', who is easy to replace.' : '.'));
+      if (!hole || !fill(hole)) break;
     }
   }
   if (cfg.stream_k_def) {
@@ -1760,14 +1879,16 @@ League_.prototype.planWaivers = function () {
       if (self.slots.indexOf(pos) < 0) return;
       var wl = ctx.ranks(pair[1]);
       var first = wl.firstKickoff();
-      if (!first || first <= ctx.now) {
+      if (!fa && (!first || first <= ctx.now)) {
         notes.push(pos + " streaming waits for next week's rankings.");
         return;
       }
       var wv = function (pid) { var r = wl.get(pid); return !r || r.bye ? null : r.rank; };
-      if (Object.keys(pendingAdds).some(function (p) { return self.pos(p) === pos; })) return;  // already streaming
+      var at = function (p) { return self.pos(p) === pos; };
+      if (Object.keys(pendingAdds).some(at) || Object.keys(adding).some(at)) return;  // already streaming
+      if (fa && mine.some(function (p) { return at(p) && locked[p]; })) return;      // his game already started
       var faK = [];
-      wl.byId.forEach(function (r, pid) { if (!rostered[pid] && !pendingAdds[pid]) faK.push(pid); });
+      wl.byId.forEach(function (r, pid) { if (fa ? isFree(pid) : !rostered[pid] && !pendingAdds[pid]) faK.push(pid); });
       var my = mine.filter(function (p) {
         return self.pos(p) === pos && !pendingDrops[p] && !keep[p] && !usedDrops[p];  // not already dropped above
       });
@@ -1790,7 +1911,7 @@ League_.prototype.planWaivers = function () {
                      ' for the week' + (c.drop ? ' and drops ' + name(c.drop) + ', who is easy to replace.' : '.'));
         } else {
           notes.push(label + " can't play this week, but no bench player is cheap enough to give up for a one-week " +
-                     pos + '. Add one yourself if you want.');
+                     pos + ' right now. The free-agent plan tries again once waivers have run.');
           c = null;
         }
       }
@@ -1800,7 +1921,7 @@ League_.prototype.planWaivers = function () {
       }
     });
   }
-  if (this.faab) {
+  if (this.faab && !fa) {
     var budget = (this.settings.waiver_budget || 0) - ((this.roster.settings || {}).waiver_budget_used || 0);
     var minBid = this.settings.waiver_bid_min || 0;
     claims.forEach(function (c) {
@@ -1811,6 +1932,7 @@ League_.prototype.planWaivers = function () {
     claims = claims.filter(function (c) { return c.bid !== null; });
   }
   return {
+    freeAgents: fa,
     pending: pending.length,
     pendingUnknown: pendingUnknown,
     faab: this.faab,
@@ -1855,6 +1977,29 @@ League_.prototype.applyLineup = function (res, who) {
     l.applyError = String(e.message || e);
     log_({ level: 'error', league: this.name, title: 'Lineup update failed', lines: [l.applyError] });
   }
+};
+
+League_.prototype.applyFreeAgents = function (res, who) {
+  var f = res.freeAgents, self = this;
+  if (!f || f.error || f.waiting || !f.claims.length) return;
+  if (f.pendingUnknown) {
+    f.submitError = PENDING_UNKNOWN_MSG;
+    return;
+  }
+  var lines = [];
+  f.claims.forEach(function (c) {
+    try {
+      addFreeAgent_(self.ctx.token, self.id, self.roster.roster_id, c.add.id, c.drop && c.drop.id);
+      c.submitted = true;
+      lines.push('Added ' + c.add.name + (c.drop ? ', dropped ' + c.drop.name : ''));
+    } catch (e) {
+      if (e.expired) throw e;
+      c.error = String(e.message || e);
+      lines.push('FAILED ' + c.add.name + ': ' + c.error);
+    }
+  });
+  log_({ level: f.claims.some(function (c) { return c.error; }) ? 'error' : 'change', league: this.name,
+         title: 'Free agents picked up (' + who + ')', lines: lines });
 };
 
 League_.prototype.applyClaims = function (res, who) {

@@ -347,7 +347,7 @@ function replaceLeague(res) {
   if (i >= 0) {
     const old = S.dash.leagues[i];
     S.dash.leagues[i] = Object.assign({}, old, res, {
-      lineup: res.lineup || old.lineup, waivers: res.waivers || old.waivers });
+      lineup: res.lineup || old.lineup, waivers: res.waivers || old.waivers, freeAgents: res.freeAgents || old.freeAgents });
   }
 }
 
@@ -568,6 +568,7 @@ function leagueCard(lg) {
     ${lg.notes.map((n) => `<div class="banner info">${esc(n)}</div>`).join('')}
     ${lg.lineup ? lineupSection(lg) : ''}
     ${lg.waivers ? waiverSection(lg) : ''}
+    ${lg.freeAgents ? freeAgentSection(lg) : ''}
     ${settingsSection(lg, cfg)}
   </div>`;
 }
@@ -629,6 +630,34 @@ function waiverSection(lg) {
     <div class="small faint" style="margin-top:6px">Based on ${esc(W.basis)}.</div>`;
 }
 
+function freeAgentSection(lg) {
+  const F = lg.freeAgents;
+  if (F.error) return `<h3>Free agents</h3><div class="banner bad">${esc(F.error)}</div>`;
+  if (F.waiting) return `<div class="small faint" style="margin-top:8px">Free agents: ${esc(F.waiting)}</div>`;
+  if (!F.claims.length && !F.notes.length) return '';
+  const rows = F.claims.map((c) => `<div class="claim">
+      <div><span class="add">+ ${esc(c.add.name)}</span> <span class="faint small">${esc(c.add.pos)} ${esc(c.add.team || '')}
+        · this week ${rankTxt(c.add)}</span>
+        ${c.drop ? `<div class="small"><span class="drop">− ${esc(c.drop.name)}</span>
+          <span class="faint">${esc(c.drop.pos)} · this week ${rankTxt(c.drop)}</span>
+          <button class="keep" data-action="keep" data-league="${esc(lg.id)}" data-player="${esc(c.drop.id)}"
+            title="Never drop him">☆ keep</button></div>` : '<div class="small faint">No drop needed (open roster spot)</div>'}
+        ${c.error ? `<div class="small" style="color:var(--bad)">Failed: ${esc(c.error)}</div>` : ''}</div>
+      <div class="small" style="text-align:right">${c.submitted ? '<span style="color:var(--accent)">✓ added</span>'
+        : `<span class="faint">${c.kind === 'cover' ? 'fill-in' : 'stream'}</span>`}</div>
+    </div>`).join('');
+  const when = (lg.settings || {}).auto_waivers && S.state.mode === 'auto' ? 'The autopilot picks these up by itself.'
+    : 'Added right away, no waiver priority spent.';
+  return `<h3>Free agents now</h3>
+    ${F.changed ? '<div class="banner warn">The plan changed since the page loaded, so nothing was added. Check it and try again.</div>' : ''}
+    ${F.submitError ? `<div class="banner bad">${esc(F.submitError)}</div>` : ''}
+    ${rows}
+    ${F.notes.map((n) => `<div class="small faint">• ${esc(n)}</div>`).join('')}
+    ${F.claims.length && !F.pendingUnknown ? `<div class="row between wrapflex" style="margin-top:8px"><span class="small muted">${esc(when)}</span>
+      <button class="small" data-action="add-free-agents" data-league="${esc(lg.id)}" ${S.busy['f' + lg.id] ? 'disabled' : ''}>
+        ${S.busy['f' + lg.id] ? '<span class="spin"></span>Adding…' : 'Add now'}</button></div>` : ''}`;
+}
+
 function settingsSection(lg, cfg) {
   const id = esc(lg.id);
   const toggle = (key, label, hint) => `<div class="setting"><div><div class="label">${label}</div>
@@ -641,7 +670,7 @@ function settingsSection(lg, cfg) {
         data-league="${id}"></div>` : '';
   return `<details data-key="settings-${id}"><summary>League settings</summary><div class="settings-grid">
       ${toggle('auto_lineup', 'Auto lineup', 'Autopilot sets the best lineup before games')}
-      ${toggle('auto_waivers', 'Auto waiver claims', 'Autopilot submits the waiver plan before waivers process')}
+      ${toggle('auto_waivers', 'Auto waiver claims and free agents', 'Autopilot submits the waiver plan before waivers process, then picks up free agents for byes and injuries')}
       ${toggle('stream_k_def', 'Stream K / DEF', 'Swap kicker/defense for clearly better matchups')}
       ${toggle('cover_byes', 'Cover byes and injuries', 'One-week pickup when a starter can\'t play and your bench can\'t fill in')}
       ${qb}
@@ -735,6 +764,18 @@ document.addEventListener('click', async (ev) => {
       const t = $('#helper'); t.select();
       toast(document.execCommand('copy') ? 'Helper copied. Now make the bookmark.' : 'Long-press the text and copy it.');
     });
+  }
+  if (a === 'add-free-agents') {
+    if (!confirm('Add these free agents on Sleeper now?')) return;
+    const lg = S.dash && S.dash.leagues.find((l) => l.id === id);
+    const shown = lg && lg.freeAgents ? lg.freeAgents.claims.map((c) => [c.add.id, c.drop ? c.drop.id : null, null]) : [];
+    const res = await busy('f' + id, () => api('addFreeAgents', id, shown));
+    replaceLeague(res);
+    S.state = await api('getState'); render();
+    const f = res.freeAgents || {};
+    toast(f.changed ? 'The plan changed: check it and try again' : f.submitError || f.error ? 'Nothing added'
+          : f.claims.some((c) => c.error) ? 'Some pickups failed' : 'Free agents added');
+    loadDashboard();
   }
   if (a === 'alerts-on') {
     S.state = await busy('alerts', () => api('saveAlerts', { on: true }));

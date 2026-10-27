@@ -10,6 +10,7 @@ const username = process.env.SLEEPER_USERNAME || 'jsab258';
 const problems = [];
 const gas = loadGas({ gql: () => { throw new Error('the canary never talks to Sleeper GraphQL'); } });
 gas.pendingWaivers_ = () => [];  // private (needs a login); the plan just assumes none
+gas.waiverClears_ = () => ({});   // likewise: every unrostered player counts as a free agent
 gas.setStarters_ = gas.submitClaim_ = () => { throw new Error('the canary never writes'); };
 
 const user = gas.sleeper_('/user/' + username);
@@ -44,6 +45,10 @@ for (const lg of dash.leagues) {
   if (lg.waivers) {
     if (lg.waivers.error) problems.push(`${lg.name} waivers: ${lg.waivers.error}`);
     parts.push('waivers ' + (lg.waivers.error ? 'FAILED' : 'ok'));
+  }
+  if (lg.freeAgents) {
+    if (lg.freeAgents.error) problems.push(`${lg.name} free agents: ${lg.freeAgents.error}`);
+    parts.push('free agents ' + (lg.freeAgents.error ? 'FAILED' : lg.freeAgents.waiting ? 'waiting for waivers' : 'ok'));
   }
   console.log(`${lg.name}: ${parts.join(', ')}`);
 }

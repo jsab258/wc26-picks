@@ -81,9 +81,11 @@ redeploying, no extra Google permissions.
   - this week's best lineup, with injured or bye starters flagged and new
     starters marked **IN**, and an **Apply now** button;
   - the waiver plan (add / drop / FAAB bid) with **Submit claims now**;
+  - after Wednesday's waiver run, the free agents to pick up now, with
+    **Add now**;
   - a ☆ next to each player: tap it to never let the waiver plan drop him;
-  - settings: auto lineup, auto claims, K/DEF streaming, bye/injury
-    fill-ins, superflex QB lean, claims per week, minimum upgrade.
+  - settings: auto lineup, auto claims and free agents, K/DEF streaming,
+    bye/injury fill-ins, superflex QB lean, claims per week, minimum upgrade.
 - **Phone alerts:** on/off, the ntfy topic and a test button.
 - **Activity:** every change the autopilot or you made, and any errors.
 
@@ -104,6 +106,11 @@ redeploying, no extra Google permissions.
     picks up a one-week fill-in, giving up an easy-to-replace bench player.
   - With rolling waivers, a high priority is only spent on a clear upgrade or
     a fill-in, not on a kicker/defense matchup swap.
+  - After the waiver run, starters who can't play (byes, injuries, kickers
+    and defenses) are covered with free agents right away, which costs no
+    waiver priority. Only true free agents count: not on a roster, not just
+    dropped, and their game not started yet. Pickups work like sleeper.com's
+    Add button.
   - FAAB bids scale with player value.
   - Claims go in the evening before your waiver day: for your leagues,
     Tuesday from 16:00 UTC, ahead of Sleeper's Wednesday ~07:10 UTC run. They are

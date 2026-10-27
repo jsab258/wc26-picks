@@ -3,6 +3,12 @@
 Newest first. Each `##` entry becomes the release notes shown by the app's
 "Install update" button. Add one with every change to Code.gs / Index.html.
 
+## Free-agent pickups
+- After Wednesday's waiver run, starters who can't play (byes, injuries, kickers and defenses) are covered with free agents right away, without spending waiver priority.
+- The autopilot does this in leagues with "Auto waiver claims and free agents" on; otherwise the league card shows the pickups with an "Add now" button (and an alert, if alerts are on).
+- Only real free agents are picked up: not on a roster, not just dropped, and their game hasn't started. Pickups work exactly like sleeper.com's Add button.
+- With a high rolling waiver priority, kicker/defense matchup swaps now come from free agency after waivers instead of being skipped.
+
 ## Phone alerts, bye-week fill-ins, smarter lineups
 - Phone alerts (optional, through the free ntfy app): when something needs you, when the autopilot changes something, and when an update is out. In suggestions-only mode they tell you what to change.
 - When a starter at any position is on bye or out and your bench can't fill in, the waiver plan picks up a one-week fill-in (until now only kickers and defenses got one).

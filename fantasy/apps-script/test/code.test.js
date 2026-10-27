@@ -169,6 +169,8 @@ function fixtureGas(nowMs) {
     : p.includes('/leagues/') ? [LEAGUE] : p.endsWith('/rosters') ? [ROSTER, { roster_id: 2, owner_id: 'x', players: ['wr_x'] }] : null);
   gas.pendingWaivers_ = () => [];
   gas.latestBuild_ = () => null;   // no GitHub from the fixtures
+  gas.waiverClears_ = () => ({});
+  gas.addFreeAgent_ = (...a) => writes.push(['fa', ...a.slice(3)]);
   gas.setStarters_ = (...a) => writes.push(['starters', ...a.slice(1)]);
   gas.submitClaim_ = (...a) => writes.push(['claim', ...a.slice(1)]);
   gas.__props.setProperty('token', 'a.b.c');
@@ -937,4 +939,97 @@ test('rankings: id table first, name fallback, team aliases, byes and locks', ()
   assert.ok(gas.templateValue_(tmpl, 'QB', 3) > 2);
   assert.deepEqual([gas.scoringFormat_({ rec: 1 }), gas.scoringFormat_({ rec: 0.5 }), gas.scoringFormat_({})],
                    ['PPR', 'HALF', 'STD']);
+});
+
+
+// ---- free agents ------------------------------------------------------------------
+test('free agents: added exactly like sleeper.com\'s Add button, and a non-completed pickup is an error', () => {
+  const sent = [];
+  let status = 'complete';
+  const gas = loadGas({ gql(body) {
+    sent.push(body);
+    if (body.query.includes('league_players(')) {
+      return { data: { league_players: [{ player_id: 'a', settings: { waiver_clears_at: 99 } }, { player_id: 'b', settings: null }] } };
+    }
+    return { data: { league_create_transaction: { adds: { p1: 3 }, drops: { p2: 3 }, status, type: 'free_agent' } } };
+  } });
+  gas.addFreeAgent_('t', '1393366794277765120', 3, 'p1', 'p2');
+  assert.match(sent[0].query, /league_create_transaction\(league_id: "1393366794277765120", type: "free_agent", k_adds: \$k_adds/);
+  assert.deepEqual(plain(sent[0].variables), { k_adds: ['p1'], v_adds: [3], k_drops: ['p2'], v_drops: [3] });
+  status = 'failed';
+  assert.throws(() => gas.addFreeAgent_('t', '1', 3, 'p1', null), /didn't complete the pickup \(failed\)/);
+  assert.deepEqual(plain(gas.waiverClears_('t', '1')), { a: 99 });
+  assert.match(sent[sent.length - 1].query, /query league_players\(\$league_id: String!\)/);
+});
+
+function teBye(set) {
+  set(PLAYERS, 'te_fa', ['te_fa', 'TE', 'ATL', null, null]);
+  set(opRow('te_g'), 6, '7');   // te_g, the only TE, is on bye
+  set(LISTS['ppr-superflex'], 'players', LISTS['ppr-superflex'].players.concat(
+    [['te_fa', 'te_fa', 'TE', 'ATL', 65, 'TE2', '14', 'vs. X', KICK, 'created']]));
+  set(LISTS['ros-ppr-overall'].players.find((r) => r[0] === 'wr_f'), 5, 'WR40');   // easy to replace
+  set(LEAGUE, 'settings', Object.assign({}, LEAGUE.settings, { leg: 7 }));         // this week's waivers have run
+}
+
+test('free agents: after waivers, a hole is filled right away; players on waivers or already playing are skipped', () => {
+  withChanges(teBye, () => {
+    const { gas } = fixtureGas(NOW);
+    let f = gas.getDashboard().leagues[0].freeAgents;
+    assert.deepEqual(claimsOf(f).find((c) => c[0] === 'cover'), ['cover', 'te_fa', 'wr_f']);
+    assert.match(f.notes.join(' '), /picks up te_fa as a free agent and drops wr_f/);
+    gas.waiverClears_ = () => ({ te_fa: NOW / 1000 + 3600 });   // just dropped: still on waivers
+    f = gas.getDashboard().leagues[0].freeAgents;
+    assert.ok(!claimsOf(f).some((c) => c[1] === 'te_fa'));
+    assert.match(f.notes.join(' '), /no free agent is available/);
+    gas.waiverClears_ = () => ({});
+    opRow('te_fa')[8] = NOW / 1000 - 60;   // his game already started: on waivers until Wednesday
+    f = gas.getDashboard().leagues[0].freeAgents;
+    opRow('te_fa')[8] = KICK;
+    assert.ok(!claimsOf(f).some((c) => c[1] === 'te_fa'));
+  });
+  withChanges((set) => { teBye(set); set(LEAGUE, 'settings', Object.assign({}, LEAGUE.settings, { leg: 6 })); }, () => {
+    const f = fixtureGas(NOW).gas.getDashboard().leagues[0].freeAgents;
+    assert.match(f.waiting, /once this week's waivers have run/);
+  });
+});
+
+test('free agents: the autopilot picks them up before setting the lineup, and says so', () => {
+  withChanges(teBye, () => {
+    const { gas, writes } = fixtureGas(NOW);
+    const sent = withAlerts(gas);
+    gas.setMode('auto');
+    gas.saveLeagueSettings('L', { auto_waivers: true });
+    gas.tick();
+    const kinds = writes.map((w) => w[0]);
+    assert.ok(kinds.indexOf('fa') >= 0 && kinds.indexOf('fa') < kinds.indexOf('starters'), JSON.stringify(writes));
+    assert.deepEqual(plain(writes.find((w) => w[0] === 'fa').slice(1)), ['te_fa', 'wr_f']);
+    assert.ok(sent.some((a) => a[0] === 'Test: free agents picked up'));
+    assert.match(gas.getJson_('lastTick').msg, /free agents? added/);
+  });
+});
+
+test('free agents: in suggestions-only mode an alert says which to add; "Add now" adds what the page showed', () => {
+  withChanges(teBye, () => {
+    const { gas, writes } = fixtureGas(NOW);
+    const sent = withAlerts(gas);
+    gas.saveLeagueSettings('L', { auto_waivers: true });
+    gas.tick();
+    gas.tick();
+    assert.equal(writes.filter((w) => w[0] === 'fa').length, 0);
+    assert.equal(sent.filter((a) => a[0] === 'Test: free agents to add').length, 1);
+    const f = gas.getDashboard().leagues[0].freeAgents;
+    const shown = f.claims.map((c) => [c.add.id, c.drop && c.drop.id, null]);
+    assert.equal(gas.addFreeAgents('L', [['nobody', null, null]]).freeAgents.changed, true);
+    gas.addFreeAgents('L', shown);
+    assert.deepEqual(plain(writes.filter((w) => w[0] === 'fa').map((w) => w.slice(1))), plain(shown.map((c) => c.slice(0, 2))));
+  });
+});
+
+test('idle checks wake up shortly after the waiver run, when free agents open up', () => {
+  const tue = Date.parse('2026-10-20T22:00:00Z');
+  const { gas } = fixtureGas(tue);
+  gas.setMode('auto');
+  gas.saveLeagueSettings('L', { auto_waivers: true, auto_lineup: false, min_roster: { WR: 1 } });
+  gas.tick();
+  assert.equal(new Date(gas.getJson_('idle_until') * 1000).toISOString(), '2026-10-21T09:00:00.000Z');
 });
