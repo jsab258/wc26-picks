@@ -441,3 +441,66 @@ test('lineup plan compares against the week\'s matchup lineup, not the lagging r
     ROSTER.starters = oldWeek;
   }
 });
+
+test('waivers: claims already pending on Sleeper count toward the weekly limit', () => {
+  const { gas } = fixtureGas(NOW);
+  gas.saveLeagueSettings('L', { min_roster: { WR: 1 } });
+  gas.pendingWaivers_ = () => [{ roster_ids: [1], adds: { wr_fa: 1 }, drops: {} },
+                               { roster_ids: [1], adds: { qb_fa: 1 }, drops: {} }];
+  const w = gas.getDashboard().leagues[0].waivers;
+  assert.ok(!w.claims.some((c) => c.kind === 'upgrade'));
+  assert.match(w.notes.join(' '), /limit of 2 claims a week is already pending/);
+});
+
+test('waivers: top kicker on bye gets a one-week replacement by dropping a spare bench player', () => {
+  const kRow = LISTS.k.players.find((r) => r[0] === 'k_1');
+  const wrRow = LISTS['ros-ppr-overall'].players.find((r) => r[0] === 'wr_f');
+  LISTS['ros-k'].players[1][5] = 'K2';   // k_1 is an elite kicker...
+  kRow[6] = '7';                          // ...on bye this week
+  wrRow[5] = 'WR40';                      // and the injured wr_f is easy to replace
+  try {
+    const { gas } = fixtureGas(NOW);
+    gas.saveLeagueSettings('L', { min_roster: { WR: 1 }, max_claims: 0 });
+    let w = gas.getDashboard().leagues[0].waivers;
+    const k = w.claims.find((c) => c.kind === 'stream');
+    assert.deepEqual([k.add.id, k.drop && k.drop.id], ['k_fa', 'wr_f']);  // injured, easy-to-replace WR goes
+    assert.match(w.notes.join(' '), /can't play this week and is too good to drop/);
+    gas.saveLeagueSettings('L', { max_claims: 2 });  // the upgrade now uses wr_f; nobody else is spare
+    w = gas.getDashboard().leagues[0].waivers;
+    assert.ok(!w.claims.some((c) => c.kind === 'stream'));
+    assert.match(w.notes.join(' '), /no bench player is cheap enough/);
+  } finally {
+    LISTS['ros-k'].players[1][5] = 'K15';
+    kRow[6] = '14';
+    wrRow[5] = 'WR3';
+  }
+});
+
+test('waivers: a spare K outside the top 12 is dropped first, an elite or needed one is kept', () => {
+  PLAYERS.k_x = ['k_x', 'K', 'NO', null, null];
+  LISTS['ros-k'].players.push(['k_x', 'k_x', 'K', 'NO', 30, 'K30', '14', 'vs. X', KICK, 'created']);
+  LISTS.k.players.push(['k_x', 'k_x', 'K', 'NO', 20, 'K20', '14', 'vs. X', KICK, 'created']);
+  ROSTER.players.push('k_x');
+  LEAGUE.roster_positions.push('BN');
+  try {
+    const { gas } = fixtureGas(NOW);
+    gas.saveLeagueSettings('L', { stream_k_def: false, min_roster: { WR: 1 } });
+    let claims = gas.getDashboard().leagues[0].waivers.claims;
+    assert.equal(claims[0].drop.id, 'k_x');               // spare K30 goes before anyone else
+    LISTS['ros-k'].players[LISTS['ros-k'].players.length - 1][5] = 'K9';
+    claims = loadGasFresh(gas).getDashboard().leagues[0].waivers.claims;
+    assert.ok(!claims.some((c) => c.drop && c.drop.id === 'k_x'));   // two top-12 kickers: your call
+  } finally {
+    delete PLAYERS.k_x;
+    LISTS['ros-k'].players.pop();
+    LISTS.k.players.pop();
+    ROSTER.players.pop();
+    LEAGUE.roster_positions.pop();
+  }
+});
+
+function loadGasFresh(prev) {
+  const { gas } = fixtureGas(NOW);
+  gas.saveLeagueSettings('L', { stream_k_def: false, min_roster: { WR: 1 } });
+  return gas;
+}

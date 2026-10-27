@@ -95,6 +95,29 @@ class EngineTest(unittest.TestCase):
         self.assertIn(("k_fa", "k_1", 0), claims)
         self.assertIn("superflex", report)
 
+    def test_pending_claims_count_toward_weekly_limit(self):
+        roster = {"roster_id": 1, "owner_id": "me", "settings": {"waiver_budget_used": 0},
+                  "players": ["qb_a", "qb_b", "rb_c", "rb_d", "wr_e", "wr_f", "te_g", "k_1", "DET"],
+                  "starters": ["qb_a", "rb_c", "wr_f", "te_g", "rb_d", "k_1", "DET"]}
+        session = FakeSession(roster)
+        session.write.pending_waivers = lambda lid: [{"roster_ids": [1], "adds": {"wr_fa": 1}, "drops": {}},
+                                                     {"roster_ids": [1], "adds": {"qb_fa": 1}, "drops": {}}]
+        league = League(session, LEAGUE, "me", {**DEFAULTS, "auto_waivers": True, "min_roster": {"WR": 1}})
+        report = "\n".join(league.run("waivers", apply=True, redact=False))
+        self.assertEqual([c for c in session.write.calls if c[0] == "claim" and c[3] in ("qb_fa", "wr_fa")], [])
+        self.assertIn("already pending", report)
+
+    def test_star_kicker_on_bye_gets_streamer_for_a_spare_bench_player(self):
+        k_row = LISTS[fp.WEEKLY_K]["players"][1]
+        wr_row = next(r for r in LISTS[fp.ROS_OVERALL["PPR"]]["players"] if r["player_id"] == "wr_f")
+        LISTS[fp.ROS_K]["players"][1]["pos_rank"], k_row["player_bye_week"], wr_row["pos_rank"] = "K2", "7", "WR40"
+        try:
+            calls, report, _ = self.run_league(min_roster={"WR": 1}, max_claims=0)
+        finally:
+            LISTS[fp.ROS_K]["players"][1]["pos_rank"], k_row["player_bye_week"], wr_row["pos_rank"] = "K15", "14", "WR3"
+        self.assertIn(("k_fa", "wr_f", 0), [c[3:] for c in calls if c[0] == "claim"])
+        self.assertIn("too good to drop", report)
+
     def test_keeps_top12_kicker_instead_of_streaming(self):
         LISTS[fp.ROS_K]["players"][1]["pos_rank"] = "K2"   # k_1 is now an elite kicker
         try:

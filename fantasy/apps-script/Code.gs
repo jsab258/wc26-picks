@@ -52,6 +52,7 @@ var SKILL = ['QB', 'RB', 'WR', 'TE'];
 var EMPTY = '0';
 var UNRANKED = 999;      // player missing from the ECR list
 var UNAVAILABLE = 5000;  // bye / injured: only start him if there is nobody else
+var SPARE_MIN = 150;     // ROS value past which a bench player is easy to replace
 var INELIGIBLE = 1e9;
 var EMPTY_COST = 1e6;
 var TEAM_ALIASES = { JAC: 'JAX', WSH: 'WAS', LVR: 'LV', OAK: 'LV', LA: 'LAR', STL: 'LAR', SD: 'LAC' };
@@ -1235,7 +1236,11 @@ League_.prototype.planLineup = function () {
       .sort(function (a, b) { return (a.rank || 9999) - (b.rank || 9999); }),
     warnings: out.starters.filter(function (p) {
       return p !== EMPTY && info[p].why && !info[p].locked;
-    }).map(function (p) { return vw(p).name + ' (' + info[p].why + ') starts: no healthy option left.'; }),
+    }).map(function (p) {
+      var pos = self.pos(p);
+      return vw(p).name + ' (' + info[p].why + ') starts: you have no healthy ' + pos + ' to replace him' +
+        (pos === 'K' || pos === 'DEF' ? '. See the waiver plan for a pickup.' : '.');
+    }),
   };
 };
 
@@ -1290,13 +1295,38 @@ League_.prototype.planWaivers = function () {
     return templateValue_(template, pos, m ? Number(m[1]) : null);
   };
   var keep = this.neverDrop();
+  var mine = this.activePlayers();
+  var slotCount = {};
+  this.slots.forEach(function (s) { slotCount[s] = (slotCount[s] || 0) + 1; });
+  // Rest-of-season K/DEF rank (1 = best); 999 when unranked.
+  var kdNum = function (pid) {
+    var list = ctx.ranks(self.pos(pid) === 'K' ? FP.ROS_K : FP.ROS_DST);
+    var r = list.get(pid), m = r && /(\d+)$/.exec(r.posRank || '');
+    return m ? Number(m[1]) : 999;
+  };
+  // More K/DEF than slots (e.g. last week's bye-week streamer): an extra can go if
+  // he's outside the rest-of-season top 12 and not needed for the coming week.
+  var excessKD = {};
+  ['K', 'DEF'].forEach(function (pos) {
+    var at = mine.filter(function (p) { return self.pos(p) === pos; });
+    var n = slotCount[pos] || 0;
+    if (!n || at.length <= n) return;
+    var weekly = ctx.ranks(pos === 'K' ? FP.K : FP.DST);
+    var thisWeek = function (p) { var r = weekly.get(p); return r && !r.bye ? r.rank : 999; };
+    var needed = {};
+    at.slice().sort(function (a, b) { return kdNum(a) - kdNum(b); }).slice(0, n).forEach(function (p) { needed[p] = true; });
+    at.slice().sort(function (a, b) { return thisWeek(a) - thisWeek(b); }).slice(0, n).forEach(function (p) { needed[p] = true; });
+    at.forEach(function (p) { if (!needed[p] && kdNum(p) > 12) excessKD[p] = true; });
+  });
+  var healthy = function (p) { return cfg.bench_statuses.indexOf((self.p(p) || [])[3]) < 0; };
   var dropValue = function (pid) {
-    if (keep[pid] || SKILL.indexOf(self.pos(pid)) < 0) return null;
+    if (keep[pid]) return null;
+    if (excessKD[pid]) return UNRANKED;
+    if (SKILL.indexOf(self.pos(pid)) < 0) return null;
     var v = value(pid);
     if (v === null && !ros.get(pid) && !self.weeklyRank(pid)) return UNRANKED;  // in no ECR list: cut-able
     return v;
   };
-  var mine = this.activePlayers();
   var relevant = {};
   this.slots.forEach(function (s) {
     (SLOT_ELIGIBILITY[s] || []).forEach(function (p) { if (SKILL.indexOf(p) >= 0) relevant[p] = true; });
@@ -1307,18 +1337,42 @@ League_.prototype.planWaivers = function () {
   });
   var rosCost = function (pid, slot) {
     if (!self.eligible(pid, slot)) return null;
+    if (slot === 'K' || slot === 'DEF') return kdNum(pid);
     var v = value(pid);
     return v === null ? UNRANKED : v;
   };
   var core = {};
   optimize_(this.slots, [], mine, rosCost).starters.forEach(function (p) { core[p] = true; });
   var limit = (this.data.roster_positions || []).filter(function (s) { return s !== 'IR' && s !== 'TAXI'; }).length;
+  // Claims already pending on Sleeper count toward the weekly limit (streams don't).
+  var pendingUpgrades = Object.keys(pendingAdds).filter(function (p) { return SKILL.indexOf(self.pos(p)) >= 0; }).length;
+  var room = Math.max(0, cfg.max_claims - pendingUpgrades);
+  if (pendingUpgrades && !room) {
+    notes.push('Your limit of ' + cfg.max_claims + ' claims a week is already pending on Sleeper.');
+  }
   var claims = planUpgrades_({
     freeAgents: fas, myPlayers: mine, value: value, dropValue: dropValue,
     position: function (p) { return self.pos(p); }, protected: core, minimums: this.minimums(),
-    maxDepth: this.maxDepth(), healthy: function (p) { return cfg.bench_statuses.indexOf((self.p(p) || [])[3]) < 0; },
-    rosterLimit: limit, maxClaims: cfg.max_claims, minGain: cfg.min_gain, blockedDrops: pendingDrops,
+    maxDepth: this.maxDepth(), healthy: healthy,
+    rosterLimit: limit, maxClaims: room, minGain: cfg.min_gain, blockedDrops: pendingDrops,
   });
+  var usedDrops = {};
+  claims.forEach(function (c) { if (c.drop) usedDrops[c.drop] = true; });
+  var name = function (pid) { return (self.p(pid) || [pid])[0]; };
+  var hardMin = { QB: slotCount.QB || 0, RB: slotCount.RB || 0, WR: slotCount.WR || 0, TE: slotCount.TE || 0 };
+  /** A bench player we can give up for a one-week K/DEF: easy to replace and not needed to field a lineup. */
+  var spare = function () {
+    var healthyAt = function (pos) {
+      return mine.filter(function (p) {
+        return self.pos(p) === pos && healthy(p) && !pendingDrops[p] && !usedDrops[p];
+      }).length;
+    };
+    return mine.filter(function (p) {
+      var v = dropValue(p), pos = self.pos(p);
+      return !core[p] && !pendingDrops[p] && !usedDrops[p] && v !== null && v >= SPARE_MIN &&
+        (!healthy(p) || !(pos in hardMin) || healthyAt(pos) - 1 >= hardMin[pos]);
+    }).sort(function (a, b) { return dropValue(b) - dropValue(a); })[0] || null;
+  };
   if (cfg.stream_k_def) {
     var openSpot = limit - mine.length - claims.filter(function (c) { return !c.drop; }).length > 0;
     [['K', FP.K], ['DEF', FP.DST]].forEach(function (pair) {
@@ -1331,25 +1385,35 @@ League_.prototype.planWaivers = function () {
         return;
       }
       var wv = function (pid) { var r = wl.get(pid); return !r || r.bye ? null : r.rank; };
+      if (Object.keys(pendingAdds).some(function (p) { return self.pos(p) === pos; })) return;  // already streaming
       var faK = [];
       wl.byId.forEach(function (r, pid) { if (!rostered[pid] && !pendingAdds[pid]) faK.push(pid); });
       var my = mine.filter(function (p) { return self.pos(p) === pos && !pendingDrops[p] && !keep[p]; });
       var c = planStream_(faK, my, wv, cfg.stream_margin, openSpot);
-      if (c && c.drop) {
-        // Never give away a top-12 K/DEF for one good week (e.g. to cover his bye),
-        // unless the streamer is also the better pick for the rest of the season.
-        var rosList = ctx.ranks(pos === 'K' ? FP.ROS_K : FP.ROS_DST);
-        var rosNum = function (pid) {
-          var r = rosList.get(pid), m = r && /(\d+)$/.exec(r.posRank || '');
-          return m ? Number(m[1]) : 999;
-        };
-        if (rosNum(c.drop) <= 12 && rosNum(c.add) >= rosNum(c.drop)) {
-          notes.push('Keeping ' + (self.p(c.drop) || [c.drop])[0] + ' (' + pos + rosNum(c.drop) +
-                     ' rest of season) rather than dropping him for a one-week ' + pos + ' stream.');
+      if (c && c.drop && kdNum(c.drop) <= 12 && kdNum(c.add) >= kdNum(c.drop)) {
+        // Never give away a top-12 K/DEF for one good week, unless the streamer is also
+        // the better pick for the rest of the season. If he can't play this week (bye),
+        // pick the streamer up with an easy-to-replace bench player instead.
+        var star = c.drop, label = name(star) + ' (' + pos + kdNum(star) + ' rest of season)';
+        var other = wv(star) === null ? (openSpot ? 'open' : spare()) : null;
+        if (wv(star) !== null) {
+          notes.push('Keeping ' + label + ' rather than dropping him for a one-week ' + pos + ' stream.');
+          c = null;
+        } else if (other) {
+          c = { add: c.add, drop: other === 'open' ? null : other, addValue: c.addValue,
+                dropValue: other === 'open' ? null : dropValue(other), kind: 'stream' };
+          notes.push(label + " can't play this week and is too good to drop, so this adds " + name(c.add) +
+                     ' for the week' + (c.drop ? ' and drops ' + name(c.drop) + ', who is easy to replace.' : '.'));
+        } else {
+          notes.push(label + " can't play this week, but no bench player is cheap enough to give up for a one-week " +
+                     pos + '. Add one yourself if you want.');
           c = null;
         }
       }
-      if (c) claims.push(c);
+      if (c) {
+        if (c.drop) usedDrops[c.drop] = true; else openSpot = false;
+        claims.push(c);
+      }
     });
   }
   if (this.faab) {

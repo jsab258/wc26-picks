@@ -3,6 +3,11 @@
 Newest first. Each `##` entry becomes the release notes shown by the app's
 "Install update" button. Add one with every change to Code.gs / Index.html.
 
+## Waiver fixes: weekly limit, kicker byes
+- Claims already pending on Sleeper now count toward your weekly limit, so no surprise extra suggestions.
+- When your top kicker/defense is on bye, it adds a one-week replacement by dropping an easy-to-replace bench player instead of leaving the spot empty.
+- After the bye, the spare kicker/defense is the first player dropped for the next pickup.
+
 ## Lineups actually save
 - "Apply now" (and the autopilot) now save the lineup for the right week: Sleeper keeps one lineup per week, and the old call only covered the league's current week, which lags a day behind. Sleeper quietly ignored it.
 - After saving, the app checks what Sleeper stored and shows an error if it didn't take.

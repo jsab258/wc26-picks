@@ -7,11 +7,12 @@ from collections import Counter
 from . import fantasypros as fp
 from .lineup import EMPTY, SLOT_ELIGIBILITY, optimize, starter_slots
 from .rankings import IdMap, RankList, load_fp_to_sleeper, norm_name
-from .waivers import faab_bid, plan_stream, plan_upgrades
+from .waivers import Claim, faab_bid, plan_stream, plan_upgrades
 
 SKILL = ("QB", "RB", "WR", "TE")
 UNRANKED = 999      # player missing from the ECR list
 UNAVAILABLE = 5000  # bye / injured: only start him if there is literally nobody else
+SPARE_MIN = 150     # ROS value past which a bench player is easy to replace
 FAAB = 2            # Sleeper settings.waiver_type
 
 
@@ -254,16 +255,46 @@ class League:
             return template_value(template, pos, _pos_rank_number(r.pos_rank)) if template else r.rank
 
         keep = self.never_drop()
+        mine = self.active_players()
+        slot_count = Counter(self.slots)
+
+        def kd_num(pid):
+            """Rest-of-season K/DEF rank (1 = best), 999 when unranked."""
+            r = self.s.ranks(fp.ROS_K if self.pos(pid) == "K" else fp.ROS_DST).get(pid)
+            return (_pos_rank_number(r.pos_rank) if r else None) or 999
+
+        # More K/DEF than slots (e.g. last week's bye-week streamer): an extra can go if
+        # he's outside the rest-of-season top 12 and not needed for the coming week.
+        excess_kd = set()
+        for pos in ("K", "DEF"):
+            at = [p for p in mine if self.pos(p) == pos]
+            n = slot_count[pos]
+            if not n or len(at) <= n:
+                continue
+            weekly = self.weekly_list(pos)
+
+            def this_week(p, weekly=weekly):
+                r = weekly.get(p)
+                return r.rank if r and not r.bye else 999
+
+            needed = set(sorted(at, key=kd_num)[:n]) | set(sorted(at, key=this_week)[:n])
+            excess_kd |= {p for p in at if p not in needed and kd_num(p) > 12}
+
+        def healthy(p):
+            return self.player(p).get("injury_status") not in self.cfg["bench_statuses"]
 
         def drop_value(pid):
-            if pid in keep or self.pos(pid) not in SKILL:
+            if pid in keep:
+                return None
+            if pid in excess_kd:
+                return UNRANKED
+            if self.pos(pid) not in SKILL:
                 return None
             v = value(pid)
             if v is None and ros.get(pid) is None and self.weekly_rank(pid) is None:
                 return UNRANKED  # in neither ROS nor weekly ECR: safe to cut
             return v
 
-        mine = self.active_players()
         relevant = {p for s in self.slots for p in SLOT_ELIGIBILITY.get(s, ())} & set(SKILL)
         fas = [pid for pid in ros.by_id if pid not in rostered and pid not in pending_adds
                and self.pos(pid) in relevant and self.player(pid).get("team")]
@@ -271,28 +302,50 @@ class League:
         def ros_cost(pid, slot):
             if not self.positions(pid) & SLOT_ELIGIBILITY[slot]:
                 return None
+            if slot in ("K", "DEF"):
+                return kd_num(pid)
             v = value(pid)
             return UNRANKED if v is None else v
 
         core = set(optimize(self.slots, [], mine, ros_cost).starters) - {EMPTY}
         limit = sum(1 for s in self.data.get("roster_positions") or [] if s not in ("IR", "TAXI"))
+        # Claims already pending on Sleeper count toward the weekly limit (streams don't).
+        pending_upgrades = sum(1 for p in pending_adds if self.pos(p) in SKILL)
+        room = max(0, self.cfg["max_claims"] - pending_upgrades)
+        if pending_upgrades and not room:
+            self.lines.append(f"- Your limit of {self.cfg['max_claims']} claims a week is already pending.")
         claims = plan_upgrades(free_agents=fas, my_players=mine, value=value, drop_value=drop_value,
                                position=self.pos, protected=core, minimums=self.minimums(),
-                               roster_limit=limit, max_claims=self.cfg["max_claims"],
+                               roster_limit=limit, max_claims=room,
                                min_gain=self.cfg["min_gain"], blocked_drops=pending_drops,
-                               max_depth=self.max_depth(),
-                               healthy=lambda p: self.player(p).get("injury_status") not in self.cfg["bench_statuses"])
+                               max_depth=self.max_depth(), healthy=healthy)
         if self.cfg["stream_k_def"]:
-            claims += self._plan_streams(rostered | pending_adds, mine, pending_drops, keep,
-                                         open_spot=limit - len(mine) - sum(c.drop is None for c in claims) > 0)
+            used = {c.drop for c in claims if c.drop}
+            hard_min = {p: slot_count[p] for p in SKILL}
+
+            def spare():
+                """A bench player to give up for a one-week K/DEF: easy to replace, not needed."""
+                def healthy_at(pos):
+                    return sum(1 for p in mine if self.pos(p) == pos and healthy(p)
+                               and p not in pending_drops and p not in used)
+                cands = [p for p in mine if p not in core and p not in pending_drops and p not in used
+                         and drop_value(p) is not None and drop_value(p) >= SPARE_MIN
+                         and (not healthy(p) or self.pos(p) not in hard_min
+                              or healthy_at(self.pos(p)) - 1 >= hard_min[self.pos(p)])]
+                return max(cands, key=drop_value, default=None)
+
+            claims += self._plan_streams(rostered | pending_adds, mine, pending_drops, pending_adds, keep,
+                                         open_spot=limit - len(mine) - sum(c.drop is None for c in claims) > 0,
+                                         kd_num=kd_num, spare=spare, used=used, drop_value=drop_value)
         self._set_bids(claims)
         return claims
 
-    def _plan_streams(self, unavailable, mine, pending_drops, keep, open_spot):
+    def _plan_streams(self, unavailable, mine, pending_drops, pending_adds, keep, open_spot,
+                      kd_num, spare, used, drop_value):
         out = []
         for pos, slug in (("K", fp.WEEKLY_K), ("DEF", fp.WEEKLY_DST)):
-            if pos not in self.slots:
-                continue
+            if pos not in self.slots or any(self.pos(p) == pos for p in pending_adds):
+                continue  # no such slot, or a stream is already pending
             wl = self.s.ranks(slug)
             first = wl.first_kickoff()
             if not first or first <= self.s.now:
@@ -307,21 +360,32 @@ class League:
             my = [p for p in mine if self.pos(p) == pos and p not in pending_drops and p not in keep]
             claim = plan_stream(free_agents=fas, mine=my, value=wv, margin=self.cfg["stream_margin"],
                                 open_spot=open_spot)
-            if claim and claim.drop:
-                # Never give away a top-12 K/DEF for one good week (e.g. to cover his bye),
-                # unless the streamer is also the better pick for the rest of the season.
-                ros = self.s.ranks(fp.ROS_K if pos == "K" else fp.ROS_DST)
-
-                def ros_num(pid, ros=ros):
-                    r = ros.get(pid)
-                    n = _pos_rank_number(r.pos_rank) if r else None
-                    return n or 999
-
-                if ros_num(claim.drop) <= 12 and ros_num(claim.add) >= ros_num(claim.drop):
-                    self.lines.append(f"- Keeping {self.label(claim.drop)} ({pos}{ros_num(claim.drop)} rest of "
-                                      f"season) rather than dropping him for a one-week {pos} stream.")
+            if claim and claim.drop and kd_num(claim.drop) <= 12 and kd_num(claim.add) >= kd_num(claim.drop):
+                # Never give away a top-12 K/DEF for one good week, unless the streamer is also
+                # the better pick for the rest of the season. If he can't play this week (bye),
+                # pick the streamer up with an easy-to-replace bench player instead.
+                star = claim.drop
+                label = f"{self.label(star)} ({pos}{kd_num(star)} rest of season)"
+                if wv(star) is not None:
+                    self.lines.append(f"- Keeping {label} rather than dropping him for a one-week {pos} stream.")
                     claim = None
+                else:
+                    other = None if open_spot else spare()
+                    if open_spot or other:
+                        claim = Claim(claim.add, other, claim.add_value,
+                                      drop_value(other) if other else None, "stream")
+                        self.lines.append(f"- {label} can't play this week and is too good to drop, so this adds "
+                                          f"{self.label(claim.add)} for the week"
+                                          + (f" and drops {self.label(other)}." if other else "."))
+                    else:
+                        self.lines.append(f"- {label} can't play this week, but no bench player is cheap enough "
+                                          f"to give up for a one-week {pos}.")
+                        claim = None
             if claim:
+                if claim.drop:
+                    used.add(claim.drop)
+                else:
+                    open_spot = False
                 out.append(claim)
         return out
 
