@@ -55,7 +55,15 @@ come from this repo's `main` branch (or the development branch until it's
 merged), and only when you tap the button. The update permission technically
 lets the app edit your Apps Script projects. It only ever rewrites itself.
 
-If an update can't install (e.g. the Apps Script API is off), it says why.
+If an update can't install, it says why. *"Google hasn't approved the app's
+permission"* means Google never asked you to approve the update permissions
+(editing a deployment doesn't always ask). To fix it once:
+1. Open the script editor and click `Code.gs`.
+2. Pick **installUpdate** in the function menu at the top.
+3. Click **Run** and allow the permissions.
+
+That installs the update and approves the permission for good.
+
 The manual way still works: paste the new `SleeperAutopilot.gs`, save, then
 **Deploy → Manage deployments → ✏️ → Version: New version → Deploy**.
 

@@ -6,6 +6,7 @@ Newest first. Each `##` entry becomes the release notes shown by the app's
 ## Connect via sleeper.com first
 - Fixes "Invalid argument …/user/\"…\"": the user id copied from sleeper.com comes wrapped in quotes.
 - The app now opens on "Connect via sleeper.com", since Sleeper blocks password logins from other sites with a captcha.
+- If Google hasn't approved the update permission yet, the message says how: run "installUpdate" once in the editor.
 
 ## Easier "connect via sleeper.com"
 - When Sleeper asks for a captcha, a "Connect via sleeper.com" button appears right under the message.

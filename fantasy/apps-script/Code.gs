@@ -435,10 +435,12 @@ function scriptApi_(method, path, body) {
                     'then tap Install update again. (Google said: ' + msg + ')');
   }
   if (/scope/i.test(msg)) {
-    throw new Error('One-time step missing: the app needs permission to update itself. On a computer open ' +
-      'https://script.google.com/d/' + ScriptApp.getScriptId() + '/edit , go to Project Settings and tick ' +
-      '"Show appsscript.json", replace that file with appsscript.json from the setup guide, save, then ' +
-      'Deploy > Manage deployments > edit > New version > Deploy and allow the new permissions. (Google said: ' + msg + ')');
+    // Editing a deployment doesn't always ask for newly added scopes; running a
+    // function in the editor always does, and installUpdate then finishes the job.
+    throw new Error('Google hasn\'t approved the app\'s permission to update itself yet. On a computer open ' +
+      'https://script.google.com/d/' + ScriptApp.getScriptId() + '/edit , click Code.gs, pick "installUpdate" ' +
+      'in the function menu at the top, click Run and allow the permissions. That installs this update, and the ' +
+      'button works from then on. (appsscript.json must list script.projects. Google said: ' + msg + ')');
   }
   throw new Error('Google refused the update: ' + msg);
 }
