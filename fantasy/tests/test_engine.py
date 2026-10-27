@@ -32,6 +32,8 @@ LISTS = {
                                  ("wr_fa", 70, "WR2"), ("wr_f", 80, "WR3")]),
     fp.WEEKLY_K: ecr(7, [("k_fa", 1, "K1"), ("k_1", 12, "K2")]),
     fp.WEEKLY_DST: ecr(7, [("DET", 3, "DST1")]),
+    fp.ROS_K: ecr(0, [("k_fa", 20, "K20"), ("k_1", 15, "K15")]),
+    fp.ROS_DST: ecr(0, [("DET", 3, "DST3")]),
     fp.ROS_OVERALL["PPR"]: ecr(0, [("rb_c", 5, "RB1"), ("wr_e", 9, "WR1"), ("rb_d", 60, "RB2"), ("qb_a", 70, "QB1"),
                                    ("te_g", 90, "TE1"), ("qb_fa", 100, "QB2"), ("wr_fa", 150, "WR2"),
                                    ("qb_b", 200, "QB3"), ("wr_f", 300, "WR3")]),
@@ -92,9 +94,22 @@ class EngineTest(unittest.TestCase):
         self.assertIn(("k_fa", "k_1", 0), claims)
         self.assertIn("superflex", report)
 
-    def test_default_minimums_keep_backup_wr(self):
+    def test_keeps_top12_kicker_instead_of_streaming(self):
+        LISTS[fp.ROS_K]["players"][1]["pos_rank"] = "K2"   # k_1 is now an elite kicker
+        try:
+            calls, report, league = self.run_league(min_roster={"WR": 1})
+        finally:
+            LISTS[fp.ROS_K]["players"][1]["pos_rank"] = "K15"
+        self.assertNotIn("k_fa", [c[3] for c in calls if c[0] == "claim"])
+        self.assertIn("Keeping k_1", report)
+
+    def test_default_minimums_count_only_healthy_players(self):
         calls, report, _ = self.run_league()
-        self.assertNotIn("qb_fa", [c[3] for c in calls if c[0] == "claim"])
+        drops = [c[4] for c in calls if c[0] == "claim"]
+        # wr_f is Out, so cutting him costs no healthy WR depth; the healthy rb_d/wr_e stay.
+        self.assertIn("wr_f", drops)
+        self.assertNotIn("wr_e", drops)
+        self.assertNotIn("rb_d", drops)
 
     def test_dry_run_writes_nothing(self):
         roster_session = FakeSession({"roster_id": 1, "owner_id": "me", "players": ["qb_a"], "starters": []})

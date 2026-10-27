@@ -212,6 +212,11 @@ class League:
         mins.update(self.cfg["min_roster"])
         return mins
 
+    def max_depth(self):
+        """Past this many healthy players at a position, extra ones barely help (a 4th QB)."""
+        c = Counter(self.slots)
+        return {"QB": c["QB"] + c["SUPER_FLEX"] + 1, "TE": c["TE"] + 1}
+
     def plan_waivers(self):
         my_rid = self.roster["roster_id"]
         rostered = set()
@@ -264,7 +269,9 @@ class League:
         claims = plan_upgrades(free_agents=fas, my_players=mine, value=value, drop_value=drop_value,
                                position=self.pos, protected=core, minimums=self.minimums(),
                                roster_limit=limit, max_claims=self.cfg["max_claims"],
-                               min_gain=self.cfg["min_gain"], blocked_drops=pending_drops)
+                               min_gain=self.cfg["min_gain"], blocked_drops=pending_drops,
+                               max_depth=self.max_depth(),
+                               healthy=lambda p: self.player(p).get("injury_status") not in self.cfg["bench_statuses"])
         if self.cfg["stream_k_def"]:
             claims += self._plan_streams(rostered | pending_adds, mine, pending_drops, keep,
                                          open_spot=limit - len(mine) - sum(c.drop is None for c in claims) > 0)
@@ -290,6 +297,20 @@ class League:
             my = [p for p in mine if self.pos(p) == pos and p not in pending_drops and p not in keep]
             claim = plan_stream(free_agents=fas, mine=my, value=wv, margin=self.cfg["stream_margin"],
                                 open_spot=open_spot)
+            if claim and claim.drop:
+                # Never give away a top-12 K/DEF for one good week (e.g. to cover his bye),
+                # unless the streamer is also the better pick for the rest of the season.
+                ros = self.s.ranks(fp.ROS_K if pos == "K" else fp.ROS_DST)
+
+                def ros_num(pid, ros=ros):
+                    r = ros.get(pid)
+                    n = _pos_rank_number(r.pos_rank) if r else None
+                    return n or 999
+
+                if ros_num(claim.drop) <= 12 and ros_num(claim.add) >= ros_num(claim.drop):
+                    self.lines.append(f"- Keeping {self.label(claim.drop)} ({pos}{ros_num(claim.drop)} rest of "
+                                      f"season) rather than dropping him for a one-week {pos} stream.")
+                    claim = None
             if claim:
                 out.append(claim)
         return out

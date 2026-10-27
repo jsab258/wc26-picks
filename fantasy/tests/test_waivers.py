@@ -3,7 +3,7 @@ import unittest
 from autopilot.waivers import faab_bid, plan_stream, plan_upgrades
 
 POS = {"fa_rb": "RB", "fa_wr": "WR", "fa_qb": "QB", "my_rb": "RB", "my_wr": "WR",
-       "my_qb": "QB", "my_qb2": "QB", "my_te": "TE"}
+       "my_qb": "QB", "my_qb2": "QB", "my_qb3": "QB", "my_te": "TE", "my_wr_out": "WR"}
 
 
 def plan(values, mine, fas, **kw):
@@ -43,6 +43,23 @@ class UpgradeTest(unittest.TestCase):
         claims = plan(values, ["my_rb", "my_wr"], ["fa_rb", "fa_wr"], max_claims=1,
                       blocked_drops={"my_rb"})
         self.assertEqual([(c.add, c.drop) for c in claims], [("fa_rb", "my_wr")])
+
+
+    def test_injured_players_dont_fill_position_minimums(self):
+        values = {"fa_rb": 50, "my_wr": 200, "my_wr_out": 150}
+        out = {"my_wr_out"}
+        claims = plan(values, ["my_wr", "my_wr_out"], ["fa_rb"], minimums={"WR": 1},
+                      healthy=lambda p: p not in out)
+        # Dropping the healthy WR would leave no healthy WR; the injured one can go.
+        self.assertEqual([(c.add, c.drop) for c in claims], [("fa_rb", "my_wr_out")])
+
+    def test_extra_qb_past_useful_depth_must_replace_a_qb(self):
+        values = {"fa_qb": 65, "my_qb": 10, "my_qb2": 20, "my_qb3": 70, "my_wr": 300}
+        claims = plan(values, ["my_qb", "my_qb2", "my_qb3", "my_wr"], ["fa_qb"], max_depth={"QB": 3})
+        self.assertEqual(claims, [])  # 4th QB: may not cost the WR, and isn't 10 better than QB3
+        values["fa_qb"] = 40
+        claims = plan(values, ["my_qb", "my_qb2", "my_qb3", "my_wr"], ["fa_qb"], max_depth={"QB": 3})
+        self.assertEqual([(c.add, c.drop) for c in claims], [("fa_qb", "my_qb3")])
 
 
 class StreamTest(unittest.TestCase):

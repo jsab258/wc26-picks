@@ -18,6 +18,7 @@ WEEKLY_OP = {"PPR": "ppr-superflex", "HALF": "half-point-ppr-superflex", "STD": 
 WEEKLY_FLEX = {"PPR": "ppr-flex", "HALF": "half-point-ppr-flex", "STD": "flex"}
 WEEKLY_QB, WEEKLY_K, WEEKLY_DST = "qb", "k", "dst"
 ROS_OVERALL = {"PPR": "ros-ppr-overall", "HALF": "ros-half-point-ppr-overall", "STD": "ros-overall"}
+ROS_K, ROS_DST = "ros-k", "ros-dst"
 
 _ECR_START = re.compile(r"var\s+ecrData\s*=\s*")
 _cache = {}

@@ -147,6 +147,8 @@ const LISTS = {
                             ['rb_d', 45, 'RB2'], ['te_g', 60, 'TE1'], ['wr_fa', 70, 'WR2'], ['wr_f', 80, 'WR3']]),
   k: list(7, [['k_fa', 1, 'K1'], ['k_1', 12, 'K2']]),
   dst: list(7, [['DET', 3, 'DST1']]),
+  'ros-k': list(0, [['k_fa', 20, 'K20'], ['k_1', 15, 'K15']]),
+  'ros-dst': list(0, [['DET', 3, 'DST3']]),
   'ros-ppr-overall': list(0, [['rb_c', 5, 'RB1'], ['wr_e', 9, 'WR1'], ['rb_d', 60, 'RB2'], ['qb_a', 70, 'QB1'], ['te_g', 90, 'TE1'],
                               ['qb_fa', 100, 'QB2'], ['wr_fa', 150, 'WR2'], ['qb_b', 200, 'QB3'], ['wr_f', 300, 'WR3']]),
 };
@@ -369,4 +371,32 @@ test('page source has no "://": Google cuts text after // inside the page\'s tem
   const html = fs.readFileSync(path.join(__dirname, '..', 'Index.html'), 'utf8');
   const bad = html.split('\n').map((l, i) => [i + 1, l]).filter(([, l]) => l.includes('://'));
   assert.deepEqual(bad, [], 'write URLs as https:\\/\\/... in a quoted constant');
+});
+
+test('waivers: injured players do not fill minimums; a QB past useful depth must replace a QB', () => {
+  const gas = loadGas();
+  const pos = { fa_rb: 'RB', fa_qb: 'QB', my_wr: 'WR', my_wr_out: 'WR', q1: 'QB', q2: 'QB', q3: 'QB' };
+  const plan = (values, mine, fas, extra) => plain(gas.planUpgrades_(Object.assign({
+    freeAgents: fas, myPlayers: mine, value: (p) => values[p] ?? null, dropValue: (p) => values[p] ?? null,
+    position: (p) => pos[p], protected: {}, minimums: {}, rosterLimit: mine.length, maxClaims: 5, minGain: 10,
+    blockedDrops: {} }, extra)).map((c) => [c.add, c.drop]));
+  assert.deepEqual(plan({ fa_rb: 50, my_wr: 200, my_wr_out: 150 }, ['my_wr', 'my_wr_out'], ['fa_rb'],
+    { minimums: { WR: 1 }, healthy: (p) => p !== 'my_wr_out' }), [['fa_rb', 'my_wr_out']]);
+  const qbs = { fa_qb: 65, q1: 10, q2: 20, q3: 70, my_wr: 300 };
+  assert.deepEqual(plan(qbs, ['q1', 'q2', 'q3', 'my_wr'], ['fa_qb'], { maxDepth: { QB: 3 } }), []);
+  assert.deepEqual(plan(Object.assign({}, qbs, { fa_qb: 40 }), ['q1', 'q2', 'q3', 'my_wr'], ['fa_qb'],
+    { maxDepth: { QB: 3 } }), [['fa_qb', 'q3']]);
+});
+
+test('waivers: keeps a top-12 kicker instead of dropping him for a one-week stream', () => {
+  LISTS['ros-k'].players[1][5] = 'K2';  // k_1 becomes an elite kicker
+  try {
+    const { gas } = fixtureGas(NOW);
+    gas.saveLeagueSettings('L', { min_roster: { WR: 1 } });
+    const w = gas.getDashboard().leagues[0].waivers;
+    assert.ok(!w.claims.some((c) => c.add.id === 'k_fa'));
+    assert.match(w.notes.join(' '), /Keeping k_1 \(K2 rest of season\)/);
+  } finally {
+    LISTS['ros-k'].players[1][5] = 'K15';
+  }
 });

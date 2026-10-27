@@ -25,6 +25,7 @@ var FP = {
   FLEX: { PPR: 'ppr-flex', HALF: 'half-point-ppr-flex', STD: 'flex' },
   QB: 'qb', K: 'k', DST: 'dst',
   ROS: { PPR: 'ros-ppr-overall', HALF: 'ros-half-point-ppr-overall', STD: 'ros-overall' },
+  ROS_K: 'ros-k', ROS_DST: 'ros-dst',
 };
 
 var DEFAULTS = {
@@ -960,10 +961,20 @@ function keepPositions_(slots, current, starters, openIdx) {
 // Waivers
 // ===================================================================
 
-/** Best free agent first; each claim drops the weakest player it clearly beats. */
+/**
+ * Best free agent first; each claim drops the weakest player it clearly beats.
+ * Position minimums count healthy players only (an Out WR doesn't fill a WR spot),
+ * and past o.maxDepth (e.g. a 4th QB in superflex) a pickup may only replace a
+ * player at its own position.
+ */
 function planUpgrades_(o) {
   var counts = {};
-  o.myPlayers.forEach(function (p) { var pos = o.position(p); counts[pos] = (counts[pos] || 0) + 1; });
+  var healthy = o.healthy || function () { return true; };
+  var maxDepth = o.maxDepth || {};
+  o.myPlayers.forEach(function (p) {
+    var pos = o.position(p);
+    if (healthy(p)) counts[pos] = (counts[pos] || 0) + 1;
+  });
   var openSpots = o.rosterLimit - o.myPlayers.length;
   var cands = o.myPlayers.filter(function (p) {
     return !o.protected[p] && !o.blockedDrops[p] && o.dropValue(p) !== null;
@@ -973,21 +984,23 @@ function planUpgrades_(o) {
   var claims = [];
   for (var f = 0; f < fas.length && claims.length < o.maxClaims; f++) {
     var fa = fas[f], fv = o.value(fa), fpos = o.position(fa);
-    if (openSpots > 0) {
+    var deep = maxDepth[fpos] !== undefined && (counts[fpos] || 0) >= maxDepth[fpos];
+    if (openSpots > 0 && !deep) {
       claims.push({ add: fa, drop: null, addValue: fv, dropValue: null, kind: 'upgrade' });
       openSpots--;
-      counts[fpos] = (counts[fpos] || 0) + 1;
+      if (healthy(fa)) counts[fpos] = (counts[fpos] || 0) + 1;
       continue;
     }
     for (var c = 0; c < cands.length; c++) {
       var d = cands[c], dv = o.dropValue(d);
       if (dv - fv < o.minGain) break;
       var dpos = o.position(d);
-      if (dpos !== fpos && (counts[dpos] || 0) - 1 < (o.minimums[dpos] || 0)) continue;
+      if (dpos !== fpos && deep) continue;
+      if (dpos !== fpos && healthy(d) && (counts[dpos] || 0) - 1 < (o.minimums[dpos] || 0)) continue;
       claims.push({ add: fa, drop: d, addValue: fv, dropValue: dv, kind: 'upgrade' });
       cands.splice(c, 1);
-      counts[dpos]--;
-      counts[fpos] = (counts[fpos] || 0) + 1;
+      if (healthy(d)) counts[dpos]--;
+      if (healthy(fa)) counts[fpos] = (counts[fpos] || 0) + 1;
       break;
     }
   }
@@ -1205,6 +1218,13 @@ League_.prototype.minimums = function () {
   return mins;
 };
 
+/** Past this many healthy players at a position, extra ones barely help (a 4th QB). */
+League_.prototype.maxDepth = function () {
+  var c = {};
+  this.slots.forEach(function (s) { c[s] = (c[s] || 0) + 1; });
+  return { QB: (c.QB || 0) + (c.SUPER_FLEX || 0) + 1, TE: (c.TE || 0) + 1 };
+};
+
 League_.prototype.planWaivers = function () {
   var self = this, ctx = this.ctx, cfg = this.cfg;
   var notes = [];
@@ -1262,6 +1282,7 @@ League_.prototype.planWaivers = function () {
   var claims = planUpgrades_({
     freeAgents: fas, myPlayers: mine, value: value, dropValue: dropValue,
     position: function (p) { return self.pos(p); }, protected: core, minimums: this.minimums(),
+    maxDepth: this.maxDepth(), healthy: function (p) { return cfg.bench_statuses.indexOf((self.p(p) || [])[3]) < 0; },
     rosterLimit: limit, maxClaims: cfg.max_claims, minGain: cfg.min_gain, blockedDrops: pendingDrops,
   });
   if (cfg.stream_k_def) {
@@ -1280,6 +1301,20 @@ League_.prototype.planWaivers = function () {
       wl.byId.forEach(function (r, pid) { if (!rostered[pid] && !pendingAdds[pid]) faK.push(pid); });
       var my = mine.filter(function (p) { return self.pos(p) === pos && !pendingDrops[p] && !keep[p]; });
       var c = planStream_(faK, my, wv, cfg.stream_margin, openSpot);
+      if (c && c.drop) {
+        // Never give away a top-12 K/DEF for one good week (e.g. to cover his bye),
+        // unless the streamer is also the better pick for the rest of the season.
+        var rosList = ctx.ranks(pos === 'K' ? FP.ROS_K : FP.ROS_DST);
+        var rosNum = function (pid) {
+          var r = rosList.get(pid), m = r && /(\d+)$/.exec(r.posRank || '');
+          return m ? Number(m[1]) : 999;
+        };
+        if (rosNum(c.drop) <= 12 && rosNum(c.add) >= rosNum(c.drop)) {
+          notes.push('Keeping ' + (self.p(c.drop) || [c.drop])[0] + ' (' + pos + rosNum(c.drop) +
+                     ' rest of season) rather than dropping him for a one-week ' + pos + ' stream.');
+          c = null;
+        }
+      }
       if (c) claims.push(c);
     });
   }

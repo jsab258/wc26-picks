@@ -3,6 +3,11 @@
 Newest first. Each `##` entry becomes the release notes shown by the app's
 "Install update" button. Add one with every change to Code.gs / Index.html.
 
+## Smarter waiver claims
+- Won't drop a top-12 kicker or defense just to stream one week (e.g. during his bye).
+- Won't stack extra QBs/TEs beyond useful depth at the cost of other positions; a 4th QB can only replace a QB.
+- Injured (Out/IR) players no longer count toward position minimums, so it keeps enough healthy starters.
+
 ## Fix garbled "On a computer" steps
 - Google cut off everything after "//" in the sleeper.com links, which scrambled the connect steps (and would have broken your profile picture). Links are now written so nothing gets cut.
 

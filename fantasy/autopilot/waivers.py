@@ -18,14 +18,18 @@ class Claim:
 
 
 def plan_upgrades(*, free_agents, my_players, value, drop_value, position, protected,
-                  minimums, roster_limit, max_claims, min_gain, blocked_drops=()):
+                  minimums, roster_limit, max_claims, min_gain, blocked_drops=(),
+                  max_depth=None, healthy=lambda p: True):
     """Greedy best-FA-first: each claim drops the weakest player it clearly beats.
 
     ``value`` scores free agents, ``drop_value`` scores my players (None means
     "never drop", e.g. we couldn't confidently rank him). A swap must improve by
-    at least ``min_gain`` and may not take a position below its minimum.
+    at least ``min_gain`` and may not take a position below its minimum; minimums
+    count healthy players only. Past ``max_depth`` at a position (e.g. a 4th QB in
+    superflex) a pickup may only replace a player at its own position.
     """
-    counts = Counter(position(p) for p in my_players)
+    max_depth = max_depth or {}
+    counts = Counter(position(p) for p in my_players if healthy(p))
     open_spots = roster_limit - len(my_players)
     candidates = [p for p in my_players
                   if p not in protected and p not in blocked_drops and drop_value(p) is not None]
@@ -36,22 +40,25 @@ def plan_upgrades(*, free_agents, my_players, value, drop_value, position, prote
         if len(claims) >= max_claims:
             break
         fv, fpos = value(fa), position(fa)
-        if open_spots > 0:
+        deep = fpos in max_depth and counts[fpos] >= max_depth[fpos]
+        if open_spots > 0 and not deep:
             claims.append(Claim(fa, None, fv, None, "upgrade"))
             open_spots -= 1
-            counts[fpos] += 1
+            counts[fpos] += healthy(fa)
             continue
         for d in candidates:
             dv = drop_value(d)
             if dv - fv < min_gain:
                 break  # everyone after this is even better than d
             dpos = position(d)
-            if dpos != fpos and counts[dpos] - 1 < minimums.get(dpos, 0):
+            if dpos != fpos and deep:
+                continue
+            if dpos != fpos and healthy(d) and counts[dpos] - 1 < minimums.get(dpos, 0):
                 continue
             claims.append(Claim(fa, d, fv, dv, "upgrade"))
             candidates.remove(d)
-            counts[dpos] -= 1
-            counts[fpos] += 1
+            counts[dpos] -= healthy(d)
+            counts[fpos] += healthy(fa)
             break
     return claims
 
