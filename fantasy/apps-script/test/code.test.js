@@ -341,7 +341,26 @@ test('install: clear guidance when the Apps Script API is off or scopes are miss
     message: 'User has not enabled the Apps Script API. Enable it by visiting https://script.google.com/home/usersettings then retry.' } } }));
   assert.throws(() => off.gas.installUpdate('newer'), /Turn on the Google Apps Script API.*Google said/);
   const scope = updaterGas(remote, () => ({ code: 403, body: { error: { message: 'Request had insufficient authentication scopes.' } } }));
-  assert.throws(() => scope.gas.installUpdate('newer'), /script\.google\.com\/d\/SCRIPT_ID\/edit.*insufficient/);
+  assert.throws(() => scope.gas.installUpdate('newer'), /myaccount\.google\.com\/connections.*Select all.*insufficient/);
   const broken = updaterGas('garbage', () => ({}));
   assert.throws(() => broken.gas.installUpdate(), /incomplete/);
+});
+
+test('granular consent: unticked update permission gets an Approve link instead of a failed install', () => {
+  const cur = loadGas({ file: DIST }).buildInfo_();
+  const denied = ['https://www.googleapis.com/auth/script.projects'];
+  const calls = [];
+  const gas = loadGas({ file: DIST, deniedScopes: denied, fetch(url) {
+    if (url.includes('raw.githubusercontent.com')) return { code: 200, body: remoteBuild(cur.version + 1, 'newer') };
+    if (url.startsWith('https://script.googleapis.com/')) { calls.push(url); return { body: {} }; }
+  } });
+  const r = plain(gas.checkForUpdate());
+  assert.equal(r.available, true);
+  assert.match(r.approval.url, /approve/);
+  assert.deepEqual(r.approval.scopes, denied);
+  assert.throws(() => gas.installUpdate('newer'), /approve the update permission.*approve/);
+  assert.equal(calls.length, 0);                       // never even tried the API
+  assert.equal(gas.getState().permissions, null);      // core permissions are fine
+  const core = loadGas({ deniedScopes: ['https://www.googleapis.com/auth/script.scriptapp'] });
+  assert.deepEqual(plain(core.getState().permissions.scopes), ['https://www.googleapis.com/auth/script.scriptapp']);
 });

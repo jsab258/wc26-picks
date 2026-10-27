@@ -302,6 +302,13 @@ function updateBanner() {
   }
   const r = U.result;
   if (!r || !r.available) return '';
+  if (r.approval) {
+    return `<div class="card banner info"><b>Update available: approve first</b>
+      <div class="small" style="margin-top:6px">Google hasn't granted the app permission to update itself (on Google's
+        screen every permission has its own checkbox). Approve it, then reload this page and tap Install update.</div>
+      <div style="margin-top:8px"><a class="chip accent" href="${esc(r.approval.url)}" target="_blank">Approve in Google</a></div>
+    </div>`;
+  }
   const notes = (r.notes || []).map((n) => `<div style="margin-top:6px"><b>${esc(n.title)}</b>
       <ul style="margin:4px 0 0;padding-left:18px">${n.items.map((i) => `<li>${esc(i)}</li>`).join('')}</ul></div>`).join('');
   return `<div class="card banner info">
@@ -337,7 +344,7 @@ function render() {
   const st = S.state;
   if (!st) return;
   $('#app').innerHTML = st.connected ? appView(st)
-    : loginView().replace('<div class="center">', '<div class="center">' + updateBanner());
+    : loginView().replace('<div class="center">', '<div class="center">' + permissionBanner(st) + updateBanner());
   const first = document.querySelector('[autofocus]');
   if (first && !render._focused) { first.focus(); render._focused = true; }
 }
@@ -417,6 +424,7 @@ function appView(st) {
       <div class="who">${avatar}<span>${esc(u.display_name || '')}</span>
         <button class="ghost small" data-action="logout" title="Disconnect">Log out</button></div>
     </header>
+    ${permissionBanner(st)}
     ${updateBanner()}
     ${statusCard(st)}
     ${S.dashError ? `<div class="card banner bad">Couldn't load your leagues: ${esc(S.dashError)}
@@ -428,6 +436,16 @@ function appView(st) {
       Rankings: FantasyPros ECR · Data: Sleeper · Refreshed ${S.dash ? 'week ' + esc(S.dash.week) : '…'}
       · <a href="#" data-action="reload" style="color:inherit">refresh</a>
       <br>Version: ${esc((st.build || {}).title || '?')} · ${esc((st.build || {}).id || '')}</div>`;
+}
+
+function permissionBanner(st) {
+  const p = st.permissions;
+  if (!p) return '';
+  return `<div class="card banner bad"><b>Google permission missing</b>
+    <div class="small" style="margin-top:6px">The app can't reach Sleeper or run in the background until you approve
+      every permission (tick “Select all” on Google's screen), then reload this page.</div>
+    <div style="margin-top:8px"><a class="chip accent" href="${esc(p.url)}" target="_blank">Approve in Google</a></div>
+  </div>`;
 }
 
 function statusCard(st) {

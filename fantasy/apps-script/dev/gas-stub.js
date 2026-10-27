@@ -125,6 +125,14 @@ function loadGas(opts = {}) {
     PropertiesService: { getUserProperties: () => props },
     LockService: { getUserLock: () => ({ tryLock: () => true, releaseLock() {} }) },
     ScriptApp: {
+      AuthMode: { FULL: 'FULL' },
+      AuthorizationStatus: { REQUIRED: 'REQUIRED', NOT_REQUIRED: 'NOT_REQUIRED' },
+      // opts.deniedScopes: scopes the user left unticked on Google's consent screen.
+      getAuthorizationInfo: (mode, scopes) => ({
+        getAuthorizationStatus: () => ((scopes || []).some((sc) => (opts.deniedScopes || []).includes(sc))
+          ? 'REQUIRED' : 'NOT_REQUIRED'),
+        getAuthorizationUrl: () => 'https://script.google.com/a/approve?scopes=' + (scopes || []).length,
+      }),
       getOAuthToken: () => 'ya29.test',
       getScriptId: () => 'SCRIPT_ID',
       getService: () => ({ getUrl: () => 'https://script.google.com/macros/s/DEPLOY_ID/exec' }),

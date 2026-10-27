@@ -79,6 +79,7 @@ function getState() {
     autopilotScheduled: hasTrigger_(),
     log: getJson_('log', []),
     build: buildInfo_(),
+    permissions: missingScopes_(CORE_SCOPES),
     now: Date.now(),
   };
 }
@@ -384,6 +385,27 @@ function latestBuild_() {
   return best;
 }
 
+// Google's consent screen has a checkbox per permission (granular consent), and an
+// unticked one is simply not granted: the script still runs and isn't asked again.
+var CORE_SCOPES = ['https://www.googleapis.com/auth/script.external_request',
+                   'https://www.googleapis.com/auth/script.scriptapp'];
+var UPDATE_SCOPES = ['https://www.googleapis.com/auth/script.projects',
+                     'https://www.googleapis.com/auth/script.deployments'];
+
+/** {scopes: [...not granted], url: Google's approval page} or null when all are granted. */
+function missingScopes_(scopes) {
+  try {
+    var mode = ScriptApp.AuthMode.FULL, required = ScriptApp.AuthorizationStatus.REQUIRED;
+    var missing = scopes.filter(function (sc) {
+      return ScriptApp.getAuthorizationInfo(mode, [sc]).getAuthorizationStatus() === required;
+    });
+    if (!missing.length) return null;
+    return { scopes: missing, url: ScriptApp.getAuthorizationInfo(mode, scopes).getAuthorizationUrl() };
+  } catch (e) {
+    return null;  // runtime without per-scope checks: nothing we can tell
+  }
+}
+
 /** UI: is there a newer build than the one running? */
 function checkForUpdate() {
   var cur = buildInfo_();
@@ -391,11 +413,17 @@ function checkForUpdate() {
   if (!latest) return { current: cur, error: "Couldn't reach GitHub to check for updates." };
   var available = latest.info.id !== cur.id && latest.info.version >= cur.version;
   return { current: cur, latest: latest.info, available: available,
+           approval: available ? missingScopes_(UPDATE_SCOPES) : null,
            notes: available ? latest.info.notes.slice(0, Math.max(1, latest.info.version - cur.version)) : [] };
 }
 
 /** UI: install the newest build into this project and the web app deployment. */
 function installUpdate(expectedId) {
+  var miss = missingScopes_(UPDATE_SCOPES);
+  if (miss) {
+    throw new Error('First approve the update permission with every box ticked: ' + miss.url +
+                    ' , then try again.');
+  }
   var latest = latestBuild_();
   if (!latest) throw new Error("Couldn't download the update from GitHub.");
   if (expectedId && latest.info.id !== expectedId) throw new Error('An even newer update just appeared. Check again.');
@@ -435,12 +463,9 @@ function scriptApi_(method, path, body) {
                     'then tap Install update again. (Google said: ' + msg + ')');
   }
   if (/scope/i.test(msg)) {
-    // Editing a deployment doesn't always ask for newly added scopes; running a
-    // function in the editor always does, and installUpdate then finishes the job.
-    throw new Error('Google hasn\'t approved the app\'s permission to update itself yet. On a computer open ' +
-      'https://script.google.com/d/' + ScriptApp.getScriptId() + '/edit , click Code.gs, pick "installUpdate" ' +
-      'in the function menu at the top, click Run and allow the permissions. That installs this update, and the ' +
-      'button works from then on. (appsscript.json must list script.projects. Google said: ' + msg + ')');
+    throw new Error('Google hasn\'t granted the update permission. Remove the app at ' +
+      'https://myaccount.google.com/connections , then in the script editor run "installUpdate" and tick ' +
+      '"Select all" on Google\'s permission screen. (Google said: ' + msg + ')');
   }
   throw new Error('Google refused the update: ' + msg);
 }
