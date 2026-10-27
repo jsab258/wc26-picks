@@ -45,6 +45,17 @@ now** only reports what it would change.
 `appsscript.json` is optional: Google works out the same two permissions from
 the code.
 
+### Phone alerts (optional)
+
+Tap **Turn on** under *Phone alerts*, install the free **ntfy** app, subscribe
+to the topic the app shows and send a test alert. You then get a push
+notification when something needs you (session expired, a failed save, a
+starter who can't play with nobody to replace him, an update) and, unless you
+switch it off, when the autopilot changes something. In suggestions-only mode
+the alerts say which changes to make. Alerts go through ntfy.sh, a free public
+service, and need no extra Google permission. Anyone who knows the topic could
+read them, so keep it to yourself.
+
 ### Updates
 
 When a newer version is on GitHub, the app shows **Update available** with
@@ -70,27 +81,38 @@ redeploying, no extra Google permissions.
   - this week's best lineup, with injured or bye starters flagged and new
     starters marked **IN**, and an **Apply now** button;
   - the waiver plan (add / drop / FAAB bid) with **Submit claims now**;
-  - settings: auto lineup, auto claims, K/DEF streaming, superflex QB lean,
-    claims per week, minimum upgrade.
+  - a ☆ next to each player: tap it to never let the waiver plan drop him;
+  - settings: auto lineup, auto claims, K/DEF streaming, bye/injury
+    fill-ins, superflex QB lean, claims per week, minimum upgrade.
+- **Phone alerts:** on/off, the ntfy topic and a test button.
 - **Activity:** every change the autopilot or you made, and any errors.
 
 ## How it decides
 
-The logic is the same as the Python CLI in `../autopilot` (see `../README.md`).
 - **Lineups:** an exact assignment over the league's slots, using the weekly
   ECR list for its scoring. In superflex it uses FantasyPros' superflex list,
-  plus the QB lean.
+  plus the QB lean (bigger with 6-point passing TDs, which ECR doesn't assume).
   - It never starts players who are Out, on IR, Doubtful or on bye.
   - It never moves a player whose game has started.
-- **Waivers:** rest-of-season ECR, with QBs re-valued for superflex and 2QB.
-  - It keeps your best starters and position minimums.
+  - A Questionable player has to rank 2 spots better than a healthy one.
+  - Of two close starters, the later game goes in the flex, so he can still
+    be swapped for almost anyone if he's ruled out late.
+- **Waivers:** rest-of-season ECR, with QBs re-valued for superflex and 2QB
+  and for 6-point passing TDs.
+  - It keeps your best starters, position minimums and starred players.
+  - When a starter can't play this week and the bench can't fill in, it
+    picks up a one-week fill-in, giving up an easy-to-replace bench player.
+  - With rolling waivers, a high priority is only spent on a clear upgrade or
+    a fill-in, not on a kicker/defense matchup swap.
   - FAAB bids scale with player value.
   - Claims go in the evening before your waiver day: for your leagues,
-    Tuesday ~18:00 UTC, ahead of Sleeper's Wednesday ~07:10 UTC run. They are
+    Tuesday from 16:00 UTC, ahead of Sleeper's Wednesday ~07:10 UTC run. They are
     never repeated.
-- **Background checks:** every 30 minutes, but they only touch lineups when
-  games are less than 30 hours away. Player injury data refreshes every 25
-  minutes close to kickoff, so game-day inactives get benched.
+- **Background checks:** every 30 minutes, but they only do something when
+  games are less than 30 hours away or claims are due; otherwise they don't
+  download anything. Sleeper's player list (injury news) refreshes every 6
+  hours and again once each game's inactives are announced, so game-day
+  inactives get benched.
 
 ## Caveats
 
@@ -110,6 +132,7 @@ The logic is the same as the Python CLI in `../autopilot` (see `../README.md`).
 node --test fantasy/apps-script/test/*.test.js      # offline tests
 node fantasy/apps-script/dev/bundle.js              # rebuild dist/ after editing Code.gs / Index.html
 DEMO_USER_ID=<sleeper user id> node fantasy/apps-script/dev/server.js [--fake-update]
+node fantasy/apps-script/dev/canary.js              # plan the leagues from live data, writing nothing
 ```
 
 To ship a change:
@@ -118,9 +141,13 @@ To ship a change:
    the entry count is the version number.
 3. Run the bundler, commit and push.
 
-The app then offers the update. GitHub runs both test suites and the bundle
-check on every push (`.github/workflows/sleeper-autopilot-tests.yml`), so a
-stale `dist/` file shows up as a failed check.
+The app then offers the update once the change is in `main`. GitHub runs the
+tests and the bundle check on every push
+(`.github/workflows/sleeper-autopilot-tests.yml`), so a stale `dist/` file
+shows up as a failed check. Every Tuesday and Saturday the canary
+(`.github/workflows/sleeper-autopilot-canary.yml`) plans the leagues from live
+data and fails, which GitHub emails you about, if FantasyPros or Sleeper
+changed something the app relies on.
 
 The preview server at http://localhost:8080 runs `Code.gs` on Apps Script
 stand-ins (`dev/gas-stub.js`). It reads real data but fakes logins and never

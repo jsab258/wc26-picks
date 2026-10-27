@@ -13,6 +13,7 @@
  * page, like the real deployment. Each request gets a fresh copy of the script
  * (as on Google) with storage kept between requests, so installed updates load.
  * --fake-update pretends GitHub has a newer build ("v99", visibly marked).
+ * Phone alerts are faked too (nothing is posted to ntfy.sh).
  * --google-cuts imitates Google's page serving, which drops "//..." to the end of
  * the line unless it's inside a '...' string (it scrambled links in templates).
  */
@@ -88,6 +89,7 @@ function freshGas() {
     props,
     file: useDist ? dist : undefined,
     fetch(url) {
+      if (url === 'https://ntfy.sh') return { body: '{"id":"preview"}' };  // alerts are never sent from the preview
       if (fakeUpdate && url.includes('raw.githubusercontent.com') && url.endsWith('SleeperAutopilot.gs')) {
         return { body: fakeRemoteBuild() };
       }

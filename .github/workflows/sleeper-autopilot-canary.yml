@@ -1,0 +1,27 @@
+name: Sleeper autopilot canary
+
+# Tuesday (before waiver claims go in) and Saturday (before Sunday's games): plan
+# the leagues from live data with the current code, writing nothing. A failure
+# means FantasyPros or Sleeper changed something the app relies on; GitHub emails
+# you when a scheduled run fails. The log shows only pass/fail, no lineups.
+on:
+  schedule:
+    - cron: "17 13 * * 2,6"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Plan the leagues from live data
+        run: node fantasy/apps-script/dev/canary.js
+        env:
+          SLEEPER_USERNAME: jsab258

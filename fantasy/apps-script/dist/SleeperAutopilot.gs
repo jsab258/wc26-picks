@@ -41,6 +41,7 @@ var DEFAULTS = {
   faab_tiers: [[30, 0.25], [60, 0.15], [100, 0.08], [150, 0.04]],
   stream_k_def: true,
   stream_margin: 6,
+  cover_byes: true,          // one-week pickup when a starter can't play and the bench can't fill in
   never_drop: [],
   min_roster: {},
 };
@@ -56,6 +57,10 @@ var EMPTY = '0';
 var UNRANKED = 999;      // player missing from the ECR list
 var UNAVAILABLE = 5000;  // bye / injured: only start him if there is nobody else
 var SPARE_MIN = 150;     // ROS value past which a bench player is easy to replace
+var LATE_FLEX = 0.4;     // flex slots: up to this many ECR spots for a later kickoff (keeps a swap open)
+var QUESTIONABLE = 2;    // a Questionable player must rank this many spots better than a healthy one
+var TD6_QB_LEAN = 10;    // 6-pt passing TDs (ECR assumes 4): extra superflex QB lean, in ECR spots
+var TD6_QB_VALUE = 0.85; // ...and QB waiver values count this much of their ECR rank (lower is better)
 var INELIGIBLE = 1e9;
 var EMPTY_COST = 1e6;
 var TEAM_ALIASES = { JAC: 'JAX', WSH: 'WAS', LVR: 'LV', OAK: 'LV', LA: 'LAR', STL: 'LAR', SD: 'LAC' };
@@ -87,6 +92,7 @@ function getState() {
     update: { installed: !!RUNNING_INSTALLED_, error: LOAD_ERROR_ || null,
               pasted: PASTED_BUILD_ ? PASTED_BUILD_.title : null },
     permissions: missingScopes_(CORE_SCOPES),
+    alerts: alertsView_(),
     now: Date.now(),
   };
 }
@@ -116,6 +122,7 @@ function setMode(mode) {
   var s = settings_();
   s.mode = mode === 'auto' ? 'auto' : 'suggest';
   putJson_('settings', s);
+  deleteJson_('idle_until');
   ensureTrigger_();
   log_({ level: 'info', title: s.mode === 'auto' ? 'Autopilot turned on' : 'Autopilot paused (suggestions only)' });
   return getState();
@@ -129,14 +136,17 @@ function saveLeagueSettings(leagueId, patch) {
   });
   s.leagues[leagueId] = cur;
   putJson_('settings', s);
+  deleteJson_('idle_until');
   return leagueCfg_(s, leagueId);
 }
 
 function applyLineup(leagueId) {
-  return withLeague_(leagueId, function (lg) {
-    var res = lg.evaluate({ lineup: true });
-    lg.applyLineup(res, 'manual');
-    return res;
+  return withLock_(function () {
+    return withLeague_(leagueId, function (lg) {
+      var res = lg.evaluate({ lineup: true });
+      lg.applyLineup(res, 'manual');
+      return res;
+    });
   });
 }
 
@@ -147,15 +157,17 @@ function applyLineup(leagueId) {
  */
 function submitClaims(leagueId, shown) {
   if (!shown) throw new Error('Reload the page and try again.');
-  return withLeague_(leagueId, function (lg) {
-    var res = lg.evaluate({ waivers: true });
-    var w = res.waivers;
-    if (w && !w.error && claimKeys_(w.claims) !== shown.map(function (c) { return c.join('|'); }).join(',')) {
-      w.changed = true;
+  return withLock_(function () {
+    return withLeague_(leagueId, function (lg) {
+      var res = lg.evaluate({ waivers: true });
+      var w = res.waivers;
+      if (w && !w.error && claimKeys_(w.claims) !== shown.map(function (c) { return c.join('|'); }).join(',')) {
+        w.changed = true;
+        return res;
+      }
+      lg.applyClaims(res, 'manual');
       return res;
-    }
-    lg.applyClaims(res, 'manual');
-    return res;
+    });
   });
 }
 
@@ -170,8 +182,90 @@ function claimKeys_(claims) {
  * autopilot is on; in suggestions-only mode this just reports what it would change.
  */
 function runNow() {
-  autopilot_({ force: true });
+  withLock_(function () { autopilot_({ force: true }); });
   return getState();
+}
+
+/** One writer at a time: the buttons wait for a background check that's running. */
+function withLock_(fn) {
+  var lock = LockService.getUserLock();
+  if (!lock.tryLock(30000)) throw new Error('The autopilot is busy right now. Try again in a minute.');
+  try { return fn(); } finally { lock.releaseLock(); }
+}
+
+// ---- phone alerts ---------------------------------------------------------
+// Push notifications through ntfy (https://ntfy.sh): free, no account, and it only
+// needs the "connect to an external service" permission the app already has.
+var NTFY_URL = 'https://ntfy.sh';
+
+function alertsView_() {
+  var a = settings_().alerts;
+  return { on: !!a.topic, topic: a.topic || null, changes: a.changes !== false };
+}
+
+/** UI: turn alerts on (creates a private random topic), off, or choose whether changes are sent too. */
+function saveAlerts(patch) {
+  patch = patch || {};
+  var s = settings_(), a = s.alerts;
+  if (patch.on === true && !a.topic) a.topic = 'sleeper-autopilot-' + Utilities.getUuid().replace(/-/g, '').slice(0, 20);
+  if (patch.on === false) a = {};
+  if ('changes' in patch && a.topic) a.changes = !!patch.changes;
+  s.alerts = a;
+  putJson_('settings', s);
+  deleteJson_('idle_until');
+  return getState();
+}
+
+function testAlert() {
+  var a = settings_().alerts;
+  if (!a.topic) throw new Error('Turn alerts on first.');
+  var r = sendAlert_(a.topic, { title: 'Sleeper Autopilot', message: 'Test alert: alerts reach this phone.',
+                               tags: ['white_check_mark'] });
+  if (r.code !== 200) throw new Error('ntfy refused the alert (HTTP ' + r.code + ').');
+  return true;
+}
+
+function sendAlert_(topic, n) {
+  return fetch_(NTFY_URL, { retries: 1, payload: { topic: topic, title: n.title, message: n.message,
+                                                   priority: n.priority || 3, tags: n.tags || [],
+                                                   click: appUrl_() || undefined } });
+}
+
+var ALERT_KINDS = {
+  action: { priority: 4, tags: ['warning'] },         // needs you: always sent
+  change: { priority: 3, tags: ['white_check_mark'] },  // the autopilot did something: optional
+  info: { priority: 2, tags: ['arrow_up'] },            // e.g. a new version: always sent, quietly
+};
+
+/** Send a phone alert if they're on. With ``key``, the same alert goes out only once. */
+function notify_(kind, title, message, key) {
+  var a = settings_().alerts;
+  if (!a.topic || (kind === 'change' && a.changes === false)) return;
+  if (key) {
+    var sent = getJson_('alerts_sent', {});
+    if (sent[key]) return;
+    sent[key] = Date.now();
+    putJson_('alerts_sent', pruneDone_(sent));
+  }
+  try {
+    sendAlert_(a.topic, { title: title, message: message, priority: ALERT_KINDS[kind].priority,
+                          tags: ALERT_KINDS[kind].tags });
+  } catch (e) { /* alerts are best effort */ }
+}
+
+/** Once a day, with alerts on: tell the phone when a new version is out. */
+function checkUpdateDaily_() {
+  if (!settings_().alerts.topic) return;
+  var last = getJson_('update_checked', 0);
+  if (Date.now() - last < 20 * 3600 * 1000) return;
+  putJson_('update_checked', Date.now());
+  try {
+    var u = checkForUpdate();
+    if (u.available) {
+      notify_('info', 'Update available: ' + u.latest.title, 'Open Sleeper Autopilot and tap Install update.',
+              'update:' + u.latest.id);
+    }
+  } catch (e) { /* try again tomorrow */ }
 }
 
 // ---- login ----------------------------------------------------------
@@ -264,6 +358,7 @@ function finishLogin_(token, identifier, userId) {
     }
   }
   store_().setProperty('token', token);
+  deleteJson_('idle_until');
   putJson_('user', { user_id: user.user_id, display_name: user.display_name, avatar: user.avatar });
   ensureTrigger_();
   log_({ level: 'info', title: 'Connected to Sleeper as ' + user.display_name });
@@ -286,6 +381,7 @@ function tick() {
   var lock = LockService.getUserLock();
   if (!lock.tryLock(5000)) return;
   try {
+    checkUpdateDaily_();
     autopilot_({ force: false });
   } catch (e) {
     recordTick_('error', String(e.message || e));
@@ -299,8 +395,14 @@ function autopilot_(opts) {
   if (!token) return;
   var s = settings_();
   var auto = s.mode === 'auto';  // only then does anything get saved to Sleeper
-  if (!auto && !opts.force) {
+  var alerting = !!s.alerts.topic && !opts.force;  // in suggestions-only mode, alerts say what to do
+  if (!auto && !opts.force && !alerting) {
     recordTick_('idle', 'Suggestions only: autopilot is paused.');
+    return;
+  }
+  // Nothing can need doing before this (no games within 30h, no waiver window): skip all downloads.
+  if (!opts.force && Date.now() / 1000 < getJson_('idle_until', 0)) {
+    recordTick_('ok', 'No games in the next 30h; nothing to do.');
     return;
   }
   var ctx = new Ctx_(token);
@@ -310,13 +412,15 @@ function autopilot_(opts) {
   var lineupWindow = opts.force || (schedule.week === Number(ctx.state.week) && nextKick &&
                                     nextKick - ctx.now <= 30 * 3600);
   var done = getJson_('waivers_done', {});
-  var summary = [], failed = false;
-  // A problem that persists is logged once, not on every 30-minute check.
+  var summary = [], failed = false, wake = nextKick ? nextKick - 30 * 3600 : ctx.now + 3 * 3600;
+  // A problem that persists is logged (and sent to the phone) once, not on every 30-minute check.
   var seen = getJson_('tick_errors', {}), errors = {};
-  var fail = function (key, league, title, msg) {
+  var fail = function (key, league, title, msg, logged) {
     failed = true;
     errors[key] = msg;
-    if (seen[key] !== msg) log_({ level: 'error', league: league, title: title, lines: [msg] });
+    if (seen[key] === msg) return;
+    if (!logged) log_({ level: 'error', league: league, title: title, lines: [msg] });
+    notify_('action', league + ': ' + title.toLowerCase(), msg);
   };
   try {
     myLeagues_(ctx, user.user_id).forEach(function (data) {
@@ -332,24 +436,54 @@ function autopilot_(opts) {
             fail(lg.id + ':lineup', name, 'Lineup check failed', l.error);
           } else if (l.changes && auto) {
             lg.applyLineup(res, 'autopilot');
-            if (!l.applied) failed = true;
-            summary.push(name + (l.applied ? ': lineup updated' : ': saving the lineup failed'));
+            if (l.applied) {
+              summary.push(name + ': lineup updated');
+              notify_('change', name + ': lineup updated', lineupLines_(l).join('\n'));
+            } else {
+              summary.push(name + ': saving the lineup failed');
+              fail(lg.id + ':save', name, 'Saving the lineup failed', l.applyError, true);
+            }
           } else if (l.changes) {
             summary.push(name + ': ' + l.changes + ' lineup change' + (l.changes > 1 ? 's' : '') + ' suggested');
+            if (alerting) {
+              notify_('action', name + ': lineup changes to make', lineupLines_(l).join('\n') +
+                      '\nOpen Sleeper Autopilot and tap Apply now.', 'suggest:' + lg.id + ':' + l.starters.join(','));
+            }
+          }
+          if (alerting && l.warnings) {
+            l.warnings.forEach(function (w) {
+              notify_('action', name + ": a starter can't play", w, 'warn:' + lg.id + ':' + l.week + ':' + w);
+            });
           }
         }
         var win = waiverWindow_(lg, ctx.now);
-        if (auto && cfg.auto_waivers && !opts.force && win && !done[lg.id + ':' + win]) {
+        if (cfg.auto_waivers) {
+          var next = nextWaiverWindow_(lg, ctx.now);
+          if (next) wake = Math.min(wake, next);
+        }
+        if (cfg.auto_waivers && !opts.force && win && !done[lg.id + ':' + win]) {
           var wres = lg.evaluate({ waivers: true }), w = wres.waivers || {};
           if (w.error || w.pendingUnknown) {
             summary.push(name + ": couldn't plan waiver claims");
             fail(lg.id + ':waivers', name, 'Waiver planning failed', w.error || PENDING_UNKNOWN_MSG);
             return;  // try again on the next tick
           }
+          if (!auto) {
+            if (w.claims.length) {
+              notify_('action', name + ': waiver claims to make', claimLines_(w, lg.faab).join('\n') +
+                      '\nOpen Sleeper Autopilot and tap Submit claims now.', 'claims:' + lg.id + ':' + win);
+            }
+            return;
+          }
           lg.applyClaims(wres, 'autopilot');
           done[lg.id + ':' + win] = Date.now();
           putJson_('waivers_done', pruneDone_(done));
           summary.push(name + ': ' + w.claims.length + ' claim(s)');
+          if (w.claims.length) {
+            var bad = w.claims.some(function (c) { return c.error; });
+            notify_(bad ? 'action' : 'change', name + (bad ? ': some waiver claims failed' : ': waiver claims submitted'),
+                    claimLines_(w, lg.faab).join('\n'));
+          }
         }
       } catch (e) {
         if (e.expired) throw e;
@@ -362,8 +496,22 @@ function autopilot_(opts) {
     throw e;
   }
   putJson_('tick_errors', errors);
+  if (!opts.force && !lineupWindow && !failed) putJson_('idle_until', Math.min(wake, ctx.now + 12 * 3600));
   var idle = !lineupWindow ? 'No games in the next 30h; nothing to do.' : 'Checked lineups: all optimal.';
   recordTick_(failed ? 'error' : 'ok', summary.length ? summary.join(' · ') : idle);
+}
+
+function lineupLines_(l) {
+  var lines = l.benched.map(function (p) { return 'OUT ' + p.name + (p.why ? ' (' + p.why + ')' : ''); })
+    .concat(l.lineup.filter(function (p) { return p.isNew; }).map(function (p) { return 'IN  ' + p.name + ' → ' + p.slot; }));
+  return lines.length ? lines : ['Same players, new spots (a later game goes in the flex).'];
+}
+
+function claimLines_(w, faab) {
+  return w.claims.map(function (c) {
+    return (c.error ? 'FAILED ' : '') + '+ ' + c.add.name + (c.drop ? ', drop ' + c.drop.name : '') +
+      (faab && c.bid !== null ? ' ($' + c.bid + ')' : '') + (c.error ? ': ' + c.error : '');
+  });
 }
 
 function nextKickoff_(list, now) {
@@ -375,18 +523,36 @@ function nextKickoff_(list, now) {
   return next;
 }
 
-/** Claims go in the evening before the league's waiver day (UTC). Returns a window id or null. */
-function waiverWindow_(lg, now) {
+/** The league's waiver day as a JS weekday (0 = Sunday), or null with daily waivers. */
+function waiverDay_(lg) {
   if (lg.settings.daily_waivers) return null;
   var wd = lg.settings.waiver_day_of_week;
   if (wd === undefined || wd === null) wd = 2;  // Sleeper's default, Wednesday
-  var waiverDay = (Number(wd) + 1) % 7;  // Sleeper: 0=Mon; JS: 0=Sun
+  return (Number(wd) + 1) % 7;  // Sleeper: 0=Mon; JS: 0=Sun
+}
+
+/** Claims go in the evening before the league's waiver day (UTC). Returns a window id or null. */
+function waiverWindow_(lg, now) {
+  var waiverDay = waiverDay_(lg);
+  if (waiverDay === null) return null;
   var d = new Date(now * 1000);
   var day = d.getUTCDay(), hour = d.getUTCHours();
   var before = (waiverDay + 6) % 7;
   if ((day === before && hour >= 16) || (day === waiverDay && hour < 5)) {
     var start = new Date(d.getTime() - (day === waiverDay ? 86400000 : 0));
     return start.toISOString().slice(0, 10);
+  }
+  return null;
+}
+
+/** When the next claim window opens (epoch seconds), or null. */
+function nextWaiverWindow_(lg, now) {
+  var waiverDay = waiverDay_(lg);
+  if (waiverDay === null) return null;
+  var d = new Date(now * 1000), day0 = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / 1000;
+  for (var i = 0; i < 8; i++) {
+    var t = day0 + i * 86400 + 16 * 3600;
+    if (new Date(t * 1000).getUTCDay() === (waiverDay + 6) % 7 && t > now) return t;
   }
   return null;
 }
@@ -534,7 +700,7 @@ function removeUpdate() {
  */
 var PUBLIC_API = ['getState', 'getDashboard', 'setMode', 'saveLeagueSettings', 'applyLineup', 'submitClaims',
                   'runNow', 'login', 'verifyCode', 'connectWithToken', 'logout', 'checkForUpdate',
-                  'installUpdate', 'removeUpdate'];
+                  'installUpdate', 'removeUpdate', 'saveAlerts', 'testAlert'];
 
 function call(name, args) {
   if (PUBLIC_API.indexOf(name) < 0 || typeof GLOBAL_[name] !== 'function') throw new Error('Unknown action: ' + name);
@@ -560,7 +726,7 @@ function requireToken_() {
 
 function settings_() {
   var s = getJson_('settings', null) || {};
-  return { mode: s.mode || 'suggest', leagues: s.leagues || {} };
+  return { mode: s.mode || 'suggest', leagues: s.leagues || {}, alerts: s.alerts || {} };
 }
 
 function leagueCfg_(s, leagueId) {
@@ -714,6 +880,8 @@ function sessionExpired_() {
   if (token_()) {
     store_().deleteProperty('token');
     log_({ level: 'error', title: EXPIRED_MSG });
+    notify_('action', 'Sleeper session expired', 'Open Sleeper Autopilot and connect again. Until then nothing is ' +
+            'checked or changed.');
   }
   var e = new Error(EXPIRED_MSG);
   e.expired = true;
@@ -833,6 +1001,20 @@ function fpToSleeper_() {
 }
 
 /**
+ * How old Sleeper's player list (injury news) may be. Sleeper asks apps to fetch it
+ * rarely, so it's refreshed every 6 hours, plus once after each kickoff slot's
+ * inactives are announced (about 90 minutes before the games).
+ */
+function playersMaxAge_(kickoffs, now) {
+  var since = null;
+  kickoffs.forEach(function (k) {
+    var out = k - 80 * 60;
+    if (out <= now && now < k && (since === null || out > since)) since = out;
+  });
+  return since === null ? 6 * 3600 : Math.max(60, now - since);
+}
+
+/**
  * Sleeper's player db is ~14 MB; we keep only fantasy-relevant players as
  * [name, position, team, injury_status, fantasy_positions]. Refreshed more
  * often close to kickoff so game-day inactives are picked up.
@@ -949,10 +1131,9 @@ function Ctx_(token) {
   this.now = Date.now() / 1000;
   this.state = cached_('sleeper_state', 600, function () { return sleeper_('/state/nfl'); });
   this.lists = {};
-  var schedule = this.ranksRaw_(FP.OP.PPR);
-  var soon = false, now = this.now;
-  schedule.players.forEach(function (r) { if (r[8] && r[8] > now && r[8] - now < 3 * 3600) soon = true; });
-  this.players = playersSlim_(soon ? 25 * 60 : 4 * 3600);
+  var kickoffs = {};
+  this.ranksRaw_(FP.OP.PPR).players.forEach(function (r) { if (r[8]) kickoffs[r[8]] = true; });
+  this.players = playersSlim_(playersMaxAge_(Object.keys(kickoffs).map(Number), this.now));
   this.idmap = new IdMap_(this.players, fpToSleeper_());
 }
 
@@ -1194,6 +1375,8 @@ function League_(ctx, data, userId, cfg) {
     this.slots.filter(function (s) { return s === 'QB'; }).length >= 2;
   this.settings = data.settings || {};
   this.faab = this.settings.waiver_type === 2;
+  this.rolling = this.settings.waiver_type === 0;  // a successful claim sends you to the back of the line
+  this.passTd6 = Number((data.scoring_settings || {}).pass_td || 4) >= 6;
   this.rosters = sleeper_('/league/' + this.id + '/rosters', true);
   this.roster = this.rosters.filter(function (r) {
     return r.owner_id === userId || (r.co_owners || []).indexOf(userId) >= 0;
@@ -1285,6 +1468,26 @@ League_.prototype.weekStarters = function (week) {
   return (mine && mine.starters && mine.starters.length ? mine.starters : this.roster.starters) || [];
 };
 
+/** Kickoff time per NFL team this week, from the weekly lists this league uses. */
+League_.prototype.weekKickoffs = function () {
+  var self = this, kickoff = {};
+  this.slots.forEach(function (s) {
+    (SLOT_ELIGIBILITY[s] || []).forEach(function (pos) {
+      var l = self.weeklyList(pos);
+      Object.keys(l.teamKickoff).forEach(function (t) { kickoff[t] = l.teamKickoff[t]; });
+    });
+  });
+  return kickoff;
+};
+
+/** Why a player can't play this week ('Out', 'bye'...), or null. */
+League_.prototype.whyOut = function (pid, kickoff) {
+  var injury = (this.p(pid) || [])[3], r = this.weeklyRank(pid);
+  if (this.cfg.bench_statuses.indexOf(injury) >= 0) return injury;
+  if ((r && r.bye) || !(this.team(pid) in kickoff)) return 'bye';
+  return null;
+};
+
 League_.prototype.planLineup = function () {
   var self = this, ctx = this.ctx, cfg = this.cfg;
   var main = this.weeklyList(this.qbPremium ? 'QB' : 'RB');
@@ -1292,32 +1495,29 @@ League_.prototype.planLineup = function () {
   if (main.week !== week) {
     return { skipped: 'FantasyPros rankings are for week ' + main.week + '; Sleeper is on week ' + week + '.' };
   }
-  var kickoff = {};
-  this.slots.forEach(function (s) {
-    (SLOT_ELIGIBILITY[s] || []).forEach(function (pos) {
-      var l = self.weeklyList(pos);
-      Object.keys(l.teamKickoff).forEach(function (t) { kickoff[t] = l.teamKickoff[t]; });
-    });
-  });
+  var kickoff = this.weekKickoffs();
   var info = {};
   var current = this.weekStarters(week);
   var everyone = this.activePlayers().concat(current);
+  var keep = this.neverDrop();
   everyone.forEach(function (pid) {
     if (pid === EMPTY || info[pid]) return;
     if (!self.p(pid)) { info[pid] = { r: null, locked: false, why: null }; return; }  // IDP etc.: not ours to judge
-    var r = self.weeklyRank(pid), team = self.team(pid);
-    var ko = (r && r.kickoff) || kickoff[team];
-    var injury = (self.p(pid) || [])[3];
-    var why = null;
-    if (cfg.bench_statuses.indexOf(injury) >= 0) why = injury;
-    else if ((r && r.bye) || !(team in kickoff)) why = 'bye';
-    info[pid] = { r: r, locked: !!(r && r.started) || !!(ko && ko <= ctx.now), why: why };
+    var r = self.weeklyRank(pid);
+    var ko = (r && r.kickoff) || kickoff[self.team(pid)];
+    info[pid] = { r: r, ko: ko, locked: !!(r && r.started) || !!(ko && ko <= ctx.now), why: self.whyOut(pid, kickoff),
+                  questionable: (self.p(pid) || [])[3] === 'Questionable' };
   });
+  var times = Object.keys(info).map(function (pid) { return info[pid].ko; }).filter(Boolean);
+  var first = Math.min.apply(null, times), last = Math.max.apply(null, times);
+  var qbLean = cfg.superflex_qb_bonus + (this.passTd6 ? TD6_QB_LEAN : 0);
   var cost = function (pid, slot) {
     if (!self.eligible(pid, slot)) return null;
     var i = info[pid];
-    var c = (i.r ? i.r.rank : UNRANKED) + (i.why ? UNAVAILABLE : 0);
-    if (slot === 'SUPER_FLEX' && self.positions(pid).indexOf('QB') >= 0) c -= cfg.superflex_qb_bonus;
+    var c = (i.r ? i.r.rank : UNRANKED) + (i.why ? UNAVAILABLE : 0) + (i.questionable ? QUESTIONABLE : 0);
+    if (slot === 'SUPER_FLEX' && self.positions(pid).indexOf('QB') >= 0) c -= qbLean;
+    // In a flex slot, a later game keeps a swap open if he's ruled out late. Never worth a whole rank spot.
+    if (SLOT_ELIGIBILITY[slot].length > 1 && i.ko && last > first) c -= LATE_FLEX * (i.ko - first) / (last - first);
     return c;
   };
   var locked = {};
@@ -1326,7 +1526,7 @@ League_.prototype.planLineup = function () {
   var vw = function (pid) {
     if (pid === EMPTY) return self.view(EMPTY);
     var i = info[pid];
-    return self.view(pid, i.r, { why: i.why, locked: i.locked });
+    return self.view(pid, i.r, { why: i.why, locked: i.locked, keep: !!keep[pid], tracked: !!self.p(pid) });
   };
   var after = {}, before = {};
   out.starters.forEach(function (p) { after[p] = true; });
@@ -1344,9 +1544,8 @@ League_.prototype.planLineup = function () {
     warnings: out.starters.filter(function (p) {
       return p !== EMPTY && info[p].why && !info[p].locked;
     }).map(function (p) {
-      var pos = self.pos(p);
-      return vw(p).name + ' (' + info[p].why + ') starts: you have no healthy ' + pos + ' to replace him' +
-        (pos === 'K' || pos === 'DEF' ? '. See the waiver plan for a pickup.' : '.');
+      return vw(p).name + ' (' + info[p].why + ') starts: you have no healthy ' + self.pos(p) +
+        ' to replace him. Check the waiver plan or add a free agent.';
     }),
   };
 };
@@ -1400,9 +1599,12 @@ League_.prototype.planWaivers = function () {
   var value = function (pid) {
     var pos = self.pos(pid), r = ros.get(pid);
     if (SKILL.indexOf(pos) < 0 || !r) return null;
-    if (!template) return r.rank;
-    var m = /(\d+)$/.exec(r.posRank || '');
-    return templateValue_(template, pos, m ? Number(m[1]) : null);
+    var v = r.rank;
+    if (template) {
+      var m = /(\d+)$/.exec(r.posRank || '');
+      v = templateValue_(template, pos, m ? Number(m[1]) : null);
+    }
+    return v !== null && pos === 'QB' && self.passTd6 ? v * TD6_QB_VALUE : v;
   };
   var keep = this.neverDrop();
   var mine = this.activePlayers();
@@ -1463,18 +1665,51 @@ League_.prototype.planWaivers = function () {
   if (pendingUpgrades && !room) {
     notes.push('Your limit of ' + cfg.max_claims + ' claims a week is already pending on Sleeper.');
   }
+  // Rolling waivers: a successful claim sends you to the back of the line, so a high
+  // priority is only spent on a clear upgrade or to fill a starting spot.
+  var prio = Number((this.roster.settings || {}).waiver_position) || null, teams = this.rosters.length;
+  var guard = this.rolling && prio && prio <= Math.ceil(teams / 2);
+  var minGain = cfg.min_gain * (guard ? 2 : 1);
+  if (guard) {
+    notes.push('Your waiver priority is #' + prio + ' of ' + teams + ' and a claim sends you to the back of the line, ' +
+               'so upgrades must gain ' + minGain + ' spots instead of ' + cfg.min_gain + ', and kicker/defense ' +
+               'matchup swaps are skipped (add one as a free agent after waivers run: that costs no priority).');
+  }
   var claims = planUpgrades_({
     freeAgents: fas, myPlayers: mine, value: value, dropValue: dropValue,
     position: function (p) { return self.pos(p); }, protected: core, minimums: this.minimums(),
     maxDepth: this.maxDepth(), healthy: healthy,
-    rosterLimit: limit, maxClaims: room, minGain: cfg.min_gain, blockedDrops: pendingDrops,
+    rosterLimit: limit, maxClaims: room, minGain: minGain, blockedDrops: pendingDrops,
   });
-  var usedDrops = {};
-  claims.forEach(function (c) { if (c.drop) usedDrops[c.drop] = true; });
+  var usedDrops = {}, adding = {};
+  claims.forEach(function (c) { if (c.drop) usedDrops[c.drop] = true; adding[c.add] = true; });
   var name = function (pid) { return (self.p(pid) || [pid])[0]; };
   var hardMin = { QB: slotCount.QB || 0, RB: slotCount.RB || 0, WR: slotCount.WR || 0, TE: slotCount.TE || 0 };
-  /** A bench player we can give up for a one-week K/DEF: easy to replace and not needed to field a lineup. */
+  // This week's games, if they're still ahead (claims process before them).
+  var mainList = this.weeklyList(this.qbPremium ? 'QB' : 'RB');
+  var weekAhead = mainList.week === Number(ctx.state.week) && mainList.firstKickoff() > ctx.now;
+  var kickoff = weekAhead ? this.weekKickoffs() : {};
+  var weekCost = function (pid, slot) {
+    if (!self.eligible(pid, slot)) return null;
+    var r = self.weeklyRank(pid);
+    return (r ? r.rank : UNRANKED) + (self.whyOut(pid, kickoff) ? UNAVAILABLE : 0);
+  };
+  /** Best lineup for this week with the roster you'll have once these claims go through. */
+  var weekLineup = function () {
+    var roster = mine.filter(function (p) { return !usedDrops[p] && !pendingDrops[p]; });
+    Object.keys(pendingAdds).concat(Object.keys(adding)).forEach(function (p) {
+      if (roster.indexOf(p) < 0) roster.push(p);
+    });
+    return optimize_(self.slots, [], roster, weekCost).starters;
+  };
+  var weekNeeds = function () {
+    var need = {};
+    if (weekAhead) weekLineup().forEach(function (p) { need[p] = true; });
+    return need;
+  };
+  /** A bench player we can give up for a one-week pickup: easy to replace and not needed to field a lineup. */
   var spare = function () {
+    var need = weekNeeds();
     var healthyAt = function (pos) {
       return mine.filter(function (p) {
         return self.pos(p) === pos && healthy(p) && !pendingDrops[p] && !usedDrops[p];
@@ -1482,10 +1717,45 @@ League_.prototype.planWaivers = function () {
     };
     return mine.filter(function (p) {
       var v = dropValue(p), pos = self.pos(p);
-      return !core[p] && !pendingDrops[p] && !usedDrops[p] && v !== null && v >= SPARE_MIN &&
+      return !core[p] && !need[p] && !pendingDrops[p] && !usedDrops[p] && v !== null && v >= SPARE_MIN &&
         (!healthy(p) || !(pos in hardMin) || healthyAt(pos) - 1 >= hardMin[pos]);
     }).sort(function (a, b) { return dropValue(b) - dropValue(a); })[0] || null;
   };
+  var openSpots = limit - mine.length - claims.filter(function (c) { return !c.drop; }).length;
+  // A starter who can't play this week (bye, Out...) and nobody on the bench who can fill
+  // in: pick up the best available player for that spot, for the week.
+  if (cfg.cover_byes && weekAhead) {
+    for (var tries = 0; tries < 3; tries++) {
+      var lineup = weekLineup(), hole = null;
+      lineup.forEach(function (p, i) {
+        var slot = self.slots[i];
+        if (!hole && SLOT_ELIGIBILITY[slot] && slot !== 'K' && slot !== 'DEF' &&
+            (p === EMPTY || self.whyOut(p, kickoff))) hole = { slot: slot, out: p };
+      });
+      if (!hole) break;
+      var best = null, bestRank = Infinity;
+      SLOT_ELIGIBILITY[hole.slot].forEach(function (pos) {
+        self.weeklyList(pos).byId.forEach(function (r, pid) {
+          if (rostered[pid] || pendingAdds[pid] || adding[pid] || !self.eligible(pid, hole.slot)) return;
+          if (!self.whyOut(pid, kickoff) && r.rank < bestRank) { best = pid; bestRank = r.rank; }
+        });
+      });
+      var who = hole.out === EMPTY ? 'Your ' + hole.slot + ' spot is empty this week'
+        : name(hole.out) + ' (' + self.pos(hole.out) + ', ' + self.whyOut(hole.out, kickoff) + ") can't play this week";
+      var drop = openSpots > 0 ? null : spare();
+      if (!best || (openSpots <= 0 && !drop)) {
+        notes.push(who + ' and nobody on your bench can fill in, but ' +
+                   (best ? 'no bench player is cheap enough to give up' : 'no free agent is available') +
+                   '. Add one yourself if you can.');
+        break;
+      }
+      claims.push({ add: best, drop: drop, addValue: bestRank, dropValue: drop ? dropValue(drop) : null, kind: 'cover' });
+      adding[best] = true;
+      if (drop) usedDrops[drop] = true; else openSpots--;
+      notes.push(who + ' and nobody on your bench can fill in, so this adds ' + name(best) + ' for the week' +
+                 (drop ? ' and drops ' + name(drop) + ', who is easy to replace.' : '.'));
+    }
+  }
   if (cfg.stream_k_def) {
     var openSpot = limit - mine.length - claims.filter(function (c) { return !c.drop; }).length > 0;
     [['K', FP.K], ['DEF', FP.DST]].forEach(function (pair) {
@@ -1504,6 +1774,8 @@ League_.prototype.planWaivers = function () {
       var my = mine.filter(function (p) {
         return self.pos(p) === pos && !pendingDrops[p] && !keep[p] && !usedDrops[p];  // not already dropped above
       });
+      var canPlay = mine.some(function (p) { return self.pos(p) === pos && !pendingDrops[p] && !usedDrops[p] && wv(p) !== null; });
+      if (guard && canPlay) return;  // a better matchup isn't worth top waiver priority
       var c = planStream_(faK, my, wv, cfg.stream_margin, openSpot);
       if (c && c.drop && kdNum(c.drop) <= 12 && kdNum(c.add) >= kdNum(c.drop)) {
         // Never give away a top-12 K/DEF for one good week, unless the streamer is also
@@ -1545,11 +1817,13 @@ League_.prototype.planWaivers = function () {
     pending: pending.length,
     pendingUnknown: pendingUnknown,
     faab: this.faab,
-    basis: this.qbPremium ? 'rest-of-season ECR, superflex-adjusted' : 'rest-of-season ECR',
+    priority: prio ? { position: prio, teams: teams, rolling: this.rolling } : null,
+    basis: (this.qbPremium ? 'rest-of-season ECR, superflex-adjusted' : 'rest-of-season ECR') +
+      (this.passTd6 ? ', QBs boosted for 6-pt passing TDs' : ''),
     notes: notes,
     claims: claims.map(function (c) {
       var vw = function (pid, value) {
-        if (c.kind !== 'stream') return self.view(pid, value);
+        if (c.kind === 'upgrade') return self.view(pid, value);
         var r = self.weeklyRank(pid), wl = self.weeklyList(self.pos(pid));
         return self.view(pid, r || value, { why: !(self.team(pid) in wl.teamKickoff) || (r && r.bye) ? 'bye' : null });
       };
@@ -1578,10 +1852,7 @@ League_.prototype.applyLineup = function (res, who) {
   try {
     setStarters_(this.ctx.token, this.id, this.roster.roster_id, l.starters, l.week, this.settings.leg);
     l.applied = true;
-    log_({ level: 'change', league: this.name, title: 'Lineup updated (' + who + ')',
-           lines: l.benched.map(function (p) { return 'OUT ' + p.name + (p.why ? ' (' + p.why + ')' : ''); })
-             .concat(l.lineup.filter(function (p) { return p.isNew; })
-               .map(function (p) { return 'IN  ' + p.name + ' → ' + p.slot; })) });
+    log_({ level: 'change', league: this.name, title: 'Lineup updated (' + who + ')', lines: lineupLines_(l) });
   } catch (e) {
     if (e.expired) throw e;
     l.applyError = String(e.message || e);
@@ -1613,6 +1884,6 @@ League_.prototype.applyClaims = function (res, who) {
          title: 'Waiver claims submitted (' + who + ')', lines: lines });
 };
 
-var UI_HTML = "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<base target=\"_top\">\n<title>Sleeper Autopilot</title>\n<style>\n  :root {\n    --bg: #f4f6f9; --surface: #ffffff; --surface-2: #f0f3f7; --border: #e1e6ee;\n    --text: #141a24; --muted: #5f6b7c; --faint: #8b95a5;\n    --accent: #0f9d77; --accent-ink: #ffffff; --accent-soft: #e2f5ef;\n    --warn: #b7791f; --warn-soft: #fdf3e1; --bad: #c2410c; --bad-soft: #fdece4;\n    --info-soft: #e8effc; --info: #2f5fb3;\n    --radius: 14px; --shadow: 0 1px 2px rgba(20, 26, 36, .06), 0 4px 16px rgba(20, 26, 36, .05);\n  }\n  @media (prefers-color-scheme: dark) {\n    :root {\n      --bg: #0d1117; --surface: #151b24; --surface-2: #1b2330; --border: #273142;\n      --text: #e7ecf3; --muted: #9aa6b8; --faint: #6f7b8e;\n      --accent: #2bd4a4; --accent-ink: #062018; --accent-soft: #11342b;\n      --warn: #f0b354; --warn-soft: #33270f; --bad: #ff8a5c; --bad-soft: #3a1d13;\n      --info-soft: #18263d; --info: #8fb4ff; --shadow: none;\n    }\n  }\n  * { box-sizing: border-box; }\n  html, body { margin: 0; background: var(--bg); color: var(--text);\n    font: 15px/1.45 -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Inter, sans-serif; }\n  .wrap { max-width: 760px; margin: 0 auto; padding: 16px 16px 48px; }\n  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }\n  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: -.01em; }\n  .logo { width: 30px; height: 30px; border-radius: 9px; background: var(--accent); color: var(--accent-ink);\n    display: grid; place-items: center; font-size: 16px; }\n  .who { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }\n  .avatar { width: 26px; height: 26px; border-radius: 50%; background: var(--surface-2); object-fit: cover; }\n  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);\n    box-shadow: var(--shadow); padding: 16px; margin-bottom: 14px; }\n  h2 { font-size: 17px; margin: 0; letter-spacing: -.01em; }\n  h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 18px 0 8px; }\n  .row { display: flex; align-items: center; gap: 10px; }\n  .between { justify-content: space-between; }\n  .wrapflex { flex-wrap: wrap; }\n  a { color: var(--accent); }\n  .muted { color: var(--muted); } .faint { color: var(--faint); } .small { font-size: 13px; }\n  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }\n  .chip { font-size: 12px; padding: 3px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted);\n    border: 1px solid var(--border); white-space: nowrap; }\n  .chip.accent { background: var(--accent-soft); color: var(--accent); border-color: transparent; font-weight: 600; }\n  button { font: inherit; cursor: pointer; border-radius: 10px; border: 1px solid var(--border);\n    background: var(--surface); color: var(--text); padding: 9px 14px; font-weight: 600; }\n  button.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }\n  button.ghost { background: transparent; border-color: transparent; color: var(--muted); padding: 6px 8px; }\n  button:disabled { opacity: .55; cursor: default; }\n  button.small { padding: 6px 10px; font-size: 13px; }\n  input[type=text], input[type=password], input[type=email], input[type=number], textarea {\n    font: inherit; width: 100%; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--border);\n    background: var(--surface); color: var(--text); }\n  input:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }\n  label.field { display: block; margin: 12px 0 0; font-size: 13px; color: var(--muted); }\n  label.field span { display: block; margin-bottom: 5px; }\n\n  /* status hero */\n  .hero { display: grid; gap: 12px; }\n  .status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--faint); flex: none; }\n  .status-dot.on { background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }\n  .status-dot.off { background: var(--warn); box-shadow: 0 0 0 4px var(--warn-soft); }\n  .hero-title { font-size: 19px; font-weight: 700; }\n  .switch { position: relative; width: 50px; height: 30px; flex: none; }\n  .switch input { opacity: 0; width: 0; height: 0; }\n  .slider { position: absolute; inset: 0; border-radius: 999px; background: var(--border); transition: .15s; cursor: pointer; }\n  .slider:before { content: \"\"; position: absolute; width: 24px; height: 24px; left: 3px; top: 3px; border-radius: 50%;\n    background: #fff; transition: .15s; box-shadow: 0 1px 3px rgba(0,0,0,.25); }\n  .switch input:checked + .slider { background: var(--accent); }\n  .switch input:checked + .slider:before { transform: translateX(20px); }\n  .switch.sm { width: 40px; height: 24px; }\n  .switch.sm .slider:before { width: 18px; height: 18px; }\n  .switch.sm input:checked + .slider:before { transform: translateX(16px); }\n  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; }\n  .fact { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; }\n  .fact b { display: block; font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 2px; }\n\n  /* lineup */\n  .slots { display: grid; gap: 6px; }\n  .slot { display: grid; grid-template-columns: 74px 1fr auto; align-items: center; gap: 10px;\n    padding: 8px 10px; border-radius: 10px; background: var(--surface-2); border: 1px solid transparent; }\n  .slot.new { border-color: var(--accent); background: var(--accent-soft); }\n  .slot.bad { border-color: var(--bad); background: var(--bad-soft); }\n  .slot-tag { font-size: 11px; font-weight: 700; letter-spacing: .03em; color: var(--muted); text-transform: uppercase; }\n  .pname { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }\n  .pmeta { font-size: 12px; color: var(--muted); }\n  .rank { font-size: 12px; color: var(--muted); text-align: right; white-space: nowrap; }\n  .tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 6px; margin-left: 6px;\n    vertical-align: 1px; }\n  .tag.in { background: var(--accent); color: var(--accent-ink); }\n  .tag.out { background: var(--bad-soft); color: var(--bad); }\n  .tag.lock { background: var(--surface); color: var(--faint); border: 1px solid var(--border); }\n  .banner { border-radius: 10px; padding: 10px 12px; font-size: 14px; margin: 8px 0; }\n  .banner.ok { background: var(--accent-soft); color: var(--accent); }\n  .banner.warn { background: var(--warn-soft); color: var(--warn); }\n  .banner.bad { background: var(--bad-soft); color: var(--bad); }\n  .banner.info { background: var(--info-soft); color: var(--info); }\n  .claim { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; padding: 10px 12px;\n    border-radius: 10px; background: var(--surface-2); margin-bottom: 6px; }\n  .claim .arrow { color: var(--faint); margin: 0 4px; }\n  .add { color: var(--accent); font-weight: 600; } .drop { color: var(--bad); }\n  details summary { cursor: pointer; color: var(--muted); font-size: 13px; margin-top: 10px; list-style: none; }\n  details summary::-webkit-details-marker { display: none; }\n  details summary:before { content: \"▸ \"; }\n  details[open] summary:before { content: \"▾ \"; }\n  .settings-grid { display: grid; gap: 10px; margin-top: 10px; }\n  .setting { display: flex; align-items: center; justify-content: space-between; gap: 12px; }\n  .setting .label { font-size: 14px; }\n  .setting .hint { font-size: 12px; color: var(--muted); }\n  input[type=range] { width: 140px; accent-color: var(--accent); }\n  input.num { width: 70px; padding: 6px 8px; }\n\n  /* activity */\n  .feed { display: grid; gap: 2px; }\n  .entry { display: grid; grid-template-columns: 26px 1fr; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--border); }\n  .entry:last-child { border-bottom: 0; }\n  .ico { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; font-size: 13px;\n    background: var(--surface-2); }\n  .ico.change { background: var(--accent-soft); color: var(--accent); }\n  .ico.error { background: var(--bad-soft); color: var(--bad); }\n  .entry pre { margin: 4px 0 0; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted);\n    white-space: pre-wrap; }\n\n  /* login */\n  .center { min-height: 80vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }\n  .center > .card { width: 100%; max-width: 400px; }\n  .login { width: 100%; max-width: 400px; }\n  .login h1 { font-size: 22px; margin: 14px 0 4px; letter-spacing: -.02em; }\n  .code { letter-spacing: .5em; text-align: center; font-size: 22px; font-weight: 700; }\n  .fine { font-size: 12px; color: var(--muted); margin-top: 14px; }\n  .err { color: var(--bad); font-size: 13px; margin-top: 10px; min-height: 1em; }\n\n  /* misc */\n  .skeleton { height: 14px; border-radius: 6px; background: linear-gradient(90deg, var(--surface-2), var(--border), var(--surface-2));\n    background-size: 200% 100%; animation: sh 1.2s infinite; margin: 8px 0; }\n  @keyframes sh { from { background-position: 200% 0; } to { background-position: -200% 0; } }\n  .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent;\n    border-radius: 50%; animation: rot .7s linear infinite; vertical-align: -2px; margin-right: 6px; }\n  @keyframes rot { to { transform: rotate(360deg); } }\n  .toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--text); color: var(--bg);\n    padding: 10px 14px; border-radius: 10px; font-size: 14px; box-shadow: var(--shadow); max-width: calc(100% - 32px);\n    opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; }\n  .toast.show { opacity: 1; }\n  @media (max-width: 480px) {\n    .slot { grid-template-columns: 58px 1fr auto; }\n    .wrap { padding: 12px 12px 40px; }\n  }\n</style>\n</head>\n<body>\n<div class=\"wrap\" id=\"app\"><div class=\"center\"><span class=\"muted\"><span class=\"spin\"></span>Loading…</span></div></div>\n<div class=\"toast\" id=\"toast\"></div>\n<script>\n// Sleeper puts a captcha in front of password logins from other sites, so connecting\n// via sleeper.com is the default; the password form stays as a fallback.\nconst freshLogin = (extra) => Object.assign({ step: 'token', desktop: matchMedia('(pointer: fine)').matches }, extra);\nconst S = { state: null, dash: null, loadingDash: false, busy: {}, login: freshLogin(), dashError: null,\n            update: {} };\n\n// ---- server calls ------------------------------------------------------\n// Every server call goes through call(name, args): an installed update can then add\n// server functions that the pasted code doesn't declare.\nfunction api(fn, ...args) {\n  return new Promise((resolve, reject) => {\n    google.script.run.withSuccessHandler(resolve)\n      .withFailureHandler((e) => reject(new Error(((e && e.message) || String(e)).replace(/^(Error:\\s*)+/, ''))))\n      .call(fn, args);\n  });\n}\n\n// ---- Sleeper login from this browser ------------------------------------\n// Logging in from your own browser looks like a normal login to Sleeper;\n// the same request from Google's servers gets a \"confirm you're human\" wall.\n// URLs are written with \\/\\/ on purpose: when Google serves this page it cuts off\n// everything after \"//\" inside `template` text, as if it were a comment.\nconst SLEEPER_GQL = 'https:\\/\\/api.sleeper.app/graphql';\nconst SLEEPER_LOGIN_URL = 'https:\\/\\/sleeper.com/login';\nconst AVATAR_URL = 'https:\\/\\/sleepercdn.com/avatars/thumbs/';\nconst Q_LOGIN = 'query login($e: String!, $p: String!, $c: String) {' +\n  ' login(email_or_phone_or_username: $e, password: $p, captcha: $c) { token } }';\nconst Q_CONTEXT = 'query login_context_by_email_or_phone_or_username($e: String!) {' +\n  ' login_context_by_email_or_phone_or_username(email_or_phone_or_username: $e) }';\nconst M_SEND_CODE = 'mutation create_verification_code($e: String!, $c: String) {' +\n  ' create_verification_code(email_or_phone: $e, captcha: $c) }';\nconst CAPTCHA_MSG = 'Sleeper wants a captcha before it lets this login through. That usually clears if you ' +\n  'leave it alone for an hour; or connect via sleeper.com now.';\n\nclass Blocked extends Error {}\n\nasync function sleeperGql(query, variables) {\n  let r;\n  try {\n    r = await fetch(SLEEPER_GQL, { method: 'POST', headers: { 'Content-Type': 'application/json' },\n                                   body: JSON.stringify({ query, variables }) });\n  } catch (e) {\n    throw new Blocked(e.message);  // the browser wouldn't let us call Sleeper directly\n  }\n  const body = await r.json().catch(() => ({}));\n  if (body.errors && body.errors.length) {\n    const err = new Error(body.errors.map((x) => x.message).join('; '));\n    err.codes = body.errors.map((x) => x.code || (x.extensions && x.extensions.code) || '');\n    throw err;\n  }\n  return body.data || {};\n}\n\nasync function sleeperContext(identifier) {\n  try {\n    return (await sleeperGql(Q_CONTEXT, { e: identifier })).login_context_by_email_or_phone_or_username || {};\n  } catch (e) { return {}; }\n}\n\n/** Returns {token, userId} | {needsCode, sentTo}; throws Blocked if fetch is impossible. */\nasync function browserLogin(identifier, secret) {\n  let data;\n  try {\n    data = await sleeperGql(Q_LOGIN, { e: identifier, p: secret });\n  } catch (e) {\n    if (e instanceof Blocked) throw e;\n    if ((e.codes || []).includes('code_verification_required')) {\n      await sleeperGql(M_SEND_CODE, { e: identifier });\n      const ctx = await sleeperContext(identifier);\n      return { needsCode: true, sentTo: ctx.masked_email || ctx.masked_phone || 'your email' };\n    }\n    if (/human|captcha/i.test(e.message)) throw new Error(CAPTCHA_MSG);\n    throw new Error('Sleeper refused the login: ' + e.message);\n  }\n  if (!data.login || !data.login.token) {\n    throw new Error(/^\\d{4}$/.test(secret) ? \"That code didn't work. Check the latest email from Sleeper.\"\n                                           : \"Sleeper didn't accept that email/username and password.\");\n  }\n  const ctx = await sleeperContext(identifier);\n  return { token: data.login.token, userId: ctx.user_id || null };\n}\n\n// ---- helpers -----------------------------------------------------------\nconst esc = (s) => String(s == null ? '' : s).replace(/[&<>\"']/g, (c) =>\n  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst $ = (sel) => document.querySelector(sel);\n\nfunction ago(ts) {\n  if (!ts) return 'never';\n  const s = Math.round((Date.now() - ts) / 1000);\n  if (s < 60) return 'just now';\n  if (s < 3600) return Math.round(s / 60) + ' min ago';\n  if (s < 86400) return Math.round(s / 3600) + ' h ago';\n  return new Date(ts).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });\n}\nconst when = (ts) => new Date(ts).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });\n\nfunction toast(msg) {\n  const t = $('#toast');\n  t.textContent = msg;\n  t.classList.add('show');\n  clearTimeout(toast._t);\n  toast._t = setTimeout(() => t.classList.remove('show'), 3500);\n}\n\nasync function busy(key, fn) {\n  S.busy[key] = true; render();\n  try { return await fn(); }\n  catch (e) { if (!expired(e)) toast(e.message); throw e; }\n  finally { S.busy[key] = false; render(); }\n}\n\n/** Sleeper rejected the saved session: the server dropped it, so show the login again. */\nfunction expired(e) {\n  if (!/session expired/i.test(e.message)) return false;\n  S.dash = null;\n  S.login = freshLogin({ error: e.message });\n  api('getState').then((st) => { S.state = st; render(); });\n  return true;\n}\n\n// ---- data flow ---------------------------------------------------------\nasync function boot() {\n  try { S.state = await api('getState'); }\n  catch (e) { $('#app').innerHTML = `<div class=\"card banner bad\">${esc(e.message)}</div>`; return; }\n  render();\n  if (S.state.connected) loadDashboard();\n  checkUpdate();\n}\n\nasync function checkUpdate() {\n  try { S.update = { result: await api('checkForUpdate') }; } catch (e) { S.update = {}; }\n  render();\n}\n\nasync function installUpdate() {\n  S.update.error = null;\n  try {\n    const r = await busy('update', () => api('installUpdate', S.update.result.latest.id));\n    S.update.installed = r;\n  } catch (e) { S.update.error = e.message; }\n  render();\n}\n\nconst linkify = (t) => esc(t).replace(/https:\\/\\/[^\\s,)]+/g, (u) => `<a href=\"${u}\" target=\"_blank\">${u}</a>`);\n\nfunction updateBanner() {\n  const U = S.update;\n  const st = S.state || {};\n  if (st.update && st.update.error) {\n    return `<div class=\"card banner bad\"><b>The installed update couldn't load</b>\n      <div class=\"small\" style=\"margin-top:6px\">${esc(st.update.error)}. The app is running the version you pasted.</div>\n      <div style=\"margin-top:8px\"><button class=\"small\" data-action=\"remove-update\">Remove the update</button></div></div>`;\n  }\n  if (U.installed) {\n    const url = U.installed.url;\n    return `<div class=\"card banner ok\">✓ Update “${esc(U.installed.info.title)}” installed.\n      ${url ? `<a href=\"${esc(url)}\" target=\"_top\"><b>Reload the app</b></a>` : 'Reload this page'} to use it.</div>`;\n  }\n  const r = U.result;\n  if (!r || !r.available) return '';\n  const notes = (r.notes || []).map((n) => `<div style=\"margin-top:6px\"><b>${esc(n.title)}</b>\n      <ul style=\"margin:4px 0 0;padding-left:18px\">${n.items.map((i) => `<li>${esc(i)}</li>`).join('')}</ul></div>`).join('');\n  return `<div class=\"card banner info\">\n    <div class=\"row between wrapflex\"><b>Update available</b>\n      <button class=\"small primary\" data-action=\"install-update\" ${S.busy.update ? 'disabled' : ''}>\n        ${S.busy.update ? '<span class=\"spin\"></span>Installing…' : 'Install update'}</button></div>\n    <div class=\"small\">${notes}</div>\n    ${U.error ? `<div class=\"small\" style=\"color:var(--bad);margin-top:8px\">${linkify(U.error)}</div>` : ''}\n  </div>`;\n}\n\nasync function loadDashboard() {\n  S.loadingDash = true; S.dashError = null; render();\n  try {\n    S.dash = await api('getDashboard');\n    S.state = S.dash.state;\n  } catch (e) { if (!expired(e)) S.dashError = e.message; }\n  S.loadingDash = false; render();\n}\n\nfunction replaceLeague(res) {\n  if (!S.dash) return;\n  const i = S.dash.leagues.findIndex((l) => l.id === res.id);\n  if (i >= 0) {\n    const old = S.dash.leagues[i];\n    S.dash.leagues[i] = Object.assign({}, old, res, {\n      lineup: res.lineup || old.lineup, waivers: res.waivers || old.waivers });\n  }\n}\n\n// ---- rendering ---------------------------------------------------------\nfunction render() {\n  const st = S.state;\n  if (!st) return;\n  // Rebuilding the page must not wipe what's being typed or close what's open.\n  const typed = {}, open = {};\n  const fieldKey = (el) => el.form.dataset.form + ':' + el.name;\n  document.querySelectorAll('form[data-form] [name]').forEach((el) => { if (el.value) typed[fieldKey(el)] = el.value; });\n  document.querySelectorAll('details[data-key]').forEach((el) => { open[el.dataset.key] = el.open; });\n  const active = document.activeElement;\n  const activeKey = active && active.form && active.form.dataset.form && active.name ? fieldKey(active) : null;\n  $('#app').innerHTML = st.connected ? appView(st)\n    : loginView().replace('<div class=\"center\">', '<div class=\"center\">' + permissionBanner(st) + updateBanner());\n  document.querySelectorAll('form[data-form] [name]').forEach((el) => {\n    const k = fieldKey(el);\n    if (typed[k] && !el.value) el.value = typed[k];\n    if (k === activeKey) el.focus();\n  });\n  document.querySelectorAll('details[data-key]').forEach((el) => { if (el.dataset.key in open) el.open = open[el.dataset.key]; });\n  const first = document.querySelector('[autofocus]');\n  if (first && !render._focused && !activeKey) { first.focus(); render._focused = true; }\n}\n\nfunction loginView() {\n  const L = S.login;\n  const header = `<div class=\"logo\">⚡</div><h1>Sleeper Autopilot</h1>\n    <div class=\"muted\">Sets your lineups and waiver claims from FantasyPros expert rankings, following each league's rules.</div>`;\n  if (L.step === 'code') {\n    return `<div class=\"center\"><div class=\"card login\">${header}\n      <form data-form=\"code\">\n        <label class=\"field\"><span>Sleeper emailed a 4-digit code to ${esc(L.sentTo)}</span>\n          <input class=\"code\" name=\"code\" inputmode=\"numeric\" maxlength=\"4\" autocomplete=\"one-time-code\" autofocus required></label>\n        <div class=\"err\">${esc(L.error || '')}</div>\n        <button class=\"primary\" style=\"width:100%;margin-top:6px\" ${S.busy.login ? 'disabled' : ''}>\n          ${S.busy.login ? '<span class=\"spin\"></span>Checking…' : 'Verify'}</button>\n      </form>\n      <button class=\"ghost small\" data-action=\"login-restart\" style=\"margin-top:8px\">← Start over</button>\n    </div></div>`;\n  }\n  if (L.step === 'token') {\n    return `<div class=\"center\"><div class=\"card login\">${header}\n      <div class=\"small muted\" style=\"margin-top:14px\"><b>Connect your Sleeper account.</b> Sleeper only lets its own\n        site log you in (it shows a captcha), so log in there and copy your session over. You only do this once.</div>\n      <details data-key=\"phone\" ${L.desktop ? '' : 'open'}><summary>On your phone (Chrome)</summary>\n        <ol class=\"small muted\" style=\"padding-left:18px;margin:8px 0 0\">\n          <li>Copy this helper: <button type=\"button\" class=\"small\" data-action=\"copy-helper\">Copy helper</button>\n            <textarea id=\"helper\" readonly rows=\"2\" class=\"small\" style=\"margin-top:6px;font-family:ui-monospace,Menlo,monospace\">${esc(BOOKMARKLET)}</textarea></li>\n          <li>Bookmark any page (⋮ → ☆), tap <b>Edit</b>, set the name to <b>sleeper login</b> and replace the URL with\n            the helper.</li>\n          <li>Open <a href=\"${SLEEPER_LOGIN_URL}\" target=\"_blank\">sleeper.com/login</a> and log in.</li>\n          <li>There, tap the address bar, type <b>sleeper login</b> and tap the ★ bookmark suggestion. It copies your\n            session (if it shows a box instead, copy the text in it).</li>\n          <li>Come back here and paste it below.</li>\n        </ol></details>\n      <details data-key=\"computer\" ${L.desktop ? 'open' : ''}><summary>On a computer</summary>\n        <ol class=\"small muted\" style=\"padding-left:18px;margin:8px 0 0\">\n          <li>Log in at <a href=\"${SLEEPER_LOGIN_URL}\" target=\"_blank\">sleeper.com</a>.</li>\n          <li>Press <b>F12</b>, open <b>Console</b> and paste this line, then Enter. If Chrome asks, type\n            <b>allow pasting</b> first.\n            <textarea readonly rows=\"2\" class=\"small\" style=\"margin-top:6px;font-family:ui-monospace,Menlo,monospace\">${esc(CONSOLE_LINE)}</textarea></li>\n          <li>Paste the result below.</li>\n        </ol></details>\n      <form data-form=\"token\">\n        <label class=\"field\"><span>Paste your Sleeper session</span><textarea name=\"token\" rows=\"3\" required></textarea></label>\n        <div class=\"err\">${esc(L.error || '')}</div>\n        <button class=\"primary\" style=\"width:100%;margin-top:6px\" ${S.busy.login ? 'disabled' : ''}>\n          ${S.busy.login ? '<span class=\"spin\"></span>Connecting…' : 'Connect'}</button>\n      </form>\n      <button class=\"ghost small\" data-action=\"login-restart\" style=\"margin-top:8px\">Log in with password instead</button>\n    </div></div>`;\n  }\n  return `<div class=\"center\"><div class=\"card login\">${header}\n    <form data-form=\"login\" autocomplete=\"on\">\n      <label class=\"field\"><span>Sleeper email or username</span>\n        <input type=\"text\" name=\"identifier\" autocomplete=\"username\" value=\"${esc(L.identifier || '')}\"\n          ${L.identifier ? '' : 'autofocus'} required></label>\n      <label class=\"field\"><span>Password</span>\n        <input type=\"password\" name=\"password\" autocomplete=\"current-password\" ${L.identifier ? 'autofocus' : ''} required></label>\n      <div class=\"err\">${esc(L.error || '')}</div>\n      ${/captcha/i.test(L.error || '') ? `<button type=\"button\" class=\"small\" data-action=\"login-token\"\n          style=\"width:100%;margin-bottom:8px\">Connect via sleeper.com</button>` : ''}\n      <button class=\"primary\" style=\"width:100%;margin-top:6px\" ${S.busy.login ? 'disabled' : ''}>\n        ${S.busy.login ? '<span class=\"spin\"></span>Logging in…' : 'Log in with Sleeper'}</button>\n    </form>\n    <div class=\"fine\">Your password is only used to log in to Sleeper and is never saved. This page and your Sleeper\n      session live in your own Google account; nobody else can open it.</div>\n    <button class=\"ghost small\" data-action=\"login-token\" style=\"margin-top:6px\">← Connect via sleeper.com</button>\n  </div></div>`;\n}\n\nfunction appView(st) {\n  const u = st.user || {};\n  const avatar = u.avatar ? `<img class=\"avatar\" src=\"${AVATAR_URL}${esc(u.avatar)}\" alt=\"\">` : '';\n  return `<header>\n      <div class=\"brand\"><div class=\"logo\">⚡</div>Sleeper Autopilot</div>\n      <div class=\"who\">${avatar}<span>${esc(u.display_name || '')}</span>\n        <button class=\"ghost small\" data-action=\"logout\" title=\"Disconnect\">Log out</button></div>\n    </header>\n    ${permissionBanner(st)}\n    ${updateBanner()}\n    ${statusCard(st)}\n    ${S.dashError ? `<div class=\"card banner bad\">Couldn't load your leagues: ${esc(S.dashError)}\n        <div style=\"margin-top:8px\"><button class=\"small\" data-action=\"reload\">Try again</button></div></div>` : ''}\n    ${S.loadingDash && !S.dash ? skeletonCards() : ''}\n    ${S.dash ? S.dash.leagues.map(leagueCard).join('') : ''}\n    ${activityCard(st.log || [])}\n    <div class=\"faint small\" style=\"text-align:center;margin-top:18px\">\n      Rankings: FantasyPros ECR · Data: Sleeper · Refreshed ${S.dash ? 'week ' + esc(S.dash.week) : '…'}\n      · <a href=\"#\" data-action=\"reload\" style=\"color:inherit\">refresh</a>\n      <br>Version: ${esc((st.build || {}).title || '?')} · ${esc((st.build || {}).id || '')}\n      ${st.update && st.update.installed ? ' (installed update)' : ''}</div>`;\n}\n\nfunction permissionBanner(st) {\n  const p = st.permissions;\n  if (!p) return '';\n  return `<div class=\"card banner bad\"><b>Google permission missing</b>\n    <div class=\"small\" style=\"margin-top:6px\">The app can't reach Sleeper or run in the background until you approve\n      every permission (tick “Select all” on Google's screen), then reload this page.</div>\n    <div style=\"margin-top:8px\"><a class=\"chip accent\" href=\"${esc(p.url)}\" target=\"_blank\">Approve in Google</a></div>\n  </div>`;\n}\n\nfunction statusCard(st) {\n  const on = st.mode === 'auto';\n  const t = st.lastTick;\n  const tickTxt = t ? `${esc(t.msg)} <span class=\"faint\">(${ago(t.ts)})</span>` : 'Not run yet';\n  const exp = st.tokenExpires ? when(st.tokenExpires * 1000) : 'not stated by Sleeper';\n  const expSoon = st.tokenExpires && st.tokenExpires * 1000 - Date.now() < 7 * 86400000;\n  return `<div class=\"card hero\">\n    <div class=\"row between\">\n      <div class=\"row\"><span class=\"status-dot ${on ? 'on' : 'off'}\"></span>\n        <div><div class=\"hero-title\">${on ? 'Autopilot is on' : 'Suggestions only'}</div>\n          <div class=\"muted small\">${on ? 'Changes your lineups (and claims where enabled) automatically.'\n                                         : 'Nothing is changed on Sleeper until you turn autopilot on or tap Apply.'}</div></div></div>\n      <label class=\"switch\" title=\"Autopilot\"><input type=\"checkbox\" data-action=\"mode\" ${on ? 'checked' : ''}\n        ${S.busy.mode ? 'disabled' : ''}><span class=\"slider\"></span></label>\n    </div>\n    <div class=\"facts\">\n      <div class=\"fact\"><b>Last check</b>${t && t.status === 'error' ? `<span style=\"color:var(--bad)\">${tickTxt}</span>` : tickTxt}</div>\n      <div class=\"fact\"><b>Schedule</b>Every 30 min: lineups before games, claims the evening before waivers.</div>\n      <div class=\"fact\"><b>Sleeper session</b>${expSoon ? '<span style=\"color:var(--warn)\">Expires ' + exp + '</span>' : 'Valid · expires ' + exp}</div>\n    </div>\n    <div class=\"row wrapflex\">\n      <button class=\"small\" data-action=\"run-now\" ${S.busy.run ? 'disabled' : ''}>\n        ${S.busy.run ? '<span class=\"spin\"></span>Running…' : 'Check lineups now'}</button>\n      <span class=\"faint small\">${st.autopilotScheduled ? 'Background checks scheduled.' : 'Background checks not scheduled yet.'}</span>\n    </div>\n  </div>`;\n}\n\nfunction skeletonCards() {\n  return [1, 2].map(() => `<div class=\"card\"><div class=\"skeleton\" style=\"width:40%\"></div>\n    <div class=\"skeleton\"></div><div class=\"skeleton\" style=\"width:80%\"></div><div class=\"skeleton\" style=\"width:60%\"></div>\n    <div class=\"muted small\" style=\"margin-top:10px\"><span class=\"spin\"></span>Pulling rosters from Sleeper and rankings from FantasyPros…</div></div>`).join('');\n}\n\nfunction rankTxt(p) {\n  if (p.posRank && p.rank) return `${esc(p.posRank)} · #${p.rank}`;\n  if (p.rank) return '#' + p.rank;\n  return '<span class=\"faint\">unranked</span>';\n}\n\nfunction playerCell(p) {\n  const tags = [];\n  if (p.isNew) tags.push('<span class=\"tag in\">IN</span>');\n  if (p.why) tags.push(`<span class=\"tag out\">${esc(p.why)}</span>`);\n  if (p.locked) tags.push('<span class=\"tag lock\" title=\"Game started: locked\">🔒</span>');\n  return `<div style=\"min-width:0\"><div class=\"pname\">${esc(p.name)}${tags.join('')}</div>\n    <div class=\"pmeta\">${esc(p.pos || '')}${p.team ? ' · ' + esc(p.team) : ''}</div></div>`;\n}\n\nfunction leagueCard(lg) {\n  const cfg = lg.settings || {};\n  return `<div class=\"card\">\n    <div class=\"row between wrapflex\">\n      <h2>${esc(lg.name)}</h2>\n    </div>\n    <div class=\"chips\">${lg.flags.map((f, i) => `<span class=\"chip ${i < 2 ? 'accent' : ''}\">${esc(f)}</span>`).join('')}</div>\n    ${lg.notes.map((n) => `<div class=\"banner info\">${esc(n)}</div>`).join('')}\n    ${lg.lineup ? lineupSection(lg) : ''}\n    ${lg.waivers ? waiverSection(lg) : ''}\n    ${settingsSection(lg, cfg)}\n  </div>`;\n}\n\nfunction lineupSection(lg) {\n  const L = lg.lineup;\n  let body;\n  if (L.error) body = `<div class=\"banner bad\">${esc(L.error)}</div>`;\n  else if (L.skipped) body = `<div class=\"banner info\">${esc(L.skipped)}</div>`;\n  else {\n    const status = L.applied ? '<div class=\"banner ok\">✓ Lineup saved to Sleeper.</div>'\n      : L.applyError ? `<div class=\"banner bad\">Couldn't save: ${esc(L.applyError)}</div>`\n      : L.changes ? `<div class=\"banner warn row between wrapflex\"><span><b>${L.changes} change${L.changes > 1 ? 's' : ''}</b>\n            recommended${L.benched.length ? ': bench ' + L.benched.map((p) => esc(p.name) + (p.why ? ' (' + esc(p.why) + ')' : '')).join(', ') : ''}</span>\n            <button class=\"small primary\" data-action=\"apply-lineup\" data-league=\"${esc(lg.id)}\" ${S.busy['l' + lg.id] ? 'disabled' : ''}>\n              ${S.busy['l' + lg.id] ? '<span class=\"spin\"></span>Saving…' : 'Apply now'}</button></div>`\n      : '<div class=\"banner ok\">✓ Lineup is already optimal.</div>';\n    body = status + L.warnings.map((w) => `<div class=\"banner bad\">⚠ ${esc(w)}</div>`).join('') +\n      `<div class=\"slots\">${L.lineup.map((p) => `<div class=\"slot ${p.isNew ? 'new' : ''} ${p.why && !p.locked ? 'bad' : ''}\">\n          <div class=\"slot-tag\">${esc(p.slot.replace('SUPER_FLEX', 'SFLEX').replace('WRRB_FLEX', 'W/R').replace('REC_FLEX', 'W/T'))}</div>\n          ${playerCell(p)}<div class=\"rank\">${rankTxt(p)}</div></div>`).join('')}</div>\n      ${L.bench.length ? `<details data-key=\"bench-${esc(lg.id)}\"><summary>Bench (${L.bench.length})</summary><div class=\"slots\" style=\"margin-top:8px\">\n        ${L.bench.map((p) => `<div class=\"slot\"><div class=\"slot-tag\">BN</div>${playerCell(p)}<div class=\"rank\">${rankTxt(p)}</div></div>`).join('')}\n      </div></details>` : ''}`;\n  }\n  return `<h3>Week ${esc(L.week || '')} lineup</h3>${body}`;\n}\n\nfunction waiverSection(lg) {\n  const W = lg.waivers, cfg = lg.settings || {};\n  if (W.error) return `<h3>Waivers</h3><div class=\"banner bad\">${esc(W.error)}</div>`;\n  const claims = W.claims.map((c) => `<div class=\"claim\">\n      <div><span class=\"add\">+ ${esc(c.add.name)}</span> <span class=\"faint small\">${esc(c.add.pos)} ${esc(c.add.team || '')}\n        · ${c.kind === 'stream' ? 'this week ' : 'ROS '}${rankTxt(c.add)}</span>\n        ${c.drop ? `<div class=\"small\"><span class=\"drop\">− ${esc(c.drop.name)}</span>${c.drop.why ? `<span class=\"tag out\">${esc(c.drop.why)}</span>` : ''}\n          <span class=\"faint\">${esc(c.drop.pos)} · ${c.kind === 'stream' ? 'this week ' : 'ROS '}${rankTxt(c.drop)}</span></div>`\n          : '<div class=\"small faint\">No drop needed (open roster spot)</div>'}\n        ${c.error ? `<div class=\"small\" style=\"color:var(--bad)\">Failed: ${esc(c.error)}</div>` : ''}</div>\n      <div class=\"small\" style=\"text-align:right\">${c.bid != null ? `<b>$${c.bid}</b><br>` : ''}\n        ${c.submitted ? '<span style=\"color:var(--accent)\">✓ submitted</span>' : `<span class=\"faint\">${c.kind === 'stream' ? 'stream' : 'upgrade'}</span>`}</div>\n    </div>`).join('');\n  const when = cfg.auto_waivers ? (S.state.mode === 'auto' ? 'Autopilot will submit these the evening before waivers run.'\n                                                           : 'Turn autopilot on to submit these automatically.')\n                                : 'Auto-claims are off for this league.';\n  return `<h3>Waiver plan</h3>\n    ${W.changed ? '<div class=\"banner warn\">The plan changed since the page loaded, so nothing was sent. Check the claims below and submit again.</div>' : ''}\n    ${W.submitError ? `<div class=\"banner bad\">${esc(W.submitError)}</div>` : ''}\n    ${W.pending ? `<div class=\"banner info\">${W.pending} claim${W.pending > 1 ? 's' : ''} already pending on Sleeper (not repeated).</div>` : ''}\n    ${W.claims.length ? claims : '<div class=\"banner ok\">No pickups clearly better than your roster right now.</div>'}\n    ${W.notes.map((n) => `<div class=\"small faint\">• ${esc(n)}</div>`).join('')}\n    ${W.claims.length && !W.pendingUnknown ? `<div class=\"row between wrapflex\" style=\"margin-top:8px\"><span class=\"small muted\">${esc(when)}</span>\n      <button class=\"small\" data-action=\"submit-claims\" data-league=\"${esc(lg.id)}\" ${S.busy['w' + lg.id] ? 'disabled' : ''}>\n        ${S.busy['w' + lg.id] ? '<span class=\"spin\"></span>Submitting…' : 'Submit claims now'}</button></div>` : ''}\n    <div class=\"small faint\" style=\"margin-top:6px\">Based on ${esc(W.basis)}.</div>`;\n}\n\nfunction settingsSection(lg, cfg) {\n  const id = esc(lg.id);\n  const toggle = (key, label, hint) => `<div class=\"setting\"><div><div class=\"label\">${label}</div>\n      ${hint ? `<div class=\"hint\">${hint}</div>` : ''}</div>\n      <label class=\"switch sm\"><input type=\"checkbox\" data-setting=\"${key}\" data-league=\"${id}\" ${cfg[key] ? 'checked' : ''}>\n      <span class=\"slider\"></span></label></div>`;\n  const qb = lg.superflex ? `<div class=\"setting\"><div><div class=\"label\">Lean towards a 2nd QB</div>\n      <div class=\"hint\">SUPER_FLEX: a QB counts <b data-out=\"qb-${id}\">${cfg.superflex_qb_bonus}</b> ECR spots better</div></div>\n      <input type=\"range\" min=\"0\" max=\"40\" step=\"5\" value=\"${cfg.superflex_qb_bonus}\" data-setting=\"superflex_qb_bonus\"\n        data-league=\"${id}\"></div>` : '';\n  return `<details data-key=\"settings-${id}\"><summary>League settings</summary><div class=\"settings-grid\">\n      ${toggle('auto_lineup', 'Auto lineup', 'Autopilot sets the best lineup before games')}\n      ${toggle('auto_waivers', 'Auto waiver claims', 'Autopilot submits the waiver plan before waivers process')}\n      ${toggle('stream_k_def', 'Stream K / DEF', 'Swap kicker/defense for clearly better matchups')}\n      ${qb}\n      <div class=\"setting\"><div><div class=\"label\">Upgrade claims per week</div>\n        <div class=\"hint\">K/DEF streams come on top of these</div></div>\n        <input class=\"num\" type=\"number\" min=\"0\" max=\"5\" value=\"${cfg.max_claims}\" data-setting=\"max_claims\" data-league=\"${id}\"></div>\n      <div class=\"setting\"><div><div class=\"label\">Minimum upgrade</div><div class=\"hint\">ROS ECR spots a pickup must gain</div></div>\n        <input class=\"num\" type=\"number\" min=\"0\" max=\"200\" step=\"5\" value=\"${cfg.min_gain}\" data-setting=\"min_gain\" data-league=\"${id}\"></div>\n    </div></details>`;\n}\n\nfunction activityCard(log) {\n  const icon = { change: '✓', error: '!', warn: '!', info: '•' };\n  const items = log.slice(0, 25).map((e) => `<div class=\"entry\">\n      <div class=\"ico ${esc(e.level)}\">${icon[e.level] || '•'}</div>\n      <div><div class=\"row between\"><b style=\"font-size:14px\">${esc(e.title)}</b><span class=\"faint small\">${ago(e.ts)}</span></div>\n        ${e.league ? `<div class=\"small muted\">${esc(e.league)}</div>` : ''}\n        ${e.lines && e.lines.length ? `<pre>${esc(e.lines.join('\\n'))}</pre>` : ''}</div></div>`).join('');\n  return `<div class=\"card\"><h2>Activity</h2>\n    <div class=\"feed\" style=\"margin-top:6px\">${items || '<div class=\"muted small\">Nothing yet. Changes the autopilot makes show up here.</div>'}</div></div>`;\n}\n\n// ---- events ------------------------------------------------------------\n// For the DevTools console on sleeper.com.\nconst CONSOLE_LINE = 'copy(JSON.stringify({token: localStorage.token, user_id: localStorage.user_id}))';\n// Runs on sleeper.com: copies the session sleeper.com keeps in localStorage.\nconst BOOKMARKLET = \"javascript:(()=>{const t=localStorage.getItem('token'),u=localStorage.getItem('user_id');\" +\n  \"if(!t){alert('Log in to sleeper.com first, then tap this again.');return}\" +\n  \"const s=JSON.stringify({token:t,user_id:u});navigator.clipboard.writeText(s)\" +\n  \".then(()=>alert('Copied! Go back to Sleeper Autopilot and paste.'),()=>prompt('Copy this, then paste it into Sleeper Autopilot:',s))})()\";\n\ndocument.addEventListener('submit', async (ev) => {\n  const form = ev.target.closest('form[data-form]');\n  if (!form) return;\n  ev.preventDefault();\n  const f = Object.fromEntries(new FormData(form));\n  S.login.error = null;\n  try {\n    if (form.dataset.form === 'login') {\n      S.login.identifier = f.identifier;\n      const r = await busy('login', async () => {\n        try {\n          const b = await browserLogin(f.identifier, f.password);\n          return b.token ? api('connectWithToken', b.token, f.identifier, b.userId) : Object.assign(b, { via: 'browser' });\n        } catch (e) {\n          if (!(e instanceof Blocked)) throw e;\n          return Object.assign(await api('login', f.identifier, f.password), { via: 'server' });\n        }\n      });\n      if (r.needsCode) {\n        S.login = { step: 'code', sentTo: r.sentTo, via: r.via, identifier: f.identifier };\n        render._focused = false; render(); return;\n      }\n      S.state = r;\n    } else if (form.dataset.form === 'code') {\n      const L = S.login;\n      S.state = await busy('login', async () => {\n        if (L.via === 'server') return api('verifyCode', f.code);\n        const b = await browserLogin(L.identifier, String(f.code).trim());\n        return api('connectWithToken', b.token, L.identifier, b.userId);\n      });\n    } else if (form.dataset.form === 'token') {\n      S.state = await busy('login', () => api('connectWithToken', f.token, f.username || null, null));\n    }\n    S.login = freshLogin();\n    render();\n    toast('Connected to Sleeper');\n    loadDashboard();\n  } catch (e) {\n    S.login.error = e.message; render._focused = false; render();\n  }\n});\n\ndocument.addEventListener('click', async (ev) => {\n  const el = ev.target.closest('[data-action]');\n  if (!el || el.matches('input')) return;\n  const a = el.dataset.action, id = el.dataset.league;\n  if (a === 'reload') { ev.preventDefault(); loadDashboard(); }\n  if (a === 'install-update') installUpdate();\n  if (a === 'remove-update') {\n    S.state = await api('removeUpdate');\n    S.update = {}; render(); toast('Update removed. Reload the app.');\n  }\n  if (a === 'login-token') {\n    S.login = { step: 'token', desktop: matchMedia('(pointer: fine)').matches };\n    render._focused = false; render();\n  }\n  if (a === 'copy-helper') {\n    const done = () => toast('Helper copied. Now make the bookmark.');\n    navigator.clipboard.writeText(BOOKMARKLET).then(done, () => {\n      const t = $('#helper'); t.select();\n      toast(document.execCommand('copy') ? 'Helper copied. Now make the bookmark.' : 'Long-press the text and copy it.');\n    });\n  }\n  if (a === 'login-restart') { S.login = { step: 'password' }; render._focused = false; render(); }\n  if (a === 'logout') {\n    if (!confirm('Disconnect from Sleeper? The autopilot stops until you log in again.')) return;\n    S.state = await api('logout'); S.dash = null; render();\n  }\n  if (a === 'run-now') {\n    S.state = await busy('run', () => api('runNow'));\n    toast(S.state.lastTick ? S.state.lastTick.msg : 'Done');\n    loadDashboard();\n  }\n  if (a === 'apply-lineup') {\n    const res = await busy('l' + id, () => api('applyLineup', id));\n    replaceLeague(res);\n    S.state = await api('getState'); render();\n    toast(res.lineup && res.lineup.applied ? 'Lineup saved to Sleeper' : 'Nothing saved');\n  }\n  if (a === 'submit-claims') {\n    if (!confirm('Submit these waiver claims to Sleeper now?')) return;\n    // Send what's on screen: the server only submits it if its fresh plan still matches.\n    const lg = S.dash && S.dash.leagues.find((l) => l.id === id);\n    const shown = lg && lg.waivers ? lg.waivers.claims.map((c) => [c.add.id, c.drop ? c.drop.id : null,\n                                                                   c.bid == null ? null : c.bid]) : [];\n    const res = await busy('w' + id, () => api('submitClaims', id, shown));\n    replaceLeague(res);\n    S.state = await api('getState'); render();\n    const w = res.waivers || {};\n    toast(w.changed ? 'The plan changed: check it and submit again' : w.submitError || w.error ? 'Nothing sent'\n          : w.claims.some((c) => c.error) ? 'Some claims failed' : 'Claims sent');\n  }\n});\n\ndocument.addEventListener('change', async (ev) => {\n  const el = ev.target;\n  if (el.dataset.action === 'mode') {\n    const mode = el.checked ? 'auto' : 'suggest';\n    if (mode === 'auto' && !confirm('Turn autopilot on? It will change lineups on Sleeper by itself '\n        + '(and submit claims in leagues where you enabled auto claims).')) { el.checked = false; return; }\n    S.state = await busy('mode', () => api('setMode', mode));\n    render();\n    toast(mode === 'auto' ? 'Autopilot on' : 'Autopilot paused');\n    return;\n  }\n  if (el.dataset.setting) {\n    const key = el.dataset.setting, id = el.dataset.league;\n    const val = el.type === 'checkbox' ? el.checked : Number(el.value);\n    const cfg = await api('saveLeagueSettings', id, { [key]: val });\n    const lg = S.dash && S.dash.leagues.find((l) => l.id === id);\n    if (lg) lg.settings = cfg;\n    toast('Saved');\n    // These change the plan itself; the others only change what the page says about it.\n    if (['superflex_qb_bonus', 'stream_k_def', 'max_claims', 'min_gain'].includes(key)) loadDashboard();\n    else render();\n  }\n});\n\ndocument.addEventListener('input', (ev) => {\n  const el = ev.target;\n  if (el.dataset.setting === 'superflex_qb_bonus') {\n    const out = document.querySelector(`[data-out=\"qb-${el.dataset.league}\"]`);\n    if (out) out.textContent = el.value;\n  }\n});\n\nboot();\n</script>\n</body>\n</html>\n";
-var BUILD_INFO = {"id":"d660701b64","version":11,"title":"Safety fixes from a full review","notes":[{"title":"Safety fixes from a full review","items":["If Sleeper's player list fails to download, the app keeps using its last copy, and it never takes a player out of your lineup without putting someone in.","\"Check lineups now\" no longer changes anything in suggestions-only mode; it only tells you what it would change.","\"Submit claims now\" sends exactly the claims on screen. If the plan changed since the page loaded, nothing is sent and you see the new plan.","Waiver plans no longer drop the same player twice, treat a pending no-drop claim's roster spot as free, or let an injured pickup replace a healthy player you need.","If your pending claims can't be read, no claims are submitted (they could repeat yours); the autopilot tries again later.","Leagues with Monday waivers get their claims on Sunday evening instead of almost a week late.","Failed checks now show as errors under \"Last check\" and are logged once, and a problem in one league no longer stops the other.","Smaller fixes: no false bye warnings for defensive (IDP) players, text you're typing survives the update check, toggles update the page right away, and updates come from main once the app is merged there."]},{"title":"Waiver fixes: weekly limit, kicker byes","items":["Claims already pending on Sleeper now count toward your weekly limit, so no surprise extra suggestions.","When your top kicker/defense is on bye, it adds a one-week replacement by dropping an easy-to-replace bench player instead of leaving the spot empty.","After the bye, the spare kicker/defense is the first player dropped for the next pickup."]},{"title":"Lineups actually save","items":["\"Apply now\" (and the autopilot) now save the lineup for the right week: Sleeper keeps one lineup per week, and the old call only covered the league's current week, which lags a day behind. Sleeper quietly ignored it.","After saving, the app checks what Sleeper stored and shows an error if it didn't take.","No more pointless slot swaps (e.g. two RBs trading the RB and flex spots)."]},{"title":"Smarter waiver claims","items":["Won't drop a top-12 kicker or defense just to stream one week (e.g. during his bye).","Won't stack extra QBs/TEs beyond useful depth at the cost of other positions; a 4th QB can only replace a QB.","Injured (Out/IR) players no longer count toward position minimums, so it keeps enough healthy starters."]},{"title":"Fix garbled \"On a computer\" steps","items":["Google cut off everything after \"//\" in the sleeper.com links, which scrambled the connect steps (and would have broken your profile picture). Links are now written so nothing gets cut."]},{"title":"Updates without Google's script API","items":["\"Install update\" now stores the new version inside the app, so it no longer needs Google's Apps Script API, a Cloud project or extra permissions.","If an installed update ever fails to load, the app runs the version you pasted and offers to remove the update."]},{"title":"Connect via sleeper.com first","items":["Fixes \"Invalid argument …/user/\\\"…\\\"\": the user id copied from sleeper.com comes wrapped in quotes.","The app now opens on \"Connect via sleeper.com\", since Sleeper blocks password logins from other sites with a captcha.","Checks which Google permissions you actually granted (Google's screen has a checkbox for each) and shows an \"Approve in Google\" button for any that are missing."]},{"title":"Easier \"connect via sleeper.com\"","items":["When Sleeper asks for a captcha, a \"Connect via sleeper.com\" button appears right under the message.","Clearer phone steps, and a copy-paste console line for computers.","If an update can't install, the message links straight to your script editor and quotes Google's reason."]}]};
+var UI_HTML = "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<base target=\"_top\">\n<title>Sleeper Autopilot</title>\n<style>\n  :root {\n    --bg: #f4f6f9; --surface: #ffffff; --surface-2: #f0f3f7; --border: #e1e6ee;\n    --text: #141a24; --muted: #5f6b7c; --faint: #8b95a5;\n    --accent: #0f9d77; --accent-ink: #ffffff; --accent-soft: #e2f5ef;\n    --warn: #b7791f; --warn-soft: #fdf3e1; --bad: #c2410c; --bad-soft: #fdece4;\n    --info-soft: #e8effc; --info: #2f5fb3;\n    --radius: 14px; --shadow: 0 1px 2px rgba(20, 26, 36, .06), 0 4px 16px rgba(20, 26, 36, .05);\n  }\n  @media (prefers-color-scheme: dark) {\n    :root {\n      --bg: #0d1117; --surface: #151b24; --surface-2: #1b2330; --border: #273142;\n      --text: #e7ecf3; --muted: #9aa6b8; --faint: #6f7b8e;\n      --accent: #2bd4a4; --accent-ink: #062018; --accent-soft: #11342b;\n      --warn: #f0b354; --warn-soft: #33270f; --bad: #ff8a5c; --bad-soft: #3a1d13;\n      --info-soft: #18263d; --info: #8fb4ff; --shadow: none;\n    }\n  }\n  * { box-sizing: border-box; }\n  html, body { margin: 0; background: var(--bg); color: var(--text);\n    font: 15px/1.45 -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Inter, sans-serif; }\n  .wrap { max-width: 760px; margin: 0 auto; padding: 16px 16px 48px; }\n  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }\n  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: -.01em; }\n  .logo { width: 30px; height: 30px; border-radius: 9px; background: var(--accent); color: var(--accent-ink);\n    display: grid; place-items: center; font-size: 16px; }\n  .who { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }\n  .avatar { width: 26px; height: 26px; border-radius: 50%; background: var(--surface-2); object-fit: cover; }\n  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);\n    box-shadow: var(--shadow); padding: 16px; margin-bottom: 14px; }\n  h2 { font-size: 17px; margin: 0; letter-spacing: -.01em; }\n  h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 18px 0 8px; }\n  .row { display: flex; align-items: center; gap: 10px; }\n  .between { justify-content: space-between; }\n  .wrapflex { flex-wrap: wrap; }\n  a { color: var(--accent); }\n  .muted { color: var(--muted); } .faint { color: var(--faint); } .small { font-size: 13px; }\n  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }\n  .chip { font-size: 12px; padding: 3px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted);\n    border: 1px solid var(--border); white-space: nowrap; }\n  .chip.accent { background: var(--accent-soft); color: var(--accent); border-color: transparent; font-weight: 600; }\n  button { font: inherit; cursor: pointer; border-radius: 10px; border: 1px solid var(--border);\n    background: var(--surface); color: var(--text); padding: 9px 14px; font-weight: 600; }\n  button.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }\n  button.ghost { background: transparent; border-color: transparent; color: var(--muted); padding: 6px 8px; }\n  button:disabled { opacity: .55; cursor: default; }\n  button.small { padding: 6px 10px; font-size: 13px; }\n  input[type=text], input[type=password], input[type=email], input[type=number], textarea {\n    font: inherit; width: 100%; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--border);\n    background: var(--surface); color: var(--text); }\n  input:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }\n  label.field { display: block; margin: 12px 0 0; font-size: 13px; color: var(--muted); }\n  label.field span { display: block; margin-bottom: 5px; }\n\n  /* status hero */\n  .hero { display: grid; gap: 12px; }\n  .status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--faint); flex: none; }\n  .status-dot.on { background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }\n  .status-dot.off { background: var(--warn); box-shadow: 0 0 0 4px var(--warn-soft); }\n  .hero-title { font-size: 19px; font-weight: 700; }\n  .switch { position: relative; width: 50px; height: 30px; flex: none; }\n  .switch input { opacity: 0; width: 0; height: 0; }\n  .slider { position: absolute; inset: 0; border-radius: 999px; background: var(--border); transition: .15s; cursor: pointer; }\n  .slider:before { content: \"\"; position: absolute; width: 24px; height: 24px; left: 3px; top: 3px; border-radius: 50%;\n    background: #fff; transition: .15s; box-shadow: 0 1px 3px rgba(0,0,0,.25); }\n  .switch input:checked + .slider { background: var(--accent); }\n  .switch input:checked + .slider:before { transform: translateX(20px); }\n  .switch.sm { width: 40px; height: 24px; }\n  .switch.sm .slider:before { width: 18px; height: 18px; }\n  .switch.sm input:checked + .slider:before { transform: translateX(16px); }\n  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; }\n  .fact { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; }\n  .fact b { display: block; font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 2px; }\n\n  /* lineup */\n  .slots { display: grid; gap: 6px; }\n  .slot { display: grid; grid-template-columns: 74px 1fr auto; align-items: center; gap: 10px;\n    padding: 8px 10px; border-radius: 10px; background: var(--surface-2); border: 1px solid transparent; }\n  .slot.new { border-color: var(--accent); background: var(--accent-soft); }\n  .slot.bad { border-color: var(--bad); background: var(--bad-soft); }\n  .slot-tag { font-size: 11px; font-weight: 700; letter-spacing: .03em; color: var(--muted); text-transform: uppercase; }\n  .pname { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }\n  .pmeta { font-size: 12px; color: var(--muted); }\n  .rank { font-size: 12px; color: var(--muted); text-align: right; white-space: nowrap; }\n  .tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 6px; margin-left: 6px;\n    vertical-align: 1px; }\n  .tag.in { background: var(--accent); color: var(--accent-ink); }\n  .tag.out { background: var(--bad-soft); color: var(--bad); }\n  .tag.lock { background: var(--surface); color: var(--faint); border: 1px solid var(--border); }\n  .banner { border-radius: 10px; padding: 10px 12px; font-size: 14px; margin: 8px 0; }\n  .banner.ok { background: var(--accent-soft); color: var(--accent); }\n  .banner.warn { background: var(--warn-soft); color: var(--warn); }\n  .banner.bad { background: var(--bad-soft); color: var(--bad); }\n  .banner.info { background: var(--info-soft); color: var(--info); }\n  .claim { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; padding: 10px 12px;\n    border-radius: 10px; background: var(--surface-2); margin-bottom: 6px; }\n  .claim .arrow { color: var(--faint); margin: 0 4px; }\n  .add { color: var(--accent); font-weight: 600; } .drop { color: var(--bad); }\n  details summary { cursor: pointer; color: var(--muted); font-size: 13px; margin-top: 10px; list-style: none; }\n  details summary::-webkit-details-marker { display: none; }\n  details summary:before { content: \"▸ \"; }\n  details[open] summary:before { content: \"▾ \"; }\n  .settings-grid { display: grid; gap: 10px; margin-top: 10px; }\n  .setting { display: flex; align-items: center; justify-content: space-between; gap: 12px; }\n  .setting .label { font-size: 14px; }\n  .setting .hint { font-size: 12px; color: var(--muted); }\n  input[type=range] { width: 140px; accent-color: var(--accent); }\n  input.num { width: 70px; padding: 6px 8px; }\n  .keep { border: 0; background: none; padding: 0 6px 0 0; color: var(--faint); font-size: 15px; font-weight: 400; }\n  .keep.on { color: var(--warn); }\n  code.topic { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--surface-2);\n    padding: 6px 8px; border-radius: 8px; word-break: break-all; }\n\n  /* activity */\n  .feed { display: grid; gap: 2px; }\n  .entry { display: grid; grid-template-columns: 26px 1fr; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--border); }\n  .entry:last-child { border-bottom: 0; }\n  .ico { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; font-size: 13px;\n    background: var(--surface-2); }\n  .ico.change { background: var(--accent-soft); color: var(--accent); }\n  .ico.error { background: var(--bad-soft); color: var(--bad); }\n  .entry pre { margin: 4px 0 0; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted);\n    white-space: pre-wrap; }\n\n  /* login */\n  .center { min-height: 80vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }\n  .center > .card { width: 100%; max-width: 400px; }\n  .login { width: 100%; max-width: 400px; }\n  .login h1 { font-size: 22px; margin: 14px 0 4px; letter-spacing: -.02em; }\n  .code { letter-spacing: .5em; text-align: center; font-size: 22px; font-weight: 700; }\n  .fine { font-size: 12px; color: var(--muted); margin-top: 14px; }\n  .err { color: var(--bad); font-size: 13px; margin-top: 10px; min-height: 1em; }\n\n  /* misc */\n  .skeleton { height: 14px; border-radius: 6px; background: linear-gradient(90deg, var(--surface-2), var(--border), var(--surface-2));\n    background-size: 200% 100%; animation: sh 1.2s infinite; margin: 8px 0; }\n  @keyframes sh { from { background-position: 200% 0; } to { background-position: -200% 0; } }\n  .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent;\n    border-radius: 50%; animation: rot .7s linear infinite; vertical-align: -2px; margin-right: 6px; }\n  @keyframes rot { to { transform: rotate(360deg); } }\n  .toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--text); color: var(--bg);\n    padding: 10px 14px; border-radius: 10px; font-size: 14px; box-shadow: var(--shadow); max-width: calc(100% - 32px);\n    opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; }\n  .toast.show { opacity: 1; }\n  @media (max-width: 480px) {\n    .slot { grid-template-columns: 58px 1fr auto; }\n    .wrap { padding: 12px 12px 40px; }\n  }\n</style>\n</head>\n<body>\n<div class=\"wrap\" id=\"app\"><div class=\"center\"><span class=\"muted\"><span class=\"spin\"></span>Loading…</span></div></div>\n<div class=\"toast\" id=\"toast\"></div>\n<script>\n// Sleeper puts a captcha in front of password logins from other sites, so connecting\n// via sleeper.com is the default; the password form stays as a fallback.\nconst freshLogin = (extra) => Object.assign({ step: 'token', desktop: matchMedia('(pointer: fine)').matches }, extra);\nconst S = { state: null, dash: null, loadingDash: false, busy: {}, login: freshLogin(), dashError: null,\n            update: {} };\n\n// ---- server calls ------------------------------------------------------\n// Every server call goes through call(name, args): an installed update can then add\n// server functions that the pasted code doesn't declare.\nfunction api(fn, ...args) {\n  return new Promise((resolve, reject) => {\n    google.script.run.withSuccessHandler(resolve)\n      .withFailureHandler((e) => reject(new Error(((e && e.message) || String(e)).replace(/^(Error:\\s*)+/, ''))))\n      .call(fn, args);\n  });\n}\n\n// ---- Sleeper login from this browser ------------------------------------\n// Logging in from your own browser looks like a normal login to Sleeper;\n// the same request from Google's servers gets a \"confirm you're human\" wall.\n// URLs are written with \\/\\/ on purpose: when Google serves this page it cuts off\n// everything after \"//\" inside `template` text, as if it were a comment.\nconst SLEEPER_GQL = 'https:\\/\\/api.sleeper.app/graphql';\nconst SLEEPER_LOGIN_URL = 'https:\\/\\/sleeper.com/login';\nconst AVATAR_URL = 'https:\\/\\/sleepercdn.com/avatars/thumbs/';\nconst NTFY_IOS = 'https:\\/\\/apps.apple.com/app/ntfy/id1625396347';\nconst NTFY_ANDROID = 'https:\\/\\/play.google.com/store/apps/details?id=io.heckel.ntfy';\nconst Q_LOGIN = 'query login($e: String!, $p: String!, $c: String) {' +\n  ' login(email_or_phone_or_username: $e, password: $p, captcha: $c) { token } }';\nconst Q_CONTEXT = 'query login_context_by_email_or_phone_or_username($e: String!) {' +\n  ' login_context_by_email_or_phone_or_username(email_or_phone_or_username: $e) }';\nconst M_SEND_CODE = 'mutation create_verification_code($e: String!, $c: String) {' +\n  ' create_verification_code(email_or_phone: $e, captcha: $c) }';\nconst CAPTCHA_MSG = 'Sleeper wants a captcha before it lets this login through. That usually clears if you ' +\n  'leave it alone for an hour; or connect via sleeper.com now.';\n\nclass Blocked extends Error {}\n\nasync function sleeperGql(query, variables) {\n  let r;\n  try {\n    r = await fetch(SLEEPER_GQL, { method: 'POST', headers: { 'Content-Type': 'application/json' },\n                                   body: JSON.stringify({ query, variables }) });\n  } catch (e) {\n    throw new Blocked(e.message);  // the browser wouldn't let us call Sleeper directly\n  }\n  const body = await r.json().catch(() => ({}));\n  if (body.errors && body.errors.length) {\n    const err = new Error(body.errors.map((x) => x.message).join('; '));\n    err.codes = body.errors.map((x) => x.code || (x.extensions && x.extensions.code) || '');\n    throw err;\n  }\n  return body.data || {};\n}\n\nasync function sleeperContext(identifier) {\n  try {\n    return (await sleeperGql(Q_CONTEXT, { e: identifier })).login_context_by_email_or_phone_or_username || {};\n  } catch (e) { return {}; }\n}\n\n/** Returns {token, userId} | {needsCode, sentTo}; throws Blocked if fetch is impossible. */\nasync function browserLogin(identifier, secret) {\n  let data;\n  try {\n    data = await sleeperGql(Q_LOGIN, { e: identifier, p: secret });\n  } catch (e) {\n    if (e instanceof Blocked) throw e;\n    if ((e.codes || []).includes('code_verification_required')) {\n      await sleeperGql(M_SEND_CODE, { e: identifier });\n      const ctx = await sleeperContext(identifier);\n      return { needsCode: true, sentTo: ctx.masked_email || ctx.masked_phone || 'your email' };\n    }\n    if (/human|captcha/i.test(e.message)) throw new Error(CAPTCHA_MSG);\n    throw new Error('Sleeper refused the login: ' + e.message);\n  }\n  if (!data.login || !data.login.token) {\n    throw new Error(/^\\d{4}$/.test(secret) ? \"That code didn't work. Check the latest email from Sleeper.\"\n                                           : \"Sleeper didn't accept that email/username and password.\");\n  }\n  const ctx = await sleeperContext(identifier);\n  return { token: data.login.token, userId: ctx.user_id || null };\n}\n\n// ---- helpers -----------------------------------------------------------\nconst esc = (s) => String(s == null ? '' : s).replace(/[&<>\"']/g, (c) =>\n  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst $ = (sel) => document.querySelector(sel);\n\nfunction ago(ts) {\n  if (!ts) return 'never';\n  const s = Math.round((Date.now() - ts) / 1000);\n  if (s < 60) return 'just now';\n  if (s < 3600) return Math.round(s / 60) + ' min ago';\n  if (s < 86400) return Math.round(s / 3600) + ' h ago';\n  return new Date(ts).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });\n}\nconst when = (ts) => new Date(ts).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });\n\nfunction toast(msg) {\n  const t = $('#toast');\n  t.textContent = msg;\n  t.classList.add('show');\n  clearTimeout(toast._t);\n  toast._t = setTimeout(() => t.classList.remove('show'), 3500);\n}\n\nasync function busy(key, fn) {\n  S.busy[key] = true; render();\n  try { return await fn(); }\n  catch (e) { if (!expired(e)) toast(e.message); throw e; }\n  finally { S.busy[key] = false; render(); }\n}\n\n/** Sleeper rejected the saved session: the server dropped it, so show the login again. */\nfunction expired(e) {\n  if (!/session expired/i.test(e.message)) return false;\n  S.dash = null;\n  S.login = freshLogin({ error: e.message });\n  api('getState').then((st) => { S.state = st; render(); });\n  return true;\n}\n\n// ---- data flow ---------------------------------------------------------\nasync function boot() {\n  try { S.state = await api('getState'); }\n  catch (e) { $('#app').innerHTML = `<div class=\"card banner bad\">${esc(e.message)}</div>`; return; }\n  render();\n  if (S.state.connected) loadDashboard();\n  checkUpdate();\n}\n\nasync function checkUpdate() {\n  try { S.update = { result: await api('checkForUpdate') }; } catch (e) { S.update = {}; }\n  render();\n}\n\nasync function installUpdate() {\n  S.update.error = null;\n  try {\n    const r = await busy('update', () => api('installUpdate', S.update.result.latest.id));\n    S.update.installed = r;\n  } catch (e) { S.update.error = e.message; }\n  render();\n}\n\nconst linkify = (t) => esc(t).replace(/https:\\/\\/[^\\s,)]+/g, (u) => `<a href=\"${u}\" target=\"_blank\">${u}</a>`);\n\nfunction updateBanner() {\n  const U = S.update;\n  const st = S.state || {};\n  if (st.update && st.update.error) {\n    return `<div class=\"card banner bad\"><b>The installed update couldn't load</b>\n      <div class=\"small\" style=\"margin-top:6px\">${esc(st.update.error)}. The app is running the version you pasted.</div>\n      <div style=\"margin-top:8px\"><button class=\"small\" data-action=\"remove-update\">Remove the update</button></div></div>`;\n  }\n  if (U.installed) {\n    const url = U.installed.url;\n    return `<div class=\"card banner ok\">✓ Update “${esc(U.installed.info.title)}” installed.\n      ${url ? `<a href=\"${esc(url)}\" target=\"_top\"><b>Reload the app</b></a>` : 'Reload this page'} to use it.</div>`;\n  }\n  const r = U.result;\n  if (!r || !r.available) return '';\n  const notes = (r.notes || []).map((n) => `<div style=\"margin-top:6px\"><b>${esc(n.title)}</b>\n      <ul style=\"margin:4px 0 0;padding-left:18px\">${n.items.map((i) => `<li>${esc(i)}</li>`).join('')}</ul></div>`).join('');\n  return `<div class=\"card banner info\">\n    <div class=\"row between wrapflex\"><b>Update available</b>\n      <button class=\"small primary\" data-action=\"install-update\" ${S.busy.update ? 'disabled' : ''}>\n        ${S.busy.update ? '<span class=\"spin\"></span>Installing…' : 'Install update'}</button></div>\n    <div class=\"small\">${notes}</div>\n    ${U.error ? `<div class=\"small\" style=\"color:var(--bad);margin-top:8px\">${linkify(U.error)}</div>` : ''}\n  </div>`;\n}\n\nasync function loadDashboard() {\n  S.loadingDash = true; S.dashError = null; render();\n  try {\n    S.dash = await api('getDashboard');\n    S.state = S.dash.state;\n  } catch (e) { if (!expired(e)) S.dashError = e.message; }\n  S.loadingDash = false; render();\n}\n\nfunction replaceLeague(res) {\n  if (!S.dash) return;\n  const i = S.dash.leagues.findIndex((l) => l.id === res.id);\n  if (i >= 0) {\n    const old = S.dash.leagues[i];\n    S.dash.leagues[i] = Object.assign({}, old, res, {\n      lineup: res.lineup || old.lineup, waivers: res.waivers || old.waivers });\n  }\n}\n\n// ---- rendering ---------------------------------------------------------\nfunction render() {\n  const st = S.state;\n  if (!st) return;\n  // Rebuilding the page must not wipe what's being typed or close what's open.\n  const typed = {}, open = {};\n  const fieldKey = (el) => el.form.dataset.form + ':' + el.name;\n  document.querySelectorAll('form[data-form] [name]').forEach((el) => { if (el.value) typed[fieldKey(el)] = el.value; });\n  document.querySelectorAll('details[data-key]').forEach((el) => { open[el.dataset.key] = el.open; });\n  const active = document.activeElement;\n  const activeKey = active && active.form && active.form.dataset.form && active.name ? fieldKey(active) : null;\n  $('#app').innerHTML = st.connected ? appView(st)\n    : loginView().replace('<div class=\"center\">', '<div class=\"center\">' + permissionBanner(st) + updateBanner());\n  document.querySelectorAll('form[data-form] [name]').forEach((el) => {\n    const k = fieldKey(el);\n    if (typed[k] && !el.value) el.value = typed[k];\n    if (k === activeKey) el.focus();\n  });\n  document.querySelectorAll('details[data-key]').forEach((el) => { if (el.dataset.key in open) el.open = open[el.dataset.key]; });\n  const first = document.querySelector('[autofocus]');\n  if (first && !render._focused && !activeKey) { first.focus(); render._focused = true; }\n}\n\nfunction loginView() {\n  const L = S.login;\n  const header = `<div class=\"logo\">⚡</div><h1>Sleeper Autopilot</h1>\n    <div class=\"muted\">Sets your lineups and waiver claims from FantasyPros expert rankings, following each league's rules.</div>`;\n  if (L.step === 'code') {\n    return `<div class=\"center\"><div class=\"card login\">${header}\n      <form data-form=\"code\">\n        <label class=\"field\"><span>Sleeper emailed a 4-digit code to ${esc(L.sentTo)}</span>\n          <input class=\"code\" name=\"code\" inputmode=\"numeric\" maxlength=\"4\" autocomplete=\"one-time-code\" autofocus required></label>\n        <div class=\"err\">${esc(L.error || '')}</div>\n        <button class=\"primary\" style=\"width:100%;margin-top:6px\" ${S.busy.login ? 'disabled' : ''}>\n          ${S.busy.login ? '<span class=\"spin\"></span>Checking…' : 'Verify'}</button>\n      </form>\n      <button class=\"ghost small\" data-action=\"login-restart\" style=\"margin-top:8px\">← Start over</button>\n    </div></div>`;\n  }\n  if (L.step === 'token') {\n    return `<div class=\"center\"><div class=\"card login\">${header}\n      <div class=\"small muted\" style=\"margin-top:14px\"><b>Connect your Sleeper account.</b> Sleeper only lets its own\n        site log you in (it shows a captcha), so log in there and copy your session over. You only do this once.</div>\n      <details data-key=\"phone\" ${L.desktop ? '' : 'open'}><summary>On your phone (Chrome)</summary>\n        <ol class=\"small muted\" style=\"padding-left:18px;margin:8px 0 0\">\n          <li>Copy this helper: <button type=\"button\" class=\"small\" data-action=\"copy-helper\">Copy helper</button>\n            <textarea id=\"helper\" readonly rows=\"2\" class=\"small\" style=\"margin-top:6px;font-family:ui-monospace,Menlo,monospace\">${esc(BOOKMARKLET)}</textarea></li>\n          <li>Bookmark any page (⋮ → ☆), tap <b>Edit</b>, set the name to <b>sleeper login</b> and replace the URL with\n            the helper.</li>\n          <li>Open <a href=\"${SLEEPER_LOGIN_URL}\" target=\"_blank\">sleeper.com/login</a> and log in.</li>\n          <li>There, tap the address bar, type <b>sleeper login</b> and tap the ★ bookmark suggestion. It copies your\n            session (if it shows a box instead, copy the text in it).</li>\n          <li>Come back here and paste it below.</li>\n        </ol></details>\n      <details data-key=\"computer\" ${L.desktop ? 'open' : ''}><summary>On a computer</summary>\n        <ol class=\"small muted\" style=\"padding-left:18px;margin:8px 0 0\">\n          <li>Log in at <a href=\"${SLEEPER_LOGIN_URL}\" target=\"_blank\">sleeper.com</a>.</li>\n          <li>Press <b>F12</b>, open <b>Console</b> and paste this line, then Enter. If Chrome asks, type\n            <b>allow pasting</b> first.\n            <textarea readonly rows=\"2\" class=\"small\" style=\"margin-top:6px;font-family:ui-monospace,Menlo,monospace\">${esc(CONSOLE_LINE)}</textarea></li>\n          <li>Paste the result below.</li>\n        </ol></details>\n      <form data-form=\"token\">\n        <label class=\"field\"><span>Paste your Sleeper session</span><textarea name=\"token\" rows=\"3\" required></textarea></label>\n        <div class=\"err\">${esc(L.error || '')}</div>\n        <button class=\"primary\" style=\"width:100%;margin-top:6px\" ${S.busy.login ? 'disabled' : ''}>\n          ${S.busy.login ? '<span class=\"spin\"></span>Connecting…' : 'Connect'}</button>\n      </form>\n      <button class=\"ghost small\" data-action=\"login-restart\" style=\"margin-top:8px\">Log in with password instead</button>\n    </div></div>`;\n  }\n  return `<div class=\"center\"><div class=\"card login\">${header}\n    <form data-form=\"login\" autocomplete=\"on\">\n      <label class=\"field\"><span>Sleeper email or username</span>\n        <input type=\"text\" name=\"identifier\" autocomplete=\"username\" value=\"${esc(L.identifier || '')}\"\n          ${L.identifier ? '' : 'autofocus'} required></label>\n      <label class=\"field\"><span>Password</span>\n        <input type=\"password\" name=\"password\" autocomplete=\"current-password\" ${L.identifier ? 'autofocus' : ''} required></label>\n      <div class=\"err\">${esc(L.error || '')}</div>\n      ${/captcha/i.test(L.error || '') ? `<button type=\"button\" class=\"small\" data-action=\"login-token\"\n          style=\"width:100%;margin-bottom:8px\">Connect via sleeper.com</button>` : ''}\n      <button class=\"primary\" style=\"width:100%;margin-top:6px\" ${S.busy.login ? 'disabled' : ''}>\n        ${S.busy.login ? '<span class=\"spin\"></span>Logging in…' : 'Log in with Sleeper'}</button>\n    </form>\n    <div class=\"fine\">Your password is only used to log in to Sleeper and is never saved. This page and your Sleeper\n      session live in your own Google account; nobody else can open it.</div>\n    <button class=\"ghost small\" data-action=\"login-token\" style=\"margin-top:6px\">← Connect via sleeper.com</button>\n  </div></div>`;\n}\n\nfunction appView(st) {\n  const u = st.user || {};\n  const avatar = u.avatar ? `<img class=\"avatar\" src=\"${AVATAR_URL}${esc(u.avatar)}\" alt=\"\">` : '';\n  return `<header>\n      <div class=\"brand\"><div class=\"logo\">⚡</div>Sleeper Autopilot</div>\n      <div class=\"who\">${avatar}<span>${esc(u.display_name || '')}</span>\n        <button class=\"ghost small\" data-action=\"logout\" title=\"Disconnect\">Log out</button></div>\n    </header>\n    ${permissionBanner(st)}\n    ${updateBanner()}\n    ${statusCard(st)}\n    ${alertsCard(st)}\n    ${S.dashError ? `<div class=\"card banner bad\">Couldn't load your leagues: ${esc(S.dashError)}\n        <div style=\"margin-top:8px\"><button class=\"small\" data-action=\"reload\">Try again</button></div></div>` : ''}\n    ${S.loadingDash && !S.dash ? skeletonCards() : ''}\n    ${S.dash ? S.dash.leagues.map(leagueCard).join('') : ''}\n    ${activityCard(st.log || [])}\n    <div class=\"faint small\" style=\"text-align:center;margin-top:18px\">\n      Rankings: FantasyPros ECR · Data: Sleeper · Refreshed ${S.dash ? 'week ' + esc(S.dash.week) : '…'}\n      · <a href=\"#\" data-action=\"reload\" style=\"color:inherit\">refresh</a>\n      <br>Version: ${esc((st.build || {}).title || '?')} · ${esc((st.build || {}).id || '')}\n      ${st.update && st.update.installed ? ' (installed update)' : ''}</div>`;\n}\n\nfunction permissionBanner(st) {\n  const p = st.permissions;\n  if (!p) return '';\n  return `<div class=\"card banner bad\"><b>Google permission missing</b>\n    <div class=\"small\" style=\"margin-top:6px\">The app can't reach Sleeper or run in the background until you approve\n      every permission (tick “Select all” on Google's screen), then reload this page.</div>\n    <div style=\"margin-top:8px\"><a class=\"chip accent\" href=\"${esc(p.url)}\" target=\"_blank\">Approve in Google</a></div>\n  </div>`;\n}\n\nfunction statusCard(st) {\n  const on = st.mode === 'auto';\n  const t = st.lastTick;\n  const tickTxt = t ? `${esc(t.msg)} <span class=\"faint\">(${ago(t.ts)})</span>` : 'Not run yet';\n  const exp = st.tokenExpires ? when(st.tokenExpires * 1000) : 'not stated by Sleeper';\n  const expSoon = st.tokenExpires && st.tokenExpires * 1000 - Date.now() < 7 * 86400000;\n  return `<div class=\"card hero\">\n    <div class=\"row between\">\n      <div class=\"row\"><span class=\"status-dot ${on ? 'on' : 'off'}\"></span>\n        <div><div class=\"hero-title\">${on ? 'Autopilot is on' : 'Suggestions only'}</div>\n          <div class=\"muted small\">${on ? 'Changes your lineups (and claims where enabled) automatically.'\n                                         : 'Nothing is changed on Sleeper until you turn autopilot on or tap Apply.'}</div></div></div>\n      <label class=\"switch\" title=\"Autopilot\"><input type=\"checkbox\" data-action=\"mode\" ${on ? 'checked' : ''}\n        ${S.busy.mode ? 'disabled' : ''}><span class=\"slider\"></span></label>\n    </div>\n    <div class=\"facts\">\n      <div class=\"fact\"><b>Last check</b>${t && t.status === 'error' ? `<span style=\"color:var(--bad)\">${tickTxt}</span>` : tickTxt}</div>\n      <div class=\"fact\"><b>Schedule</b>Every 30 min: lineups before games, claims the evening before waivers.</div>\n      <div class=\"fact\"><b>Sleeper session</b>${expSoon ? '<span style=\"color:var(--warn)\">Expires ' + exp + '</span>' : 'Valid · expires ' + exp}</div>\n    </div>\n    <div class=\"row wrapflex\">\n      <button class=\"small\" data-action=\"run-now\" ${S.busy.run ? 'disabled' : ''}>\n        ${S.busy.run ? '<span class=\"spin\"></span>Running…' : 'Check lineups now'}</button>\n      <span class=\"faint small\">${st.autopilotScheduled ? 'Background checks scheduled.' : 'Background checks not scheduled yet.'}</span>\n    </div>\n  </div>`;\n}\n\nfunction alertsCard(st) {\n  const a = st.alerts || {};\n  if (!a.on) {\n    return `<div class=\"card\"><div class=\"row between\"><div><b>Phone alerts</b>\n        <div class=\"small muted\">A push notification when something needs you (session expired, a failed save, a starter\n          who can't play) and, if you want, when the autopilot changes something.</div></div>\n      <button class=\"small primary\" data-action=\"alerts-on\" ${S.busy.alerts ? 'disabled' : ''}>Turn on</button></div></div>`;\n  }\n  return `<div class=\"card\"><div class=\"row between\"><b>Phone alerts are on</b>\n      <button class=\"ghost small\" data-action=\"alerts-off\">Turn off</button></div>\n    <ol class=\"small muted\" style=\"padding-left:18px;margin:8px 0 0\">\n      <li>Install the free <b>ntfy</b> app (<a href=\"${NTFY_IOS}\" target=\"_blank\">iPhone</a> ·\n        <a href=\"${NTFY_ANDROID}\" target=\"_blank\">Android</a>).</li>\n      <li style=\"margin-top:4px\">In ntfy, tap <b>+</b>, paste this topic and tap <b>Subscribe</b>:\n        <div class=\"row\" style=\"margin-top:6px\"><code class=\"topic\">${esc(a.topic)}</code>\n          <button class=\"small\" data-action=\"copy-topic\">Copy</button></div></li>\n      <li style=\"margin-top:6px\"><button class=\"small\" data-action=\"alerts-test\" ${S.busy.alertTest ? 'disabled' : ''}>\n        ${S.busy.alertTest ? '<span class=\"spin\"></span>Sending…' : 'Send a test alert'}</button></li>\n    </ol>\n    <div class=\"setting\" style=\"margin-top:12px\"><div><div class=\"label\">Also tell me about changes</div>\n        <div class=\"hint\">Lineups saved and claims submitted, not just problems</div></div>\n      <label class=\"switch sm\"><input type=\"checkbox\" data-action=\"alerts-changes\" ${a.changes ? 'checked' : ''}>\n        <span class=\"slider\"></span></label></div>\n    <div class=\"fine\">Alerts go through ntfy.sh, a free public service. Anyone who knows this topic could read them, so\n      keep it to yourself. They only contain league and player names.</div></div>`;\n}\n\nfunction skeletonCards() {\n  return [1, 2].map(() => `<div class=\"card\"><div class=\"skeleton\" style=\"width:40%\"></div>\n    <div class=\"skeleton\"></div><div class=\"skeleton\" style=\"width:80%\"></div><div class=\"skeleton\" style=\"width:60%\"></div>\n    <div class=\"muted small\" style=\"margin-top:10px\"><span class=\"spin\"></span>Pulling rosters from Sleeper and rankings from FantasyPros…</div></div>`).join('');\n}\n\nfunction rankTxt(p) {\n  if (p.posRank && p.rank) return `${esc(p.posRank)} · #${p.rank}`;\n  if (p.rank) return '#' + p.rank;\n  return '<span class=\"faint\">unranked</span>';\n}\n\n// ☆/★: never let the waiver plan drop this player.\nfunction keepBtn(p, leagueId) {\n  if (!p.tracked) return '';\n  return `<button class=\"keep ${p.keep ? 'on' : ''}\" data-action=\"keep\" data-league=\"${esc(leagueId)}\" data-player=\"${esc(p.id)}\"\n    title=\"${p.keep ? 'Kept: never dropped. Tap to allow drops.' : 'Tap to never drop him'}\">${p.keep ? '★' : '☆'}</button>`;\n}\n\nfunction playerCell(p) {\n  const tags = [];\n  if (p.isNew) tags.push('<span class=\"tag in\">IN</span>');\n  if (p.why) tags.push(`<span class=\"tag out\">${esc(p.why)}</span>`);\n  if (p.locked) tags.push('<span class=\"tag lock\" title=\"Game started: locked\">🔒</span>');\n  return `<div style=\"min-width:0\"><div class=\"pname\">${esc(p.name)}${tags.join('')}</div>\n    <div class=\"pmeta\">${esc(p.pos || '')}${p.team ? ' · ' + esc(p.team) : ''}</div></div>`;\n}\n\nfunction leagueCard(lg) {\n  const cfg = lg.settings || {};\n  return `<div class=\"card\">\n    <div class=\"row between wrapflex\">\n      <h2>${esc(lg.name)}</h2>\n    </div>\n    <div class=\"chips\">${lg.flags.map((f, i) => `<span class=\"chip ${i < 2 ? 'accent' : ''}\">${esc(f)}</span>`).join('')}</div>\n    ${lg.notes.map((n) => `<div class=\"banner info\">${esc(n)}</div>`).join('')}\n    ${lg.lineup ? lineupSection(lg) : ''}\n    ${lg.waivers ? waiverSection(lg) : ''}\n    ${settingsSection(lg, cfg)}\n  </div>`;\n}\n\nfunction lineupSection(lg) {\n  const L = lg.lineup;\n  let body;\n  if (L.error) body = `<div class=\"banner bad\">${esc(L.error)}</div>`;\n  else if (L.skipped) body = `<div class=\"banner info\">${esc(L.skipped)}</div>`;\n  else {\n    const status = L.applied ? '<div class=\"banner ok\">✓ Lineup saved to Sleeper.</div>'\n      : L.applyError ? `<div class=\"banner bad\">Couldn't save: ${esc(L.applyError)}</div>`\n      : L.changes ? `<div class=\"banner warn row between wrapflex\"><span><b>${L.changes} change${L.changes > 1 ? 's' : ''}</b>\n            recommended${L.benched.length ? ': bench ' + L.benched.map((p) => esc(p.name) + (p.why ? ' (' + esc(p.why) + ')' : '')).join(', ') : ''}</span>\n            <button class=\"small primary\" data-action=\"apply-lineup\" data-league=\"${esc(lg.id)}\" ${S.busy['l' + lg.id] ? 'disabled' : ''}>\n              ${S.busy['l' + lg.id] ? '<span class=\"spin\"></span>Saving…' : 'Apply now'}</button></div>`\n      : '<div class=\"banner ok\">✓ Lineup is already optimal.</div>';\n    body = status + L.warnings.map((w) => `<div class=\"banner bad\">⚠ ${esc(w)}</div>`).join('') +\n      `<div class=\"slots\">${L.lineup.map((p) => `<div class=\"slot ${p.isNew ? 'new' : ''} ${p.why && !p.locked ? 'bad' : ''}\">\n          <div class=\"slot-tag\">${esc(p.slot.replace('SUPER_FLEX', 'SFLEX').replace('WRRB_FLEX', 'W/R').replace('REC_FLEX', 'W/T'))}</div>\n          ${playerCell(p)}<div class=\"rank\">${keepBtn(p, lg.id)}${rankTxt(p)}</div></div>`).join('')}</div>\n      ${L.bench.length ? `<details data-key=\"bench-${esc(lg.id)}\"><summary>Bench (${L.bench.length})</summary><div class=\"slots\" style=\"margin-top:8px\">\n        ${L.bench.map((p) => `<div class=\"slot\"><div class=\"slot-tag\">BN</div>${playerCell(p)}<div class=\"rank\">${keepBtn(p, lg.id)}${rankTxt(p)}</div></div>`).join('')}\n      </div></details>` : ''}`;\n  }\n  return `<h3>Week ${esc(L.week || '')} lineup</h3>${body}`;\n}\n\nfunction waiverSection(lg) {\n  const W = lg.waivers, cfg = lg.settings || {};\n  if (W.error) return `<h3>Waivers</h3><div class=\"banner bad\">${esc(W.error)}</div>`;\n  const basis = (c) => (c.kind === 'upgrade' ? 'ROS ' : 'this week ');\n  const kinds = { upgrade: 'upgrade', stream: 'stream', cover: 'fill-in' };\n  const claims = W.claims.map((c) => `<div class=\"claim\">\n      <div><span class=\"add\">+ ${esc(c.add.name)}</span> <span class=\"faint small\">${esc(c.add.pos)} ${esc(c.add.team || '')}\n        · ${basis(c)}${rankTxt(c.add)}</span>\n        ${c.drop ? `<div class=\"small\"><span class=\"drop\">− ${esc(c.drop.name)}</span>${c.drop.why ? `<span class=\"tag out\">${esc(c.drop.why)}</span>` : ''}\n          <span class=\"faint\">${esc(c.drop.pos)} · ${basis(c)}${rankTxt(c.drop)}</span>\n          <button class=\"keep\" data-action=\"keep\" data-league=\"${esc(lg.id)}\" data-player=\"${esc(c.drop.id)}\"\n            title=\"Never drop him\">☆ keep</button></div>`\n          : '<div class=\"small faint\">No drop needed (open roster spot)</div>'}\n        ${c.error ? `<div class=\"small\" style=\"color:var(--bad)\">Failed: ${esc(c.error)}</div>` : ''}</div>\n      <div class=\"small\" style=\"text-align:right\">${c.bid != null ? `<b>$${c.bid}</b><br>` : ''}\n        ${c.submitted ? '<span style=\"color:var(--accent)\">✓ submitted</span>' : `<span class=\"faint\">${kinds[c.kind] || esc(c.kind)}</span>`}</div>\n    </div>`).join('');\n  const when = cfg.auto_waivers ? (S.state.mode === 'auto' ? 'Autopilot will submit these the evening before waivers run.'\n                                                           : 'Turn autopilot on to submit these automatically.')\n                                : 'Auto-claims are off for this league.';\n  return `<h3>Waiver plan</h3>\n    ${W.changed ? '<div class=\"banner warn\">The plan changed since the page loaded, so nothing was sent. Check the claims below and submit again.</div>' : ''}\n    ${W.submitError ? `<div class=\"banner bad\">${esc(W.submitError)}</div>` : ''}\n    ${W.priority && W.priority.rolling ? `<div class=\"small muted\">Waiver priority #${W.priority.position} of ${W.priority.teams} (rolling: a claim sends you to the back).</div>` : ''}\n    ${W.pending ? `<div class=\"banner info\">${W.pending} claim${W.pending > 1 ? 's' : ''} already pending on Sleeper (not repeated).</div>` : ''}\n    ${W.claims.length ? claims : '<div class=\"banner ok\">No pickups clearly better than your roster right now.</div>'}\n    ${W.notes.map((n) => `<div class=\"small faint\">• ${esc(n)}</div>`).join('')}\n    ${W.claims.length && !W.pendingUnknown ? `<div class=\"row between wrapflex\" style=\"margin-top:8px\"><span class=\"small muted\">${esc(when)}</span>\n      <button class=\"small\" data-action=\"submit-claims\" data-league=\"${esc(lg.id)}\" ${S.busy['w' + lg.id] ? 'disabled' : ''}>\n        ${S.busy['w' + lg.id] ? '<span class=\"spin\"></span>Submitting…' : 'Submit claims now'}</button></div>` : ''}\n    <div class=\"small faint\" style=\"margin-top:6px\">Based on ${esc(W.basis)}.</div>`;\n}\n\nfunction settingsSection(lg, cfg) {\n  const id = esc(lg.id);\n  const toggle = (key, label, hint) => `<div class=\"setting\"><div><div class=\"label\">${label}</div>\n      ${hint ? `<div class=\"hint\">${hint}</div>` : ''}</div>\n      <label class=\"switch sm\"><input type=\"checkbox\" data-setting=\"${key}\" data-league=\"${id}\" ${cfg[key] ? 'checked' : ''}>\n      <span class=\"slider\"></span></label></div>`;\n  const qb = lg.superflex ? `<div class=\"setting\"><div><div class=\"label\">Lean towards a 2nd QB</div>\n      <div class=\"hint\">SUPER_FLEX: a QB counts <b data-out=\"qb-${id}\">${cfg.superflex_qb_bonus}</b> ECR spots better</div></div>\n      <input type=\"range\" min=\"0\" max=\"40\" step=\"5\" value=\"${cfg.superflex_qb_bonus}\" data-setting=\"superflex_qb_bonus\"\n        data-league=\"${id}\"></div>` : '';\n  return `<details data-key=\"settings-${id}\"><summary>League settings</summary><div class=\"settings-grid\">\n      ${toggle('auto_lineup', 'Auto lineup', 'Autopilot sets the best lineup before games')}\n      ${toggle('auto_waivers', 'Auto waiver claims', 'Autopilot submits the waiver plan before waivers process')}\n      ${toggle('stream_k_def', 'Stream K / DEF', 'Swap kicker/defense for clearly better matchups')}\n      ${toggle('cover_byes', 'Cover byes and injuries', 'One-week pickup when a starter can\\'t play and your bench can\\'t fill in')}\n      ${qb}\n      <div class=\"setting\"><div><div class=\"label\">Upgrade claims per week</div>\n        <div class=\"hint\">K/DEF streams come on top of these</div></div>\n        <input class=\"num\" type=\"number\" min=\"0\" max=\"5\" value=\"${cfg.max_claims}\" data-setting=\"max_claims\" data-league=\"${id}\"></div>\n      <div class=\"setting\"><div><div class=\"label\">Minimum upgrade</div><div class=\"hint\">ROS ECR spots a pickup must gain</div></div>\n        <input class=\"num\" type=\"number\" min=\"0\" max=\"200\" step=\"5\" value=\"${cfg.min_gain}\" data-setting=\"min_gain\" data-league=\"${id}\"></div>\n    </div></details>`;\n}\n\nfunction activityCard(log) {\n  const icon = { change: '✓', error: '!', warn: '!', info: '•' };\n  const items = log.slice(0, 25).map((e) => `<div class=\"entry\">\n      <div class=\"ico ${esc(e.level)}\">${icon[e.level] || '•'}</div>\n      <div><div class=\"row between\"><b style=\"font-size:14px\">${esc(e.title)}</b><span class=\"faint small\">${ago(e.ts)}</span></div>\n        ${e.league ? `<div class=\"small muted\">${esc(e.league)}</div>` : ''}\n        ${e.lines && e.lines.length ? `<pre>${esc(e.lines.join('\\n'))}</pre>` : ''}</div></div>`).join('');\n  return `<div class=\"card\"><h2>Activity</h2>\n    <div class=\"feed\" style=\"margin-top:6px\">${items || '<div class=\"muted small\">Nothing yet. Changes the autopilot makes show up here.</div>'}</div></div>`;\n}\n\n// ---- events ------------------------------------------------------------\n// For the DevTools console on sleeper.com.\nconst CONSOLE_LINE = 'copy(JSON.stringify({token: localStorage.token, user_id: localStorage.user_id}))';\n// Runs on sleeper.com: copies the session sleeper.com keeps in localStorage.\nconst BOOKMARKLET = \"javascript:(()=>{const t=localStorage.getItem('token'),u=localStorage.getItem('user_id');\" +\n  \"if(!t){alert('Log in to sleeper.com first, then tap this again.');return}\" +\n  \"const s=JSON.stringify({token:t,user_id:u});navigator.clipboard.writeText(s)\" +\n  \".then(()=>alert('Copied! Go back to Sleeper Autopilot and paste.'),()=>prompt('Copy this, then paste it into Sleeper Autopilot:',s))})()\";\n\ndocument.addEventListener('submit', async (ev) => {\n  const form = ev.target.closest('form[data-form]');\n  if (!form) return;\n  ev.preventDefault();\n  const f = Object.fromEntries(new FormData(form));\n  S.login.error = null;\n  try {\n    if (form.dataset.form === 'login') {\n      S.login.identifier = f.identifier;\n      const r = await busy('login', async () => {\n        try {\n          const b = await browserLogin(f.identifier, f.password);\n          return b.token ? api('connectWithToken', b.token, f.identifier, b.userId) : Object.assign(b, { via: 'browser' });\n        } catch (e) {\n          if (!(e instanceof Blocked)) throw e;\n          return Object.assign(await api('login', f.identifier, f.password), { via: 'server' });\n        }\n      });\n      if (r.needsCode) {\n        S.login = { step: 'code', sentTo: r.sentTo, via: r.via, identifier: f.identifier };\n        render._focused = false; render(); return;\n      }\n      S.state = r;\n    } else if (form.dataset.form === 'code') {\n      const L = S.login;\n      S.state = await busy('login', async () => {\n        if (L.via === 'server') return api('verifyCode', f.code);\n        const b = await browserLogin(L.identifier, String(f.code).trim());\n        return api('connectWithToken', b.token, L.identifier, b.userId);\n      });\n    } else if (form.dataset.form === 'token') {\n      S.state = await busy('login', () => api('connectWithToken', f.token, f.username || null, null));\n    }\n    S.login = freshLogin();\n    render();\n    toast('Connected to Sleeper');\n    loadDashboard();\n  } catch (e) {\n    S.login.error = e.message; render._focused = false; render();\n  }\n});\n\ndocument.addEventListener('click', async (ev) => {\n  const el = ev.target.closest('[data-action]');\n  if (!el || el.matches('input')) return;\n  const a = el.dataset.action, id = el.dataset.league;\n  if (a === 'reload') { ev.preventDefault(); loadDashboard(); }\n  if (a === 'install-update') installUpdate();\n  if (a === 'remove-update') {\n    S.state = await api('removeUpdate');\n    S.update = {}; render(); toast('Update removed. Reload the app.');\n  }\n  if (a === 'login-token') {\n    S.login = { step: 'token', desktop: matchMedia('(pointer: fine)').matches };\n    render._focused = false; render();\n  }\n  if (a === 'copy-helper') {\n    const done = () => toast('Helper copied. Now make the bookmark.');\n    navigator.clipboard.writeText(BOOKMARKLET).then(done, () => {\n      const t = $('#helper'); t.select();\n      toast(document.execCommand('copy') ? 'Helper copied. Now make the bookmark.' : 'Long-press the text and copy it.');\n    });\n  }\n  if (a === 'alerts-on') {\n    S.state = await busy('alerts', () => api('saveAlerts', { on: true }));\n    render(); toast('Alerts on: now subscribe in the ntfy app');\n  }\n  if (a === 'alerts-off') {\n    if (!confirm('Turn phone alerts off?')) return;\n    S.state = await busy('alerts', () => api('saveAlerts', { on: false }));\n    render(); toast('Alerts off');\n  }\n  if (a === 'alerts-test') {\n    await busy('alertTest', () => api('testAlert'));\n    toast('Test alert sent: it should show up in ntfy within seconds');\n  }\n  if (a === 'copy-topic') {\n    navigator.clipboard.writeText(S.state.alerts.topic).then(() => toast('Topic copied'), () => toast('Long-press the topic to copy it'));\n  }\n  if (a === 'keep') {\n    const lg = S.dash && S.dash.leagues.find((l) => l.id === id);\n    const pid = el.dataset.player;\n    const cur = ((lg && lg.settings.never_drop) || []).map(String);\n    const on = !cur.includes(pid);\n    await busy('keep', () => api('saveLeagueSettings', id, { never_drop: on ? cur.concat(pid) : cur.filter((x) => x !== pid) }));\n    toast(on ? 'Kept: the waiver plan will never drop him' : 'He can be dropped again');\n    loadDashboard();\n  }\n  if (a === 'login-restart') { S.login = { step: 'password' }; render._focused = false; render(); }\n  if (a === 'logout') {\n    if (!confirm('Disconnect from Sleeper? The autopilot stops until you log in again.')) return;\n    S.state = await api('logout'); S.dash = null; render();\n  }\n  if (a === 'run-now') {\n    S.state = await busy('run', () => api('runNow'));\n    toast(S.state.lastTick ? S.state.lastTick.msg : 'Done');\n    loadDashboard();\n  }\n  if (a === 'apply-lineup') {\n    const res = await busy('l' + id, () => api('applyLineup', id));\n    replaceLeague(res);\n    S.state = await api('getState'); render();\n    toast(res.lineup && res.lineup.applied ? 'Lineup saved to Sleeper' : 'Nothing saved');\n  }\n  if (a === 'submit-claims') {\n    if (!confirm('Submit these waiver claims to Sleeper now?')) return;\n    // Send what's on screen: the server only submits it if its fresh plan still matches.\n    const lg = S.dash && S.dash.leagues.find((l) => l.id === id);\n    const shown = lg && lg.waivers ? lg.waivers.claims.map((c) => [c.add.id, c.drop ? c.drop.id : null,\n                                                                   c.bid == null ? null : c.bid]) : [];\n    const res = await busy('w' + id, () => api('submitClaims', id, shown));\n    replaceLeague(res);\n    S.state = await api('getState'); render();\n    const w = res.waivers || {};\n    toast(w.changed ? 'The plan changed: check it and submit again' : w.submitError || w.error ? 'Nothing sent'\n          : w.claims.some((c) => c.error) ? 'Some claims failed' : 'Claims sent');\n  }\n});\n\ndocument.addEventListener('change', async (ev) => {\n  const el = ev.target;\n  if (el.dataset.action === 'mode') {\n    const mode = el.checked ? 'auto' : 'suggest';\n    if (mode === 'auto' && !confirm('Turn autopilot on? It will change lineups on Sleeper by itself '\n        + '(and submit claims in leagues where you enabled auto claims).')) { el.checked = false; return; }\n    S.state = await busy('mode', () => api('setMode', mode));\n    render();\n    toast(mode === 'auto' ? 'Autopilot on' : 'Autopilot paused');\n    return;\n  }\n  if (el.dataset.action === 'alerts-changes') {\n    S.state = await api('saveAlerts', { changes: el.checked });\n    toast('Saved');\n    return;\n  }\n  if (el.dataset.setting) {\n    const key = el.dataset.setting, id = el.dataset.league;\n    const val = el.type === 'checkbox' ? el.checked : Number(el.value);\n    const cfg = await api('saveLeagueSettings', id, { [key]: val });\n    const lg = S.dash && S.dash.leagues.find((l) => l.id === id);\n    if (lg) lg.settings = cfg;\n    toast('Saved');\n    // These change the plan itself; the others only change what the page says about it.\n    if (['superflex_qb_bonus', 'stream_k_def', 'cover_byes', 'max_claims', 'min_gain'].includes(key)) loadDashboard();\n    else render();\n  }\n});\n\ndocument.addEventListener('input', (ev) => {\n  const el = ev.target;\n  if (el.dataset.setting === 'superflex_qb_bonus') {\n    const out = document.querySelector(`[data-out=\"qb-${el.dataset.league}\"]`);\n    if (out) out.textContent = el.value;\n  }\n});\n\nboot();\n</script>\n</body>\n</html>\n";
+var BUILD_INFO = {"id":"be75f8501e","version":12,"title":"Phone alerts, bye-week fill-ins, smarter lineups","notes":[{"title":"Phone alerts, bye-week fill-ins, smarter lineups","items":["Phone alerts (optional, through the free ntfy app): when something needs you, when the autopilot changes something, and when an update is out. In suggestions-only mode they tell you what to change.","When a starter at any position is on bye or out and your bench can't fill in, the waiver plan picks up a one-week fill-in (until now only kickers and defenses got one).","Tap ☆ next to a player to keep him: the waiver plan will never drop him.","6-point passing TDs (both your leagues) now count: QBs get a bigger superflex lean and higher waiver values.","Rolling waivers (Wolfpack): with a high priority, upgrades must gain twice as much, and kicker/defense matchup swaps are skipped so the priority isn't wasted.","Of two close starters, the later game goes in the flex, so a late scratch can still be swapped; a Questionable player needs to rank clearly better than a healthy one.","Lighter on Sleeper: quiet checks download nothing, and the player list is fetched every 6 hours plus once after each game's inactives are announced.","The buttons wait for a running background check, so two saves never overlap."]},{"title":"Safety fixes from a full review","items":["If Sleeper's player list fails to download, the app keeps using its last copy, and it never takes a player out of your lineup without putting someone in.","\"Check lineups now\" no longer changes anything in suggestions-only mode; it only tells you what it would change.","\"Submit claims now\" sends exactly the claims on screen. If the plan changed since the page loaded, nothing is sent and you see the new plan.","Waiver plans no longer drop the same player twice, treat a pending no-drop claim's roster spot as free, or let an injured pickup replace a healthy player you need.","If your pending claims can't be read, no claims are submitted (they could repeat yours); the autopilot tries again later.","Leagues with Monday waivers get their claims on Sunday evening instead of almost a week late.","Failed checks now show as errors under \"Last check\" and are logged once, and a problem in one league no longer stops the other.","Smaller fixes: no false bye warnings for defensive (IDP) players, text you're typing survives the update check, toggles update the page right away, and updates come from main once the app is merged there."]},{"title":"Waiver fixes: weekly limit, kicker byes","items":["Claims already pending on Sleeper now count toward your weekly limit, so no surprise extra suggestions.","When your top kicker/defense is on bye, it adds a one-week replacement by dropping an easy-to-replace bench player instead of leaving the spot empty.","After the bye, the spare kicker/defense is the first player dropped for the next pickup."]},{"title":"Lineups actually save","items":["\"Apply now\" (and the autopilot) now save the lineup for the right week: Sleeper keeps one lineup per week, and the old call only covered the league's current week, which lags a day behind. Sleeper quietly ignored it.","After saving, the app checks what Sleeper stored and shows an error if it didn't take.","No more pointless slot swaps (e.g. two RBs trading the RB and flex spots)."]},{"title":"Smarter waiver claims","items":["Won't drop a top-12 kicker or defense just to stream one week (e.g. during his bye).","Won't stack extra QBs/TEs beyond useful depth at the cost of other positions; a 4th QB can only replace a QB.","Injured (Out/IR) players no longer count toward position minimums, so it keeps enough healthy starters."]},{"title":"Fix garbled \"On a computer\" steps","items":["Google cut off everything after \"//\" in the sleeper.com links, which scrambled the connect steps (and would have broken your profile picture). Links are now written so nothing gets cut."]},{"title":"Updates without Google's script API","items":["\"Install update\" now stores the new version inside the app, so it no longer needs Google's Apps Script API, a Cloud project or extra permissions.","If an installed update ever fails to load, the app runs the version you pasted and offers to remove the update."]},{"title":"Connect via sleeper.com first","items":["Fixes \"Invalid argument …/user/\\\"…\\\"\": the user id copied from sleeper.com comes wrapped in quotes.","The app now opens on \"Connect via sleeper.com\", since Sleeper blocks password logins from other sites with a captcha.","Checks which Google permissions you actually granted (Google's screen has a checkbox for each) and shows an \"Approve in Google\" button for any that are missing."]}]};
 loadInstalledUpdate_();

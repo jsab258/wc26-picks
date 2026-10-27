@@ -3,6 +3,16 @@
 Newest first. Each `##` entry becomes the release notes shown by the app's
 "Install update" button. Add one with every change to Code.gs / Index.html.
 
+## Phone alerts, bye-week fill-ins, smarter lineups
+- Phone alerts (optional, through the free ntfy app): when something needs you, when the autopilot changes something, and when an update is out. In suggestions-only mode they tell you what to change.
+- When a starter at any position is on bye or out and your bench can't fill in, the waiver plan picks up a one-week fill-in (until now only kickers and defenses got one).
+- Tap ☆ next to a player to keep him: the waiver plan will never drop him.
+- 6-point passing TDs (both your leagues) now count: QBs get a bigger superflex lean and higher waiver values.
+- Rolling waivers (Wolfpack): with a high priority, upgrades must gain twice as much, and kicker/defense matchup swaps are skipped so the priority isn't wasted.
+- Of two close starters, the later game goes in the flex, so a late scratch can still be swapped; a Questionable player needs to rank clearly better than a healthy one.
+- Lighter on Sleeper: quiet checks download nothing, and the player list is fetched every 6 hours plus once after each game's inactives are announced.
+- The buttons wait for a running background check, so two saves never overlap.
+
 ## Safety fixes from a full review
 - If Sleeper's player list fails to download, the app keeps using its last copy, and it never takes a player out of your lineup without putting someone in.
 - "Check lineups now" no longer changes anything in suggestions-only mode; it only tells you what it would change.

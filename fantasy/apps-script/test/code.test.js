@@ -168,6 +168,7 @@ function fixtureGas(nowMs) {
   gas.sleeper_ = (p) => (p === '/state/nfl' ? { week: 7, league_season: '2026' }
     : p.includes('/leagues/') ? [LEAGUE] : p.endsWith('/rosters') ? [ROSTER, { roster_id: 2, owner_id: 'x', players: ['wr_x'] }] : null);
   gas.pendingWaivers_ = () => [];
+  gas.latestBuild_ = () => null;   // no GitHub from the fixtures
   gas.setStarters_ = (...a) => writes.push(['starters', ...a.slice(1)]);
   gas.submitClaim_ = (...a) => writes.push(['claim', ...a.slice(1)]);
   gas.__props.setProperty('token', 'a.b.c');
@@ -712,4 +713,228 @@ test('removing an update frees its storage', () => {
   assert.ok(gas.__props.getProperty('engine#3'));
   gas.removeUpdate();
   assert.deepEqual(Object.keys(gas.__props._data).filter((k) => k.startsWith('engine#')), []);
+});
+
+// ---- improvements: lineups ------------------------------------------------------
+const opRow = (id) => LISTS['ppr-superflex'].players.find((r) => r[0] === id);
+function withChanges(apply, fn) {
+  const undo = [];
+  try {
+    apply((obj, key, val) => { undo.push([obj, key, obj[key], key in obj]); obj[key] = val; });
+    return fn();
+  } finally {
+    undo.reverse().forEach(([obj, key, old, had]) => { if (had) obj[key] = old; else delete obj[key]; });
+  }
+}
+
+test('lineup: of two close starters, the later game goes in the flex', () => {
+  withChanges((set) => {
+    set(LEAGUE, 'roster_positions', ['QB', 'RB', 'WR', 'TE', 'FLEX', 'SUPER_FLEX', 'K', 'DEF', 'BN', 'BN']);
+    set(ROSTER, 'starters', ['qb_a', 'rb_c', 'wr_e', 'te_g', 'rb_d', 'qb_b', 'k_1', 'DET']);
+    set(opRow('rb_c'), 8, KICK + 3 * 86400);   // Monday night
+  }, () => {
+    const { gas } = fixtureGas(NOW);
+    const l = gas.getDashboard().leagues[0].lineup;
+    assert.deepEqual(plain(l.lineup.map((p) => [p.slot, p.id])).slice(1, 5),
+                     [['RB', 'rb_d'], ['WR', 'wr_e'], ['TE', 'te_g'], ['FLEX', 'rb_c']]);
+    assert.equal(l.changes, 2);
+  });
+});
+
+test('lineup: a Questionable player needs to rank clearly better than a healthy one', () => {
+  withChanges((set) => {
+    set(PLAYERS, 'wr_y', ['wr_y', 'WR', 'CHI', null, null]);
+    set(PLAYERS, 'wr_e', ['wr_e', 'WR', 'MIA', 'Questionable', null]);
+    set(ROSTER, 'players', ROSTER.players.concat('wr_y'));
+    set(LISTS['ppr-superflex'], 'players', LISTS['ppr-superflex'].players.concat(
+      [['wr_y', 'wr_y', 'WR', 'CHI', 11, 'WR2', '14', 'vs. X', KICK, 'created']]));
+    set(LEAGUE, 'roster_positions', LEAGUE.roster_positions.concat('BN'));
+  }, () => {
+    const { gas } = fixtureGas(NOW);
+    const l = gas.getDashboard().leagues[0].lineup;
+    assert.equal(l.lineup.find((p) => p.slot === 'WR').id, 'wr_y');   // 10 + 2 > 11
+  });
+});
+
+test('lineup: 6-point passing TDs tip the superflex towards the QB', () => {
+  withChanges((set) => set(opRow('qb_b'), 4, 58), () => {
+    const sf = (gas) => gas.getDashboard().leagues[0].lineup.lineup.find((p) => p.slot === 'SUPER_FLEX').id;
+    assert.equal(sf(fixtureGas(NOW).gas), 'rb_d');                         // 58 - 10 > 45
+    withChanges((set) => set(LEAGUE, 'scoring_settings', { rec: 1, pass_td: 6 }), () => {
+      assert.equal(sf(fixtureGas(NOW).gas), 'qb_b');                       // 58 - 20 < 45
+    });
+  });
+});
+
+// ---- improvements: waivers -------------------------------------------------------
+test('waivers: a starter on bye with nobody to fill in gets a one-week fill-in', () => {
+  withChanges((set) => {
+    set(PLAYERS, 'te_fa', ['te_fa', 'TE', 'ATL', null, null]);
+    set(opRow('te_g'), 6, '7');   // te_g, the only TE, is on bye
+    set(LISTS['ppr-superflex'], 'players', LISTS['ppr-superflex'].players.concat(
+      [['te_fa', 'te_fa', 'TE', 'ATL', 65, 'TE2', '14', 'vs. X', KICK, 'created']]));
+    set(LISTS['ros-ppr-overall'].players.find((r) => r[0] === 'wr_f'), 5, 'WR40');   // easy to replace
+  }, () => {
+    const { gas } = fixtureGas(NOW);
+    gas.saveLeagueSettings('L', { max_claims: 0 });
+    const w = gas.getDashboard().leagues[0].waivers;
+    assert.deepEqual(claimsOf(w).filter((c) => c[0] === 'cover'), [['cover', 'te_fa', 'wr_f']]);
+    assert.match(w.notes.join(' '), /te_g \(TE, bye\) can't play this week and nobody on your bench can fill in, so this adds te_fa/);
+    gas.saveLeagueSettings('L', { cover_byes: false });
+    assert.ok(!claimsOf(gas.getDashboard().leagues[0].waivers).some((c) => c[0] === 'cover'));
+  });
+});
+
+test('waivers: with a top rolling waiver priority, matchup streams are skipped and upgrades must gain double', () => {
+  withChanges((set) => {
+    set(LEAGUE, 'settings', Object.assign({}, LEAGUE.settings, { waiver_type: 0 }));
+    set(ROSTER, 'settings', { waiver_budget_used: 0, waiver_position: 1 });
+  }, () => {
+    const { gas } = fixtureGas(NOW);
+    gas.saveLeagueSettings('L', { min_roster: { WR: 1 } });
+    let w = gas.getDashboard().leagues[0].waivers;
+    assert.ok(!w.claims.some((c) => c.kind === 'stream'), JSON.stringify(claimsOf(w)));
+    assert.match(w.notes.join(' '), /waiver priority is #1 of 2 .* upgrades must gain 40 spots instead of 20/);
+    assert.deepEqual(plain(w.priority), { position: 1, teams: 2, rolling: true });
+    ROSTER.settings.waiver_position = 2;   // back half: claims cost little
+    w = gas.getDashboard().leagues[0].waivers;
+    assert.ok(w.claims.some((c) => c.kind === 'stream'));
+  });
+});
+
+test('waivers: a kept (starred) player is never dropped, and the lineup shows the star', () => {
+  const { gas } = fixtureGas(NOW);
+  gas.saveLeagueSettings('L', { min_roster: { WR: 1 }, never_drop: ['wr_f'] });
+  const lg = gas.getDashboard().leagues[0];
+  assert.ok(!lg.waivers.claims.some((c) => c.drop && c.drop.id === 'wr_f'));
+  assert.equal(lg.lineup.bench.find((p) => p.id === 'wr_f').keep, true);
+});
+
+// ---- improvements: alerts, lock, lighter Sleeper use ------------------------------
+function withAlerts(gas) {
+  const sent = [];
+  gas.sendAlert_ = (topic, n) => { sent.push([n.title, n.message, n.priority]); return { code: 200 }; };
+  gas.saveAlerts({ on: true });
+  return sent;
+}
+
+test('alerts: turning on makes a private topic; the request goes to ntfy with it', () => {
+  const calls = [];
+  const gas = loadGas({ fetch(url, params) { if (url === 'https://ntfy.sh') { calls.push(JSON.parse(params.payload)); return { body: '{}' }; } } });
+  const st = gas.saveAlerts({ on: true });
+  assert.match(st.alerts.topic, /^sleeper-autopilot-[0-9a-f]{20}$/);
+  assert.equal(gas.testAlert(), true);
+  assert.deepEqual([calls[0].topic, calls[0].title], [st.alerts.topic, 'Sleeper Autopilot']);
+  assert.match(calls[0].click, /script\.google\.com/);
+  gas.saveAlerts({ changes: false });
+  assert.equal(gas.getState().alerts.changes, false);
+  assert.equal(gas.saveAlerts({ on: false }).alerts.on, false);
+  assert.throws(() => gas.testAlert(), /Turn alerts on first/);
+});
+
+test('alerts: lineup changes are sent (unless turned off); a lasting problem is sent once', () => {
+  const { gas } = fixtureGas(NOW);
+  const sent = withAlerts(gas);
+  gas.setMode('auto');
+  gas.tick();
+  assert.deepEqual(sent.map((a) => a[0]), ['Test: lineup updated']);
+  assert.match(sent[0][1], /OUT wr_f \(Out\)/);
+  const lists = gas.fpList_;
+  gas.fpList_ = (slug) => { if (slug === 'k') throw new Error('FantasyPros k failed (HTTP 503)'); return lists(slug); };
+  gas.tick();
+  gas.tick();
+  assert.deepEqual(sent.slice(1).map((a) => [a[0], a[2]]), [['Test: lineup check failed', 4]]);
+});
+
+test('alerts: in suggestions-only mode they say what to change, once per suggestion; nothing is saved', () => {
+  const { gas, writes } = fixtureGas(NOW);
+  const sent = withAlerts(gas);
+  gas.tick();
+  gas.tick();
+  assert.equal(writes.length, 0);
+  assert.deepEqual(sent.map((a) => a[0]), ['Test: lineup changes to make']);
+  assert.match(sent[0][1], /tap Apply now/);
+});
+
+test('alerts: an expired session and a new version reach the phone', () => {
+  const { gas } = fixtureGas(NOW);
+  const sent = withAlerts(gas);
+  gas.sessionExpired_();
+  assert.equal(sent[0][0], 'Sleeper session expired');
+  gas.checkForUpdate = () => ({ available: true, latest: { id: 'x', title: 'Newer' } });
+  gas.checkUpdateDaily_();
+  gas.checkUpdateDaily_();
+  assert.deepEqual(sent.slice(1).map((a) => a[0]), ['Update available: Newer']);
+});
+
+test('buttons wait for a running background check instead of writing at the same time', () => {
+  const { gas } = fixtureGas(NOW);
+  gas.LockService = { getUserLock: () => ({ tryLock: () => false, releaseLock() {} }) };
+  assert.throws(() => gas.applyLineup('L'), /busy/);
+  assert.throws(() => gas.submitClaims('L', []), /busy/);
+});
+
+test('idle checks (no games within 30h, no waiver window) download nothing', () => {
+  const sat = Date.parse('2026-10-17T12:00:00Z');   // games on the 22nd, waivers on the 21st
+  const { gas } = fixtureGas(sat);
+  let calls = 0;
+  const fp = gas.fpList_, sl = gas.sleeper_;
+  gas.fpList_ = (x) => { calls++; return fp(x); };
+  gas.sleeper_ = (p, f) => { calls++; return sl(p, f); };
+  gas.setMode('auto');
+  gas.saveLeagueSettings('L', { auto_waivers: true });
+  gas.tick();
+  assert.ok(calls > 0);
+  const before = calls;
+  gas.tick();
+  assert.equal(calls, before);
+  assert.equal(gas.getJson_('lastTick').msg, 'No games in the next 30h; nothing to do.');
+  assert.ok(gas.getJson_('idle_until') <= Date.parse('2026-10-18T00:00:00Z') / 1000);   // capped at 12h
+  gas.saveLeagueSettings('L', { min_gain: 25 });   // any settings change re-checks right away
+  gas.tick();
+  assert.ok(calls > before);
+});
+
+test('Sleeper\'s player list: every 6 hours, plus once after each kickoff slot\'s inactives are out', () => {
+  const gas = loadGas();
+  const k = 1_800_000_000;
+  assert.equal(gas.playersMaxAge_([k], k - 3 * 3600), 6 * 3600);
+  assert.equal(gas.playersMaxAge_([k], k - 60 * 60), 20 * 60);   // inactives at k-80min
+  assert.equal(gas.playersMaxAge_([k], k + 60), 6 * 3600);       // game started
+});
+
+test('waiver windows: the next one opens the evening before waiver day', () => {
+  const gas = loadGas();
+  const next = gas.nextWaiverWindow_({ settings: { waiver_day_of_week: 2 } }, Date.parse('2026-10-25T10:00:00Z') / 1000);
+  assert.equal(new Date(next * 1000).toISOString(), '2026-10-27T16:00:00.000Z');
+});
+
+// ---- rankings (ported from the retired Python tests) ------------------------------
+test('rankings: id table first, name fallback, team aliases, byes and locks', () => {
+  const gas = loadGas();
+  const players = { 9221: ['Jahmyr Gibbs', 'RB', 'DET', null, null], 6804: ['Jordan Love', 'QB', 'GB', null, null],
+                    4984: ['Josh Allen', 'QB', 'BUF', null, null], 777: ['Marvin Harrison Jr.', 'WR', 'ARI', null, null],
+                    JAX: ['Jacksonville Jaguars', 'DEF', 'JAX', null, null] };
+  const row = (id, name, pos, team, rank, kickoff, bye = '9', opp = 'vs. X', status = 'created') =>
+    [id, name, pos, team, rank, pos + rank, bye, opp, kickoff, status];
+  const data = { week: 7, label: 't', players: [
+    row(22968, 'Jahmyr Gibbs', 'RB', 'DET', 1, 1000, '9', 'vs. X', 'closed'),
+    row(19246, 'Jordan Love', 'QB', 'GB', 2, 5000),
+    row(1, 'Marvin Harrison', 'WR', 'ARI', 3, 5000),        // no id table entry: matched by name
+    row(2, 'Josh Allen', 'QB', 'BUF', 50, null, '7', ''),   // on bye
+    row(3, 'Jacksonville Jaguars', 'DST', 'JAC', 4, 6000),  // FantasyPros team code
+  ] };
+  const r = new gas.RankList_(data, new gas.IdMap_(players, { 22968: '9221', 19246: '6804' }), 2000);
+  assert.deepEqual([r.get('9221').started, r.get('6804').started], [true, false]);
+  assert.equal(r.get('777').rank, 3);
+  assert.equal(r.get('4984').bye, true);
+  assert.equal(r.get('JAX').rank, 4);
+  assert.deepEqual(plain(r.unmatched), []);
+  assert.ok(!('BUF' in r.teamKickoff));
+  const tmpl = gas.superflexTemplate_(r, players);
+  assert.deepEqual(plain(tmpl.QB), [2]);   // Allen on bye isn't "QB2" this week
+  assert.equal(gas.templateValue_(tmpl, 'QB', 1), 2);
+  assert.ok(gas.templateValue_(tmpl, 'QB', 3) > 2);
+  assert.deepEqual([gas.scoringFormat_({ rec: 1 }), gas.scoringFormat_({ rec: 0.5 }), gas.scoringFormat_({})],
+                   ['PPR', 'HALF', 'STD']);
 });

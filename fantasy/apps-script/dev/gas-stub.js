@@ -157,6 +157,7 @@ function loadGas(opts = {}) {
       base64Decode: (s) => Array.from(Buffer.from(s, 'base64')),
       newBlob: (bytes) => ({ getDataAsString: () => Buffer.from(bytes).toString('utf8') }),
       parseCsv,
+      getUuid: () => require('crypto').randomUUID(),
     },
     console, Date: FakeDate, Map, JSON, Math,
   };

@@ -112,6 +112,10 @@
   .setting .hint { font-size: 12px; color: var(--muted); }
   input[type=range] { width: 140px; accent-color: var(--accent); }
   input.num { width: 70px; padding: 6px 8px; }
+  .keep { border: 0; background: none; padding: 0 6px 0 0; color: var(--faint); font-size: 15px; font-weight: 400; }
+  .keep.on { color: var(--warn); }
+  code.topic { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--surface-2);
+    padding: 6px 8px; border-radius: 8px; word-break: break-all; }
 
   /* activity */
   .feed { display: grid; gap: 2px; }
@@ -179,6 +183,8 @@ function api(fn, ...args) {
 const SLEEPER_GQL = 'https:\/\/api.sleeper.app/graphql';
 const SLEEPER_LOGIN_URL = 'https:\/\/sleeper.com/login';
 const AVATAR_URL = 'https:\/\/sleepercdn.com/avatars/thumbs/';
+const NTFY_IOS = 'https:\/\/apps.apple.com/app/ntfy/id1625396347';
+const NTFY_ANDROID = 'https:\/\/play.google.com/store/apps/details?id=io.heckel.ntfy';
 const Q_LOGIN = 'query login($e: String!, $p: String!, $c: String) {' +
   ' login(email_or_phone_or_username: $e, password: $p, captcha: $c) { token } }';
 const Q_CONTEXT = 'query login_context_by_email_or_phone_or_username($e: String!) {' +
@@ -446,6 +452,7 @@ function appView(st) {
     ${permissionBanner(st)}
     ${updateBanner()}
     ${statusCard(st)}
+    ${alertsCard(st)}
     ${S.dashError ? `<div class="card banner bad">Couldn't load your leagues: ${esc(S.dashError)}
         <div style="margin-top:8px"><button class="small" data-action="reload">Try again</button></div></div>` : ''}
     ${S.loadingDash && !S.dash ? skeletonCards() : ''}
@@ -496,6 +503,33 @@ function statusCard(st) {
   </div>`;
 }
 
+function alertsCard(st) {
+  const a = st.alerts || {};
+  if (!a.on) {
+    return `<div class="card"><div class="row between"><div><b>Phone alerts</b>
+        <div class="small muted">A push notification when something needs you (session expired, a failed save, a starter
+          who can't play) and, if you want, when the autopilot changes something.</div></div>
+      <button class="small primary" data-action="alerts-on" ${S.busy.alerts ? 'disabled' : ''}>Turn on</button></div></div>`;
+  }
+  return `<div class="card"><div class="row between"><b>Phone alerts are on</b>
+      <button class="ghost small" data-action="alerts-off">Turn off</button></div>
+    <ol class="small muted" style="padding-left:18px;margin:8px 0 0">
+      <li>Install the free <b>ntfy</b> app (<a href="${NTFY_IOS}" target="_blank">iPhone</a> ·
+        <a href="${NTFY_ANDROID}" target="_blank">Android</a>).</li>
+      <li style="margin-top:4px">In ntfy, tap <b>+</b>, paste this topic and tap <b>Subscribe</b>:
+        <div class="row" style="margin-top:6px"><code class="topic">${esc(a.topic)}</code>
+          <button class="small" data-action="copy-topic">Copy</button></div></li>
+      <li style="margin-top:6px"><button class="small" data-action="alerts-test" ${S.busy.alertTest ? 'disabled' : ''}>
+        ${S.busy.alertTest ? '<span class="spin"></span>Sending…' : 'Send a test alert'}</button></li>
+    </ol>
+    <div class="setting" style="margin-top:12px"><div><div class="label">Also tell me about changes</div>
+        <div class="hint">Lineups saved and claims submitted, not just problems</div></div>
+      <label class="switch sm"><input type="checkbox" data-action="alerts-changes" ${a.changes ? 'checked' : ''}>
+        <span class="slider"></span></label></div>
+    <div class="fine">Alerts go through ntfy.sh, a free public service. Anyone who knows this topic could read them, so
+      keep it to yourself. They only contain league and player names.</div></div>`;
+}
+
 function skeletonCards() {
   return [1, 2].map(() => `<div class="card"><div class="skeleton" style="width:40%"></div>
     <div class="skeleton"></div><div class="skeleton" style="width:80%"></div><div class="skeleton" style="width:60%"></div>
@@ -506,6 +540,13 @@ function rankTxt(p) {
   if (p.posRank && p.rank) return `${esc(p.posRank)} · #${p.rank}`;
   if (p.rank) return '#' + p.rank;
   return '<span class="faint">unranked</span>';
+}
+
+// ☆/★: never let the waiver plan drop this player.
+function keepBtn(p, leagueId) {
+  if (!p.tracked) return '';
+  return `<button class="keep ${p.keep ? 'on' : ''}" data-action="keep" data-league="${esc(leagueId)}" data-player="${esc(p.id)}"
+    title="${p.keep ? 'Kept: never dropped. Tap to allow drops.' : 'Tap to never drop him'}">${p.keep ? '★' : '☆'}</button>`;
 }
 
 function playerCell(p) {
@@ -547,9 +588,9 @@ function lineupSection(lg) {
     body = status + L.warnings.map((w) => `<div class="banner bad">⚠ ${esc(w)}</div>`).join('') +
       `<div class="slots">${L.lineup.map((p) => `<div class="slot ${p.isNew ? 'new' : ''} ${p.why && !p.locked ? 'bad' : ''}">
           <div class="slot-tag">${esc(p.slot.replace('SUPER_FLEX', 'SFLEX').replace('WRRB_FLEX', 'W/R').replace('REC_FLEX', 'W/T'))}</div>
-          ${playerCell(p)}<div class="rank">${rankTxt(p)}</div></div>`).join('')}</div>
+          ${playerCell(p)}<div class="rank">${keepBtn(p, lg.id)}${rankTxt(p)}</div></div>`).join('')}</div>
       ${L.bench.length ? `<details data-key="bench-${esc(lg.id)}"><summary>Bench (${L.bench.length})</summary><div class="slots" style="margin-top:8px">
-        ${L.bench.map((p) => `<div class="slot"><div class="slot-tag">BN</div>${playerCell(p)}<div class="rank">${rankTxt(p)}</div></div>`).join('')}
+        ${L.bench.map((p) => `<div class="slot"><div class="slot-tag">BN</div>${playerCell(p)}<div class="rank">${keepBtn(p, lg.id)}${rankTxt(p)}</div></div>`).join('')}
       </div></details>` : ''}`;
   }
   return `<h3>Week ${esc(L.week || '')} lineup</h3>${body}`;
@@ -558,15 +599,19 @@ function lineupSection(lg) {
 function waiverSection(lg) {
   const W = lg.waivers, cfg = lg.settings || {};
   if (W.error) return `<h3>Waivers</h3><div class="banner bad">${esc(W.error)}</div>`;
+  const basis = (c) => (c.kind === 'upgrade' ? 'ROS ' : 'this week ');
+  const kinds = { upgrade: 'upgrade', stream: 'stream', cover: 'fill-in' };
   const claims = W.claims.map((c) => `<div class="claim">
       <div><span class="add">+ ${esc(c.add.name)}</span> <span class="faint small">${esc(c.add.pos)} ${esc(c.add.team || '')}
-        · ${c.kind === 'stream' ? 'this week ' : 'ROS '}${rankTxt(c.add)}</span>
+        · ${basis(c)}${rankTxt(c.add)}</span>
         ${c.drop ? `<div class="small"><span class="drop">− ${esc(c.drop.name)}</span>${c.drop.why ? `<span class="tag out">${esc(c.drop.why)}</span>` : ''}
-          <span class="faint">${esc(c.drop.pos)} · ${c.kind === 'stream' ? 'this week ' : 'ROS '}${rankTxt(c.drop)}</span></div>`
+          <span class="faint">${esc(c.drop.pos)} · ${basis(c)}${rankTxt(c.drop)}</span>
+          <button class="keep" data-action="keep" data-league="${esc(lg.id)}" data-player="${esc(c.drop.id)}"
+            title="Never drop him">☆ keep</button></div>`
           : '<div class="small faint">No drop needed (open roster spot)</div>'}
         ${c.error ? `<div class="small" style="color:var(--bad)">Failed: ${esc(c.error)}</div>` : ''}</div>
       <div class="small" style="text-align:right">${c.bid != null ? `<b>$${c.bid}</b><br>` : ''}
-        ${c.submitted ? '<span style="color:var(--accent)">✓ submitted</span>' : `<span class="faint">${c.kind === 'stream' ? 'stream' : 'upgrade'}</span>`}</div>
+        ${c.submitted ? '<span style="color:var(--accent)">✓ submitted</span>' : `<span class="faint">${kinds[c.kind] || esc(c.kind)}</span>`}</div>
     </div>`).join('');
   const when = cfg.auto_waivers ? (S.state.mode === 'auto' ? 'Autopilot will submit these the evening before waivers run.'
                                                            : 'Turn autopilot on to submit these automatically.')
@@ -574,6 +619,7 @@ function waiverSection(lg) {
   return `<h3>Waiver plan</h3>
     ${W.changed ? '<div class="banner warn">The plan changed since the page loaded, so nothing was sent. Check the claims below and submit again.</div>' : ''}
     ${W.submitError ? `<div class="banner bad">${esc(W.submitError)}</div>` : ''}
+    ${W.priority && W.priority.rolling ? `<div class="small muted">Waiver priority #${W.priority.position} of ${W.priority.teams} (rolling: a claim sends you to the back).</div>` : ''}
     ${W.pending ? `<div class="banner info">${W.pending} claim${W.pending > 1 ? 's' : ''} already pending on Sleeper (not repeated).</div>` : ''}
     ${W.claims.length ? claims : '<div class="banner ok">No pickups clearly better than your roster right now.</div>'}
     ${W.notes.map((n) => `<div class="small faint">• ${esc(n)}</div>`).join('')}
@@ -597,6 +643,7 @@ function settingsSection(lg, cfg) {
       ${toggle('auto_lineup', 'Auto lineup', 'Autopilot sets the best lineup before games')}
       ${toggle('auto_waivers', 'Auto waiver claims', 'Autopilot submits the waiver plan before waivers process')}
       ${toggle('stream_k_def', 'Stream K / DEF', 'Swap kicker/defense for clearly better matchups')}
+      ${toggle('cover_byes', 'Cover byes and injuries', 'One-week pickup when a starter can\'t play and your bench can\'t fill in')}
       ${qb}
       <div class="setting"><div><div class="label">Upgrade claims per week</div>
         <div class="hint">K/DEF streams come on top of these</div></div>
@@ -689,6 +736,31 @@ document.addEventListener('click', async (ev) => {
       toast(document.execCommand('copy') ? 'Helper copied. Now make the bookmark.' : 'Long-press the text and copy it.');
     });
   }
+  if (a === 'alerts-on') {
+    S.state = await busy('alerts', () => api('saveAlerts', { on: true }));
+    render(); toast('Alerts on: now subscribe in the ntfy app');
+  }
+  if (a === 'alerts-off') {
+    if (!confirm('Turn phone alerts off?')) return;
+    S.state = await busy('alerts', () => api('saveAlerts', { on: false }));
+    render(); toast('Alerts off');
+  }
+  if (a === 'alerts-test') {
+    await busy('alertTest', () => api('testAlert'));
+    toast('Test alert sent: it should show up in ntfy within seconds');
+  }
+  if (a === 'copy-topic') {
+    navigator.clipboard.writeText(S.state.alerts.topic).then(() => toast('Topic copied'), () => toast('Long-press the topic to copy it'));
+  }
+  if (a === 'keep') {
+    const lg = S.dash && S.dash.leagues.find((l) => l.id === id);
+    const pid = el.dataset.player;
+    const cur = ((lg && lg.settings.never_drop) || []).map(String);
+    const on = !cur.includes(pid);
+    await busy('keep', () => api('saveLeagueSettings', id, { never_drop: on ? cur.concat(pid) : cur.filter((x) => x !== pid) }));
+    toast(on ? 'Kept: the waiver plan will never drop him' : 'He can be dropped again');
+    loadDashboard();
+  }
   if (a === 'login-restart') { S.login = { step: 'password' }; render._focused = false; render(); }
   if (a === 'logout') {
     if (!confirm('Disconnect from Sleeper? The autopilot stops until you log in again.')) return;
@@ -731,6 +803,11 @@ document.addEventListener('change', async (ev) => {
     toast(mode === 'auto' ? 'Autopilot on' : 'Autopilot paused');
     return;
   }
+  if (el.dataset.action === 'alerts-changes') {
+    S.state = await api('saveAlerts', { changes: el.checked });
+    toast('Saved');
+    return;
+  }
   if (el.dataset.setting) {
     const key = el.dataset.setting, id = el.dataset.league;
     const val = el.type === 'checkbox' ? el.checked : Number(el.value);
@@ -739,7 +816,7 @@ document.addEventListener('change', async (ev) => {
     if (lg) lg.settings = cfg;
     toast('Saved');
     // These change the plan itself; the others only change what the page says about it.
-    if (['superflex_qb_bonus', 'stream_k_def', 'max_claims', 'min_gain'].includes(key)) loadDashboard();
+    if (['superflex_qb_bonus', 'stream_k_def', 'cover_byes', 'max_claims', 'min_gain'].includes(key)) loadDashboard();
     else render();
   }
 });
