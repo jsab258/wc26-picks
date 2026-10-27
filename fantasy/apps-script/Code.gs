@@ -194,7 +194,9 @@ function connectWithToken(token, username, userId) {
       userId = userId || o.user_id;
     } catch (e) { /* fall through to the format check */ }
   }
+  // sleeper.com keeps these JSON-encoded, so they can arrive wrapped in quotes.
   token = token.replace(/^"+|"+$/g, '');
+  userId = String(userId || '').replace(/\D/g, '') || null;
   if (token.split('.').length !== 3) throw new Error("That doesn't look like a Sleeper login. Copy it again.");
   return finishLogin_(token, username, userId);
 }

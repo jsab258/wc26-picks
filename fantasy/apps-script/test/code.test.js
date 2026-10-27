@@ -261,6 +261,11 @@ test('login: captcha wall gets a clear message; pasted sessions accept JSON or a
   assert.equal(gas.connectWithToken('"h.e.s"', 'jsab258', null).connected, true);  // username fallback
   assert.equal(users[1], '/user/jsab258');
   assert.throws(() => gas.connectWithToken('not a token', null, null), /doesn't look like/);
+  gas.logout();
+  // Exactly what the sleeper.com console line copies: both values JSON-encoded in localStorage.
+  const copied = JSON.stringify({ token: '"h.e.s"', user_id: '"1393509836200624128"' });
+  assert.equal(gas.connectWithToken(copied, null, null).connected, true);
+  assert.equal(users[users.length - 1], '/user/1393509836200624128');
 });
 
 // ---- self-update ----------------------------------------------------------

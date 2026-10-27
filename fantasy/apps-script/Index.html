@@ -154,7 +154,10 @@
 <div class="wrap" id="app"><div class="center"><span class="muted"><span class="spin"></span>Loading…</span></div></div>
 <div class="toast" id="toast"></div>
 <script>
-const S = { state: null, dash: null, loadingDash: false, busy: {}, login: { step: 'password' }, dashError: null,
+// Sleeper puts a captcha in front of password logins from other sites, so connecting
+// via sleeper.com is the default; the password form stays as a fallback.
+const freshLogin = (extra) => Object.assign({ step: 'token', desktop: matchMedia('(pointer: fine)').matches }, extra);
+const S = { state: null, dash: null, loadingDash: false, busy: {}, login: freshLogin(), dashError: null,
             update: {} };
 
 // ---- server calls ------------------------------------------------------
@@ -260,7 +263,7 @@ async function busy(key, fn) {
 function expired(e) {
   if (!/session expired/i.test(e.message)) return false;
   S.dash = null;
-  S.login = { step: 'password', error: e.message };
+  S.login = freshLogin({ error: e.message });
   api('getState').then((st) => { S.state = st; render(); });
   return true;
 }
@@ -357,8 +360,8 @@ function loginView() {
   }
   if (L.step === 'token') {
     return `<div class="center"><div class="card login">${header}
-      <div class="small muted" style="margin-top:14px">Log in on Sleeper's own site, where you can solve its captcha,
-        then copy your session over. You only do this once.</div>
+      <div class="small muted" style="margin-top:14px"><b>Connect your Sleeper account.</b> Sleeper only lets its own
+        site log you in (it shows a captcha), so log in there and copy your session over. You only do this once.</div>
       <details ${L.desktop ? '' : 'open'}><summary>On your phone (Chrome)</summary>
         <ol class="small muted" style="padding-left:18px;margin:8px 0 0">
           <li>Copy this helper: <button type="button" class="small" data-action="copy-helper">Copy helper</button>
@@ -384,7 +387,7 @@ function loginView() {
         <button class="primary" style="width:100%;margin-top:6px" ${S.busy.login ? 'disabled' : ''}>
           ${S.busy.login ? '<span class="spin"></span>Connecting…' : 'Connect'}</button>
       </form>
-      <button class="ghost small" data-action="login-restart" style="margin-top:8px">← Back to password login</button>
+      <button class="ghost small" data-action="login-restart" style="margin-top:8px">Log in with password instead</button>
     </div></div>`;
   }
   return `<div class="center"><div class="card login">${header}
@@ -402,7 +405,7 @@ function loginView() {
     </form>
     <div class="fine">Your password is only used to log in to Sleeper and is never saved. This page and your Sleeper
       session live in your own Google account; nobody else can open it.</div>
-    <button class="ghost small" data-action="login-token" style="margin-top:6px">Trouble logging in?</button>
+    <button class="ghost small" data-action="login-token" style="margin-top:6px">← Connect via sleeper.com</button>
   </div></div>`;
 }
 
@@ -615,7 +618,7 @@ document.addEventListener('submit', async (ev) => {
     } else if (form.dataset.form === 'token') {
       S.state = await busy('login', () => api('connectWithToken', f.token, f.username || null, null));
     }
-    S.login = { step: 'password' };
+    S.login = freshLogin();
     render();
     toast('Connected to Sleeper');
     loadDashboard();
