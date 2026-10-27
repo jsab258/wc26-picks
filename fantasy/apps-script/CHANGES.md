@@ -3,6 +3,10 @@
 Newest first. Each `##` entry becomes the release notes shown by the app's
 "Install update" button. Add one with every change to Code.gs / Index.html.
 
+## Updates without Google's script API
+- "Install update" now stores the new version inside the app, so it no longer needs Google's Apps Script API, a Cloud project or extra permissions.
+- If an installed update ever fails to load, the app runs the version you pasted and offers to remove the update.
+
 ## Connect via sleeper.com first
 - Fixes "Invalid argument …/user/\"…\"": the user id copied from sleeper.com comes wrapped in quotes.
 - The app now opens on "Connect via sleeper.com", since Sleeper blocks password logins from other sites with a captcha.

@@ -1,6 +1,6 @@
-// Builds dist/SleeperAutopilot.gs: Code.gs with Index.html, the manifest and
-// release notes (CHANGES.md) embedded, so setup is a single paste into a new
-// Apps Script project and later versions can install themselves.
+// Builds dist/SleeperAutopilot.gs: Code.gs with Index.html and the release notes
+// (CHANGES.md) embedded, so setup is a single paste into a new Apps Script
+// project. The file ends by loading an installed newer build, if there is one.
 //   node dev/bundle.js          write the file
 //   node dev/bundle.js --check  exit 1 if the committed file is stale
 const fs = require('fs');
@@ -30,8 +30,8 @@ function build() {
     '// a new Apps Script project (https://script.new). Source: fantasy/apps-script/ in the repo.\n\n' +
     code +
     '\nvar UI_HTML = ' + JSON.stringify(html) + ';\n' +
-    'var MANIFEST_JSON = ' + JSON.stringify(manifest) + ';\n' +
-    'var BUILD_INFO = ' + JSON.stringify(info) + ';\n';
+    'var BUILD_INFO = ' + JSON.stringify(info) + ';\n' +
+    'loadInstalledUpdate_();\n';
 }
 
 if (process.argv.includes('--check')) {

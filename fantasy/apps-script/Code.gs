@@ -79,6 +79,8 @@ function getState() {
     autopilotScheduled: hasTrigger_(),
     log: getJson_('log', []),
     build: buildInfo_(),
+    update: { installed: !!RUNNING_INSTALLED_, error: LOAD_ERROR_ || null,
+              pasted: PASTED_BUILD_ ? PASTED_BUILD_.title : null },
     permissions: missingScopes_(CORE_SCOPES),
     now: Date.now(),
   };
@@ -354,15 +356,19 @@ function hasTrigger_() {
 // Self-update from GitHub
 // ===================================================================
 
-// The single-file build carries BUILD_INFO (id, version, release notes) and
-// MANIFEST_JSON. Installing an update rewrites this project's code through the
-// Apps Script API (needs the API switched on + the scopes in appsscript.json),
-// then points the web app deployment at the new version.
+// The single-file build carries BUILD_INFO (id, version, release notes) and ends
+// by calling loadInstalledUpdate_(). Installing an update stores the newer build's
+// full text in this user's script storage; every execution (page, button, timer)
+// then evaluates it on top of the pasted code, replacing every function. No Google
+// API or extra permission is involved, and the pasted code stays as the fallback.
 var UPDATE_URLS = [
   'https://raw.githubusercontent.com/jsab258/wc26-picks/main/fantasy/apps-script/dist/SleeperAutopilot.gs',
   'https://raw.githubusercontent.com/jsab258/wc26-picks/ccr-23b89428-f20cvp/fantasy/apps-script/dist/SleeperAutopilot.gs',
 ];
-var SCRIPT_API = 'https://script.googleapis.com/v1/projects/';
+// No initializers on purpose: the installed code re-declares these while it loads,
+// and a "var x = ..." there would reset them mid-load.
+var INSTALLING_, PASTED_BUILD_, RUNNING_INSTALLED_, LOAD_ERROR_;
+var GLOBAL_ = this;
 
 function buildInfo_() {
   return typeof BUILD_INFO !== 'undefined' ? BUILD_INFO : { id: 'dev', version: 0, title: 'development copy', notes: [] };
@@ -385,12 +391,37 @@ function latestBuild_() {
   return best;
 }
 
+/**
+ * Runs at the end of the pasted file. An installed update only applies on top of
+ * the exact paste it was installed on, so pasting a different build by hand
+ * always wins.
+ */
+function loadInstalledUpdate_() {
+  if (INSTALLING_) return;  // this is the installed code itself loading
+  PASTED_BUILD_ = buildInfo_();
+  var pkg = getJson_('engine', null);
+  if (!pkg || pkg.base !== PASTED_BUILD_.id) return;
+  try {
+    new Function(pkg.code);  // syntax check only: a damaged copy must not half-load
+  } catch (e) {
+    LOAD_ERROR_ = String(e.message || e);
+    return;
+  }
+  INSTALLING_ = true;
+  try {
+    (0, eval)(pkg.code);  // global eval: redefines every function and setting
+    RUNNING_INSTALLED_ = true;
+  } catch (e) {
+    LOAD_ERROR_ = String(e.message || e);
+  } finally {
+    INSTALLING_ = false;
+  }
+}
+
 // Google's consent screen has a checkbox per permission (granular consent), and an
 // unticked one is simply not granted: the script still runs and isn't asked again.
 var CORE_SCOPES = ['https://www.googleapis.com/auth/script.external_request',
                    'https://www.googleapis.com/auth/script.scriptapp'];
-var UPDATE_SCOPES = ['https://www.googleapis.com/auth/script.projects',
-                     'https://www.googleapis.com/auth/script.deployments'];
 
 /** {scopes: [...not granted], url: Google's approval page} or null when all are granted. */
 function missingScopes_(scopes) {
@@ -413,61 +444,46 @@ function checkForUpdate() {
   if (!latest) return { current: cur, error: "Couldn't reach GitHub to check for updates." };
   var available = latest.info.id !== cur.id && latest.info.version >= cur.version;
   return { current: cur, latest: latest.info, available: available,
-           approval: available ? missingScopes_(UPDATE_SCOPES) : null,
            notes: available ? latest.info.notes.slice(0, Math.max(1, latest.info.version - cur.version)) : [] };
 }
 
-/** UI: install the newest build into this project and the web app deployment. */
+/** UI: download the newest build and store it; it takes over from the next run on. */
 function installUpdate(expectedId) {
-  var miss = missingScopes_(UPDATE_SCOPES);
-  if (miss) {
-    throw new Error('First approve the update permission with every box ticked: ' + miss.url +
-                    ' , then try again.');
-  }
   var latest = latestBuild_();
   if (!latest) throw new Error("Couldn't download the update from GitHub.");
   if (expectedId && latest.info.id !== expectedId) throw new Error('An even newer update just appeared. Check again.');
   var text = latest.text;
-  var manifest = /\nvar MANIFEST_JSON = (".*");\n/.exec(text);
-  if (text.indexOf('function doGet(') < 0 || text.indexOf('\nvar UI_HTML = ') < 0 || !manifest) {
-    throw new Error('The downloaded update looks incomplete, so it was not installed.');
+  var complete = text.indexOf('function doGet(') >= 0 && text.indexOf('\nvar UI_HTML = ') >= 0 &&
+    /\nloadInstalledUpdate_\(\);\n$/.test(text);
+  try {
+    if (complete) new Function(text);
+  } catch (e) {
+    complete = false;
   }
-  var id = ScriptApp.getScriptId();
-  var label = 'Sleeper Autopilot: ' + latest.info.title;
-  scriptApi_('put', id + '/content', { files: [
-    { name: 'appsscript', type: 'JSON', source: JSON.parse(manifest[1]) },
-    { name: 'Code', type: 'SERVER_JS', source: text },
-  ] });
-  var version = scriptApi_('post', id + '/versions', { description: label }).versionNumber;
-  var webApps = (scriptApi_('get', id + '/deployments').deployments || []).filter(function (d) {
-    return d.deploymentConfig && d.deploymentConfig.versionNumber &&
-      (d.entryPoints || []).some(function (e) { return e.entryPointType === 'WEB_APP'; });
-  });
-  webApps.forEach(function (d) {
-    scriptApi_('put', id + '/deployments/' + d.deploymentId, { deploymentConfig: {
-      scriptId: id, versionNumber: version, manifestFileName: 'appsscript', description: label } });
-  });
-  log_({ level: 'info', title: 'Updated to "' + latest.info.title + '"', lines: ['Apps Script version ' + version] });
-  return { version: version, deployments: webApps.length, info: latest.info, url: appUrl_() };
+  if (!complete) throw new Error('The downloaded update looks incomplete, so it was not installed.');
+  putJson_('engine', { base: (PASTED_BUILD_ || buildInfo_()).id, info: latest.info, code: text, at: Date.now() });
+  log_({ level: 'info', title: 'Installed update "' + latest.info.title + '"' });
+  return { info: latest.info, url: appUrl_() };
 }
 
-function scriptApi_(method, path, body) {
-  var r = fetch_(SCRIPT_API + path, { method: method, payload: body, retries: 1,
-                                      headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() } });
-  var data = {};
-  try { data = JSON.parse(r.text || '{}'); } catch (e) { /* keep {} */ }
-  if (r.code < 400) return data;
-  var msg = (data.error && data.error.message) || 'HTTP ' + r.code;
-  if (/Apps Script API|SERVICE_DISABLED|usersettings/i.test(msg)) {
-    throw new Error('Turn on the Google Apps Script API at https://script.google.com/home/usersettings, ' +
-                    'then tap Install update again. (Google said: ' + msg + ')');
-  }
-  if (/scope/i.test(msg)) {
-    throw new Error('Google hasn\'t granted the update permission. Remove the app at ' +
-      'https://myaccount.google.com/connections , then in the script editor run "installUpdate" and tick ' +
-      '"Select all" on Google\'s permission screen. (Google said: ' + msg + ')');
-  }
-  throw new Error('Google refused the update: ' + msg);
+/** UI: forget the installed update and run the pasted code again. */
+function removeUpdate() {
+  putJson_('engine', null);
+  log_({ level: 'info', title: 'Removed the installed update; back to the pasted version' });
+  return getState();
+}
+
+/**
+ * UI entry point for every server call, so an installed update can add server
+ * functions the pasted code never had.
+ */
+var PUBLIC_API = ['getState', 'getDashboard', 'setMode', 'saveLeagueSettings', 'applyLineup', 'submitClaims',
+                  'runNow', 'login', 'verifyCode', 'connectWithToken', 'logout', 'checkForUpdate',
+                  'installUpdate', 'removeUpdate'];
+
+function call(name, args) {
+  if (PUBLIC_API.indexOf(name) < 0 || typeof GLOBAL_[name] !== 'function') throw new Error('Unknown action: ' + name);
+  return GLOBAL_[name].apply(null, args || []);
 }
 
 function appUrl_() {
@@ -509,11 +525,11 @@ function log_(entry) {
 
 // Property values are capped at 9 KB, so JSON is split across keys.
 function getJson_(key, dflt) {
-  var p = store_();
-  var n = Number(p.getProperty(key + '#n') || 0);
+  var all = store_().getProperties();  // one call: an installed update spans ~17 values
+  var n = Number(all[key + '#n'] || 0);
   if (!n) return dflt;
   var s = '';
-  for (var i = 0; i < n; i++) s += p.getProperty(key + '#' + i) || '';
+  for (var i = 0; i < n; i++) s += all[key + '#' + i] || '';
   try { return JSON.parse(s); } catch (e) { return dflt; }
 }
 

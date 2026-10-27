@@ -161,10 +161,13 @@ const S = { state: null, dash: null, loadingDash: false, busy: {}, login: freshL
             update: {} };
 
 // ---- server calls ------------------------------------------------------
+// Every server call goes through call(name, args): an installed update can then add
+// server functions that the pasted code doesn't declare.
 function api(fn, ...args) {
   return new Promise((resolve, reject) => {
     google.script.run.withSuccessHandler(resolve)
-      .withFailureHandler((e) => reject(new Error(((e && e.message) || String(e)).replace(/^(Error:\s*)+/, ''))))[fn](...args);
+      .withFailureHandler((e) => reject(new Error(((e && e.message) || String(e)).replace(/^(Error:\s*)+/, ''))))
+      .call(fn, args);
   });
 }
 
@@ -295,20 +298,19 @@ const linkify = (t) => esc(t).replace(/https:\/\/[^\s,)]+/g, (u) => `<a href="${
 
 function updateBanner() {
   const U = S.update;
+  const st = S.state || {};
+  if (st.update && st.update.error) {
+    return `<div class="card banner bad"><b>The installed update couldn't load</b>
+      <div class="small" style="margin-top:6px">${esc(st.update.error)}. The app is running the version you pasted.</div>
+      <div style="margin-top:8px"><button class="small" data-action="remove-update">Remove the update</button></div></div>`;
+  }
   if (U.installed) {
     const url = U.installed.url;
-    return `<div class="card banner ok">✓ Updated to “${esc(U.installed.info.title)}”.
+    return `<div class="card banner ok">✓ Update “${esc(U.installed.info.title)}” installed.
       ${url ? `<a href="${esc(url)}" target="_top"><b>Reload the app</b></a>` : 'Reload this page'} to use it.</div>`;
   }
   const r = U.result;
   if (!r || !r.available) return '';
-  if (r.approval) {
-    return `<div class="card banner info"><b>Update available: approve first</b>
-      <div class="small" style="margin-top:6px">Google hasn't granted the app permission to update itself (on Google's
-        screen every permission has its own checkbox). Approve it, then reload this page and tap Install update.</div>
-      <div style="margin-top:8px"><a class="chip accent" href="${esc(r.approval.url)}" target="_blank">Approve in Google</a></div>
-    </div>`;
-  }
   const notes = (r.notes || []).map((n) => `<div style="margin-top:6px"><b>${esc(n.title)}</b>
       <ul style="margin:4px 0 0;padding-left:18px">${n.items.map((i) => `<li>${esc(i)}</li>`).join('')}</ul></div>`).join('');
   return `<div class="card banner info">
@@ -435,7 +437,8 @@ function appView(st) {
     <div class="faint small" style="text-align:center;margin-top:18px">
       Rankings: FantasyPros ECR · Data: Sleeper · Refreshed ${S.dash ? 'week ' + esc(S.dash.week) : '…'}
       · <a href="#" data-action="reload" style="color:inherit">refresh</a>
-      <br>Version: ${esc((st.build || {}).title || '?')} · ${esc((st.build || {}).id || '')}</div>`;
+      <br>Version: ${esc((st.build || {}).title || '?')} · ${esc((st.build || {}).id || '')}
+      ${st.update && st.update.installed ? ' (installed update)' : ''}</div>`;
 }
 
 function permissionBanner(st) {
@@ -651,6 +654,10 @@ document.addEventListener('click', async (ev) => {
   const a = el.dataset.action, id = el.dataset.league;
   if (a === 'reload') { ev.preventDefault(); loadDashboard(); }
   if (a === 'install-update') installUpdate();
+  if (a === 'remove-update') {
+    S.state = await api('removeUpdate');
+    S.update = {}; render(); toast('Update removed. Reload the app.');
+  }
   if (a === 'login-token') {
     S.login = { step: 'token', desktop: matchMedia('(pointer: fine)').matches };
     render._focused = false; render();

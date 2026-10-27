@@ -10,31 +10,24 @@ It runs inside **your own Google account** as an Apps Script web app:
   is never saved.
 - It checks every 30 minutes, even when your computer is off.
 
-## Setup (once, about 5 minutes, on a computer)
+## Setup (once, about 3 minutes, on a computer)
 
-1. Turn on the **Google Apps Script API** at
-   [script.google.com/home/usersettings](https://script.google.com/home/usersettings).
-   This lets the app install its own updates.
-2. Open [script.new](https://script.new) to create a new Apps Script project.
+1. Open [script.new](https://script.new) to create a new Apps Script project.
    Name it *Sleeper Autopilot*.
-3. Click **⚙️ Project Settings** and tick *Show "appsscript.json" manifest
-   file in editor*. Back in the editor, open `appsscript.json` and replace its
-   contents with [`appsscript.json`](appsscript.json). Save.
-4. Open `Code.gs` and replace it with
+2. Open `Code.gs` and replace it with
    [`dist/SleeperAutopilot.gs`](dist/SleeperAutopilot.gs) (use the **Raw**
    button, then select all and copy). Save.
-5. Click **Deploy → New deployment**, then the gear icon → **Web app**:
+3. Click **Deploy → New deployment**, then the gear icon → **Web app**:
    - *Execute as*: **Me**
    - *Who has access*: **Only myself**
    - Click **Deploy**.
-6. Authorise it. Google warns *"Google hasn't verified this app"* because you
-   just wrote it yourself. Click **Advanced → Go to Sleeper Autopilot**, then
-   **Allow**. It asks for:
+4. Authorise it. Google warns *"Google hasn't verified this app"* because you
+   just wrote it yourself. Click **Advanced → Go to Sleeper Autopilot**. Then
+   tick **Select all**, because every permission has its own checkbox and an
+   unticked one isn't granted, and click **Continue**. It asks for:
    - **Connect to an external service:** Sleeper, FantasyPros, GitHub.
    - **Run when you are not present:** the 30-minute checks.
-   - **Create and update Apps Script projects and deployments:** installing
-     updates.
-7. Open the **Web app URL** it shows. Bookmark it, or add it to your phone's
+5. Open the **Web app URL** it shows. Bookmark it, or add it to your phone's
    home screen. Then connect your Sleeper account. Log in on sleeper.com
    itself, where Sleeper shows its captcha, and copy your session over:
    - **Computer:** one line in the browser console.
@@ -47,25 +40,24 @@ It runs inside **your own Google account** as an Apps Script web app:
 It starts in **suggestions only** mode. Look over the plan, then flip the
 switch to turn the autopilot on.
 
+`appsscript.json` is optional: Google works out the same two permissions from
+the code.
+
 ### Updates
 
 When a newer version is on GitHub, the app shows **Update available** with
-the release notes. Tap **Install update**, then reload, and that's it. Updates
-come from this repo's `main` branch (or the development branch until it's
-merged), and only when you tap the button. The update permission technically
-lets the app edit your Apps Script projects. It only ever rewrites itself.
-
-If an update can't install, it says why. Google's permission screen has a
-checkbox for every permission, and an unticked one is simply not granted. The
-app checks for that and shows **Approve in Google** for anything missing. If
-you're ever stuck:
-1. Remove the app at
-   [myaccount.google.com/connections](https://myaccount.google.com/connections).
-2. Run **installUpdate** in the script editor.
-3. Tick **Select all** on Google's screen.
-
-The manual way still works: paste the new `SleeperAutopilot.gs`, save, then
-**Deploy → Manage deployments → ✏️ → Version: New version → Deploy**.
+the release notes. Tap **Install update**, then reload, and that's it. No
+redeploying, no extra Google permissions.
+- **How it works:** the app stores the new version in its private script
+  storage and loads it on top of the code you pasted, on every run (page,
+  buttons, 30-minute checks).
+- **Where updates come from:** this repo's `main` branch (or the development
+  branch until it's merged), and only when you tap the button.
+- **If something goes wrong:** if an installed update fails to load, the app
+  runs the pasted version and offers **Remove the update**.
+- **Pasting a version by hand:** the pasted code always wins over a stored
+  update. Paste the new `SleeperAutopilot.gs`, save, then
+  **Deploy → Manage deployments → ✏️ → Version: New version → Deploy**.
 
 ## What you see
 

@@ -270,97 +270,97 @@ test('login: captcha wall gets a clear message; pasted sessions accept JSON or a
 
 // ---- self-update ----------------------------------------------------------
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const DIST = path.join(__dirname, '..', 'dist', 'SleeperAutopilot.gs');
+const distText = () => fs.readFileSync(DIST, 'utf8');
 
 function remoteBuild(version, id) {
-  // A "newer" build: the real dist with a different BUILD_INFO line.
-  return fs.readFileSync(DIST, 'utf8').replace(/\nvar BUILD_INFO = .*;\n$/,
-    '\nvar BUILD_INFO = ' + JSON.stringify({ id, version, title: 'v' + version,
-      notes: [{ title: 'v' + version, items: ['newest'] }, { title: 'v' + (version - 1), items: ['older'] }] }) + ';\n');
+  // A "newer" build: the real dist with a new BUILD_INFO, a visible UI change and
+  // an extra server function, so tests can tell which code is running.
+  return distText()
+    .replace(/\nvar BUILD_INFO = .*;\n/, '\nvar BUILD_INFO = ' + JSON.stringify({ id, version, title: 'v' + version,
+      notes: [{ title: 'v' + version, items: ['newest'] }, { title: 'v' + (version - 1), items: ['older'] }] }) + ';\n')
+    .replace('Sleeper Autopilot</div>\\n', 'Sleeper Autopilot v' + version + '</div>\\n')
+    .replace(/\nloadInstalledUpdate_\(\);\n$/, "\nfunction whoAmI_() { return 'installed v" + version + "'; }\nloadInstalledUpdate_();\n");
 }
 
-function updaterGas(remote, api) {
-  const calls = [];
-  const gas = loadGas({ file: DIST, fetch(url, params) {
+function updaterGas(remote, opts = {}) {
+  return loadGas(Object.assign({ file: DIST, fetch(url) {
     if (url.includes('raw.githubusercontent.com')) {
       return url.includes('/main/') ? { code: 404, body: '404' } : { code: 200, body: remote };
     }
-    if (url.startsWith('https://script.googleapis.com/')) {
-      const body = params.payload ? JSON.parse(params.payload) : null;
-      calls.push([params.method, url.replace('https://script.googleapis.com/v1/projects/', ''), body,
-                  params.headers.Authorization]);
-      return api(params.method, url, body);
-    }
-  } });
-  return { gas, calls };
+  } }, opts));
 }
 
 test('update check: newer build on GitHub is offered with its release notes', () => {
   const cur = loadGas({ file: DIST }).buildInfo_();
-  const { gas } = updaterGas(remoteBuild(cur.version + 1, 'newer'), () => ({}));
-  const r = plain(gas.checkForUpdate());
+  const r = plain(updaterGas(remoteBuild(cur.version + 1, 'newer')).checkForUpdate());
   assert.equal(r.available, true);
   assert.deepEqual(r.notes.map((n) => n.title), ['v' + (cur.version + 1)]);
-  const same = updaterGas(fs.readFileSync(DIST, 'utf8'), () => ({})).gas.checkForUpdate();
-  assert.equal(same.available, false);
+  assert.equal(updaterGas(distText()).checkForUpdate().available, false);
 });
 
-test('install: rewrites code + manifest, cuts a version, repoints only the web app deployment', () => {
-  const cur = loadGas({ file: DIST }).buildInfo_();
-  const remote = remoteBuild(cur.version + 1, 'newer');
-  const { gas, calls } = updaterGas(remote, (method, url) => {
-    if (url.endsWith('/versions')) return { body: { versionNumber: 7 } };
-    if (method === 'get') {
-      return { body: { deployments: [
-        { deploymentId: 'HEAD_ID', deploymentConfig: { scriptId: 'SCRIPT_ID' } },
-        { deploymentId: 'DEPLOY_ID', deploymentConfig: { scriptId: 'SCRIPT_ID', versionNumber: 3 },
-          entryPoints: [{ entryPointType: 'WEB_APP' }] }] } };
-    }
-    return { body: {} };
-  });
-  const r = gas.installUpdate('newer');
-  assert.equal(r.version, 7);
-  assert.deepEqual(calls.map((c) => [c[0], c[1]]), [
-    ['put', 'SCRIPT_ID/content'], ['post', 'SCRIPT_ID/versions'], ['get', 'SCRIPT_ID/deployments'],
-    ['put', 'SCRIPT_ID/deployments/DEPLOY_ID']]);
-  const files = calls[0][2].files;
-  assert.deepEqual(files.map((f) => [f.name, f.type]), [['appsscript', 'JSON'], ['Code', 'SERVER_JS']]);
-  assert.equal(files[1].source, remote);
-  assert.deepEqual(JSON.parse(files[0].source).oauthScopes,
-                   JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'appsscript.json'), 'utf8')).oauthScopes);
-  assert.equal(calls[3][2].deploymentConfig.versionNumber, 7);
-  assert.equal(calls[0][3], 'Bearer ya29.test');
-  assert.match(gas.getJson_('log')[0].title, /Updated to "v/);
+test('install: stored update takes over from the next run (server code and page), and can update again', () => {
+  const v = loadGas({ file: DIST }).buildInfo_().version;
+  const first = updaterGas(remoteBuild(v + 1, 'n1'));
+  const r = first.installUpdate('n1');
+  assert.equal(r.info.title, 'v' + (v + 1));
+  assert.match(first.getJson_('log')[0].title, /Installed update "v/);
+  assert.equal(typeof first.whoAmI_, 'undefined');       // this run keeps the old code
+
+  const next = loadGas({ file: DIST, props: first.__props._data });  // a fresh execution, like Google's
+  assert.equal(next.whoAmI_(), 'installed v' + (v + 1));
+  assert.equal(next.buildInfo_().version, v + 1);
+  assert.match(next.doGet().getContent(), /Sleeper Autopilot v\d+<\/div>/);
+  const st = plain(next.call('getState', []));
+  assert.deepEqual([st.update.installed, st.update.error], [true, null]);
+
+  // Installing again from the installed code still stacks on the same paste.
+  const again = updaterGas(remoteBuild(v + 2, 'n2'), { props: next.__props._data });
+  again.installUpdate('n2');
+  const third = loadGas({ file: DIST, props: again.__props._data });
+  assert.equal(third.whoAmI_(), 'installed v' + (v + 2));
 });
 
-test('install: clear guidance when the Apps Script API is off or scopes are missing', () => {
-  const cur = loadGas({ file: DIST }).buildInfo_();
-  const remote = remoteBuild(cur.version + 1, 'newer');
-  const off = updaterGas(remote, () => ({ code: 403, body: { error: {
-    message: 'User has not enabled the Apps Script API. Enable it by visiting https://script.google.com/home/usersettings then retry.' } } }));
-  assert.throws(() => off.gas.installUpdate('newer'), /Turn on the Google Apps Script API.*Google said/);
-  const scope = updaterGas(remote, () => ({ code: 403, body: { error: { message: 'Request had insufficient authentication scopes.' } } }));
-  assert.throws(() => scope.gas.installUpdate('newer'), /myaccount\.google\.com\/connections.*Select all.*insufficient/);
-  const broken = updaterGas('garbage', () => ({}));
-  assert.throws(() => broken.gas.installUpdate(), /incomplete/);
+test('install: a different build pasted by hand always wins over a stored update', () => {
+  const v = loadGas({ file: DIST }).buildInfo_().version;
+  const gas = updaterGas(remoteBuild(v + 1, 'n1'));
+  gas.installUpdate();
+  const pasted = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'sa-')), 'pasted.gs');
+  fs.writeFileSync(pasted, distText().replace(/"id":"[0-9a-f]+"/, '"id":"hand-pasted"'));
+  const run = loadGas({ file: pasted, props: gas.__props._data });
+  assert.equal(typeof run.whoAmI_, 'undefined');
+  assert.equal(run.buildInfo_().id, 'hand-pasted');
+  assert.equal(run.getState().update.installed, false);
 });
 
-test('granular consent: unticked update permission gets an Approve link instead of a failed install', () => {
-  const cur = loadGas({ file: DIST }).buildInfo_();
-  const denied = ['https://www.googleapis.com/auth/script.projects'];
-  const calls = [];
-  const gas = loadGas({ file: DIST, deniedScopes: denied, fetch(url) {
-    if (url.includes('raw.githubusercontent.com')) return { code: 200, body: remoteBuild(cur.version + 1, 'newer') };
-    if (url.startsWith('https://script.googleapis.com/')) { calls.push(url); return { body: {} }; }
-  } });
-  const r = plain(gas.checkForUpdate());
-  assert.equal(r.available, true);
-  assert.match(r.approval.url, /approve/);
-  assert.deepEqual(r.approval.scopes, denied);
-  assert.throws(() => gas.installUpdate('newer'), /approve the update permission.*approve/);
-  assert.equal(calls.length, 0);                       // never even tried the API
-  assert.equal(gas.getState().permissions, null);      // core permissions are fine
+test('install: damaged stored update falls back to the pasted code and can be removed', () => {
+  const base = loadGas({ file: DIST });
+  base.putJson_('engine', { base: base.buildInfo_().id, info: { title: 'bad' }, code: 'function broken( {' });
+  const run = loadGas({ file: DIST, props: base.__props._data });
+  const st = plain(run.getState());
+  assert.equal(st.update.installed, false);
+  assert.ok(st.update.error);
+  assert.equal(run.buildInfo_().id, base.buildInfo_().id);
+  run.removeUpdate();
+  assert.equal(loadGas({ file: DIST, props: run.__props._data }).getState().update.error, null);
+});
+
+test('install: refuses incomplete downloads; dispatcher only runs listed actions', () => {
+  assert.throws(() => updaterGas('garbage').installUpdate(), /incomplete/);
+  const truncated = remoteBuild(99, 'x').replace(/\nloadInstalledUpdate_\(\);\n$/, '\n');
+  assert.throws(() => updaterGas(truncated).installUpdate(), /incomplete/);
+  const gas = loadGas({ file: DIST });
+  assert.throws(() => gas.call('fetch_', ['https://example.com']), /Unknown action/);
+  assert.throws(() => gas.call('eval', ['1']), /Unknown action/);
+  assert.equal(gas.call('getState', []).connected, false);
+});
+
+test('granular consent: an unticked core permission shows up with an Approve link', () => {
+  assert.equal(loadGas().getState().permissions, null);
   const core = loadGas({ deniedScopes: ['https://www.googleapis.com/auth/script.scriptapp'] });
-  assert.deepEqual(plain(core.getState().permissions.scopes), ['https://www.googleapis.com/auth/script.scriptapp']);
+  const p = plain(core.getState().permissions);
+  assert.deepEqual(p.scopes, ['https://www.googleapis.com/auth/script.scriptapp']);
+  assert.match(p.url, /approve/);
 });

@@ -2,14 +2,17 @@
  * Local preview of the web app: serves Index.html with a google.script.run
  * shim that calls Code.gs (running on the stubs in gas-stub.js).
  *
- *   node dev/server.js [--port 8080] [--now 2026-10-22T22:00:00Z] [--cache file] [--fake-update]
+ *   node dev/server.js [--port 8080] [--now 2026-10-22T22:00:00Z] [--cache file] [--dist] [--fake-update]
  *
  * Sleeper logins/mutations are faked (never sent): log in with any
  * identifier + password "demo", then code "1234". Reads hit the real APIs.
  * The page's own fetches to Sleeper's GraphQL are rerouted to this server, so
  * the preview can never send a real login, whatever a test types into it.
  * Set DEMO_USER_ID to the Sleeper user id the fake login should resolve to.
- * --fake-update pretends GitHub has a newer build and fakes the Apps Script API.
+ * --dist runs the single-file build (dist/SleeperAutopilot.gs) and serves its own
+ * page, like the real deployment. Each request gets a fresh copy of the script
+ * (as on Google) with storage kept between requests, so installed updates load.
+ * --fake-update pretends GitHub has a newer build ("v99", visibly marked).
  */
 const http = require('http');
 const fs = require('fs');
@@ -29,7 +32,15 @@ const fakeToken = () => [b64({ alg: 'none' }), b64({ user_id: process.env.DEMO_U
   exp: Math.floor(now() / 1000) + 60 * 86400 }), 'sig'].join('.');
 
 const fakeUpdate = process.argv.includes('--fake-update');
+const useDist = process.argv.includes('--dist');
 const dist = path.join(__dirname, '..', 'dist', 'SleeperAutopilot.gs');
+
+function fakeRemoteBuild() {
+  return fs.readFileSync(dist, 'utf8')
+    .replace(/\nvar BUILD_INFO = .*;\n/, '\nvar BUILD_INFO = ' + JSON.stringify({ id: 'preview', version: 99,
+      title: 'Preview update', notes: [{ title: 'Preview update', items: ['Something new', 'Something better'] }] }) + ';\n')
+    .replace('Sleeper Autopilot</div>\\n', 'Sleeper Autopilot v99</div>\\n');
+}
 
 function fakeGql(body) {
   const q = body.query;
@@ -50,25 +61,26 @@ function fakeGql(body) {
   return undefined;
 }
 
-const gas = loadGas({
-  now,
-  fetch(url, params) {
-    if (!fakeUpdate) return undefined;
-    if (url.includes('raw.githubusercontent.com') && url.endsWith('SleeperAutopilot.gs')) {
-      return { body: fs.readFileSync(dist, 'utf8').replace(/\nvar BUILD_INFO = .*;\n$/, '\nvar BUILD_INFO = ' +
-        JSON.stringify({ id: 'preview', version: 99, title: 'Preview update',
-                         notes: [{ title: 'Preview update', items: ['Something new', 'Something better'] }] }) + ';\n') };
-    }
-    if (url.startsWith('https://script.googleapis.com/')) {
-      if (url.endsWith('/versions')) return { body: { versionNumber: 12 } };
-      if (params.method === 'get') return { body: { deployments: [] } };
-      return { body: {} };
-    }
-    return undefined;
-  },
-  cacheFile: arg('cache', path.join(__dirname, '.cache.json')),
-  gql: fakeGql,
-});
+let props = {};  // the user's script storage, kept between requests
+function freshGas() {
+  return loadGas({
+    now,
+    props,
+    file: useDist ? dist : undefined,
+    fetch(url) {
+      if (fakeUpdate && url.includes('raw.githubusercontent.com') && url.endsWith('SleeperAutopilot.gs')) {
+        return { body: fakeRemoteBuild() };
+      }
+      return undefined;
+    },
+    cacheFile: arg('cache', path.join(__dirname, '.cache.json')),
+    gql: fakeGql,
+  });
+}
+function withGas(fn) {
+  const gas = freshGas();
+  try { return fn(gas); } finally { props = gas.__props._data; }
+}
 
 const shim = `<script>
 const realFetch = window.fetch.bind(window);
@@ -101,8 +113,10 @@ http.createServer((req, res) => {
       const fn = req.url.slice(5);
       let out;
       try {
-        if (fn.endsWith('_') || typeof gas[fn] !== 'function') throw new Error('No such function: ' + fn);
-        out = { value: gas[fn](...JSON.parse(body || '[]')) };
+        out = withGas((gas) => {
+          if (fn.endsWith('_') || typeof gas[fn] !== 'function') throw new Error('No such function: ' + fn);
+          return { value: gas[fn](...JSON.parse(body || '[]')) };
+        });
       } catch (e) {
         out = { error: e.message };
       }
@@ -111,7 +125,9 @@ http.createServer((req, res) => {
     });
     return;
   }
-  const html = fs.readFileSync(path.join(__dirname, '..', 'Index.html'), 'utf8').replace('<script>', shim + '<script>');
+  const page = useDist ? withGas((gas) => gas.doGet().getContent())
+                       : fs.readFileSync(path.join(__dirname, '..', 'Index.html'), 'utf8');
+  const html = page.replace('<script>', shim + '<script>');
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   res.end(html);
 }).listen(port, () => console.log(`preview on http://localhost:${port}`));
