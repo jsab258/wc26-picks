@@ -79,6 +79,13 @@ function fakeGql(body) {
     return { data: { roster_update_starters: { roster_id: body.variables.rosterId, starters: body.variables.starters } } };
   }
   if (q.includes('submit_waiver_claim')) return { data: { submit_waiver_claim: { transaction_id: 'demo' } } };
+  if (q.includes('league_create_transaction')) {
+    const v = body.variables;
+    return { data: { league_create_transaction: { transaction_id: 'demo', type: 'free_agent', status: 'complete',
+      adds: Object.fromEntries(v.k_adds.map((k, i) => [k, v.v_adds[i]])),
+      drops: Object.fromEntries((v.k_drops || []).map((k, i) => [k, v.v_drops[i]])) } } };
+  }
+  if (q.includes('league_players(')) return { data: { league_players: [] } };
   return undefined;
 }
 
