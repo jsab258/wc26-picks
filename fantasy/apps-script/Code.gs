@@ -95,8 +95,16 @@ function getDashboard() {
   var s = settings_();
   var user = getJson_('user', {});
   var leagues = myLeagues_(ctx, user.user_id).map(function (data) {
-    var lg = new League_(ctx, data, user.user_id, leagueCfg_(s, data.league_id));
-    return lg.evaluate({ lineup: true, waivers: true });
+    var cfg = leagueCfg_(s, data.league_id);
+    try {
+      return new League_(ctx, data, user.user_id, cfg).evaluate({ lineup: true, waivers: true });
+    } catch (e) {
+      if (e.expired) throw e;
+      // One league failing to load (e.g. Sleeper erroring on its rosters) mustn't hide the others.
+      return { id: data.league_id, name: data.name || data.league_id, flags: [], slots: [], settings: cfg,
+               notes: ["Couldn't load this league: " + (e.message || e)], lineup: null, waivers: null,
+               status: data.status };
+    }
   });
   return { state: getState(), week: ctx.state.week, season: ctx.state.league_season, leagues: leagues };
 }
@@ -129,15 +137,35 @@ function applyLineup(leagueId) {
   });
 }
 
-function submitClaims(leagueId) {
+/**
+ * Submit the claims the page showed: ``shown`` is [[add id, drop id, bid], ...]. The plan
+ * is made again first, and if it changed in the meantime (new rankings, a player got
+ * picked up) nothing is sent and the page shows the new plan to check instead.
+ */
+function submitClaims(leagueId, shown) {
+  if (!shown) throw new Error('Reload the page and try again.');
   return withLeague_(leagueId, function (lg) {
     var res = lg.evaluate({ waivers: true });
+    var w = res.waivers;
+    if (w && !w.error && claimKeys_(w.claims) !== shown.map(function (c) { return c.join('|'); }).join(',')) {
+      w.changed = true;
+      return res;
+    }
     lg.applyClaims(res, 'manual');
     return res;
   });
 }
 
-/** Run the lineup part of the autopilot right now (ignores the time window). */
+function claimKeys_(claims) {
+  return claims.map(function (c) {
+    return [c.add.id, c.drop ? c.drop.id : null, c.bid === undefined ? null : c.bid].join('|');
+  }).join(',');
+}
+
+/**
+ * Check lineups right now, ignoring the 30-hour window. They're only saved when the
+ * autopilot is on; in suggestions-only mode this just reports what it would change.
+ */
 function runNow() {
   autopilot_({ force: true });
   return getState();
@@ -208,7 +236,6 @@ function connectWithToken(token, username, userId) {
 
 function logout() {
   store_().deleteProperty('token');
-  store_().deleteProperty('waivers_done');
   log_({ level: 'info', title: 'Disconnected from Sleeper' });
   return getState();
 }
@@ -268,7 +295,8 @@ function autopilot_(opts) {
   var token = token_();
   if (!token) return;
   var s = settings_();
-  if (s.mode !== 'auto' && !opts.force) {
+  var auto = s.mode === 'auto';  // only then does anything get saved to Sleeper
+  if (!auto && !opts.force) {
     recordTick_('idle', 'Suggestions only: autopilot is paused.');
     return;
   }
@@ -279,38 +307,60 @@ function autopilot_(opts) {
   var lineupWindow = opts.force || (schedule.week === Number(ctx.state.week) && nextKick &&
                                     nextKick - ctx.now <= 30 * 3600);
   var done = getJson_('waivers_done', {});
-  var summary = [];
+  var summary = [], failed = false;
+  // A problem that persists is logged once, not on every 30-minute check.
+  var seen = getJson_('tick_errors', {}), errors = {};
+  var fail = function (key, league, title, msg) {
+    failed = true;
+    errors[key] = msg;
+    if (seen[key] !== msg) log_({ level: 'error', league: league, title: title, lines: [msg] });
+  };
   try {
     myLeagues_(ctx, user.user_id).forEach(function (data) {
-      var cfg = leagueCfg_(s, data.league_id);
-      var lg = new League_(ctx, data, user.user_id, cfg);
-      if (!lg.roster || data.status !== 'in_season') return;
-      if (cfg.auto_lineup && lineupWindow && !(lg.settings.best_ball)) {
-        var res = lg.evaluate({ lineup: true });
-        if (res.lineup && res.lineup.changes) {
-          lg.applyLineup(res, 'autopilot');
-          summary.push(lg.name + ': lineup updated');
+      var name = data.name || data.league_id;
+      try {
+        var cfg = leagueCfg_(s, data.league_id);
+        var lg = new League_(ctx, data, user.user_id, cfg);
+        if (!lg.roster || data.status !== 'in_season') return;
+        if (lineupWindow && !lg.settings.best_ball && (cfg.auto_lineup || !auto)) {
+          var res = lg.evaluate({ lineup: true }), l = res.lineup || {};
+          if (l.error) {
+            summary.push(name + ": couldn't check the lineup");
+            fail(lg.id + ':lineup', name, 'Lineup check failed', l.error);
+          } else if (l.changes && auto) {
+            lg.applyLineup(res, 'autopilot');
+            if (!l.applied) failed = true;
+            summary.push(name + (l.applied ? ': lineup updated' : ': saving the lineup failed'));
+          } else if (l.changes) {
+            summary.push(name + ': ' + l.changes + ' lineup change' + (l.changes > 1 ? 's' : '') + ' suggested');
+          }
         }
-      }
-      var win = waiverWindow_(lg, ctx.now);
-      if (cfg.auto_waivers && !opts.force && win && !done[lg.id + ':' + win]) {
-        var wres = lg.evaluate({ waivers: true });
-        if (wres.waivers && wres.waivers.error) {
-          log_({ level: 'error', league: lg.name, title: 'Waiver planning failed', lines: [wres.waivers.error] });
-          return;  // try again on the next tick
+        var win = waiverWindow_(lg, ctx.now);
+        if (auto && cfg.auto_waivers && !opts.force && win && !done[lg.id + ':' + win]) {
+          var wres = lg.evaluate({ waivers: true }), w = wres.waivers || {};
+          if (w.error || w.pendingUnknown) {
+            summary.push(name + ": couldn't plan waiver claims");
+            fail(lg.id + ':waivers', name, 'Waiver planning failed', w.error || PENDING_UNKNOWN_MSG);
+            return;  // try again on the next tick
+          }
+          lg.applyClaims(wres, 'autopilot');
+          done[lg.id + ':' + win] = Date.now();
+          putJson_('waivers_done', pruneDone_(done));
+          summary.push(name + ': ' + w.claims.length + ' claim(s)');
         }
-        lg.applyClaims(wres, 'autopilot');
-        done[lg.id + ':' + win] = Date.now();
-        putJson_('waivers_done', pruneDone_(done));
-        summary.push(lg.name + ': ' + wres.waivers.claims.length + ' claim(s)');
+      } catch (e) {
+        if (e.expired) throw e;
+        summary.push(name + ': error');
+        fail(data.league_id + ':league', name, "Couldn't check this league", String(e.message || e));
       }
     });
   } catch (e) {
     if (e.expired) { recordTick_('error', EXPIRED_MSG); return; }
     throw e;
   }
+  putJson_('tick_errors', errors);
   var idle = !lineupWindow ? 'No games in the next 30h; nothing to do.' : 'Checked lineups: all optimal.';
-  recordTick_('ok', summary.length ? summary.join(' · ') : idle);
+  recordTick_(failed ? 'error' : 'ok', summary.length ? summary.join(' · ') : idle);
 }
 
 function nextKickoff_(list, now) {
@@ -325,7 +375,9 @@ function nextKickoff_(list, now) {
 /** Claims go in the evening before the league's waiver day (UTC). Returns a window id or null. */
 function waiverWindow_(lg, now) {
   if (lg.settings.daily_waivers) return null;
-  var waiverDay = ((lg.settings.waiver_day_of_week || 2) + 1) % 7;  // Sleeper: 0=Mon; JS: 0=Sun
+  var wd = lg.settings.waiver_day_of_week;
+  if (wd === undefined || wd === null) wd = 2;  // Sleeper's default, Wednesday
+  var waiverDay = (Number(wd) + 1) % 7;  // Sleeper: 0=Mon; JS: 0=Sun
   var d = new Date(now * 1000);
   var day = d.getUTCDay(), hour = d.getUTCHours();
   var before = (waiverDay + 6) % 7;
@@ -381,16 +433,18 @@ function readBuildInfo_(text) {
   return m ? JSON.parse(m[1]) : { id: 'legacy', version: 0, title: 'older build', notes: [] };
 }
 
-/** Newest build published on GitHub (main first, then the feature branch). */
+/**
+ * The build published on GitHub: main's once main has one, the development branch's
+ * until then. Main being unreachable is not a reason to fall back to the branch.
+ */
 function latestBuild_() {
-  var best = null;
-  UPDATE_URLS.forEach(function (url) {
-    var r = fetch_(url, { retries: 1 });
-    if (r.code !== 200) return;
-    var info = readBuildInfo_(r.text);
-    if (!best || info.version > best.info.version) best = { info: info, text: r.text };
-  });
-  return best;
+  for (var i = 0; i < UPDATE_URLS.length; i++) {
+    var r = fetch_(UPDATE_URLS[i], { retries: 1 });
+    if (r.code === 404) continue;
+    if (r.code !== 200) return null;
+    return { info: readBuildInfo_(r.text), text: r.text };
+  }
+  return null;
 }
 
 /**
@@ -403,15 +457,11 @@ function loadInstalledUpdate_() {
   PASTED_BUILD_ = buildInfo_();
   var pkg = getJson_('engine', null);
   if (!pkg || pkg.base !== PASTED_BUILD_.id) return;
-  try {
-    new Function(pkg.code);  // syntax check only: a damaged copy must not half-load
-  } catch (e) {
-    LOAD_ERROR_ = String(e.message || e);
-    return;
-  }
   INSTALLING_ = true;
   try {
-    (0, eval)(pkg.code);  // global eval: redefines every function and setting
+    // Global eval: redefines every function and setting. It parses the whole text
+    // before running any of it, so a damaged copy fails without half-loading.
+    (0, eval)(pkg.code);
     RUNNING_INSTALLED_ = true;
   } catch (e) {
     LOAD_ERROR_ = String(e.message || e);
@@ -470,7 +520,7 @@ function installUpdate(expectedId) {
 
 /** UI: forget the installed update and run the pasted code again. */
 function removeUpdate() {
-  putJson_('engine', null);
+  deleteJson_('engine');
   log_({ level: 'info', title: 'Removed the installed update; back to the pasted version' });
   return getState();
 }
@@ -527,12 +577,24 @@ function log_(entry) {
 
 // Property values are capped at 9 KB, so JSON is split across keys.
 function getJson_(key, dflt) {
-  var all = store_().getProperties();  // one call: an installed update spans ~17 values
-  var n = Number(all[key + '#n'] || 0);
+  var p = store_();
+  var n = Number(p.getProperty(key + '#n') || 0);
   if (!n) return dflt;
   var s = '';
-  for (var i = 0; i < n; i++) s += all[key + '#' + i] || '';
+  if (n === 1) {
+    s = p.getProperty(key + '#0') || '';
+  } else {
+    var all = p.getProperties();  // one call for big values: an installed update spans ~17
+    for (var i = 0; i < n; i++) s += all[key + '#' + i] || '';
+  }
   try { return JSON.parse(s); } catch (e) { return dflt; }
+}
+
+function deleteJson_(key) {
+  var p = store_();
+  var n = Number(p.getProperty(key + '#n') || 0);
+  for (var i = 0; i < n; i++) p.deleteProperty(key + '#' + i);
+  p.deleteProperty(key + '#n');
 }
 
 function putJson_(key, obj) {
@@ -575,6 +637,24 @@ function cached_(key, seconds, fn) {
   if (v !== null) return v;
   v = fn();
   try { cachePut_(key, v, seconds); } catch (e) { /* too big to cache: fine */ }
+  return v;
+}
+
+/**
+ * Like cached_, but refreshed once older than ``maxAgeSec``; if the refresh fails, the
+ * older copy (kept up to 6h) is used rather than nothing.
+ */
+function cachedFresh_(key, maxAgeSec, fn) {
+  var hit = cacheGet_(key);
+  if (hit && Date.now() / 1000 - hit.at < maxAgeSec) return hit.v;
+  var v;
+  try {
+    v = fn();
+  } catch (e) {
+    if (hit) return hit.v;
+    throw e;
+  }
+  try { cachePut_(key, { at: Date.now() / 1000, v: v }, 6 * 3600); } catch (e) { /* too big to cache: fine */ }
   return v;
 }
 
@@ -623,6 +703,8 @@ function gql_(query, variables, token, retries) {
 }
 
 var EXPIRED_MSG = 'Your Sleeper session expired. Please log in again.';
+var PENDING_UNKNOWN_MSG = "Couldn't read your pending claims on Sleeper, so no claims were submitted: " +
+  'the plan could repeat ones you already have.';
 
 /** Sleeper rejected our token: forget it (stops the autopilot) and say so once. */
 function sessionExpired_() {
@@ -733,9 +815,12 @@ function fpList_(slug) {
 
 /** fantasypros_id -> sleeper_id, from the DynastyProcess cross-site id table. */
 function fpToSleeper_() {
-  return cached_('dp_ids', 6 * 3600, function () {
-    var rows = Utilities.parseCsv(fetch_(DP_IDS_URL).text);
-    var head = rows[0], fi = head.indexOf('fantasypros_id'), si = head.indexOf('sleeper_id'), map = {};
+  return cachedFresh_('dp_ids2', 3 * 3600, function () {
+    var r = fetch_(DP_IDS_URL);
+    if (r.code !== 200) throw new Error("Couldn't download the player id table (HTTP " + r.code + ')');
+    var rows = Utilities.parseCsv(r.text);
+    var head = rows[0] || [], fi = head.indexOf('fantasypros_id'), si = head.indexOf('sleeper_id'), map = {};
+    if (fi < 0 || si < 0) throw new Error('The player id table changed its format');
     for (var i = 1; i < rows.length; i++) {
       var f = rows[i][fi], s = rows[i][si];
       if (f && s && f !== 'NA' && s !== 'NA') map[f] = s;
@@ -750,9 +835,16 @@ function fpToSleeper_() {
  * often close to kickoff so game-day inactives are picked up.
  */
 function playersSlim_(maxAgeSec) {
-  var hit = cacheGet_('players');
-  if (hit && Date.now() / 1000 - hit.at < maxAgeSec) return hit.players;
-  var text = fetch_(SLEEPER_REST + '/players/nfl').text;
+  return cachedFresh_('players2', maxAgeSec, function () {
+    var r = fetch_(SLEEPER_REST + '/players/nfl');
+    if (r.code !== 200) throw new Error("Couldn't download Sleeper's player list (HTTP " + r.code + ')');
+    var out = parsePlayers_(r.text);
+    if (!Object.keys(out).length) throw new Error("Sleeper's player list came back empty");
+    return out;
+  });
+}
+
+function parsePlayers_(text) {
   var out = {}, i = text.indexOf('{') + 1;
   var keep = /"position":"(QB|RB|WR|TE|K|DEF)"/;
   while (true) {
@@ -773,7 +865,6 @@ function playersSlim_(maxAgeSec) {
     }
     i = oe + 1;
   }
-  try { cachePut_('players', { at: Date.now() / 1000, players: out }, 6 * 3600); } catch (e) { /* ok */ }
   return out;
 }
 
@@ -953,6 +1044,15 @@ function optimize_(slots, current, roster, cost, locked) {
     hungarian_(matrix).forEach(function (col, r) {
       starters[openIdx[r]] = matrix[r][col] < INELIGIBLE ? cols[col] : EMPTY;
     });
+    // Never take out a player who is still on the roster without putting someone in:
+    // an empty slot there means data didn't load (e.g. the player list), not a better lineup.
+    var onRoster = {}, inLineup = {};
+    roster.forEach(function (p) { onRoster[p] = true; });
+    starters.forEach(function (p) { inLineup[p] = true; });
+    openIdx.forEach(function (i) {
+      var p = current[i];
+      if (starters[i] === EMPTY && p !== EMPTY && onRoster[p] && !inLineup[p]) { starters[i] = p; inLineup[p] = true; }
+    });
     keepPositions_(slots, current, starters, openIdx);
   }
   var changes = [], keptLocked = [];
@@ -1018,7 +1118,10 @@ function planUpgrades_(o) {
       if (dv - fv < o.minGain) break;
       var dpos = o.position(d);
       if (dpos !== fpos && deep) continue;
-      if (dpos !== fpos && healthy(d) && (counts[dpos] || 0) - 1 < (o.minimums[dpos] || 0)) continue;
+      // Healthy players left at the drop's position (an injured pickup doesn't replace a healthy one).
+      var have = counts[dpos] || 0;
+      var left = have - (healthy(d) ? 1 : 0) + (dpos === fpos && healthy(fa) ? 1 : 0);
+      if (left < have && left < (o.minimums[dpos] || 0)) continue;
       claims.push({ add: fa, drop: d, addValue: fv, dropValue: dv, kind: 'upgrade' });
       cands.splice(c, 1);
       if (healthy(d)) counts[dpos]--;
@@ -1123,7 +1226,7 @@ League_.prototype.weeklyRank = function (pid) {
 };
 
 League_.prototype.view = function (pid, rank, extra) {
-  var p = this.p(pid) || [pid, '?', null];
+  var p = this.p(pid) || ['Player ' + pid, '', null];  // not tracked (e.g. IDP): left as you set it
   var v = { id: pid, name: pid === EMPTY ? '(empty)' : p[0], pos: p[1], team: this.team(pid),
             rank: rank && rank.rank !== undefined ? rank.rank : (typeof rank === 'number' ? Math.round(rank) : null),
             posRank: rank && rank.posRank ? rank.posRank : null };
@@ -1198,6 +1301,7 @@ League_.prototype.planLineup = function () {
   var everyone = this.activePlayers().concat(current);
   everyone.forEach(function (pid) {
     if (pid === EMPTY || info[pid]) return;
+    if (!self.p(pid)) { info[pid] = { r: null, locked: false, why: null }; return; }  // IDP etc.: not ours to judge
     var r = self.weeklyRank(pid), team = self.team(pid);
     var ko = (r && r.kickoff) || kickoff[team];
     var injury = (self.p(pid) || [])[3];
@@ -1271,14 +1375,17 @@ League_.prototype.planWaivers = function () {
   this.rosters.forEach(function (r) {
     (r.players || []).concat(r.reserve || [], r.taxi || []).forEach(function (p) { rostered[p] = true; });
   });
-  var myRid = this.roster.roster_id, pending = [];
+  var myRid = this.roster.roster_id, pending = [], pendingUnknown = false;
   try {
     pending = pendingWaivers_(ctx.token, this.id).filter(function (t) {
       return (t.roster_ids || []).indexOf(myRid) >= 0;
     });
   } catch (e) {
     if (e.expired) throw e;
-    notes.push("Couldn't read your pending claims: " + e.message);
+    // Without them the plan could repeat claims you already have: show it, but don't submit it.
+    pendingUnknown = true;
+    notes.push("Couldn't read your pending claims on Sleeper (" + e.message + '), so this plan may repeat ' +
+               "them and won't be submitted until that works again.");
   }
   var pendingAdds = {}, pendingDrops = {};
   pending.forEach(function (t) {
@@ -1344,6 +1451,9 @@ League_.prototype.planWaivers = function () {
   var core = {};
   optimize_(this.slots, [], mine, rosCost).starters.forEach(function (p) { core[p] = true; });
   var limit = (this.data.roster_positions || []).filter(function (s) { return s !== 'IR' && s !== 'TAXI'; }).length;
+  // Pending claims that add more players than they drop will fill open roster spots.
+  var droppingMine = mine.filter(function (p) { return pendingDrops[p]; }).length;
+  limit -= Math.max(0, Object.keys(pendingAdds).length - droppingMine);
   // Claims already pending on Sleeper count toward the weekly limit (streams don't).
   var pendingUpgrades = Object.keys(pendingAdds).filter(function (p) { return SKILL.indexOf(self.pos(p)) >= 0; }).length;
   var room = Math.max(0, cfg.max_claims - pendingUpgrades);
@@ -1388,7 +1498,9 @@ League_.prototype.planWaivers = function () {
       if (Object.keys(pendingAdds).some(function (p) { return self.pos(p) === pos; })) return;  // already streaming
       var faK = [];
       wl.byId.forEach(function (r, pid) { if (!rostered[pid] && !pendingAdds[pid]) faK.push(pid); });
-      var my = mine.filter(function (p) { return self.pos(p) === pos && !pendingDrops[p] && !keep[p]; });
+      var my = mine.filter(function (p) {
+        return self.pos(p) === pos && !pendingDrops[p] && !keep[p] && !usedDrops[p];  // not already dropped above
+      });
       var c = planStream_(faK, my, wv, cfg.stream_margin, openSpot);
       if (c && c.drop && kdNum(c.drop) <= 12 && kdNum(c.add) >= kdNum(c.drop)) {
         // Never give away a top-12 K/DEF for one good week, unless the streamer is also
@@ -1428,6 +1540,7 @@ League_.prototype.planWaivers = function () {
   }
   return {
     pending: pending.length,
+    pendingUnknown: pendingUnknown,
     faab: this.faab,
     basis: this.qbPremium ? 'rest-of-season ECR, superflex-adjusted' : 'rest-of-season ECR',
     notes: notes,
@@ -1445,7 +1558,10 @@ League_.prototype.planWaivers = function () {
 
 League_.prototype.neverDrop = function () {
   var self = this, wanted = {}, names = {};
-  (this.cfg.never_drop || []).forEach(function (x) { wanted[String(x)] = true; names[normName_(x)] = true; });
+  (this.cfg.never_drop || []).forEach(function (x) {
+    wanted[String(x)] = true;
+    if (normName_(x)) names[normName_(x)] = true;  // an id like "4034" has no name part
+  });
   var out = {};
   (this.roster.players || []).forEach(function (pid) {
     if (wanted[pid] || names[normName_((self.p(pid) || [])[0])]) out[pid] = true;
@@ -1473,6 +1589,10 @@ League_.prototype.applyLineup = function (res, who) {
 League_.prototype.applyClaims = function (res, who) {
   var w = res.waivers, self = this;
   if (!w || w.error || !w.claims.length) return;
+  if (w.pendingUnknown) {
+    w.submitError = PENDING_UNKNOWN_MSG;
+    return;
+  }
   var lines = [];
   w.claims.forEach(function (c) {
     try {

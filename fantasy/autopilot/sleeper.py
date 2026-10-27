@@ -69,7 +69,14 @@ def token_claims(token):
 
 class SleeperWrite:
     def __init__(self, token):
-        self.token = token.strip()
+        token = token.strip()
+        if token.startswith("{"):  # the web app's console line copies {"token": ..., "user_id": ...}
+            try:
+                token = json.loads(token).get("token") or ""
+            except ValueError:
+                pass
+        # sleeper.com keeps the token JSON-encoded, so localStorage gives it back in quotes.
+        self.token = token.strip().strip('"')
 
     @classmethod
     def from_env(cls):

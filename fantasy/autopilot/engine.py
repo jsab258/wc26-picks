@@ -77,6 +77,8 @@ class League:
         self.roster = next((r for r in self.rosters if r.get("owner_id") == user_id
                             or user_id in (r.get("co_owners") or [])), None)
         self.lines, self.errors = [], 0
+        self.redact = False
+        self.pending_unknown = False
 
     # ---- player helpers -------------------------------------------------
     def player(self, pid):
@@ -92,11 +94,14 @@ class League:
     def team(self, pid):
         return pid if self.pos(pid) == "DEF" else self.player(pid).get("team")
 
+    def player_name(self, pid):
+        p = self.player(pid)
+        return p.get("full_name") or f"{p.get('first_name', '')} {p.get('last_name', '')}".strip()
+
     def label(self, pid, rank=None):
         if pid == EMPTY:
             return "(empty)"
-        p = self.player(pid)
-        name = p.get("full_name") or f"{p.get('first_name', '')} {p.get('last_name', '')}".strip() or pid
+        name = self.player_name(pid) or pid
         tag = f"{self.pos(pid)} {self.team(pid) or 'FA'}"
         if rank is not None:
             tag += f", {rank.pos_rank} / #{rank.rank}" if hasattr(rank, "pos_rank") else f", #{rank:g}"
@@ -124,9 +129,9 @@ class League:
 
     def never_drop(self):
         wanted = {str(x) for x in self.cfg["never_drop"]}
-        names = {norm_name(x) for x in wanted}
+        names = {norm_name(x) for x in wanted} - {""}  # an id like "4034" has no name part
         return {pid for pid in (self.roster.get("players") or [])
-                if pid in wanted or norm_name(self.player(pid).get("full_name")) in names}
+                if pid in wanted or norm_name(self.player_name(pid)) in names}
 
     # ---- lineup ---------------------------------------------------------
     def plan_lineup(self):
@@ -143,6 +148,8 @@ class League:
         now = self.s.now
 
         def status(pid):
+            if not self.player(pid):  # not in the player db (IDP etc.): not ours to judge
+                return None, False, None
             r = self.weekly_rank(pid)
             ko = (r.kickoff if r else None) or kickoff.get(self.team(pid))
             locked = bool(r and r.started) or bool(ko and ko <= now)
@@ -238,8 +245,10 @@ class League:
             try:
                 pending = [t for t in self.s.write.pending_waivers(self.id)
                            if my_rid in (t.get("roster_ids") or [])]
-            except RuntimeError as e:
-                self.lines.append(f"- ⚠️ Couldn't read your pending claims ({e}); duplicates are possible.")
+            except Exception as e:  # any failure means duplicates can't be ruled out
+                self.pending_unknown = True
+                self.lines.append(f"- ⚠️ Couldn't read your pending claims ({e}); this plan may repeat them, "
+                                  "so it won't be submitted.")
         pending_adds = {pid for t in pending for pid in (t.get("adds") or {})}
         pending_drops = {pid for t in pending for pid in (t.get("drops") or {})}
         if pending:
@@ -309,6 +318,8 @@ class League:
 
         core = set(optimize(self.slots, [], mine, ros_cost).starters) - {EMPTY}
         limit = sum(1 for s in self.data.get("roster_positions") or [] if s not in ("IR", "TAXI"))
+        # Pending claims that add more players than they drop will fill open roster spots.
+        limit -= max(0, len(pending_adds) - len(pending_drops & set(mine)))
         # Claims already pending on Sleeper count toward the weekly limit (streams don't).
         pending_upgrades = sum(1 for p in pending_adds if self.pos(p) in SKILL)
         room = max(0, self.cfg["max_claims"] - pending_upgrades)
@@ -357,7 +368,8 @@ class League:
                 return None if r is None or r.bye else r.rank
 
             fas = [pid for pid in wl.by_id if pid not in unavailable]
-            my = [p for p in mine if self.pos(p) == pos and p not in pending_drops and p not in keep]
+            my = [p for p in mine if self.pos(p) == pos and p not in pending_drops and p not in keep
+                  and p not in used]  # not already dropped by an upgrade claim
             claim = plan_stream(free_agents=fas, mine=my, value=wv, margin=self.cfg["stream_margin"],
                                 open_spot=open_spot)
             if claim and claim.drop and kd_num(claim.drop) <= 12 and kd_num(claim.add) >= kd_num(claim.drop):
@@ -374,9 +386,12 @@ class League:
                     if open_spot or other:
                         claim = Claim(claim.add, other, claim.add_value,
                                       drop_value(other) if other else None, "stream")
-                        self.lines.append(f"- {label} can't play this week and is too good to drop, so this adds "
-                                          f"{self.label(claim.add)} for the week"
-                                          + (f" and drops {self.label(other)}." if other else "."))
+                        if self.redact:  # the claim itself is private
+                            self.lines.append(f"- {label} can't play this week and is too good to drop.")
+                        else:
+                            self.lines.append(f"- {label} can't play this week and is too good to drop, so this "
+                                              f"adds {self.label(claim.add)} for the week"
+                                              + (f" and drops {self.label(other)}." if other else "."))
                     else:
                         self.lines.append(f"- {label} can't play this week, but no bench player is cheap enough "
                                           f"to give up for a one-week {pos}.")
@@ -466,6 +481,10 @@ class League:
         self.lines.append("- ✅ Lineup saved to Sleeper.")
 
     def _apply_waivers(self, claims):
+        if self.pending_unknown:
+            self.errors += 1
+            self.lines.append("- ❌ Claims not submitted: your pending claims couldn't be checked.")
+            return
         for n, c in enumerate(claims, 1):
             who = f"#{n}" if self.redact else self.label(c.add)
             try:
@@ -475,3 +494,13 @@ class League:
             except RuntimeError as e:
                 self.errors += 1
                 self.lines.append(f"- ❌ Claim {who} failed: {e}")
+
+
+def run_league(session, data, user_id, cfg, task, apply, redact):
+    """Run one league; returns (report lines, error count). A league that can't even
+    be loaded (e.g. Sleeper failing on its rosters) doesn't stop the others."""
+    try:
+        league = League(session, data, user_id, cfg)
+    except Exception as e:
+        return [f"### {data.get('name') or data['league_id']}", f"- ❌ Couldn't load this league: {e}"], 1
+    return league.run(task, apply=apply, redact=redact), league.errors

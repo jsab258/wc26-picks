@@ -38,7 +38,9 @@ It runs inside **your own Google account** as an Apps Script web app:
    password form (*Log in with password instead*) rarely gets through.
 
 It starts in **suggestions only** mode. Look over the plan, then flip the
-switch to turn the autopilot on.
+switch to turn the autopilot on. In suggestions-only mode nothing changes on
+Sleeper unless you tap **Apply now** or **Submit claims now**; **Check lineups
+now** only reports what it would change.
 
 `appsscript.json` is optional: Google works out the same two permissions from
 the code.
@@ -51,8 +53,8 @@ redeploying, no extra Google permissions.
 - **How it works:** the app stores the new version in its private script
   storage and loads it on top of the code you pasted, on every run (page,
   buttons, 30-minute checks).
-- **Where updates come from:** this repo's `main` branch (or the development
-  branch until it's merged), and only when you tap the button.
+- **Where updates come from:** this repo's `main` branch once it has the app
+  (the development branch until then), and only when you tap the button.
 - **If something goes wrong:** if an installed update fails to load, the app
   runs the pasted version and offers **Remove the update**.
 - **Pasting a version by hand:** the pasted code always wins over a stored
@@ -116,7 +118,9 @@ To ship a change:
    the entry count is the version number.
 3. Run the bundler, commit and push.
 
-The app then offers the update.
+The app then offers the update. GitHub runs both test suites and the bundle
+check on every push (`.github/workflows/sleeper-autopilot-tests.yml`), so a
+stale `dist/` file shows up as a failed check.
 
 The preview server at http://localhost:8080 runs `Code.gs` on Apps Script
 stand-ins (`dev/gas-stub.js`). It reads real data but fakes logins and never

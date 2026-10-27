@@ -349,10 +349,23 @@ function replaceLeague(res) {
 function render() {
   const st = S.state;
   if (!st) return;
+  // Rebuilding the page must not wipe what's being typed or close what's open.
+  const typed = {}, open = {};
+  const fieldKey = (el) => el.form.dataset.form + ':' + el.name;
+  document.querySelectorAll('form[data-form] [name]').forEach((el) => { if (el.value) typed[fieldKey(el)] = el.value; });
+  document.querySelectorAll('details[data-key]').forEach((el) => { open[el.dataset.key] = el.open; });
+  const active = document.activeElement;
+  const activeKey = active && active.form && active.form.dataset.form && active.name ? fieldKey(active) : null;
   $('#app').innerHTML = st.connected ? appView(st)
     : loginView().replace('<div class="center">', '<div class="center">' + permissionBanner(st) + updateBanner());
+  document.querySelectorAll('form[data-form] [name]').forEach((el) => {
+    const k = fieldKey(el);
+    if (typed[k] && !el.value) el.value = typed[k];
+    if (k === activeKey) el.focus();
+  });
+  document.querySelectorAll('details[data-key]').forEach((el) => { if (el.dataset.key in open) el.open = open[el.dataset.key]; });
   const first = document.querySelector('[autofocus]');
-  if (first && !render._focused) { first.focus(); render._focused = true; }
+  if (first && !render._focused && !activeKey) { first.focus(); render._focused = true; }
 }
 
 function loginView() {
@@ -375,7 +388,7 @@ function loginView() {
     return `<div class="center"><div class="card login">${header}
       <div class="small muted" style="margin-top:14px"><b>Connect your Sleeper account.</b> Sleeper only lets its own
         site log you in (it shows a captcha), so log in there and copy your session over. You only do this once.</div>
-      <details ${L.desktop ? '' : 'open'}><summary>On your phone (Chrome)</summary>
+      <details data-key="phone" ${L.desktop ? '' : 'open'}><summary>On your phone (Chrome)</summary>
         <ol class="small muted" style="padding-left:18px;margin:8px 0 0">
           <li>Copy this helper: <button type="button" class="small" data-action="copy-helper">Copy helper</button>
             <textarea id="helper" readonly rows="2" class="small" style="margin-top:6px;font-family:ui-monospace,Menlo,monospace">${esc(BOOKMARKLET)}</textarea></li>
@@ -386,7 +399,7 @@ function loginView() {
             session (if it shows a box instead, copy the text in it).</li>
           <li>Come back here and paste it below.</li>
         </ol></details>
-      <details ${L.desktop ? 'open' : ''}><summary>On a computer</summary>
+      <details data-key="computer" ${L.desktop ? 'open' : ''}><summary>On a computer</summary>
         <ol class="small muted" style="padding-left:18px;margin:8px 0 0">
           <li>Log in at <a href="${SLEEPER_LOGIN_URL}" target="_blank">sleeper.com</a>.</li>
           <li>Press <b>F12</b>, open <b>Console</b> and paste this line, then Enter. If Chrome asks, type
@@ -535,7 +548,7 @@ function lineupSection(lg) {
       `<div class="slots">${L.lineup.map((p) => `<div class="slot ${p.isNew ? 'new' : ''} ${p.why && !p.locked ? 'bad' : ''}">
           <div class="slot-tag">${esc(p.slot.replace('SUPER_FLEX', 'SFLEX').replace('WRRB_FLEX', 'W/R').replace('REC_FLEX', 'W/T'))}</div>
           ${playerCell(p)}<div class="rank">${rankTxt(p)}</div></div>`).join('')}</div>
-      ${L.bench.length ? `<details><summary>Bench (${L.bench.length})</summary><div class="slots" style="margin-top:8px">
+      ${L.bench.length ? `<details data-key="bench-${esc(lg.id)}"><summary>Bench (${L.bench.length})</summary><div class="slots" style="margin-top:8px">
         ${L.bench.map((p) => `<div class="slot"><div class="slot-tag">BN</div>${playerCell(p)}<div class="rank">${rankTxt(p)}</div></div>`).join('')}
       </div></details>` : ''}`;
   }
@@ -559,10 +572,12 @@ function waiverSection(lg) {
                                                            : 'Turn autopilot on to submit these automatically.')
                                 : 'Auto-claims are off for this league.';
   return `<h3>Waiver plan</h3>
+    ${W.changed ? '<div class="banner warn">The plan changed since the page loaded, so nothing was sent. Check the claims below and submit again.</div>' : ''}
+    ${W.submitError ? `<div class="banner bad">${esc(W.submitError)}</div>` : ''}
     ${W.pending ? `<div class="banner info">${W.pending} claim${W.pending > 1 ? 's' : ''} already pending on Sleeper (not repeated).</div>` : ''}
     ${W.claims.length ? claims : '<div class="banner ok">No pickups clearly better than your roster right now.</div>'}
     ${W.notes.map((n) => `<div class="small faint">• ${esc(n)}</div>`).join('')}
-    ${W.claims.length ? `<div class="row between wrapflex" style="margin-top:8px"><span class="small muted">${esc(when)}</span>
+    ${W.claims.length && !W.pendingUnknown ? `<div class="row between wrapflex" style="margin-top:8px"><span class="small muted">${esc(when)}</span>
       <button class="small" data-action="submit-claims" data-league="${esc(lg.id)}" ${S.busy['w' + lg.id] ? 'disabled' : ''}>
         ${S.busy['w' + lg.id] ? '<span class="spin"></span>Submitting…' : 'Submit claims now'}</button></div>` : ''}
     <div class="small faint" style="margin-top:6px">Based on ${esc(W.basis)}.</div>`;
@@ -578,7 +593,7 @@ function settingsSection(lg, cfg) {
       <div class="hint">SUPER_FLEX: a QB counts <b data-out="qb-${id}">${cfg.superflex_qb_bonus}</b> ECR spots better</div></div>
       <input type="range" min="0" max="40" step="5" value="${cfg.superflex_qb_bonus}" data-setting="superflex_qb_bonus"
         data-league="${id}"></div>` : '';
-  return `<details><summary>League settings</summary><div class="settings-grid">
+  return `<details data-key="settings-${id}"><summary>League settings</summary><div class="settings-grid">
       ${toggle('auto_lineup', 'Auto lineup', 'Autopilot sets the best lineup before games')}
       ${toggle('auto_waivers', 'Auto waiver claims', 'Autopilot submits the waiver plan before waivers process')}
       ${toggle('stream_k_def', 'Stream K / DEF', 'Swap kicker/defense for clearly better matchups')}
@@ -692,10 +707,16 @@ document.addEventListener('click', async (ev) => {
   }
   if (a === 'submit-claims') {
     if (!confirm('Submit these waiver claims to Sleeper now?')) return;
-    const res = await busy('w' + id, () => api('submitClaims', id));
+    // Send what's on screen: the server only submits it if its fresh plan still matches.
+    const lg = S.dash && S.dash.leagues.find((l) => l.id === id);
+    const shown = lg && lg.waivers ? lg.waivers.claims.map((c) => [c.add.id, c.drop ? c.drop.id : null,
+                                                                   c.bid == null ? null : c.bid]) : [];
+    const res = await busy('w' + id, () => api('submitClaims', id, shown));
     replaceLeague(res);
     S.state = await api('getState'); render();
-    toast('Claims sent');
+    const w = res.waivers || {};
+    toast(w.changed ? 'The plan changed: check it and submit again' : w.submitError || w.error ? 'Nothing sent'
+          : w.claims.some((c) => c.error) ? 'Some claims failed' : 'Claims sent');
   }
 });
 
@@ -717,7 +738,9 @@ document.addEventListener('change', async (ev) => {
     const lg = S.dash && S.dash.leagues.find((l) => l.id === id);
     if (lg) lg.settings = cfg;
     toast('Saved');
+    // These change the plan itself; the others only change what the page says about it.
     if (['superflex_qb_bonus', 'stream_k_def', 'max_claims', 'min_gain'].includes(key)) loadDashboard();
+    else render();
   }
 });
 

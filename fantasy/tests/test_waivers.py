@@ -2,7 +2,7 @@ import unittest
 
 from autopilot.waivers import faab_bid, plan_stream, plan_upgrades
 
-POS = {"fa_rb": "RB", "fa_wr": "WR", "fa_qb": "QB", "my_rb": "RB", "my_wr": "WR",
+POS = {"fa_rb": "RB", "fa_rb_ir": "RB", "my_rb2": "RB", "fa_wr": "WR", "fa_qb": "QB", "my_rb": "RB", "my_wr": "WR",
        "my_qb": "QB", "my_qb2": "QB", "my_qb3": "QB", "my_te": "TE", "my_wr_out": "WR"}
 
 
@@ -44,6 +44,11 @@ class UpgradeTest(unittest.TestCase):
                       blocked_drops={"my_rb"})
         self.assertEqual([(c.add, c.drop) for c in claims], [("fa_rb", "my_wr")])
 
+    def test_injured_pickup_cannot_replace_a_healthy_player_below_the_minimum(self):
+        values = {"fa_rb_ir": 60, "my_rb": 150, "my_rb2": 140}
+        claims = plan(values, ["my_rb", "my_rb2"], ["fa_rb_ir"], minimums={"RB": 2},
+                      healthy=lambda p: p != "fa_rb_ir")
+        self.assertEqual(claims, [])
 
     def test_injured_players_dont_fill_position_minimums(self):
         values = {"fa_rb": 50, "my_wr": 200, "my_wr_out": 150}

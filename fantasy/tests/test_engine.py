@@ -4,7 +4,7 @@ import unittest
 
 from autopilot import fantasypros as fp
 from autopilot.config import DEFAULTS
-from autopilot.engine import League
+from autopilot.engine import League, run_league
 from autopilot.rankings import IdMap, RankList
 
 PLAYERS = {pid: {"full_name": pid, "position": pos, "fantasy_positions": [pos], "team": team}
@@ -12,15 +12,16 @@ PLAYERS = {pid: {"full_name": pid, "position": pos, "fantasy_positions": [pos], 
                ("qb_a", "QB", "KC"), ("qb_b", "QB", "BUF"), ("rb_c", "RB", "DET"), ("rb_d", "RB", "NYJ"),
                ("wr_e", "WR", "MIA"), ("wr_f", "WR", "SEA"), ("te_g", "TE", "LV"), ("k_1", "K", "KC"),
                ("qb_fa", "QB", "TB"), ("wr_fa", "WR", "CHI"), ("k_fa", "K", "MIN")]}
-PLAYERS["DET"] = {"first_name": "Detroit", "last_name": "Lions", "position": "DEF",
-                  "fantasy_positions": ["DEF"], "team": "DET"}
+for team, city, nick in [("DET", "Detroit", "Lions"), ("NYJ", "New York", "Jets"), ("MIA", "Miami", "Dolphins")]:
+    PLAYERS[team] = {"first_name": city, "last_name": nick, "position": "DEF", "fantasy_positions": ["DEF"],
+                     "team": team}
 PLAYERS["wr_f"]["injury_status"] = "Out"
 NOW, KICKOFF = 1_000, 10_000
 
 
 def ecr(week, rows):
     return {"week": str(week), "type": "test", "players": [
-        {"player_id": pid, "player_name": pid, "player_position_id": "DST" if pid == "DET" else PLAYERS[pid]["position"],
+        {"player_id": pid, "player_name": pid, "player_position_id": "DST" if PLAYERS[pid]["position"] == "DEF" else PLAYERS[pid]["position"],
          "player_team_id": PLAYERS[pid]["team"], "rank_ecr": rank, "pos_rank": pos_rank,
          "player_bye_week": "14", "player_opponent": "vs. X", "player_game_kickoff_ts": KICKOFF,
          "player_game_status": "created"} for pid, rank, pos_rank in rows]}
@@ -55,14 +56,14 @@ class FakeWrite:
 
 
 class FakeSession:
-    def __init__(self, roster):
+    def __init__(self, roster, lists=None):
         self.now, self.state, self.players = NOW, {"week": 7}, PLAYERS
         self.write = FakeWrite()
         self.read = type("R", (), {"rosters": lambda _, lid: [roster, {"roster_id": 2, "owner_id": "x",
                                                                         "players": ["wr_x"]}],
                                    "matchups": lambda _, lid, week: []})()
         idmap = IdMap(PLAYERS, {pid: pid for pid in PLAYERS})
-        self.lists = {slug: RankList(data, idmap, NOW) for slug, data in LISTS.items()}
+        self.lists = {slug: RankList(data, idmap, NOW) for slug, data in {**LISTS, **(lists or {})}.items()}
 
     def ranks(self, slug):
         return self.lists[slug]
@@ -73,15 +74,19 @@ LEAGUE = {"league_id": "L", "name": "Test", "status": "in_season",
           "scoring_settings": {"rec": 1}, "settings": {"waiver_type": 2, "waiver_budget": 100}}
 
 
+def make_roster(extra=(), without=()):
+    return {"roster_id": 1, "owner_id": "me", "settings": {"waiver_budget_used": 0},
+            "players": [p for p in ["qb_a", "qb_b", "rb_c", "rb_d", "wr_e", "wr_f", "te_g", "k_1", "DET", *extra]
+                        if p not in without],
+            # Bad lineup: injured WR starts, RB in SUPER_FLEX while a QB sits.
+            "starters": ["qb_a", "rb_c", "wr_f", "te_g", "rb_d", "k_1", "DET"]}
+
+
 class EngineTest(unittest.TestCase):
-    def run_league(self, **cfg):
-        roster = {"roster_id": 1, "owner_id": "me", "settings": {"waiver_budget_used": 0},
-                  "players": ["qb_a", "qb_b", "rb_c", "rb_d", "wr_e", "wr_f", "te_g", "k_1", "DET"],
-                  # Bad lineup: injured WR starts, RB in SUPER_FLEX while a QB sits.
-                  "starters": ["qb_a", "rb_c", "wr_f", "te_g", "rb_d", "k_1", "DET"]}
-        session = FakeSession(roster)
-        league = League(session, LEAGUE, "me", {**DEFAULTS, "auto_waivers": True, **cfg})
-        lines = league.run("all", apply=True, redact=False)
+    def run_league(self, roster=None, lists=None, league=LEAGUE, redact=False, task="all", session=None, **cfg):
+        session = session or FakeSession(roster or make_roster(), lists)
+        league = League(session, league, "me", {**DEFAULTS, "auto_waivers": True, **cfg})
+        lines = league.run(task, apply=True, redact=redact)
         return session.write.calls, "\n".join(lines), league
 
     def test_full_run(self):
@@ -141,10 +146,6 @@ class EngineTest(unittest.TestCase):
         self.assertEqual(roster_session.write.calls, [])
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class SetStartersTest(unittest.TestCase):
     """The lineup must land in the right week, and a silent no-op must be an error."""
 
@@ -174,3 +175,83 @@ class SetStartersTest(unittest.TestCase):
         w, _ = self.make(echo_leg=False)
         with self.assertRaises(RuntimeError):
             w.set_starters("L", 1, ["a", "b"], 8, 7)
+
+
+class AuditFixesTest(EngineTest):
+    def claims(self, calls):
+        return [c[3:5] for c in calls if c[0] == "claim"]
+
+    def test_stream_never_reuses_an_upgrade_drop(self):
+        # NYJ is a spare DEF outside the top 12, so the upgrade drops him; the DEF stream
+        # must not drop him a second time (it falls back to DET, who is kept as a top-12 DEF).
+        lists = {fp.WEEKLY_DST: ecr(7, [("MIA", 2, "DST1"), ("DET", 10, "DST5"), ("NYJ", 20, "DST20")]),
+                 fp.ROS_DST: ecr(0, [("DET", 3, "DST3"), ("MIA", 15, "DST15"), ("NYJ", 20, "DST20")])}
+        calls, report, league = self.run_league(roster=make_roster(extra=["NYJ"]), lists=lists, task="waivers")
+        drops = [d for _, d in self.claims(calls) if d]
+        self.assertIn("NYJ", drops)
+        self.assertEqual(len(drops), len(set(drops)), report)
+        self.assertIn("Keeping Detroit Lions", report)
+
+    def test_pending_no_drop_add_fills_the_open_spot(self):
+        session = FakeSession(make_roster(without=["wr_f"]))  # 8 players, 9 spots
+        session.write.pending_waivers = lambda lid: [{"roster_ids": [1], "adds": {"wr_fa": 1}, "drops": {}}]
+        calls, report, _ = self.run_league(session=session, task="waivers")
+        self.assertNotIn(None, [d for _, d in self.claims(calls)], report)
+
+    def test_unreadable_pending_claims_block_submitting(self):
+        session = FakeSession(make_roster())
+
+        def boom(league_id):
+            raise RuntimeError("Sleeper GraphQL HTTP 502")
+        session.write.pending_waivers = boom
+        calls, report, league = self.run_league(session=session, task="waivers")
+        self.assertEqual(self.claims(calls), [])
+        self.assertEqual(league.errors, 1)
+        self.assertIn("won't be submitted", report)
+
+    def test_redacted_report_hides_the_bye_week_stream(self):
+        k_row = LISTS[fp.WEEKLY_K]["players"][1]
+        wr_row = next(r for r in LISTS[fp.ROS_OVERALL["PPR"]]["players"] if r["player_id"] == "wr_f")
+        LISTS[fp.ROS_K]["players"][1]["pos_rank"], k_row["player_bye_week"], wr_row["pos_rank"] = "K2", "7", "WR40"
+        try:
+            calls, report, _ = self.run_league(min_roster={"WR": 1}, max_claims=0, redact=True, task="waivers")
+        finally:
+            LISTS[fp.ROS_K]["players"][1]["pos_rank"], k_row["player_bye_week"], wr_row["pos_rank"] = "K15", "14", "WR3"
+        self.assertIn(("k_fa", "wr_f"), self.claims(calls))
+        self.assertIn("too good to drop", report)
+        self.assertNotIn("k_fa", report)
+        self.assertNotIn("drops", report)
+
+    def test_never_drop_by_id_does_not_protect_every_defense(self):
+        _, _, league = self.run_league(task="lineup", never_drop=["4034", "qb_b"])
+        self.assertEqual(league.never_drop(), {"qb_b"})
+
+    def test_untracked_idp_starter_is_left_alone_without_warnings(self):
+        roster = make_roster(extra=["idp1"])
+        roster["starters"] = roster["starters"] + ["idp1"]
+        idp_league = {**LEAGUE, "roster_positions": LEAGUE["roster_positions"][:7] + ["DL", "BN", "BN"]}
+        calls, report, _ = self.run_league(roster=roster, league=idp_league, task="lineup")
+        self.assertNotIn("⚠️", report)
+        self.assertEqual(calls[0][3][-1], "idp1")
+
+    def test_one_league_failing_to_load_does_not_stop_the_rest(self):
+        session = FakeSession(make_roster())
+
+        def down(league_id):
+            raise RuntimeError("HTTP 503")
+        session.read.rosters = down
+        lines, errors = run_league(session, LEAGUE, "me", dict(DEFAULTS), "all", False, False)
+        self.assertEqual(errors, 1)
+        self.assertIn("Couldn't load this league", "\n".join(lines))
+
+
+class TokenTest(unittest.TestCase):
+    def test_token_from_localstorage_loses_its_quotes(self):
+        from autopilot.sleeper import SleeperWrite
+        self.assertEqual(SleeperWrite('"h.e.s"\n').token, "h.e.s")
+        copied = '{"token": "\\"h.e.s\\"", "user_id": "\\"7\\""}'  # what the console line copies
+        self.assertEqual(SleeperWrite(copied).token, "h.e.s")
+
+
+if __name__ == "__main__":
+    unittest.main()

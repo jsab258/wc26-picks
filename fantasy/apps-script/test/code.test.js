@@ -1,4 +1,4 @@
-// Run: node --test fantasy/apps-script/test/
+// Run: node --test fantasy/apps-script/test/*.test.js
 // Offline tests of Code.gs on the Apps Script stubs (network functions are replaced).
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -504,3 +504,212 @@ function loadGasFresh(prev) {
   gas.saveLeagueSettings('L', { stream_k_def: false, min_roster: { WR: 1 } });
   return gas;
 }
+
+// ---- audit fixes ------------------------------------------------------------
+const claimsOf = (w) => plain(w.claims.map((c) => [c.kind, c.add.id, c.drop && c.drop.id]));
+
+test('player list: an HTTP error is never parsed as an empty list; an older copy is used instead', () => {
+  const gas = loadGas();
+  gas.fetch_ = () => ({ code: 429, text: 'Too Many Requests' });
+  assert.throws(() => gas.playersSlim_(0), /player list \(HTTP 429\)/);
+  gas.fetch_ = () => ({ code: 200, text: JSON.stringify({ 9221: { full_name: 'Jahmyr Gibbs', position: 'RB', team: 'DET' } }) });
+  gas.playersSlim_(0);
+  gas.fetch_ = () => ({ code: 429, text: 'Too Many Requests' });
+  assert.deepEqual(Object.keys(gas.playersSlim_(0)), ['9221']);
+  gas.fetch_ = () => ({ code: 200, text: '{}' });
+  assert.deepEqual(Object.keys(gas.playersSlim_(0)), ['9221']);  // an empty list is a failure too
+});
+
+test('player id table: an HTTP error is never cached as an empty map', () => {
+  const gas = loadGas();
+  gas.fetch_ = () => ({ code: 429, text: '429: Too Many Requests' });
+  assert.throws(() => gas.fpToSleeper_(), /id table \(HTTP 429\)/);
+  gas.fetch_ = () => ({ code: 200, text: 'name,fantasypros_id,sleeper_id\nA,1,11\nB,NA,12\n' });
+  assert.deepEqual(plain(gas.fpToSleeper_()), { 1: '11' });
+});
+
+test('lineup: nobody is taken out without a replacement, so missing player data saves nothing', () => {
+  const gas = loadGas();
+  const r = gas.optimize_(['QB', 'RB'], ['qb1', 'rb1'], ['qb1', 'rb1', 'rb2'], () => null);
+  assert.deepEqual([Array.from(r.starters), r.changes.length], [['qb1', 'rb1'], 0]);
+  const { gas: g, writes } = fixtureGas(NOW);
+  g.playersSlim_ = () => ({});  // e.g. Sleeper's player list failed and nothing was cached
+  g.setMode('auto');
+  g.tick();
+  assert.equal(writes.length, 0);
+});
+
+test('"Check lineups now" in suggestions-only mode reports but never saves', () => {
+  const { gas, writes } = fixtureGas(NOW);
+  gas.runNow();
+  assert.equal(writes.length, 0);
+  assert.match(gas.getJson_('lastTick').msg, /Test: 2 lineup changes suggested/);
+  gas.setMode('auto');
+  gas.runNow();
+  assert.deepEqual(writes.map((w) => w[0]), ['starters']);
+});
+
+test('autopilot: a failed lineup check or save is reported as such, and logged once', () => {
+  const { gas, writes } = fixtureGas(NOW);
+  const lists = gas.fpList_;
+  gas.fpList_ = (slug) => { if (slug === 'k') throw new Error('FantasyPros k failed (HTTP 503)'); return lists(slug); };
+  gas.setMode('auto');
+  gas.tick();
+  gas.tick();
+  assert.equal(gas.getJson_('lastTick').status, 'error');
+  assert.match(gas.getJson_('lastTick').msg, /couldn't check the lineup/);
+  assert.equal(gas.getJson_('log').filter((e) => e.title === 'Lineup check failed').length, 1);
+  assert.equal(writes.length, 0);
+  gas.fpList_ = lists;
+  gas.setStarters_ = () => { throw new Error("Sleeper didn't accept the lineup."); };
+  gas.tick();
+  assert.deepEqual([gas.getJson_('lastTick').status, gas.getJson_('lastTick').msg], ['error', 'Test: saving the lineup failed']);
+});
+
+test('waivers: a pending claim with no drop fills the open roster spot', () => {
+  const saved = ROSTER.players;
+  ROSTER.players = saved.filter((p) => p !== 'wr_f');  // 8 players, 9 spots
+  try {
+    const { gas } = fixtureGas(NOW);
+    gas.pendingWaivers_ = () => [{ roster_ids: [1], adds: { wr_fa: 1 }, drops: {} }];
+    const w = gas.getDashboard().leagues[0].waivers;
+    assert.ok(!w.claims.some((c) => !c.drop), JSON.stringify(claimsOf(w)));
+  } finally {
+    ROSTER.players = saved;
+  }
+});
+
+test('waivers: when pending claims can\'t be read, nothing is submitted and the window stays open', () => {
+  const tue = Date.parse('2026-10-20T20:00:00Z');
+  const { gas, writes } = fixtureGas(tue);
+  gas.pendingWaivers_ = () => { throw new Error('Sleeper returned HTTP 502'); };
+  gas.setMode('auto');
+  gas.saveLeagueSettings('L', { auto_waivers: true, auto_lineup: false, min_roster: { WR: 1 } });
+  const w = gas.getDashboard().leagues[0].waivers;
+  assert.equal(w.pendingUnknown, true);
+  assert.match(w.notes.join(' '), /won't be submitted/);
+  gas.tick();
+  gas.tick();
+  assert.equal(writes.length, 0);
+  assert.deepEqual(plain(gas.getJson_('waivers_done', {})), {});
+  assert.equal(gas.getJson_('log').filter((e) => e.title === 'Waiver planning failed').length, 1);
+  const res = gas.submitClaims('L', w.claims.map((c) => [c.add.id, c.drop && c.drop.id, c.bid]));
+  assert.match(res.waivers.submitError, /no claims were submitted/);
+  assert.equal(writes.length, 0);
+});
+
+test('waiver window: Monday waivers (day 0) open Sunday evening', () => {
+  const gas = loadGas();
+  const lg = { settings: { waiver_day_of_week: 0 } };
+  assert.equal(gas.waiverWindow_(lg, Date.parse('2026-10-25T20:00:00Z') / 1000), '2026-10-25');
+  assert.equal(gas.waiverWindow_(lg, Date.parse('2026-10-27T20:00:00Z') / 1000), null);
+});
+
+test('waivers: an injured pickup can\'t replace a healthy player below the position minimum', () => {
+  const gas = loadGas();
+  const pos = { fa_rb_ir: 'RB', rb1: 'RB', rb2: 'RB' };
+  const values = { fa_rb_ir: 60, rb1: 150, rb2: 140 };
+  const claims = gas.planUpgrades_({ freeAgents: ['fa_rb_ir'], myPlayers: ['rb1', 'rb2'], value: (p) => values[p],
+    dropValue: (p) => values[p], position: (p) => pos[p], protected: {}, minimums: { RB: 2 }, rosterLimit: 2,
+    maxClaims: 5, minGain: 10, blockedDrops: {}, healthy: (p) => p !== 'fa_rb_ir' });
+  assert.equal(claims.length, 0);
+});
+
+test('waivers: the K/DEF stream never drops a player an upgrade already drops', () => {
+  PLAYERS.NYJ = ['New York Jets', 'DEF', 'NYJ', null, null];
+  PLAYERS.MIA = ['Miami Dolphins', 'DEF', 'MIA', null, null];
+  const dst = LISTS.dst, rosDst = LISTS['ros-dst'];
+  LISTS.dst = list(7, [['MIA', 2, 'DST1'], ['DET', 10, 'DST5'], ['NYJ', 20, 'DST20']]);
+  LISTS['ros-dst'] = list(0, [['DET', 3, 'DST3'], ['MIA', 15, 'DST15'], ['NYJ', 20, 'DST20']]);
+  LISTS.dst.players.concat(LISTS['ros-dst'].players).forEach((r) => { r[2] = 'DST'; });
+  ROSTER.players.push('NYJ');
+  try {
+    const { gas } = fixtureGas(NOW);
+    const w = gas.getDashboard().leagues[0].waivers;
+    const drops = claimsOf(w).map((c) => c[2]).filter(Boolean);
+    assert.ok(drops.includes('NYJ'));
+    assert.equal(drops.length, new Set(drops).size, JSON.stringify(claimsOf(w)));
+  } finally {
+    delete PLAYERS.NYJ; delete PLAYERS.MIA;
+    LISTS.dst = dst; LISTS['ros-dst'] = rosDst;
+    ROSTER.players.pop();
+  }
+});
+
+test('submit claims: sends what the page showed, or nothing if the plan has changed since', () => {
+  const { gas, writes } = fixtureGas(NOW);
+  gas.saveLeagueSettings('L', { min_roster: { WR: 1 } });
+  const shown = gas.getDashboard().leagues[0].waivers.claims.map((c) => [c.add.id, c.drop && c.drop.id, c.bid]);
+  const stale = gas.submitClaims('L', [['wr_fa', 'wr_f', 9]]);
+  assert.equal(stale.waivers.changed, true);
+  assert.equal(writes.length, 0);
+  gas.submitClaims('L', shown);
+  assert.deepEqual(plain(writes.map((w) => w.slice(3, 6))), plain(shown));
+  assert.throws(() => gas.submitClaims('L'), /Reload the page/);
+});
+
+test('one league failing to load doesn\'t hide or stop the others', () => {
+  const { gas, writes } = fixtureGas(NOW);
+  const base = gas.sleeper_;
+  const broken = Object.assign({}, LEAGUE, { league_id: 'B', name: 'Broken' });
+  gas.sleeper_ = (p, fresh) => {
+    if (p.includes('/leagues/')) return [broken, LEAGUE];
+    if (p.startsWith('/league/B/')) throw new Error('Sleeper API /league/B/rosters failed (HTTP 503)');
+    return base(p, fresh);
+  };
+  const leagues = gas.getDashboard().leagues;
+  assert.deepEqual(plain(leagues.map((l) => [l.name, !!l.lineup])), [['Broken', false], ['Test', true]]);
+  assert.match(leagues[0].notes[0], /Couldn't load this league/);
+  gas.setMode('auto');
+  gas.tick();
+  assert.deepEqual(writes.map((w) => w[0]), ['starters']);
+  assert.match(gas.getJson_('lastTick').msg, /Broken: error · Test: lineup updated/);
+});
+
+test('lineup: untracked IDP starters are left alone without bogus warnings', () => {
+  LEAGUE.roster_positions.splice(7, 0, 'DL');
+  ROSTER.players.push('idp1');
+  ROSTER.starters.push('idp1');
+  try {
+    const { gas } = fixtureGas(NOW);
+    const l = gas.getDashboard().leagues[0].lineup;
+    assert.deepEqual(plain(l.warnings), []);
+    const dl = l.lineup.find((p) => p.slot === 'DL');
+    assert.deepEqual([dl.id, dl.why, dl.pos], ['idp1', null, '']);
+  } finally {
+    LEAGUE.roster_positions.splice(7, 1);
+    ROSTER.players.pop();
+    ROSTER.starters.pop();
+  }
+});
+
+test('never_drop: a Sleeper id doesn\'t protect every defense', () => {
+  const { gas } = fixtureGas(NOW);
+  gas.saveLeagueSettings('L', { never_drop: ['4034', 'qb_b'] });
+  assert.deepEqual(Object.keys(gas.withLeague_('L', (lg) => lg.neverDrop())), ['qb_b']);
+});
+
+test('updates come from main once main has a build, never from the branch next to it', () => {
+  const v = loadGas({ file: DIST }).buildInfo_().version;
+  const gas = loadGas({ file: DIST, fetch(url) {
+    if (url.includes('raw.githubusercontent.com')) {
+      return url.includes('/main/') ? { body: remoteBuild(v + 1, 'main') } : { body: remoteBuild(v + 5, 'branch') };
+    }
+  } });
+  assert.equal(gas.checkForUpdate().latest.id, 'main');
+  const down = loadGas({ file: DIST, fetch(url) {
+    if (url.includes('raw.githubusercontent.com')) {
+      return url.includes('/main/') ? { code: 503, body: '' } : { body: remoteBuild(v + 5, 'branch') };
+    }
+  } });
+  assert.match(down.checkForUpdate().error, /Couldn't reach GitHub/);
+});
+
+test('removing an update frees its storage', () => {
+  const v = loadGas({ file: DIST }).buildInfo_().version;
+  const gas = updaterGas(remoteBuild(v + 1, 'n1'));
+  gas.installUpdate('n1');
+  assert.ok(gas.__props.getProperty('engine#3'));
+  gas.removeUpdate();
+  assert.deepEqual(Object.keys(gas.__props._data).filter((k) => k.startsWith('engine#')), []);
+});

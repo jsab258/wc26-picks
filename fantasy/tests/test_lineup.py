@@ -71,6 +71,11 @@ class OptimizeTest(unittest.TestCase):
                        lambda pid, slot: None if pid == "idp9" else ranked(self.ranks)(pid, slot))
         self.assertEqual(res.starters, ["qb1", "rb1", "idp9"])
 
+    def test_never_empties_a_slot_whose_player_is_still_on_the_roster(self):
+        # Everyone looks ineligible when player data didn't load: keep the lineup as it is.
+        res = optimize(["QB", "RB"], ["qb1", "rb1"], ["qb1", "rb1", "rb2"], lambda pid, slot: None)
+        self.assertEqual((res.starters, res.changes), (["qb1", "rb1"], []))
+
     def test_not_enough_players_leaves_slot_empty(self):
         res = optimize(["QB", "TE"], [], ["qb1"], ranked(self.ranks))
         self.assertEqual(res.starters, ["qb1", EMPTY])

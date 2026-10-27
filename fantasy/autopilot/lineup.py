@@ -107,6 +107,13 @@ def optimize(slots, current, roster, cost, locked=frozenset()):
             matrix.append(row)
         for r, col in enumerate(hungarian(matrix)):
             starters[open_idx[r]] = cols[col] if matrix[r][col] < _INELIGIBLE else EMPTY
+        # Never take out a player who is still on the roster without putting someone in:
+        # an empty slot there means data didn't load (e.g. the player db), not a better lineup.
+        on_roster = set(roster)
+        for i in open_idx:
+            pid = current[i]
+            if starters[i] == EMPTY and pid != EMPTY and pid in on_roster and pid not in starters:
+                starters[i] = pid
         _keep_positions(slots, current, starters, open_idx)
     changes = [(i, slots[i], current[i], starters[i]) for i in range(len(slots)) if current[i] != starters[i]]
     kept_locked = [current[i] for i in fixed if current[i] != EMPTY and slots[i] in SLOT_ELIGIBILITY]

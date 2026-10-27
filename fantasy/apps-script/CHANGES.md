@@ -3,6 +3,16 @@
 Newest first. Each `##` entry becomes the release notes shown by the app's
 "Install update" button. Add one with every change to Code.gs / Index.html.
 
+## Safety fixes from a full review
+- If Sleeper's player list fails to download, the app keeps using its last copy, and it never takes a player out of your lineup without putting someone in.
+- "Check lineups now" no longer changes anything in suggestions-only mode; it only tells you what it would change.
+- "Submit claims now" sends exactly the claims on screen. If the plan changed since the page loaded, nothing is sent and you see the new plan.
+- Waiver plans no longer drop the same player twice, treat a pending no-drop claim's roster spot as free, or let an injured pickup replace a healthy player you need.
+- If your pending claims can't be read, no claims are submitted (they could repeat yours); the autopilot tries again later.
+- Leagues with Monday waivers get their claims on Sunday evening instead of almost a week late.
+- Failed checks now show as errors under "Last check" and are logged once, and a problem in one league no longer stops the other.
+- Smaller fixes: no false bye warnings for defensive (IDP) players, text you're typing survives the update check, toggles update the page right away, and updates come from main once the app is merged there.
+
 ## Waiver fixes: weekly limit, kicker byes
 - Claims already pending on Sleeper now count toward your weekly limit, so no surprise extra suggestions.
 - When your top kicker/defense is on bye, it adds a one-week replacement by dropping an easy-to-replace bench player instead of leaving the spot empty.

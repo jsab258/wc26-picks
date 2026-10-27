@@ -53,7 +53,9 @@ def plan_upgrades(*, free_agents, my_players, value, drop_value, position, prote
             dpos = position(d)
             if dpos != fpos and deep:
                 continue
-            if dpos != fpos and healthy(d) and counts[dpos] - 1 < minimums.get(dpos, 0):
+            # Healthy players left at the drop's position (an injured pickup doesn't replace a healthy one).
+            left = counts[dpos] - healthy(d) + (dpos == fpos and healthy(fa))
+            if left < counts[dpos] and left < minimums.get(dpos, 0):
                 continue
             claims.append(Claim(fa, d, fv, dv, "upgrade"))
             candidates.remove(d)

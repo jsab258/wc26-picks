@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 
 from .config import load
-from .engine import League, Session
+from .engine import Session, run_league
 from .sleeper import SleeperRead, SleeperWrite, token_claims
 
 HERE = Path(__file__).resolve().parent.parent
@@ -50,10 +50,10 @@ def main(argv=None):
         out.append("No matching NFL leagues found for this season.")
     errors = 0
     for data in leagues:
-        league = League(session, data, user["user_id"], cfg.for_league(data["league_id"]))
-        out += league.run(args.task, apply=args.apply, redact=args.redact_waivers)
-        out.append("")
-        errors += league.errors
+        lines, n = run_league(session, data, user["user_id"], cfg.for_league(data["league_id"]),
+                              args.task, args.apply, args.redact_waivers)
+        out += lines + [""]
+        errors += n
 
     text = "\n".join(out)
     print(text)

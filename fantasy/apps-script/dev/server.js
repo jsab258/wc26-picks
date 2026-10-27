@@ -70,7 +70,13 @@ function fakeGql(body) {
     return { data: { login: null } };
   }
   if (q.includes('create_verification_code')) return { data: { create_verification_code: true } };
-  if (q.includes('roster_update_starters')) return { data: { roster_update_starters: { roster_id: body.variables.rosterId } } };
+  if (q.includes('update_matchup_leg')) {
+    const v = body.variables;
+    return { data: { update_matchup_leg: { leg: v.leg, round: v.round, starters: v.starters } } };
+  }
+  if (q.includes('roster_update_starters')) {
+    return { data: { roster_update_starters: { roster_id: body.variables.rosterId, starters: body.variables.starters } } };
+  }
   if (q.includes('submit_waiver_claim')) return { data: { submit_waiver_claim: { transaction_id: 'demo' } } };
   return undefined;
 }
