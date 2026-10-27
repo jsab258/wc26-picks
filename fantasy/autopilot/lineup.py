@@ -101,8 +101,9 @@ def optimize(slots, current, roster, cost, locked=frozenset()):
                     row.append(_EMPTY_COST)
                     continue
                 c = cost(pid, slots[i])
-                # Tiny nudge so ties keep the current starter (no pointless edits).
-                row.append(_INELIGIBLE if c is None else c - (1e-3 if pid in now_starting else 0))
+                # Tiny nudges so ties keep players where they are (no pointless slot swaps).
+                nudge = 2e-3 if current[i] == pid else 1e-3 if pid in now_starting else 0
+                row.append(_INELIGIBLE if c is None else c - nudge)
             matrix.append(row)
         for r, col in enumerate(hungarian(matrix)):
             starters[open_idx[r]] = cols[col] if matrix[r][col] < _INELIGIBLE else EMPTY

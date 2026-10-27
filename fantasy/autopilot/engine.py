@@ -154,8 +154,8 @@ class League:
                 why = None
             return r, locked, why
 
-        info = {pid: status(pid) for pid in set(self.active_players()) | set(self.roster.get("starters") or [])
-                if pid != EMPTY}
+        current = self.week_starters(week)
+        info = {pid: status(pid) for pid in set(self.active_players()) | set(current) if pid != EMPTY}
         bonus = self.cfg["superflex_qb_bonus"]
 
         def cost(pid, slot):
@@ -168,9 +168,19 @@ class League:
             return c
 
         locked = {pid for pid, (_, lk, _) in info.items() if lk}
-        result = optimize(self.slots, self.roster.get("starters") or [], self.active_players(), cost, locked)
+        result = optimize(self.slots, current, self.active_players(), cost, locked)
+        result.current = current
         result.info = info
         return result
+
+    def week_starters(self, week):
+        """This roster's lineup for NFL ``week`` as Sleeper will score it (the week's
+        matchup entry); roster["starters"] is the league's current week, which lags."""
+        try:
+            mine = [m for m in self.s.read.matchups(self.id, week) if m.get("roster_id") == self.roster["roster_id"]]
+        except Exception:  # no matchups this week (bye / offseason)
+            mine = []
+        return (mine[0].get("starters") if mine and mine[0].get("starters") else self.roster.get("starters")) or []
 
     def report_lineup(self, result):
         if result is None:
@@ -179,7 +189,7 @@ class League:
             r, _, why = result.info[pid]
             return self.label(pid, r) + (f" [{why}]" if why else "")
 
-        before = [p for p in (self.roster.get("starters") or []) if p != EMPTY]
+        before = [p for p in result.current if p != EMPTY]
         after = [p for p in result.starters if p != EMPTY]
         if not result.changes:
             self.lines.append(f"- Lineup already optimal for week {self.s.state['week']}.")
@@ -387,7 +397,8 @@ class League:
     def _apply_lineup(self, result):
         if not result.changes:
             return
-        self.s.write.set_starters(self.id, self.roster["roster_id"], result.starters)
+        self.s.write.set_starters(self.id, self.roster["roster_id"], result.starters,
+                                  int(self.s.state["week"]), self.settings.get("leg"))
         self.lines.append("- ✅ Lineup saved to Sleeper.")
 
     def _apply_waivers(self, claims):

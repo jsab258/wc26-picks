@@ -60,6 +60,11 @@ class OptimizeTest(unittest.TestCase):
         res = optimize(self.slots, current, self.roster, ranked(self.ranks))
         self.assertEqual(res.changes, [])
 
+    def test_no_pointless_swap_between_rb_and_flex(self):
+        # rb1 sits in FLEX and rb2 in RB: same two starters either way, so nothing moves.
+        res = optimize(["RB", "FLEX"], ["rb2", "rb1"], ["rb1", "rb2", "rb3"], ranked(self.ranks))
+        self.assertEqual(res.changes, [])
+
     def test_unknown_slots_left_alone_and_empty_filled(self):
         slots = ["QB", "RB", "DL"]
         res = optimize(slots, [EMPTY, "rb2", "idp9"], ["qb1", "rb1", "rb2", "idp9"],

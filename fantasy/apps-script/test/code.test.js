@@ -400,3 +400,44 @@ test('waivers: keeps a top-12 kicker instead of dropping him for a one-week stre
     LISTS['ros-k'].players[1][5] = 'K15';
   }
 });
+
+test('lineup save: writes the week\'s leg, the roster only when the league is on that week, and verifies', () => {
+  const sent = [];
+  let echo = true;
+  const gas = loadGas({ gql(body) {
+    const name = body.query.split('(')[0].split(' ').pop();
+    sent.push([name, body.variables.round, body.variables.leg]);
+    const starters = echo ? body.variables.starters : ['old'];
+    return name === 'update_matchup_leg' ? { data: { update_matchup_leg: { leg: 8, round: 8, starters } } }
+                                         : { data: { roster_update_starters: { roster_id: 1, starters } } };
+  } });
+  gas.setStarters_('t', 'L', 1, ['a', 'b'], 8, 7);   // Tuesday: league still on week 7
+  assert.deepEqual(sent, [['update_matchup_leg', 8, 8]]);
+  sent.length = 0;
+  gas.setStarters_('t', 'L', 1, ['a', 'b'], 8, 8);   // game days: league on week 8
+  assert.deepEqual(sent.map((x) => x[0]), ['update_matchup_leg', 'roster_update_starters']);
+  echo = false;
+  assert.throws(() => gas.setStarters_('t', 'L', 1, ['a', 'b'], 8, 7), /didn't accept the week 8 lineup/);
+});
+
+test('optimizer: no pointless swap between RB and flex', () => {
+  const gas = loadGas();
+  const r = gas.optimize_(['RB', 'FLEX'], ['rb2', 'rb1'], ['rb1', 'rb2', 'rb3'], ranked(gas, RANKS));
+  assert.equal(r.changes.length, 0);
+});
+
+test('lineup plan compares against the week\'s matchup lineup, not the lagging roster lineup', () => {
+  const { gas } = fixtureGas(NOW);
+  const base = gas.sleeper_;
+  // roster.starters was already updated (league still on last week), but week 7's matchup has the old lineup.
+  const oldWeek = ['qb_a', 'rb_c', 'wr_f', 'te_g', 'rb_d', 'k_1', 'DET'];
+  ROSTER.starters = ['qb_a', 'rb_c', 'wr_e', 'te_g', 'qb_b', 'k_1', 'DET'];
+  gas.sleeper_ = (p, fresh) => (p.endsWith('/matchups/7') ? [{ roster_id: 1, starters: oldWeek }] : base(p, fresh));
+  try {
+    const l = gas.getDashboard().leagues[0].lineup;
+    assert.equal(l.changes, 2);
+    assert.deepEqual(plain(l.benched.map((p) => p.id)).sort(), ['rb_d', 'wr_f']);
+  } finally {
+    ROSTER.starters = oldWeek;
+  }
+});

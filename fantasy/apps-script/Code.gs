@@ -599,8 +599,9 @@ function fetch_(url, opt) {
   return { code: code, text: resp.getContentText() };
 }
 
-function sleeper_(path) {
-  var r = fetch_(SLEEPER_REST + path);
+/** Sleeper REST. fresh: bypass Sleeper's CDN cache (rosters/lineups can be minutes stale). */
+function sleeper_(path, fresh) {
+  var r = fetch_(SLEEPER_REST + path + (fresh ? (path.indexOf('?') < 0 ? '?' : '&') + '_=' + Date.now() : ''));
   if (r.code !== 200) throw new Error('Sleeper API ' + path + ' failed (HTTP ' + r.code + ')');
   return JSON.parse(r.text);
 }
@@ -652,10 +653,28 @@ function pendingWaivers_(token, leagueId) {
                    statusFilters: ['pending'], limit: 100 }, token).league_transactions_filtered || [];
 }
 
-function setStarters_(token, leagueId, rosterId, starters) {
-  var q = 'mutation roster_update_starters($leagueId: String!, $rosterId: Int!, $starters: [String]) {' +
-    ' roster_update_starters(league_id: $leagueId, roster_id: $rosterId, starters: $starters) { roster_id starters } }';
-  return gql_(q, { leagueId: leagueId, rosterId: rosterId, starters: starters }, token, 1);
+/**
+ * Save the lineup for NFL week ``week``. Sleeper keeps a lineup per week
+ * ("matchup leg"); roster_update_starters only covers the league's current leg,
+ * which lags a day behind (it advances when waivers run), and silently keeps the
+ * old lineup otherwise. So we write the week's leg, also update the roster when
+ * the league is already on that week, and check what Sleeper sends back.
+ */
+function setStarters_(token, leagueId, rosterId, starters, week, leagueLeg) {
+  var same = function (got) { return got && got.join(',') === starters.join(','); };
+  var q = 'mutation update_matchup_leg($leagueId: String!, $rosterId: Int!, $round: Int!, $leg: Int!,' +
+    ' $starters: [String]) { update_matchup_leg(league_id: $leagueId, roster_id: $rosterId, round: $round,' +
+    ' leg: $leg, starters: $starters) { leg round starters } }';
+  var leg = gql_(q, { leagueId: leagueId, rosterId: rosterId, round: week, leg: week, starters: starters },
+                 token, 1).update_matchup_leg;
+  if (!leg || !same(leg.starters)) throw new Error("Sleeper didn't accept the week " + week + ' lineup.');
+  if (Number(leagueLeg) === Number(week)) {
+    var rq = 'mutation roster_update_starters($leagueId: String!, $rosterId: Int!, $starters: [String]) {' +
+      ' roster_update_starters(league_id: $leagueId, roster_id: $rosterId, starters: $starters) { roster_id starters } }';
+    var roster = gql_(rq, { leagueId: leagueId, rosterId: rosterId, starters: starters }, token, 1).roster_update_starters;
+    if (!roster || !same(roster.starters)) throw new Error("Sleeper didn't accept the lineup.");
+  }
+  return leg;
 }
 
 function submitClaim_(token, leagueId, rosterId, add, drop, bid) {
@@ -925,7 +944,9 @@ function optimize_(slots, current, roster, cost, locked) {
       return cols.map(function (pid) {
         if (pid === EMPTY) return EMPTY_COST;
         var c = cost(pid, slots[si]);
-        return c === null || c === undefined ? INELIGIBLE : c - (nowStarting[pid] ? 1e-3 : 0);
+        if (c === null || c === undefined) return INELIGIBLE;
+        // Tiny nudges so ties keep players where they are (no pointless slot swaps).
+        return c - (current[si] === pid ? 2e-3 : nowStarting[pid] ? 1e-3 : 0);
       });
     });
     hungarian_(matrix).forEach(function (col, r) {
@@ -1066,7 +1087,7 @@ function League_(ctx, data, userId, cfg) {
     this.slots.filter(function (s) { return s === 'QB'; }).length >= 2;
   this.settings = data.settings || {};
   this.faab = this.settings.waiver_type === 2;
-  this.rosters = sleeper_('/league/' + this.id + '/rosters');
+  this.rosters = sleeper_('/league/' + this.id + '/rosters', true);
   this.roster = this.rosters.filter(function (r) {
     return r.owner_id === userId || (r.co_owners || []).indexOf(userId) >= 0;
   })[0] || null;
@@ -1144,6 +1165,19 @@ League_.prototype.evaluate = function (what) {
   return res;
 };
 
+/**
+ * This roster's lineup for NFL ``week`` as Sleeper will score it: the week's
+ * matchup entry. roster.starters is the league's current week, which lags a day.
+ */
+League_.prototype.weekStarters = function (week) {
+  var rid = this.roster.roster_id, mine = null;
+  try {
+    mine = (sleeper_('/league/' + this.id + '/matchups/' + week, true) || [])
+      .filter(function (m) { return m.roster_id === rid; })[0];
+  } catch (e) { /* no matchups for this week (bye/offseason): fall back */ }
+  return (mine && mine.starters && mine.starters.length ? mine.starters : this.roster.starters) || [];
+};
+
 League_.prototype.planLineup = function () {
   var self = this, ctx = this.ctx, cfg = this.cfg;
   var main = this.weeklyList(this.qbPremium ? 'QB' : 'RB');
@@ -1159,7 +1193,8 @@ League_.prototype.planLineup = function () {
     });
   });
   var info = {};
-  var everyone = this.activePlayers().concat(this.roster.starters || []);
+  var current = this.weekStarters(week);
+  var everyone = this.activePlayers().concat(current);
   everyone.forEach(function (pid) {
     if (pid === EMPTY || info[pid]) return;
     var r = self.weeklyRank(pid), team = self.team(pid);
@@ -1179,7 +1214,6 @@ League_.prototype.planLineup = function () {
   };
   var locked = {};
   Object.keys(info).forEach(function (pid) { if (info[pid].locked) locked[pid] = true; });
-  var current = this.roster.starters || [];
   var out = optimize_(this.slots, current, this.activePlayers(), cost, locked);
   var vw = function (pid) {
     if (pid === EMPTY) return self.view(EMPTY);
@@ -1359,7 +1393,7 @@ League_.prototype.applyLineup = function (res, who) {
   var l = res.lineup;
   if (!l || l.error || l.skipped || !l.changes) return;
   try {
-    setStarters_(this.ctx.token, this.id, this.roster.roster_id, l.starters);
+    setStarters_(this.ctx.token, this.id, this.roster.roster_id, l.starters, l.week, this.settings.leg);
     l.applied = true;
     log_({ level: 'change', league: this.name, title: 'Lineup updated (' + who + ')',
            lines: l.benched.map(function (p) { return 'OUT ' + p.name + (p.why ? ' (' + p.why + ')' : ''); })

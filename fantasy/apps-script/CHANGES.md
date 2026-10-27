@@ -3,6 +3,11 @@
 Newest first. Each `##` entry becomes the release notes shown by the app's
 "Install update" button. Add one with every change to Code.gs / Index.html.
 
+## Lineups actually save
+- "Apply now" (and the autopilot) now save the lineup for the right week: Sleeper keeps one lineup per week, and the old call only covered the league's current week, which lags a day behind. Sleeper quietly ignored it.
+- After saving, the app checks what Sleeper stored and shows an error if it didn't take.
+- No more pointless slot swaps (e.g. two RBs trading the RB and flex spots).
+
 ## Smarter waiver claims
 - Won't drop a top-12 kicker or defense just to stream one week (e.g. during his bye).
 - Won't stack extra QBs/TEs beyond useful depth at the cost of other positions; a 4th QB can only replace a QB.

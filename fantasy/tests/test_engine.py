@@ -59,7 +59,8 @@ class FakeSession:
         self.now, self.state, self.players = NOW, {"week": 7}, PLAYERS
         self.write = FakeWrite()
         self.read = type("R", (), {"rosters": lambda _, lid: [roster, {"roster_id": 2, "owner_id": "x",
-                                                                        "players": ["wr_x"]}]})()
+                                                                        "players": ["wr_x"]}],
+                                   "matchups": lambda _, lid, week: []})()
         idmap = IdMap(PLAYERS, {pid: pid for pid in PLAYERS})
         self.lists = {slug: RankList(data, idmap, NOW) for slug, data in LISTS.items()}
 
@@ -86,7 +87,7 @@ class EngineTest(unittest.TestCase):
     def test_full_run(self):
         calls, report, league = self.run_league(min_roster={"WR": 1})
         self.assertEqual(league.errors, 0, report)
-        self.assertEqual(calls[0], ("starters", "L", 1, ["qb_a", "rb_c", "wr_e", "te_g", "qb_b", "k_1", "DET"]))
+        self.assertEqual(calls[0], ("starters", "L", 1, ["qb_a", "rb_c", "wr_e", "te_g", "qb_b", "k_1", "DET"], 7, None))
         claims = [c[3:] for c in calls if c[0] == "claim"]
         # qb_fa is a superflex-valued upgrade; both QBs we have start (protected),
         # so the weakest droppable player (injured wr_f) goes. K streamed at min bid.
@@ -119,3 +120,34 @@ class EngineTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SetStartersTest(unittest.TestCase):
+    """The lineup must land in the right week, and a silent no-op must be an error."""
+
+    def make(self, echo_leg=True, echo_roster=True):
+        from autopilot.sleeper import SleeperWrite
+        sent = []
+
+        class W(SleeperWrite):
+            def _gql(self, query, variables):
+                sent.append((query.split("(")[0].split()[-1], variables))
+                starters = variables["starters"] if echo_leg else ["old"]
+                if "update_matchup_leg" in query:
+                    return {"update_matchup_leg": {"leg": variables["leg"], "round": variables["round"],
+                                                   "starters": starters}}
+                return {"roster_update_starters": {"starters": variables["starters"] if echo_roster else ["old"]}}
+        return W("t"), sent
+
+    def test_writes_the_weeks_leg_and_the_roster_only_when_current(self):
+        w, sent = self.make()
+        w.set_starters("L", 1, ["a", "b"], 8, 7)          # league still on week 7 (Tuesday)
+        self.assertEqual([(n, v.get("leg"), v.get("round")) for n, v in sent], [("update_matchup_leg", 8, 8)])
+        sent.clear()
+        w.set_starters("L", 1, ["a", "b"], 8, 8)          # league on week 8 (game days)
+        self.assertEqual([n for n, _ in sent], ["update_matchup_leg", "roster_update_starters"])
+
+    def test_silent_no_op_is_an_error(self):
+        w, _ = self.make(echo_leg=False)
+        with self.assertRaises(RuntimeError):
+            w.set_starters("L", 1, ["a", "b"], 8, 7)

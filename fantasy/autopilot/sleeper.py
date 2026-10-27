@@ -39,8 +39,13 @@ class SleeperRead:
     def league(self, league_id):
         return get_json(f"{REST}/league/{league_id}")
 
+    # Rosters and lineups go through Sleeper's CDN and can be minutes stale; the
+    # throwaway query parameter fetches the current state.
     def rosters(self, league_id):
-        return get_json(f"{REST}/league/{league_id}/rosters")
+        return get_json(f"{REST}/league/{league_id}/rosters?_={int(time.time() * 1000)}")
+
+    def matchups(self, league_id, week):
+        return get_json(f"{REST}/league/{league_id}/matchups/{week}?_={int(time.time() * 1000)}") or []
 
     def players(self):
         path = self.cache_dir / "sleeper_players_nfl.json"
@@ -82,14 +87,35 @@ class SleeperWrite:
             raise RuntimeError(f"Sleeper rejected the request: {msgs}")
         return resp["data"]
 
-    def set_starters(self, league_id, roster_id, starters):
-        q = """mutation roster_update_starters($leagueId: String!, $rosterId: Int!, $starters: [String]) {
+    def set_starters(self, league_id, roster_id, starters, week, league_leg):
+        """Save the lineup for NFL ``week``.
+
+        Sleeper keeps a lineup per week ("matchup leg"). roster_update_starters only
+        covers the league's current leg, which lags a day behind (it advances when
+        waivers run) and otherwise silently keeps the old lineup. So write the
+        week's leg, also the roster when the league is on that week, and verify.
+        """
+        q = """mutation update_matchup_leg($leagueId: String!, $rosterId: Int!, $round: Int!, $leg: Int!,
+  $starters: [String]) {
+  update_matchup_leg(league_id: $leagueId, roster_id: $rosterId, round: $round, leg: $leg, starters: $starters) {
+    leg round starters
+  }
+}"""
+        leg = self._gql(q, {"leagueId": league_id, "rosterId": roster_id, "round": week, "leg": week,
+                            "starters": starters})["update_matchup_leg"]
+        if not leg or leg.get("starters") != starters:
+            raise RuntimeError(f"Sleeper didn't accept the week {week} lineup")
+        if int(league_leg or 0) == int(week):
+            rq = """mutation roster_update_starters($leagueId: String!, $rosterId: Int!, $starters: [String]) {
   roster_update_starters(league_id: $leagueId, roster_id: $rosterId, starters: $starters) {
     roster_id starters
   }
 }"""
-        data = self._gql(q, {"leagueId": league_id, "rosterId": roster_id, "starters": starters})
-        return data["roster_update_starters"]
+            roster = self._gql(rq, {"leagueId": league_id, "rosterId": roster_id,
+                                    "starters": starters})["roster_update_starters"]
+            if not roster or roster.get("starters") != starters:
+                raise RuntimeError("Sleeper didn't accept the lineup")
+        return leg
 
     def submit_waiver_claim(self, league_id, roster_id, add, drop=None, bid=None):
         q = """mutation submit_waiver_claim($leagueId: String!, $k_adds: [String], $v_adds: [Int],
