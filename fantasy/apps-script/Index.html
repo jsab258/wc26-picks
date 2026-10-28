@@ -635,16 +635,18 @@ function freeAgentSection(lg) {
   if (F.error) return `<h3>Free agents</h3><div class="banner bad">${esc(F.error)}</div>`;
   if (F.waiting) return `<div class="small faint" style="margin-top:8px">Free agents: ${esc(F.waiting)}</div>`;
   if (!F.claims.length && !F.notes.length) return '';
+  const basis = (c) => (c.kind === 'upgrade' ? 'ROS ' : 'this week ');
+  const kinds = { upgrade: 'upgrade', stream: 'stream', cover: 'fill-in' };
   const rows = F.claims.map((c) => `<div class="claim">
       <div><span class="add">+ ${esc(c.add.name)}</span> <span class="faint small">${esc(c.add.pos)} ${esc(c.add.team || '')}
-        · this week ${rankTxt(c.add)}</span>
+        · ${basis(c)}${rankTxt(c.add)}</span>
         ${c.drop ? `<div class="small"><span class="drop">− ${esc(c.drop.name)}</span>
-          <span class="faint">${esc(c.drop.pos)} · this week ${rankTxt(c.drop)}</span>
+          <span class="faint">${esc(c.drop.pos)} · ${basis(c)}${rankTxt(c.drop)}</span>
           <button class="keep" data-action="keep" data-league="${esc(lg.id)}" data-player="${esc(c.drop.id)}"
             title="Never drop him">☆ keep</button></div>` : '<div class="small faint">No drop needed (open roster spot)</div>'}
         ${c.error ? `<div class="small" style="color:var(--bad)">Failed: ${esc(c.error)}</div>` : ''}</div>
       <div class="small" style="text-align:right">${c.submitted ? '<span style="color:var(--accent)">✓ added</span>'
-        : `<span class="faint">${c.kind === 'cover' ? 'fill-in' : 'stream'}</span>`}</div>
+        : `<span class="faint">${kinds[c.kind] || esc(c.kind)}</span>`}</div>
     </div>`).join('');
   const when = (lg.settings || {}).auto_waivers && S.state.mode === 'auto' ? 'The autopilot picks these up by itself.'
     : 'Added right away, no waiver priority spent.';
@@ -674,8 +676,8 @@ function settingsSection(lg, cfg) {
       ${toggle('stream_k_def', 'Stream K / DEF', 'Swap kicker/defense for clearly better matchups')}
       ${toggle('cover_byes', 'Cover byes and injuries', 'One-week pickup when a starter can\'t play and your bench can\'t fill in')}
       ${qb}
-      <div class="setting"><div><div class="label">Upgrade claims per week</div>
-        <div class="hint">K/DEF streams come on top of these</div></div>
+      <div class="setting"><div><div class="label">Upgrades per week</div>
+        <div class="hint">Waiver claims plus free-agent pickups; fill-ins and K/DEF streams come on top</div></div>
         <input class="num" type="number" min="0" max="5" value="${cfg.max_claims}" data-setting="max_claims" data-league="${id}"></div>
       <div class="setting"><div><div class="label">Minimum upgrade</div><div class="hint">ROS ECR spots a pickup must gain</div></div>
         <input class="num" type="number" min="0" max="200" step="5" value="${cfg.min_gain}" data-setting="min_gain" data-league="${id}"></div>

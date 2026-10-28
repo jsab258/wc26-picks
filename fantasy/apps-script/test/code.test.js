@@ -452,7 +452,7 @@ test('waivers: claims already pending on Sleeper count toward the weekly limit',
                                { roster_ids: [1], adds: { qb_fa: 1 }, drops: {} }];
   const w = gas.getDashboard().leagues[0].waivers;
   assert.ok(!w.claims.some((c) => c.kind === 'upgrade'));
-  assert.match(w.notes.join(' '), /limit of 2 claims a week is already pending/);
+  assert.match(w.notes.join(' '), /limit of 2 upgrades a week is used up/);
 });
 
 test('waivers: top kicker on bye gets a one-week replacement by dropping a spare bench player', () => {
@@ -974,6 +974,7 @@ function teBye(set) {
 test('free agents: after waivers, a hole is filled right away; players on waivers or already playing are skipped', () => {
   withChanges(teBye, () => {
     const { gas } = fixtureGas(NOW);
+    gas.saveLeagueSettings('L', { max_claims: 0 });   // just the hole here, no upgrades
     let f = gas.getDashboard().leagues[0].freeAgents;
     assert.deepEqual(claimsOf(f).find((c) => c[0] === 'cover'), ['cover', 'te_fa', 'wr_f']);
     assert.match(f.notes.join(' '), /picks up te_fa as a free agent and drops wr_f/);
@@ -998,7 +999,7 @@ test('free agents: the autopilot picks them up before setting the lineup, and sa
     const { gas, writes } = fixtureGas(NOW);
     const sent = withAlerts(gas);
     gas.setMode('auto');
-    gas.saveLeagueSettings('L', { auto_waivers: true });
+    gas.saveLeagueSettings('L', { auto_waivers: true, max_claims: 0 });
     gas.tick();
     const kinds = writes.map((w) => w[0]);
     assert.ok(kinds.indexOf('fa') >= 0 && kinds.indexOf('fa') < kinds.indexOf('starters'), JSON.stringify(writes));
@@ -1032,4 +1033,76 @@ test('idle checks wake up shortly after the waiver run, when free agents open up
   gas.saveLeagueSettings('L', { auto_waivers: true, auto_lineup: false, min_roster: { WR: 1 } });
   gas.tick();
   assert.equal(new Date(gas.getJson_('idle_until') * 1000).toISOString(), '2026-10-21T09:00:00.000Z');
+});
+
+
+test('after waivers: upgrades to free agents are picked up now; the waiver plan keeps only players on waivers', () => {
+  withChanges((set) => set(LEAGUE, 'settings', Object.assign({}, LEAGUE.settings, { leg: 7 })), () => {
+    const { gas } = fixtureGas(NOW);
+    gas.saveLeagueSettings('L', { min_roster: { WR: 1 } });
+    let lg = gas.getDashboard().leagues[0];
+    assert.deepEqual(claimsOf(lg.freeAgents).find((c) => c[0] === 'upgrade'), ['upgrade', 'qb_fa', 'wr_f']);
+    assert.ok(!lg.waivers.claims.some((c) => c.add.id === 'qb_fa'));
+    assert.ok(!lg.waivers.claims.some((c) => c.drop && c.drop.id === 'wr_f'));   // not dropped twice
+    gas.waiverClears_ = () => ({ qb_fa: NOW / 1000 + 86400 });   // just dropped by someone: still on waivers
+    lg = gas.getDashboard().leagues[0];
+    assert.ok(!lg.freeAgents.claims.some((c) => c.add.id === 'qb_fa'));
+    assert.deepEqual(claimsOf(lg.waivers).find((c) => c[1] === 'qb_fa'), ['upgrade', 'qb_fa', 'wr_f']);
+  });
+});
+
+test('upgrades picked up as free agents count toward the weekly limit', () => {
+  withChanges((set) => set(LEAGUE, 'settings', Object.assign({}, LEAGUE.settings, { leg: 7 })), () => {
+    const { gas } = fixtureGas(NOW);
+    gas.saveLeagueSettings('L', { min_roster: { WR: 1 }, max_claims: 1 });
+    const f = gas.getDashboard().leagues[0].freeAgents;
+    gas.addFreeAgents('L', f.claims.map((c) => [c.add.id, c.drop && c.drop.id, null]));
+    assert.equal(gas.upgradesDone_('L', 7), 1);
+    const lg = gas.getDashboard().leagues[0];
+    assert.ok(!lg.freeAgents.claims.some((c) => c.kind === 'upgrade'));
+    assert.match(lg.waivers.notes.join(' '), /limit of 1 upgrades a week is used up/);
+  });
+});
+
+test('a player picked up in the last week needs twice the usual gain to be dropped again', () => {
+  const { gas } = fixtureGas(NOW);
+  gas.saveLeagueSettings('L', { never_drop: ['wr_f'], min_roster: { RB: 1, WR: 1 } });
+  const qbClaim = () => claimsOf(gas.getDashboard().leagues[0].waivers).find((c) => c[1] === 'qb_fa');
+  assert.deepEqual(qbClaim(), ['upgrade', 'qb_fa', 'rb_d']);   // QB2 (20) for RB2 (45): +25
+  const base = gas.sleeper_;
+  gas.sleeper_ = (p, fresh) => (p.includes('/transactions/')
+    ? [{ status: 'complete', status_updated: NOW - 86400000, adds: { rb_d: 1 }, drops: null }] : base(p, fresh));
+  assert.equal(qbClaim(), undefined);                         // rb_d was just picked up: +25 < 40
+});
+
+test('a spare defense shows its real rest-of-season rank, never "999"', () => {
+  withChanges((set) => {
+    set(PLAYERS, 'NYJ', ['New York Jets', 'DEF', 'NYJ', null, null]);
+    set(LISTS, 'ros-dst', list(0, [['DET', 3, 'DST3'], ['NYJ', 14, 'DST14']]));
+    LISTS['ros-dst'].players.forEach((r) => { r[2] = 'DST'; });
+    set(ROSTER, 'players', ROSTER.players.concat('NYJ'));
+  }, () => {
+    const { gas } = fixtureGas(NOW);
+    gas.saveLeagueSettings('L', { stream_k_def: false, min_roster: { WR: 1 } });
+    const c = gas.getDashboard().leagues[0].waivers.claims.find((x) => x.drop && x.drop.id === 'NYJ');
+    assert.deepEqual([c.drop.rank, c.drop.posRank], [14, 'DST14']);
+  });
+});
+
+
+test('after waivers: a player whose team is on bye is a free agent until the week\'s first game', () => {
+  withChanges((set) => {
+    set(LEAGUE, 'settings', Object.assign({}, LEAGUE.settings, { leg: 7 }));
+    set(opRow('qb_fa'), 6, '7');   // qb_fa's team is on bye this week
+    set(opRow('qb_fa'), 8, null);
+  }, () => {
+    const { gas } = fixtureGas(NOW);
+    gas.saveLeagueSettings('L', { min_roster: { WR: 1 } });
+    assert.ok(gas.getDashboard().leagues[0].freeAgents.claims.some((c) => c.add.id === 'qb_fa'));
+    const late = fixtureGas(KICK * 1000 + 60000).gas;   // the week's first game has started
+    late.saveLeagueSettings('L', { min_roster: { WR: 1 } });
+    const lg = late.getDashboard().leagues[0];
+    assert.ok(!lg.freeAgents.claims.some((c) => c.add.id === 'qb_fa'));
+    assert.ok(lg.waivers.claims.some((c) => c.add.id === 'qb_fa'));   // claimable for the next run instead
+  });
 });
