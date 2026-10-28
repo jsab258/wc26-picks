@@ -60,9 +60,6 @@ test('waivers: upgrades, minimums, open spots, streaming, FAAB', () => {
   eq(plan({ fa_wr: 50, my_qb: 200, my_qb2: 210, my_rb: 100 }, ['my_qb', 'my_qb2', 'my_rb'], ['fa_wr'],
           { minimums: { QB: 2 } }), [['fa_wr', 'my_rb']]);
   eq(plan({ fa_rb: 140, my_rb: 150 }, ['my_rb'], ['fa_rb'], { rosterLimit: 2 }), [['fa_rb', null]]);
-  const s = gas.planStream_(['fa_k'], ['my_k'], (p) => ({ fa_k: 4, my_k: null }[p]), 6, false);
-  assert.deepEqual([s.add, s.drop], ['fa_k', 'my_k']);
-  assert.equal(gas.planStream_(['fa_k'], ['my_k'], (p) => ({ fa_k: 4, my_k: 8 }[p]), 6, false), null);
   const tiers = [[30, 0.25], [60, 0.15], [100, 0.08], [150, 0.04]];
   assert.equal(gas.faabBid_(20, 100, tiers, 0), 25);
   assert.equal(gas.faabBid_(400, 100, tiers, 1), 1);
@@ -472,12 +469,16 @@ test('waivers: top kicker on bye gets a one-week replacement by dropping a spare
     const { gas } = fixtureGas(NOW);
     gas.saveLeagueSettings('L', { min_roster: { WR: 1 }, max_claims: 0 });
     let w = gas.getDashboard().leagues[0].waivers;
-    const k = w.claims.find((c) => c.kind === 'stream');
-    assert.deepEqual([k.add.id, k.drop && k.drop.id], ['k_fa', 'wr_f']);  // injured, easy-to-replace WR goes
+    const k = w.claims.find((c) => c.add.id === 'k_fa');
+    assert.deepEqual([k.kind, k.drop && k.drop.id], ['cover', 'wr_f']);  // injured, easy-to-replace WR goes
     assert.match(w.notes.join(' '), /can't play this week and is too good to drop/);
-    gas.saveLeagueSettings('L', { max_claims: 2 });  // the upgrade now uses wr_f; nobody else is spare
+    gas.saveLeagueSettings('L', { max_claims: 2 });  // the fill-in gets first pick of the spare players
     w = gas.getDashboard().leagues[0].waivers;
-    assert.ok(!w.claims.some((c) => c.kind === 'stream'));
+    assert.equal(w.claims.find((c) => c.add.id === 'k_fa').drop.id, 'wr_f');
+    assert.equal(w.claims.filter((c) => c.drop && c.drop.id === 'wr_f').length, 1);
+    gas.saveLeagueSettings('L', { never_drop: ['wr_f'] });  // nobody else is cheap enough
+    w = gas.getDashboard().leagues[0].waivers;
+    assert.ok(!w.claims.some((c) => c.add.id === 'k_fa'));
     assert.match(w.notes.join(' '), /no bench player is cheap enough/);
   } finally {
     LISTS['ros-k'].players[1][5] = 'K15';

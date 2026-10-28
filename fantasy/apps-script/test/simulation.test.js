@@ -21,6 +21,28 @@ function lineupProblems(world, k) {
   return out;
 }
 
+/** How many starting spots this roster can fill right now with players who can still play. */
+function fillable(world, roster) {
+  const P = world.players;
+  const canPlay = (p) => P[p][3] !== 'Out' && !!world.kickoffOf[P[p][2]] && !world.started(p);
+  let n = 0;
+  const open = [], held = new Set();
+  world.slots.forEach((slot, i) => {
+    const p = world.lineup[i];
+    if (p !== '0' && world.started(p) && roster.includes(p)) { held.add(p); n++; } else open.push(slot);
+  });
+  const pool = roster.filter((p) => !held.has(p) && canPlay(p));
+  const match = {};  // player -> index into open (augmenting paths)
+  const assign = (si, seen) => pool.some((p) => {
+    if (seen.has(p) || !SLOT_POS[open[si]].includes(P[p][1])) return false;
+    seen.add(p);
+    if (match[p] === undefined || assign(match[p], seen)) { match[p] = si; return true; }
+    return false;
+  });
+  open.forEach((_, si) => { if (assign(si, new Set())) n++; });
+  return n;
+}
+
 /** What the page shows, judged by the world's own rules (not the app's safety check). */
 function planProblems(world, d) {
   const out = [], when = iso(world.now);
@@ -44,6 +66,13 @@ function planProblems(world, d) {
         [c.add, c.drop].filter(Boolean).forEach((v) => { if (v.rank >= 999) out.push(`${when} ${v.id} shown as #${v.rank}`); });
       });
     });
+    // Free agents join right away: their moves must not leave a starting spot nobody can play in.
+    const F = lg.freeAgents;
+    if (F && !F.error && !F.waiting && F.claims.length) {
+      let after = world.me.players.slice();
+      F.claims.forEach((c) => { if (c.drop) after = after.filter((p) => p !== c.drop.id); after.push(c.add.id); });
+      if (fillable(world, after) < fillable(world, world.me.players)) out.push(`${when} free-agent moves open a hole in this week's lineup`);
+    }
   });
   return out;
 }

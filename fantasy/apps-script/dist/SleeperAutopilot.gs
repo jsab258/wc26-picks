@@ -159,7 +159,7 @@ function submitClaims(leagueId, shown) {
   if (!shown) throw new Error('Reload the page and try again.');
   return withLock_(function () {
     return withLeague_(leagueId, function (lg) {
-      var res = lg.evaluate({ waivers: true });
+      var res = lg.evaluate({ freeAgents: true, waivers: true });  // as on the page: claims come after free agents
       var w = res.waivers;
       if (w && !w.error && claimKeys_(w.claims) !== shown.map(function (c) { return c.join('|'); }).join(',')) {
         w.changed = true;
@@ -533,14 +533,21 @@ function autopilot_(opts) {
             return;
           }
           lg.applyClaims(wres, 'autopilot');
+          var bad = w.claims.filter(function (c) { return c.error; });
+          var sent = w.claims.length - bad.length;
+          if (bad.length) {
+            // Not marked done: the next check plans again (the claims that went through are pending
+            // on Sleeper by then) and retries the rest while the window is open.
+            summary.push(name + ': ' + sent + ' claim(s), ' + bad.length + ' failed (retrying)');
+            fail(lg.id + ':claims', name, 'Some waiver claims failed', bad.map(function (c) {
+              return c.add.name + ': ' + c.error;
+            }).join(' '), true);
+            return;
+          }
           done[lg.id + ':' + win] = Date.now();
           putJson_('waivers_done', pruneDone_(done));
           summary.push(name + ': ' + w.claims.length + ' claim(s)');
-          if (w.claims.length) {
-            var bad = w.claims.some(function (c) { return c.error; });
-            notify_(bad ? 'action' : 'change', name + (bad ? ': some waiver claims failed' : ': waiver claims submitted'),
-                    claimLines_(w, lg.faab).join('\n'));
-          }
+          if (w.claims.length) notify_('change', name + ': waiver claims submitted', claimLines_(w, lg.faab).join('\n'));
         }
       } catch (e) {
         if (e.expired) throw e;
@@ -1387,11 +1394,12 @@ function planUpgrades_(o) {
   var counts = {};
   var healthy = o.healthy || function () { return true; };
   var maxDepth = o.maxDepth || {};
-  o.myPlayers.forEach(function (p) {
+  (o.countFrom || o.myPlayers).forEach(function (p) {  // the roster as it will be (pending moves included)
     var pos = o.position(p);
     if (healthy(p)) counts[pos] = (counts[pos] || 0) + 1;
   });
   var openSpots = o.rosterLimit - o.myPlayers.length;
+  var allow = o.allow || function () { return true; };  // e.g. "doesn't open a hole in this week's lineup"
   var cands = o.myPlayers.filter(function (p) {
     return !o.protected[p] && !o.blockedDrops[p] && o.dropValue(p) !== null;
   }).sort(function (a, b) { return o.dropValue(b) - o.dropValue(a); });  // weakest first
@@ -1401,7 +1409,9 @@ function planUpgrades_(o) {
   for (var f = 0; f < fas.length && claims.length < o.maxClaims; f++) {
     var fa = fas[f], fv = o.value(fa), fpos = o.position(fa);
     var deep = maxDepth[fpos] !== undefined && (counts[fpos] || 0) >= maxDepth[fpos];
-    if (openSpots > 0 && !deep) {
+    // An open spot needs no drop, but with o.openSpotGain the pickup must still beat your weakest player.
+    var weakest = cands.length ? o.dropValue(cands[0]) : Infinity;
+    if (openSpots > 0 && !deep && (!o.openSpotGain || weakest - fv >= o.openSpotGain) && allow(fa, null, claims)) {
       claims.push({ add: fa, drop: null, addValue: fv, dropValue: null, kind: 'upgrade' });
       openSpots--;
       if (healthy(fa)) counts[fpos] = (counts[fpos] || 0) + 1;
@@ -1411,6 +1421,7 @@ function planUpgrades_(o) {
       var d = cands[c], dv = o.dropValue(d);
       if (dv - fv < o.minGain) break;
       if (o.extraGain && dv - fv < o.minGain + o.extraGain(d)) continue;
+      if (!allow(fa, d, claims)) continue;
       var dpos = o.position(d);
       if (dpos !== fpos && deep) continue;
       // Healthy players left at the drop's position (an injured pickup doesn't replace a healthy one).
@@ -1425,20 +1436,6 @@ function planUpgrades_(o) {
     }
   }
   return claims;
-}
-
-/** Swap a K or DEF for a free agent with a clearly better matchup this week. */
-function planStream_(freeAgents, mine, value, margin, openSpot) {
-  var fas = freeAgents.filter(function (p) { return value(p) !== null; })
-    .sort(function (a, b) { return value(a) - value(b); });
-  if (!fas.length) return null;
-  var best = fas[0];
-  if (!mine.length) return openSpot ? { add: best, drop: null, addValue: value(best), dropValue: null, kind: 'stream' } : null;
-  var v = function (p) { return value(p) === null ? 1e9 : value(p); };
-  var ranked = mine.slice().sort(function (a, b) { return v(a) - v(b); });
-  if (v(ranked[0]) - value(best) < margin) return null;
-  var drop = ranked[ranked.length - 1];
-  return { add: best, drop: drop, addValue: value(best), dropValue: value(drop), kind: 'stream' };
 }
 
 function faabBid_(value, remaining, tiers, minBid) {
@@ -1792,11 +1789,11 @@ League_.prototype.planWaivers = function (opts) {
     Object.keys(t.drops || {}).forEach(function (p) { pendingDrops[p] = true; });
   });
   // Planned free-agent pickups happen first; this waiver plan is for what's left.
-  var after = (opts && opts.after) || null, afterAdds = {}, afterUpgrades = 0, afterNoDrop = 0;
+  var after = (opts && opts.after) || null, afterAdds = {}, afterDrops = {}, afterUpgrades = 0;
   if (after) {
     after.claims.forEach(function (c) {
       afterAdds[c.add.id] = true;
-      if (c.drop) pendingDrops[c.drop.id] = true; else afterNoDrop++;
+      if (c.drop) afterDrops[c.drop.id] = true;
       if (c.kind === 'upgrade') afterUpgrades++;
     });
   }
@@ -1805,7 +1802,8 @@ League_.prototype.planWaivers = function (opts) {
       clears = this.clears_();
     } catch (e) {
       if (e.expired) throw e;
-      clears = null;  // can't tell who's a free agent: plan claims for everyone, as before
+      clears = null;  // can't tell who's a free agent, so no claims (they could be for free agents)
+      notes.push("Couldn't read who's on waivers on Sleeper, so no claims are planned until that works again.");
     }
   }
   var kickoffNow = faOpen ? this.weekKickoffs() : {};
@@ -1874,9 +1872,6 @@ League_.prototype.planWaivers = function (opts) {
   var core = {};
   optimize_(this.slots, [], mine, rosCost).starters.forEach(function (p) { core[p] = true; });
   var limit = (this.data.roster_positions || []).filter(function (s) { return s !== 'IR' && s !== 'TAXI'; }).length;
-  // Pending claims that add more players than they drop will fill open roster spots.
-  var droppingMine = mine.filter(function (p) { return pendingDrops[p]; }).length;
-  limit -= Math.max(0, Object.keys(pendingAdds).length - droppingMine) + afterNoDrop;
   // The weekly limit covers claims already pending on Sleeper, free-agent upgrades made
   // since this week's waivers ran and the ones planned above (fill-ins and streams don't count).
   var pendingUpgrades = Object.keys(pendingAdds).filter(function (p) { return SKILL.indexOf(self.pos(p)) >= 0; }).length;
@@ -1895,105 +1890,160 @@ League_.prototype.planWaivers = function (opts) {
                'so upgrades must gain ' + minGain + ' spots instead of ' + cfg.min_gain + ', and kicker/defense ' +
                'matchup swaps wait until waivers have run, then come from free agency (no priority cost).');
   }
-  // After waivers: free agents are picked up now (free-agent plan); claims are only for players on waivers.
-  var candidates = fas.filter(function (p) { return !afterAdds[p] && (fa ? freeNow(p) : !(faOpen && freeNow(p))); });
-  var claims = planUpgrades_({
-    freeAgents: candidates, myPlayers: mine, value: value, dropValue: dropValue,
-    position: function (p) { return self.pos(p); }, protected: core, minimums: this.minimums(),
-    maxDepth: this.maxDepth(), healthy: healthy, extraGain: function (p) { return recent[p] ? cfg.min_gain : 0; },
-    rosterLimit: limit, maxClaims: room, minGain: minGain, blockedDrops: Object.assign({}, pendingDrops, locked),
-  });
-  var usedDrops = {}, adding = {};
-  claims.forEach(function (c) { if (c.drop) usedDrops[c.drop] = true; adding[c.add] = true; });
   var name = function (pid) { return (self.p(pid) || [pid])[0]; };
   var hardMin = { QB: slotCount.QB || 0, RB: slotCount.RB || 0, WR: slotCount.WR || 0, TE: slotCount.TE || 0 };
-  // This week's games, if they're still ahead (claims process before them).
+
+  // ---- Moves, one at a time, each on the roster as it will be after the ones before -------
+  // Free agents are picked up now; claims go through at the waiver run. Pending claims and
+  // (for the waiver plan) the free-agent plan come first. A move may not open a hole in
+  // this week's lineup while this week can still be helped.
+  var claims = [], usedDrops = {}, adding = {};
+  var blocked = Object.assign({}, pendingDrops, afterDrops, locked);  // this plan can't drop them
+  var base = mine.filter(function (p) { return !pendingDrops[p] && !afterDrops[p]; });
+  Object.keys(pendingAdds).concat(Object.keys(afterAdds)).forEach(function (p) { if (base.indexOf(p) < 0) base.push(p); });
+  var rosterWith = function (moves) {
+    var r = base.slice();
+    moves.forEach(function (c) {
+      if (c.drop) r = r.filter(function (p) { return p !== c.drop; });
+      if (r.indexOf(c.add) < 0) r.push(c.add);
+    });
+    return r;
+  };
+  var rosterNow = function () { return rosterWith(claims); };
+  var available = function (pid) {
+    if (rostered[pid] || pendingAdds[pid] || afterAdds[pid] || adding[pid]) return false;
+    if (fa) return freeNow(pid);
+    // After the waiver run, claims are only for players still on waivers (and none if we can't tell).
+    return !faOpen || (clears !== null && !freeNow(pid));
+  };
+  // This week's games, if a move can still help them (claims go through before Thursday).
   var mainList = this.weeklyList(this.qbPremium ? 'QB' : 'RB');
-  var weekAhead = fa || (mainList.week === Number(ctx.state.week) && mainList.firstKickoff() > ctx.now);
-  var kickoff = weekAhead ? this.weekKickoffs() : {};
-  var isFree = function (pid) { return !rostered[pid] && !pendingAdds[pid] && !adding[pid] && freeNow(pid); };
+  var weekMatters = fa || (!faOpen && mainList.week === Number(ctx.state.week) && mainList.firstKickoff() > ctx.now);
+  var kickoff = weekMatters || faOpen ? this.weekKickoffs() : {};
   var weekCost = function (pid, slot) {
     if (!self.eligible(pid, slot)) return null;
     var r = self.weeklyRank(pid);
     return (r ? r.rank : UNRANKED) + (self.whyOut(pid, kickoff) ? UNAVAILABLE : 0);
   };
-  /** Best lineup for this week with the roster you'll have once these claims go through. */
-  var weekLineup = function () {
-    var roster = mine.filter(function (p) { return !usedDrops[p] && !pendingDrops[p]; });
-    Object.keys(pendingAdds).concat(Object.keys(adding)).forEach(function (p) {
-      if (roster.indexOf(p) < 0) roster.push(p);
+  /** This week's best lineup for a roster (in free agency, locked players stay where they are). */
+  var weekLineup = function (roster) {
+    if (!fa) return optimize_(self.slots, [], roster, weekCost).starters;
+    var current = lp.current.map(function (p) { return roster.indexOf(p) >= 0 ? p : EMPTY; });
+    return optimize_(self.slots, current, roster, weekCost, locked).starters;
+  };
+  /** Starting spots nobody on this roster can fill this week. */
+  var holesOf = function (roster) {
+    if (!weekMatters) return [];
+    return weekLineup(roster).map(function (p, i) { return { slot: self.slots[i], out: p }; }).filter(function (h) {
+      if (!SLOT_ELIGIBILITY[h.slot] || (h.out !== EMPTY && locked[h.out])) return false;
+      return h.out === EMPTY || !!self.whyOut(h.out, kickoff);
     });
-    return optimize_(self.slots, [], roster, weekCost).starters;
   };
-  var weekNeeds = function () {
-    var need = {};
-    if (weekAhead) weekLineup().forEach(function (p) { need[p] = true; });
-    return need;
+  var openSpots = function () { return limit - rosterNow().length; };
+  var droppable = function (p) {
+    return mine.indexOf(p) >= 0 && rosterNow().indexOf(p) >= 0 && !blocked[p] && !usedDrops[p] && !keep[p];
   };
-  /** A bench player we can give up for a one-week pickup: easy to replace and not needed to field a lineup. */
+  /** A bench player to give up for a one-week pickup: cheap, not needed this week, not just picked up. */
   var spare = function () {
-    var need = weekNeeds();
+    var roster = rosterNow(), need = {};
+    if (weekMatters) weekLineup(roster).forEach(function (p) { need[p] = true; });
     var healthyAt = function (pos) {
-      return mine.filter(function (p) {
-        return self.pos(p) === pos && healthy(p) && !pendingDrops[p] && !usedDrops[p];
-      }).length;
+      return roster.filter(function (p) { return self.pos(p) === pos && healthy(p); }).length;
     };
     return mine.filter(function (p) {
       var v = dropValue(p), pos = self.pos(p);
-      if (locked[p] || starting[p]) return false;  // free agency: can't drop a player whose game started
-      return !core[p] && !need[p] && !pendingDrops[p] && !usedDrops[p] && v !== null && v >= SPARE_MIN &&
-        (!healthy(p) || !(pos in hardMin) || healthyAt(pos) - 1 >= hardMin[pos]);
+      if (!droppable(p) || core[p] || need[p] || starting[p] || v === null || v < SPARE_MIN) return false;
+      if (recent[p] && !excessKD[p]) return false;
+      return !healthy(p) || !(pos in hardMin) || healthyAt(pos) - 1 >= hardMin[pos];
     }).sort(function (a, b) { return dropValue(b) - dropValue(a); })[0] || null;
   };
-  var openSpots = limit - mine.length - claims.filter(function (c) { return !c.drop; }).length;
-  // A starter who can't play this week (bye, Out...) and nobody on the bench who can fill
-  // in: pick up the best available player for that spot, for the week.
-  /** Pick up the best available player for a starting spot nobody can fill; false if impossible. */
+  /** Who goes for a pickup that fills ``hole``: a kicker/defense swaps with one of yours if possible. */
+  var dropFor = function (hole) {
+    if (hole.slot === 'K' || hole.slot === 'DEF') {
+      var kds = mine.filter(function (p) { return self.pos(p) === hole.slot && droppable(p) && kdNum(p) > 12; });
+      kds.sort(function (a, b) {
+        return (self.whyOut(b, kickoff) ? 1 : 0) - (self.whyOut(a, kickoff) ? 1 : 0) || kdNum(b) - kdNum(a);
+      });
+      if (kds.length) return kds[0];
+    }
+    return spare();
+  };
+  var noNewHoles = function (extra) {
+    var before = holesOf(rosterNow()).length;
+    return function (add, drop, inner) {
+      var r = rosterWith(claims.concat(inner || [], [{ add: add, drop: drop }]));
+      return holesOf(r).length <= before - (extra || 0);
+    };
+  };
+  var upgrade = function (cands, max, mustFill) {
+    if (max <= 0 || !cands.length) return [];
+    var roster = rosterNow();
+    var made = planUpgrades_({
+      freeAgents: cands, myPlayers: roster, countFrom: roster, value: value, dropValue: dropValue,
+      position: function (p) { return self.pos(p); }, protected: core, minimums: self.minimums(),
+      maxDepth: self.maxDepth(), healthy: healthy, extraGain: function (p) { return recent[p] ? cfg.min_gain : 0; },
+      rosterLimit: limit, maxClaims: max, minGain: minGain, openSpotGain: guard ? minGain : 0,
+      blockedDrops: Object.assign({}, blocked, usedDrops, roster.reduce(function (m, p) {
+        if (mine.indexOf(p) < 0) m[p] = true;
+        return m;
+      }, {})),
+      allow: noNewHoles(mustFill ? 1 : 0),
+    });
+    made.forEach(function (c) { claims.push(c); adding[c.add] = true; if (c.drop) usedDrops[c.drop] = true; });
+    return made;
+  };
+  var label = function (p) {
+    var pos = self.pos(p);
+    return name(p) + (pos === 'K' || pos === 'DEF' ? ' (' + pos + kdNum(p) + ' rest of season)' : '');
+  };
   var fill = function (hole) {
     var best = null, bestRank = Infinity;
     SLOT_ELIGIBILITY[hole.slot].forEach(function (pos) {
       self.weeklyList(pos).byId.forEach(function (r, pid) {
-        if (!self.eligible(pid, hole.slot) || self.whyOut(pid, kickoff)) return;
-        if ((fa ? isFree(pid) : !rostered[pid] && !pendingAdds[pid] && !adding[pid]) && r.rank < bestRank) {
+        if (self.eligible(pid, hole.slot) && !self.whyOut(pid, kickoff) && available(pid) && r.rank < bestRank) {
           best = pid; bestRank = r.rank;
         }
       });
     });
+    var kd = hole.slot === 'K' || hole.slot === 'DEF';
+    var star = hole.out !== EMPTY && kd && (keep[hole.out] || kdNum(hole.out) <= 12);
     var who = hole.out === EMPTY ? 'Your ' + hole.slot + ' spot is empty this week'
-      : name(hole.out) + ' (' + self.pos(hole.out) + ', ' + self.whyOut(hole.out, kickoff) + ") can't play this week";
-    var drop = openSpots > 0 ? null : spare();
-    if (!best || (openSpots <= 0 && !drop)) {
-      notes.push(who + ' and nobody on your bench can fill in, but ' +
+      : name(hole.out) + ' (' + self.pos(hole.out) + ', ' + self.whyOut(hole.out, kickoff) +
+        (kd ? ', ' + self.pos(hole.out) + kdNum(hole.out) + ' rest of season' : '') + ") can't play this week" +
+        (star ? ' and is too good to drop' : '');
+    var drop = openSpots() > 0 ? null : dropFor(hole);
+    if (!best || (openSpots() <= 0 && !drop)) {
+      notes.push(who + (star ? ', but ' : ' and nobody on your bench can fill in, but ') +
                  (best ? 'no bench player is cheap enough to give up' : 'no free agent is available') +
-                 '. Add one yourself if you can.');
-      return false;
+                 (fa ? '. Add one yourself if you can.' : ' right now. The free-agent plan tries again once waivers have run.'));
+      return;
     }
     claims.push({ add: best, drop: drop, addValue: bestRank, dropValue: drop ? dropValue(drop) : null, kind: 'cover' });
     adding[best] = true;
-    if (drop) usedDrops[drop] = true; else openSpots--;
-    notes.push(who + ' and nobody on your bench can fill in, so this ' + (fa ? 'picks up ' : 'adds ') + name(best) +
-               (fa ? ' as a free agent' : ' for the week') +
-               (drop ? ' and drops ' + name(drop) + ', who is easy to replace.' : '.'));
-    return true;
+    if (drop) usedDrops[drop] = true;
+    notes.push(who + (star ? ', so this ' : ' and nobody on your bench can fill in, so this ') +
+               (fa ? 'picks up ' : 'adds ') + name(best) + (fa ? ' as a free agent' : ' for the week') +
+               (drop ? ' and drops ' + name(drop) + (kd && self.pos(drop) === hole.slot ? '.' : ', who is easy to replace.') : '.'));
   };
-  if (fa) {
-    // Holes in the lineup as planned (kickers and defenses included: no waiver claim covered them).
-    lp.holes.forEach(function (hole) {
-      if ((hole.slot === 'K' || hole.slot === 'DEF') ? cfg.stream_k_def : cfg.cover_byes) fill(hole);
+  var fas = [];
+  ros.byId.forEach(function (r, pid) { if (relevant[self.pos(pid)] && (self.p(pid) || [])[2] && available(pid)) fas.push(pid); });
+  var wanted = function (hole) { return (hole.slot === 'K' || hole.slot === 'DEF') ? cfg.stream_k_def : cfg.cover_byes; };
+  // 1. An upgrade that also fills an empty starting spot does both jobs.
+  holesOf(rosterNow()).forEach(function (hole) {
+    if (!wanted(hole) || hole.slot === 'K' || hole.slot === 'DEF') return;
+    var fits = fas.filter(function (p) {
+      return !adding[p] && self.eligible(p, hole.slot) && !self.whyOut(p, kickoff);
     });
-  } else if (cfg.cover_byes && weekAhead && !faOpen) {  // once waivers have run, this week is free agency's
-    for (var tries = 0; tries < 3; tries++) {
-      var lineup = weekLineup(), hole = null;
-      lineup.forEach(function (p, i) {
-        var slot = self.slots[i];
-        if (!hole && SLOT_ELIGIBILITY[slot] && slot !== 'K' && slot !== 'DEF' &&
-            (p === EMPTY || self.whyOut(p, kickoff))) hole = { slot: slot, out: p };
-      });
-      if (!hole || !fill(hole)) break;
-    }
-  }
+    var made = upgrade(fits, Math.min(1, room), true);
+    room -= made.length;
+    made.forEach(function (c) { notes.push(name(c.add) + ' is an upgrade and also fills the ' + hole.slot + ' spot this week.'); });
+  });
+  // 2. Fill-ins for the spots still empty: they get first pick of the cheap bench players.
+  holesOf(rosterNow()).forEach(function (hole) { if (wanted(hole)) fill(hole); });
+  // 3. Rest-of-season upgrades with whatever room is left.
+  room -= upgrade(fas.filter(function (p) { return !adding[p]; }), room, false).length;
+  // 4. Kicker/defense swaps for a clearly better matchup this week.
   if (cfg.stream_k_def && (fa || !faOpen)) {
-    var openSpot = limit - mine.length - claims.filter(function (c) { return !c.drop; }).length > 0;
     [['K', FP.K], ['DEF', FP.DST]].forEach(function (pair) {
       var pos = pair[0];
       if (self.slots.indexOf(pos) < 0) return;
@@ -2003,42 +2053,31 @@ League_.prototype.planWaivers = function (opts) {
         notes.push(pos + " streaming waits for next week's rankings.");
         return;
       }
-      var wv = function (pid) { var r = wl.get(pid); return !r || r.bye ? null : r.rank; };
       var at = function (p) { return self.pos(p) === pos; };
       if (Object.keys(pendingAdds).some(at) || Object.keys(adding).some(at)) return;  // already streaming
-      if (fa && mine.some(function (p) { return at(p) && locked[p]; })) return;      // his game already started
-      var faK = [];
-      wl.byId.forEach(function (r, pid) { if (fa ? isFree(pid) : !rostered[pid] && !pendingAdds[pid]) faK.push(pid); });
-      var my = mine.filter(function (p) {
-        return self.pos(p) === pos && !pendingDrops[p] && !keep[p] && !usedDrops[p];  // not already dropped above
+      var mineAt = rosterNow().filter(at);
+      if (fa && mineAt.some(function (p) { return locked[p]; })) return;            // his game already started
+      var wv = function (pid) { var r = wl.get(pid); return !r || r.bye || self.whyOut(pid, kickoff) ? null : r.rank; };
+      var playing = mineAt.filter(function (p) { return wv(p) !== null; });
+      if (!playing.length || guard) return;  // nobody plays: a hole (handled above); top waiver priority: not for this
+      var myBest = Math.min.apply(null, playing.map(wv));
+      var best = null;
+      wl.byId.forEach(function (r, pid) { if (available(pid) && wv(pid) !== null && (!best || r.rank < wv(best))) best = pid; });
+      if (!best || myBest - wv(best) < cfg.stream_margin) return;
+      var keepers = mineAt.filter(function (p) {
+        return !droppable(p) || (kdNum(p) <= 12 && kdNum(best) >= kdNum(p));  // a top-12 one stays unless the streamer is better for good
       });
-      var canPlay = mine.some(function (p) { return self.pos(p) === pos && !pendingDrops[p] && !usedDrops[p] && wv(p) !== null; });
-      if (guard && canPlay) return;  // a better matchup isn't worth top waiver priority
-      var c = planStream_(faK, my, wv, cfg.stream_margin, openSpot);
-      if (c && c.drop && kdNum(c.drop) <= 12 && kdNum(c.add) >= kdNum(c.drop)) {
-        // Never give away a top-12 K/DEF for one good week, unless the streamer is also
-        // the better pick for the rest of the season. If he can't play this week (bye),
-        // pick the streamer up with an easy-to-replace bench player instead.
-        var star = c.drop, label = name(star) + ' (' + pos + kdNum(star) + ' rest of season)';
-        var other = wv(star) === null ? (openSpot ? 'open' : spare()) : null;
-        if (wv(star) !== null) {
-          notes.push('Keeping ' + label + ' rather than dropping him for a one-week ' + pos + ' stream.');
-          c = null;
-        } else if (other) {
-          c = { add: c.add, drop: other === 'open' ? null : other, addValue: c.addValue,
-                dropValue: other === 'open' ? null : dropValue(other), kind: 'stream' };
-          notes.push(label + " can't play this week and is too good to drop, so this adds " + name(c.add) +
-                     ' for the week' + (c.drop ? ' and drops ' + name(c.drop) + ', who is easy to replace.' : '.'));
-        } else {
-          notes.push(label + " can't play this week, but no bench player is cheap enough to give up for a one-week " +
-                     pos + ' right now. The free-agent plan tries again once waivers have run.');
-          c = null;
-        }
+      var drop = mineAt.filter(function (p) { return keepers.indexOf(p) < 0; })
+        .sort(function (a, b) { return (wv(b) === null ? 1e9 : wv(b)) - (wv(a) === null ? 1e9 : wv(a)); })[0] || null;
+      if (!drop && openSpots() <= 0) {
+        keepers.forEach(function (p) {
+          if (kdNum(p) <= 12) notes.push('Keeping ' + label(p) + ' rather than dropping him for a one-week ' + pos + ' stream.');
+        });
+        return;
       }
-      if (c) {
-        if (c.drop) usedDrops[c.drop] = true; else openSpot = false;
-        claims.push(c);
-      }
+      claims.push({ add: best, drop: drop, addValue: wv(best), dropValue: drop ? dropValue(drop) : null, kind: 'stream' });
+      adding[best] = true;
+      if (drop) usedDrops[drop] = true;
     });
   }
   if (this.faab && !fa) {
@@ -2101,7 +2140,8 @@ function checkPlans_(lg, res) {
       if (p === EMPTY) return;
       if (seen[p]) out.push(name(p) + ' is in the lineup twice.');
       seen[p] = true;
-      if (SLOT_ELIGIBILITY[slot] && lg.p(p) && !lg.eligible(p, slot)) out.push(name(p) + " can't play " + slot + '.');
+      var stays = L.current && L.current[i] === p && locked(p);  // already there and his game started
+      if (SLOT_ELIGIBILITY[slot] && lg.p(p) && !lg.eligible(p, slot) && !stays) out.push(name(p) + " can't play " + slot + '.');
       if (L.current && L.current[i] !== p) {
         if (L.current[i] !== EMPTY && locked(L.current[i])) out.push(name(L.current[i]) + "'s game has started, but he'd be moved.");
         if (locked(p) && L.current.indexOf(p) !== i) out.push(name(p) + "'s game has started, but he'd be moved in.");
@@ -2128,13 +2168,13 @@ function checkPlans_(lg, res) {
     try { clears = faOpen ? lg.clears_() : null; } catch (e) { if (e.expired) throw e; }
     var pending = [];
     try { pending = lg.pending_(); } catch (e) { if (e.expired) throw e; }
-    var size = Object.keys(mine).length, added = {}, dropped = {}, upgrades = 0;
+    var size = Object.keys(mine).length, added = {}, dropped = {}, upgrades = 0, pendingSkill = 0;
     pending.forEach(function (t) {
       size += Object.keys(t.adds || {}).length - Object.keys(t.drops || {}).filter(function (p) { return mine[p]; }).length;
     });
     var before = size;  // after the claims already pending: the plan mustn't make it worse
     pending.forEach(function (t) {
-      Object.keys(t.adds || {}).forEach(function (p) { if (SKILL.indexOf(lg.pos(p)) >= 0) upgrades++; });
+      Object.keys(t.adds || {}).forEach(function (p) { if (SKILL.indexOf(lg.pos(p)) >= 0) pendingSkill++; });
       Object.keys(t.drops || {}).forEach(function (p) { dropped[p] = true; });
     });
     [[F, 'pickup'], [W, 'claim']].forEach(function (pair) {
@@ -2153,6 +2193,7 @@ function checkPlans_(lg, res) {
         if (clears && how === 'claim' && lg.isFreeAgent(a, clears, kickoff)) {
           out.push(name(a) + ' is a free agent right now: he should be picked up, not claimed for next week.');
         }
+        if (!clears && faOpen) out.push("Can't check on Sleeper whether " + name(a) + ' is still on waivers.');
         if (!d) return;
         shown.push(c.drop);
         size--;
@@ -2162,6 +2203,7 @@ function checkPlans_(lg, res) {
         if (keep[d]) out.push(name(d) + ' is starred (kept) but would be dropped.');
         if (how === 'pickup' && locked(d)) out.push(name(d) + "'s game has started, so he can't be dropped now.");
         var kd = lg.pos(d) === 'K' || lg.pos(d) === 'DEF';
+        if (c.kind !== 'upgrade' && recent[d] && !kd) out.push(name(d) + ' was just picked up and would be dropped for a one-week pickup.');
         if (c.kind === 'upgrade' && !kd && c.add.rank && c.drop.rank) {
           var need = cfg.min_gain * (recent[d] ? 2 : 1);
           if (c.drop.rank - c.add.rank < need) {
@@ -2175,8 +2217,35 @@ function checkPlans_(lg, res) {
     if (size > Math.max(limit, before)) {
       out.push('After these moves your roster would have ' + size + ' players; the limit is ' + limit + '.');
     }
-    if (upgrades + upgradesDone_(lg.id, Number(lg.settings.leg)) > cfg.max_claims) {
-      out.push('More upgrades than your limit of ' + cfg.max_claims + ' a week.');
+    // The weekly limit: claims already pending and this week's upgrades leave this much room.
+    var room = Math.max(0, cfg.max_claims - pendingSkill - upgradesDone_(lg.id, Number(lg.settings.leg)));
+    if (upgrades > room) out.push('More upgrades than your limit of ' + cfg.max_claims + ' a week.');
+    // No move may leave a starting spot this week with nobody who can play in it. Free agents
+    // join now; claims made before the waiver run join before this week's games.
+    var weekList = lg.weeklyList(lg.qbPremium ? 'QB' : 'RB'), first = weekList.firstKickoff();
+    var moves = F ? F.claims : W && !faOpen && weekList.week === Number(ctx.state.week) && first > ctx.now ? W.claims : [];
+    if (moves.length) {
+      var lockedNow = {}, startersNow = (L && L.current) || (lg.roster.starters || []).slice();
+      startersNow.forEach(function (p) { if (p !== EMPTY && locked(p)) lockedNow[p] = true; });
+      var cost = function (p, slot) { return !lg.eligible(p, slot) ? null : lg.whyOut(p, kickoff) ? 1 : 0; };
+      var holes = function (roster) {
+        var current = startersNow.map(function (p) { return roster.indexOf(p) >= 0 ? p : EMPTY; });
+        return optimize_(lg.slots, current, roster, cost, lockedNow).starters.filter(function (p, i) {
+          return SLOT_ELIGIBILITY[lg.slots[i]] && (p === EMPTY || (!lockedNow[p] && !!lg.whyOut(p, kickoff)));
+        }).length;
+      };
+      var week = Object.keys(mine);
+      if (!F) {  // pending claims go through first
+        pending.forEach(function (t) {
+          week = week.filter(function (p) { return !(t.drops || {})[p]; }).concat(Object.keys(t.adds || {}));
+        });
+      }
+      var after = week.slice();
+      moves.forEach(function (c) {
+        if (c.drop) after = after.filter(function (p) { return p !== c.drop.id; });
+        after.push(c.add.id);
+      });
+      if (holes(after) > holes(week)) out.push('These moves would leave a starting spot this week with nobody who can play.');
     }
   }
   shown.forEach(function (v) {
@@ -2261,5 +2330,5 @@ League_.prototype.applyClaims = function (res, who) {
 };
 
 var UI_HTML = "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<base target=\"_top\">\n<title>Sleeper Autopilot</title>\n<style>\n  :root {\n    --bg: #f4f6f9; --surface: #ffffff; --surface-2: #f0f3f7; --border: #e1e6ee;\n    --text: #141a24; --muted: #5f6b7c; --faint: #8b95a5;\n    --accent: #0f9d77; --accent-ink: #ffffff; --accent-soft: #e2f5ef;\n    --warn: #b7791f; --warn-soft: #fdf3e1; --bad: #c2410c; --bad-soft: #fdece4;\n    --info-soft: #e8effc; --info: #2f5fb3;\n    --radius: 14px; --shadow: 0 1px 2px rgba(20, 26, 36, .06), 0 4px 16px rgba(20, 26, 36, .05);\n  }\n  @media (prefers-color-scheme: dark) {\n    :root {\n      --bg: #0d1117; --surface: #151b24; --surface-2: #1b2330; --border: #273142;\n      --text: #e7ecf3; --muted: #9aa6b8; --faint: #6f7b8e;\n      --accent: #2bd4a4; --accent-ink: #062018; --accent-soft: #11342b;\n      --warn: #f0b354; --warn-soft: #33270f; --bad: #ff8a5c; --bad-soft: #3a1d13;\n      --info-soft: #18263d; --info: #8fb4ff; --shadow: none;\n    }\n  }\n  * { box-sizing: border-box; }\n  html, body { margin: 0; background: var(--bg); color: var(--text);\n    font: 15px/1.45 -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Inter, sans-serif; }\n  .wrap { max-width: 760px; margin: 0 auto; padding: 16px 16px 48px; }\n  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }\n  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: -.01em; }\n  .logo { width: 30px; height: 30px; border-radius: 9px; background: var(--accent); color: var(--accent-ink);\n    display: grid; place-items: center; font-size: 16px; }\n  .who { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }\n  .avatar { width: 26px; height: 26px; border-radius: 50%; background: var(--surface-2); object-fit: cover; }\n  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);\n    box-shadow: var(--shadow); padding: 16px; margin-bottom: 14px; }\n  h2 { font-size: 17px; margin: 0; letter-spacing: -.01em; }\n  h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 18px 0 8px; }\n  .row { display: flex; align-items: center; gap: 10px; }\n  .between { justify-content: space-between; }\n  .wrapflex { flex-wrap: wrap; }\n  a { color: var(--accent); }\n  .muted { color: var(--muted); } .faint { color: var(--faint); } .small { font-size: 13px; }\n  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }\n  .chip { font-size: 12px; padding: 3px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted);\n    border: 1px solid var(--border); white-space: nowrap; }\n  .chip.accent { background: var(--accent-soft); color: var(--accent); border-color: transparent; font-weight: 600; }\n  button { font: inherit; cursor: pointer; border-radius: 10px; border: 1px solid var(--border);\n    background: var(--surface); color: var(--text); padding: 9px 14px; font-weight: 600; }\n  button.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }\n  button.ghost { background: transparent; border-color: transparent; color: var(--muted); padding: 6px 8px; }\n  button:disabled { opacity: .55; cursor: default; }\n  button.small { padding: 6px 10px; font-size: 13px; }\n  input[type=text], input[type=password], input[type=email], input[type=number], textarea {\n    font: inherit; width: 100%; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--border);\n    background: var(--surface); color: var(--text); }\n  input:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }\n  label.field { display: block; margin: 12px 0 0; font-size: 13px; color: var(--muted); }\n  label.field span { display: block; margin-bottom: 5px; }\n\n  /* status hero */\n  .hero { display: grid; gap: 12px; }\n  .status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--faint); flex: none; }\n  .status-dot.on { background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }\n  .status-dot.off { background: var(--warn); box-shadow: 0 0 0 4px var(--warn-soft); }\n  .hero-title { font-size: 19px; font-weight: 700; }\n  .switch { position: relative; width: 50px; height: 30px; flex: none; }\n  .switch input { opacity: 0; width: 0; height: 0; }\n  .slider { position: absolute; inset: 0; border-radius: 999px; background: var(--border); transition: .15s; cursor: pointer; }\n  .slider:before { content: \"\"; position: absolute; width: 24px; height: 24px; left: 3px; top: 3px; border-radius: 50%;\n    background: #fff; transition: .15s; box-shadow: 0 1px 3px rgba(0,0,0,.25); }\n  .switch input:checked + .slider { background: var(--accent); }\n  .switch input:checked + .slider:before { transform: translateX(20px); }\n  .switch.sm { width: 40px; height: 24px; }\n  .switch.sm .slider:before { width: 18px; height: 18px; }\n  .switch.sm input:checked + .slider:before { transform: translateX(16px); }\n  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; }\n  .fact { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; }\n  .fact b { display: block; font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 2px; }\n\n  /* lineup */\n  .slots { display: grid; gap: 6px; }\n  .slot { display: grid; grid-template-columns: 74px 1fr auto; align-items: center; gap: 10px;\n    padding: 8px 10px; border-radius: 10px; background: var(--surface-2); border: 1px solid transparent; }\n  .slot.new { border-color: var(--accent); background: var(--accent-soft); }\n  .slot.bad { border-color: var(--bad); background: var(--bad-soft); }\n  .slot-tag { font-size: 11px; font-weight: 700; letter-spacing: .03em; color: var(--muted); text-transform: uppercase; }\n  .pname { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }\n  .pmeta { font-size: 12px; color: var(--muted); }\n  .rank { font-size: 12px; color: var(--muted); text-align: right; white-space: nowrap; }\n  .tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 6px; margin-left: 6px;\n    vertical-align: 1px; }\n  .tag.in { background: var(--accent); color: var(--accent-ink); }\n  .tag.out { background: var(--bad-soft); color: var(--bad); }\n  .tag.lock { background: var(--surface); color: var(--faint); border: 1px solid var(--border); }\n  .banner { border-radius: 10px; padding: 10px 12px; font-size: 14px; margin: 8px 0; }\n  .banner.ok { background: var(--accent-soft); color: var(--accent); }\n  .banner.warn { background: var(--warn-soft); color: var(--warn); }\n  .banner.bad { background: var(--bad-soft); color: var(--bad); }\n  .banner.info { background: var(--info-soft); color: var(--info); }\n  .claim { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; padding: 10px 12px;\n    border-radius: 10px; background: var(--surface-2); margin-bottom: 6px; }\n  .claim .arrow { color: var(--faint); margin: 0 4px; }\n  .add { color: var(--accent); font-weight: 600; } .drop { color: var(--bad); }\n  details summary { cursor: pointer; color: var(--muted); font-size: 13px; margin-top: 10px; list-style: none; }\n  details summary::-webkit-details-marker { display: none; }\n  details summary:before { content: \"▸ \"; }\n  details[open] summary:before { content: \"▾ \"; }\n  .settings-grid { display: grid; gap: 10px; margin-top: 10px; }\n  .setting { display: flex; align-items: center; justify-content: space-between; gap: 12px; }\n  .setting .label { font-size: 14px; }\n  .setting .hint { font-size: 12px; color: var(--muted); }\n  input[type=range] { width: 140px; accent-color: var(--accent); }\n  input.num { width: 70px; padding: 6px 8px; }\n  .keep { border: 0; background: none; padding: 0 6px 0 0; color: var(--faint); font-size: 15px; font-weight: 400; }\n  .keep.on { color: var(--warn); }\n\n  /* activity */\n  .feed { display: grid; gap: 2px; }\n  .entry { display: grid; grid-template-columns: 26px 1fr; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--border); }\n  .entry:last-child { border-bottom: 0; }\n  .ico { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; font-size: 13px;\n    background: var(--surface-2); }\n  .ico.change { background: var(--accent-soft); color: var(--accent); }\n  .ico.error { background: var(--bad-soft); color: var(--bad); }\n  .entry pre { margin: 4px 0 0; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted);\n    white-space: pre-wrap; }\n\n  /* login */\n  .center { min-height: 80vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }\n  .center > .card { width: 100%; max-width: 400px; }\n  .login { width: 100%; max-width: 400px; }\n  .login h1 { font-size: 22px; margin: 14px 0 4px; letter-spacing: -.02em; }\n  .code { letter-spacing: .5em; text-align: center; font-size: 22px; font-weight: 700; }\n  .fine { font-size: 12px; color: var(--muted); margin-top: 14px; }\n  .err { color: var(--bad); font-size: 13px; margin-top: 10px; min-height: 1em; }\n\n  /* misc */\n  .skeleton { height: 14px; border-radius: 6px; background: linear-gradient(90deg, var(--surface-2), var(--border), var(--surface-2));\n    background-size: 200% 100%; animation: sh 1.2s infinite; margin: 8px 0; }\n  @keyframes sh { from { background-position: 200% 0; } to { background-position: -200% 0; } }\n  .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent;\n    border-radius: 50%; animation: rot .7s linear infinite; vertical-align: -2px; margin-right: 6px; }\n  @keyframes rot { to { transform: rotate(360deg); } }\n  .toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--text); color: var(--bg);\n    padding: 10px 14px; border-radius: 10px; font-size: 14px; box-shadow: var(--shadow); max-width: calc(100% - 32px);\n    opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; }\n  .toast.show { opacity: 1; }\n  @media (max-width: 480px) {\n    .slot { grid-template-columns: 58px 1fr auto; }\n    .wrap { padding: 12px 12px 40px; }\n  }\n</style>\n</head>\n<body>\n<div class=\"wrap\" id=\"app\"><div class=\"center\"><span class=\"muted\"><span class=\"spin\"></span>Loading…</span></div></div>\n<div class=\"toast\" id=\"toast\"></div>\n<script>\n// Sleeper puts a captcha in front of password logins from other sites, so connecting\n// via sleeper.com is the default; the password form stays as a fallback.\nconst freshLogin = (extra) => Object.assign({ step: 'token', desktop: matchMedia('(pointer: fine)').matches }, extra);\nconst S = { state: null, dash: null, loadingDash: false, busy: {}, login: freshLogin(), dashError: null,\n            update: {} };\n\n// ---- server calls ------------------------------------------------------\n// Every server call goes through call(name, args): an installed update can then add\n// server functions that the pasted code doesn't declare.\nfunction api(fn, ...args) {\n  return new Promise((resolve, reject) => {\n    google.script.run.withSuccessHandler(resolve)\n      .withFailureHandler((e) => reject(new Error(((e && e.message) || String(e)).replace(/^(Error:\\s*)+/, ''))))\n      .call(fn, args);\n  });\n}\n\n// ---- Sleeper login from this browser ------------------------------------\n// Logging in from your own browser looks like a normal login to Sleeper;\n// the same request from Google's servers gets a \"confirm you're human\" wall.\n// URLs are written with \\/\\/ on purpose: when Google serves this page it cuts off\n// everything after \"//\" inside `template` text, as if it were a comment.\nconst SLEEPER_GQL = 'https:\\/\\/api.sleeper.app/graphql';\nconst SLEEPER_LOGIN_URL = 'https:\\/\\/sleeper.com/login';\nconst AVATAR_URL = 'https:\\/\\/sleepercdn.com/avatars/thumbs/';\nconst Q_LOGIN = 'query login($e: String!, $p: String!, $c: String) {' +\n  ' login(email_or_phone_or_username: $e, password: $p, captcha: $c) { token } }';\nconst Q_CONTEXT = 'query login_context_by_email_or_phone_or_username($e: String!) {' +\n  ' login_context_by_email_or_phone_or_username(email_or_phone_or_username: $e) }';\nconst M_SEND_CODE = 'mutation create_verification_code($e: String!, $c: String) {' +\n  ' create_verification_code(email_or_phone: $e, captcha: $c) }';\nconst CAPTCHA_MSG = 'Sleeper wants a captcha before it lets this login through. That usually clears if you ' +\n  'leave it alone for an hour; or connect via sleeper.com now.';\n\nclass Blocked extends Error {}\n\nasync function sleeperGql(query, variables) {\n  let r;\n  try {\n    r = await fetch(SLEEPER_GQL, { method: 'POST', headers: { 'Content-Type': 'application/json' },\n                                   body: JSON.stringify({ query, variables }) });\n  } catch (e) {\n    throw new Blocked(e.message);  // the browser wouldn't let us call Sleeper directly\n  }\n  const body = await r.json().catch(() => ({}));\n  if (body.errors && body.errors.length) {\n    const err = new Error(body.errors.map((x) => x.message).join('; '));\n    err.codes = body.errors.map((x) => x.code || (x.extensions && x.extensions.code) || '');\n    throw err;\n  }\n  return body.data || {};\n}\n\nasync function sleeperContext(identifier) {\n  try {\n    return (await sleeperGql(Q_CONTEXT, { e: identifier })).login_context_by_email_or_phone_or_username || {};\n  } catch (e) { return {}; }\n}\n\n/** Returns {token, userId} | {needsCode, sentTo}; throws Blocked if fetch is impossible. */\nasync function browserLogin(identifier, secret) {\n  let data;\n  try {\n    data = await sleeperGql(Q_LOGIN, { e: identifier, p: secret });\n  } catch (e) {\n    if (e instanceof Blocked) throw e;\n    if ((e.codes || []).includes('code_verification_required')) {\n      await sleeperGql(M_SEND_CODE, { e: identifier });\n      const ctx = await sleeperContext(identifier);\n      return { needsCode: true, sentTo: ctx.masked_email || ctx.masked_phone || 'your email' };\n    }\n    if (/human|captcha/i.test(e.message)) throw new Error(CAPTCHA_MSG);\n    throw new Error('Sleeper refused the login: ' + e.message);\n  }\n  if (!data.login || !data.login.token) {\n    throw new Error(/^\\d{4}$/.test(secret) ? \"That code didn't work. Check the latest email from Sleeper.\"\n                                           : \"Sleeper didn't accept that email/username and password.\");\n  }\n  const ctx = await sleeperContext(identifier);\n  return { token: data.login.token, userId: ctx.user_id || null };\n}\n\n// ---- helpers -----------------------------------------------------------\nconst esc = (s) => String(s == null ? '' : s).replace(/[&<>\"']/g, (c) =>\n  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst $ = (sel) => document.querySelector(sel);\n\nfunction ago(ts) {\n  if (!ts) return 'never';\n  const s = Math.round((Date.now() - ts) / 1000);\n  if (s < 60) return 'just now';\n  if (s < 3600) return Math.round(s / 60) + ' min ago';\n  if (s < 86400) return Math.round(s / 3600) + ' h ago';\n  return new Date(ts).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });\n}\nconst when = (ts) => new Date(ts).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });\n\nfunction toast(msg) {\n  const t = $('#toast');\n  t.textContent = msg;\n  t.classList.add('show');\n  clearTimeout(toast._t);\n  toast._t = setTimeout(() => t.classList.remove('show'), 3500);\n}\n\nasync function busy(key, fn) {\n  S.busy[key] = true; render();\n  try { return await fn(); }\n  catch (e) { if (!expired(e)) toast(e.message); throw e; }\n  finally { S.busy[key] = false; render(); }\n}\n\n/** Sleeper rejected the saved session: the server dropped it, so show the login again. */\nfunction expired(e) {\n  if (!/session expired/i.test(e.message)) return false;\n  S.dash = null;\n  S.login = freshLogin({ error: e.message });\n  api('getState').then((st) => { S.state = st; render(); });\n  return true;\n}\n\n// ---- data flow ---------------------------------------------------------\nasync function boot() {\n  try { S.state = await api('getState'); }\n  catch (e) { $('#app').innerHTML = `<div class=\"card banner bad\">${esc(e.message)}</div>`; return; }\n  render();\n  if (S.state.connected) loadDashboard();\n  checkUpdate();\n}\n\nasync function checkUpdate() {\n  try { S.update = { result: await api('checkForUpdate') }; } catch (e) { S.update = {}; }\n  render();\n}\n\nasync function installUpdate() {\n  S.update.error = null;\n  try {\n    const r = await busy('update', () => api('installUpdate', S.update.result.latest.id));\n    S.update.installed = r;\n  } catch (e) { S.update.error = e.message; }\n  render();\n}\n\nconst linkify = (t) => esc(t).replace(/https:\\/\\/[^\\s,)]+/g, (u) => `<a href=\"${u}\" target=\"_blank\">${u}</a>`);\n\nfunction updateBanner() {\n  const U = S.update;\n  const st = S.state || {};\n  if (st.update && st.update.error) {\n    return `<div class=\"card banner bad\"><b>The installed update couldn't load</b>\n      <div class=\"small\" style=\"margin-top:6px\">${esc(st.update.error)}. The app is running the version you pasted.</div>\n      <div style=\"margin-top:8px\"><button class=\"small\" data-action=\"remove-update\">Remove the update</button></div></div>`;\n  }\n  if (U.installed) {\n    const url = U.installed.url;\n    return `<div class=\"card banner ok\">✓ Update “${esc(U.installed.info.title)}” installed.\n      ${url ? `<a href=\"${esc(url)}\" target=\"_top\"><b>Reload the app</b></a>` : 'Reload this page'} to use it.</div>`;\n  }\n  const r = U.result;\n  if (!r || !r.available) return '';\n  const notes = (r.notes || []).map((n) => `<div style=\"margin-top:6px\"><b>${esc(n.title)}</b>\n      <ul style=\"margin:4px 0 0;padding-left:18px\">${n.items.map((i) => `<li>${esc(i)}</li>`).join('')}</ul></div>`).join('');\n  return `<div class=\"card banner info\">\n    <div class=\"row between wrapflex\"><b>Update available</b>\n      <button class=\"small primary\" data-action=\"install-update\" ${S.busy.update ? 'disabled' : ''}>\n        ${S.busy.update ? '<span class=\"spin\"></span>Installing…' : 'Install update'}</button></div>\n    <div class=\"small\">${notes}</div>\n    ${U.error ? `<div class=\"small\" style=\"color:var(--bad);margin-top:8px\">${linkify(U.error)}</div>` : ''}\n  </div>`;\n}\n\nasync function loadDashboard() {\n  S.loadingDash = true; S.dashError = null; render();\n  try {\n    S.dash = await api('getDashboard');\n    S.state = S.dash.state;\n  } catch (e) { if (!expired(e)) S.dashError = e.message; }\n  S.loadingDash = false; render();\n}\n\nfunction replaceLeague(res) {\n  if (!S.dash) return;\n  const i = S.dash.leagues.findIndex((l) => l.id === res.id);\n  if (i >= 0) {\n    const old = S.dash.leagues[i];\n    S.dash.leagues[i] = Object.assign({}, old, res, {\n      lineup: res.lineup || old.lineup, waivers: res.waivers || old.waivers, freeAgents: res.freeAgents || old.freeAgents });\n  }\n}\n\n// ---- rendering ---------------------------------------------------------\nfunction render() {\n  const st = S.state;\n  if (!st) return;\n  // Rebuilding the page must not wipe what's being typed or close what's open.\n  const typed = {}, open = {};\n  const fieldKey = (el) => el.form.dataset.form + ':' + el.name;\n  document.querySelectorAll('form[data-form] [name]').forEach((el) => { if (el.value) typed[fieldKey(el)] = el.value; });\n  document.querySelectorAll('details[data-key]').forEach((el) => { open[el.dataset.key] = el.open; });\n  const active = document.activeElement;\n  const activeKey = active && active.form && active.form.dataset.form && active.name ? fieldKey(active) : null;\n  $('#app').innerHTML = st.connected ? appView(st)\n    : loginView().replace('<div class=\"center\">', '<div class=\"center\">' + permissionBanner(st) + updateBanner());\n  document.querySelectorAll('form[data-form] [name]').forEach((el) => {\n    const k = fieldKey(el);\n    if (typed[k] && !el.value) el.value = typed[k];\n    if (k === activeKey) el.focus();\n  });\n  document.querySelectorAll('details[data-key]').forEach((el) => { if (el.dataset.key in open) el.open = open[el.dataset.key]; });\n  const first = document.querySelector('[autofocus]');\n  if (first && !render._focused && !activeKey) { first.focus(); render._focused = true; }\n}\n\nfunction loginView() {\n  const L = S.login;\n  const header = `<div class=\"logo\">⚡</div><h1>Sleeper Autopilot</h1>\n    <div class=\"muted\">Sets your lineups and waiver claims from FantasyPros expert rankings, following each league's rules.</div>`;\n  if (L.step === 'code') {\n    return `<div class=\"center\"><div class=\"card login\">${header}\n      <form data-form=\"code\">\n        <label class=\"field\"><span>Sleeper emailed a 4-digit code to ${esc(L.sentTo)}</span>\n          <input class=\"code\" name=\"code\" inputmode=\"numeric\" maxlength=\"4\" autocomplete=\"one-time-code\" autofocus required></label>\n        <div class=\"err\">${esc(L.error || '')}</div>\n        <button class=\"primary\" style=\"width:100%;margin-top:6px\" ${S.busy.login ? 'disabled' : ''}>\n          ${S.busy.login ? '<span class=\"spin\"></span>Checking…' : 'Verify'}</button>\n      </form>\n      <button class=\"ghost small\" data-action=\"login-restart\" style=\"margin-top:8px\">← Start over</button>\n    </div></div>`;\n  }\n  if (L.step === 'token') {\n    return `<div class=\"center\"><div class=\"card login\">${header}\n      <div class=\"small muted\" style=\"margin-top:14px\"><b>Connect your Sleeper account.</b> Sleeper only lets its own\n        site log you in (it shows a captcha), so log in there and copy your session over. You only do this once.</div>\n      <details data-key=\"phone\" ${L.desktop ? '' : 'open'}><summary>On your phone (Chrome)</summary>\n        <ol class=\"small muted\" style=\"padding-left:18px;margin:8px 0 0\">\n          <li>Copy this helper: <button type=\"button\" class=\"small\" data-action=\"copy-helper\">Copy helper</button>\n            <textarea id=\"helper\" readonly rows=\"2\" class=\"small\" style=\"margin-top:6px;font-family:ui-monospace,Menlo,monospace\">${esc(BOOKMARKLET)}</textarea></li>\n          <li>Bookmark any page (⋮ → ☆), tap <b>Edit</b>, set the name to <b>sleeper login</b> and replace the URL with\n            the helper.</li>\n          <li>Open <a href=\"${SLEEPER_LOGIN_URL}\" target=\"_blank\">sleeper.com/login</a> and log in.</li>\n          <li>There, tap the address bar, type <b>sleeper login</b> and tap the ★ bookmark suggestion. It copies your\n            session (if it shows a box instead, copy the text in it).</li>\n          <li>Come back here and paste it below.</li>\n        </ol></details>\n      <details data-key=\"computer\" ${L.desktop ? 'open' : ''}><summary>On a computer</summary>\n        <ol class=\"small muted\" style=\"padding-left:18px;margin:8px 0 0\">\n          <li>Log in at <a href=\"${SLEEPER_LOGIN_URL}\" target=\"_blank\">sleeper.com</a>.</li>\n          <li>Press <b>F12</b>, open <b>Console</b> and paste this line, then Enter. If Chrome asks, type\n            <b>allow pasting</b> first.\n            <textarea readonly rows=\"2\" class=\"small\" style=\"margin-top:6px;font-family:ui-monospace,Menlo,monospace\">${esc(CONSOLE_LINE)}</textarea></li>\n          <li>Paste the result below.</li>\n        </ol></details>\n      <form data-form=\"token\">\n        <label class=\"field\"><span>Paste your Sleeper session</span><textarea name=\"token\" rows=\"3\" required></textarea></label>\n        <div class=\"err\">${esc(L.error || '')}</div>\n        <button class=\"primary\" style=\"width:100%;margin-top:6px\" ${S.busy.login ? 'disabled' : ''}>\n          ${S.busy.login ? '<span class=\"spin\"></span>Connecting…' : 'Connect'}</button>\n      </form>\n      <button class=\"ghost small\" data-action=\"login-restart\" style=\"margin-top:8px\">Log in with password instead</button>\n    </div></div>`;\n  }\n  return `<div class=\"center\"><div class=\"card login\">${header}\n    <form data-form=\"login\" autocomplete=\"on\">\n      <label class=\"field\"><span>Sleeper email or username</span>\n        <input type=\"text\" name=\"identifier\" autocomplete=\"username\" value=\"${esc(L.identifier || '')}\"\n          ${L.identifier ? '' : 'autofocus'} required></label>\n      <label class=\"field\"><span>Password</span>\n        <input type=\"password\" name=\"password\" autocomplete=\"current-password\" ${L.identifier ? 'autofocus' : ''} required></label>\n      <div class=\"err\">${esc(L.error || '')}</div>\n      ${/captcha/i.test(L.error || '') ? `<button type=\"button\" class=\"small\" data-action=\"login-token\"\n          style=\"width:100%;margin-bottom:8px\">Connect via sleeper.com</button>` : ''}\n      <button class=\"primary\" style=\"width:100%;margin-top:6px\" ${S.busy.login ? 'disabled' : ''}>\n        ${S.busy.login ? '<span class=\"spin\"></span>Logging in…' : 'Log in with Sleeper'}</button>\n    </form>\n    <div class=\"fine\">Your password is only used to log in to Sleeper and is never saved. This page and your Sleeper\n      session live in your own Google account; nobody else can open it.</div>\n    <button class=\"ghost small\" data-action=\"login-token\" style=\"margin-top:6px\">← Connect via sleeper.com</button>\n  </div></div>`;\n}\n\nfunction appView(st) {\n  const u = st.user || {};\n  const avatar = u.avatar ? `<img class=\"avatar\" src=\"${AVATAR_URL}${esc(u.avatar)}\" alt=\"\">` : '';\n  return `<header>\n      <div class=\"brand\"><div class=\"logo\">⚡</div>Sleeper Autopilot</div>\n      <div class=\"who\">${avatar}<span>${esc(u.display_name || '')}</span>\n        <button class=\"ghost small\" data-action=\"logout\" title=\"Disconnect\">Log out</button></div>\n    </header>\n    ${permissionBanner(st)}\n    ${updateBanner()}\n    ${statusCard(st)}\n    ${S.dashError ? `<div class=\"card banner bad\">Couldn't load your leagues: ${esc(S.dashError)}\n        <div style=\"margin-top:8px\"><button class=\"small\" data-action=\"reload\">Try again</button></div></div>` : ''}\n    ${S.loadingDash && !S.dash ? skeletonCards() : ''}\n    ${S.dash ? S.dash.leagues.map(leagueCard).join('') : ''}\n    ${activityCard(st.log || [])}\n    <div class=\"faint small\" style=\"text-align:center;margin-top:18px\">\n      Rankings: FantasyPros ECR · Data: Sleeper · Refreshed ${S.dash ? 'week ' + esc(S.dash.week) : '…'}\n      · <a href=\"#\" data-action=\"reload\" style=\"color:inherit\">refresh</a>\n      <br>Version: ${esc((st.build || {}).title || '?')} · ${esc((st.build || {}).id || '')}\n      ${st.update && st.update.installed ? ' (installed update)' : ''}</div>`;\n}\n\nfunction permissionBanner(st) {\n  const p = st.permissions;\n  if (!p) return '';\n  return `<div class=\"card banner bad\"><b>Google permission missing</b>\n    <div class=\"small\" style=\"margin-top:6px\">The app can't reach Sleeper or run in the background until you approve\n      every permission (tick “Select all” on Google's screen), then reload this page.</div>\n    <div style=\"margin-top:8px\"><a class=\"chip accent\" href=\"${esc(p.url)}\" target=\"_blank\">Approve in Google</a></div>\n  </div>`;\n}\n\nfunction statusCard(st) {\n  const on = st.mode === 'auto';\n  const t = st.lastTick;\n  const tickTxt = t ? `${esc(t.msg)} <span class=\"faint\">(${ago(t.ts)})</span>` : 'Not run yet';\n  const exp = st.tokenExpires ? when(st.tokenExpires * 1000) : 'not stated by Sleeper';\n  const expSoon = st.tokenExpires && st.tokenExpires * 1000 - Date.now() < 7 * 86400000;\n  return `<div class=\"card hero\">\n    <div class=\"row between\">\n      <div class=\"row\"><span class=\"status-dot ${on ? 'on' : 'off'}\"></span>\n        <div><div class=\"hero-title\">${on ? 'Autopilot is on' : 'Suggestions only'}</div>\n          <div class=\"muted small\">${on ? 'Changes your lineups (and claims where enabled) automatically.'\n                                         : 'Nothing is changed on Sleeper until you turn autopilot on or tap Apply.'}</div></div></div>\n      <label class=\"switch\" title=\"Autopilot\"><input type=\"checkbox\" data-action=\"mode\" ${on ? 'checked' : ''}\n        ${S.busy.mode ? 'disabled' : ''}><span class=\"slider\"></span></label>\n    </div>\n    <div class=\"facts\">\n      <div class=\"fact\"><b>Last check</b>${t && t.status === 'error' ? `<span style=\"color:var(--bad)\">${tickTxt}</span>` : tickTxt}</div>\n      <div class=\"fact\"><b>Schedule</b>Every 30 min: lineups before games, claims the evening before waivers.</div>\n      <div class=\"fact\"><b>Sleeper session</b>${expSoon ? '<span style=\"color:var(--warn)\">Expires ' + exp + '</span>' : 'Valid · expires ' + exp}</div>\n    </div>\n    <div class=\"row wrapflex\">\n      <button class=\"small\" data-action=\"run-now\" ${S.busy.run ? 'disabled' : ''}>\n        ${S.busy.run ? '<span class=\"spin\"></span>Running…' : 'Check lineups now'}</button>\n      <span class=\"faint small\">${st.autopilotScheduled ? 'Background checks scheduled.' : 'Background checks not scheduled yet.'}</span>\n    </div>\n  </div>`;\n}\n\nfunction skeletonCards() {\n  return [1, 2].map(() => `<div class=\"card\"><div class=\"skeleton\" style=\"width:40%\"></div>\n    <div class=\"skeleton\"></div><div class=\"skeleton\" style=\"width:80%\"></div><div class=\"skeleton\" style=\"width:60%\"></div>\n    <div class=\"muted small\" style=\"margin-top:10px\"><span class=\"spin\"></span>Pulling rosters from Sleeper and rankings from FantasyPros…</div></div>`).join('');\n}\n\nfunction rankTxt(p) {\n  if (p.posRank && p.rank) return `${esc(p.posRank)} · #${p.rank}`;\n  if (p.rank) return '#' + p.rank;\n  return '<span class=\"faint\">unranked</span>';\n}\n\n// ☆/★: never let the waiver plan drop this player.\nfunction keepBtn(p, leagueId) {\n  if (!p.tracked) return '';\n  return `<button class=\"keep ${p.keep ? 'on' : ''}\" data-action=\"keep\" data-league=\"${esc(leagueId)}\" data-player=\"${esc(p.id)}\"\n    title=\"${p.keep ? 'Kept: never dropped. Tap to allow drops.' : 'Tap to never drop him'}\">${p.keep ? '★' : '☆'}</button>`;\n}\n\nfunction playerCell(p) {\n  const tags = [];\n  if (p.isNew) tags.push('<span class=\"tag in\">IN</span>');\n  if (p.why) tags.push(`<span class=\"tag out\">${esc(p.why)}</span>`);\n  if (p.locked) tags.push('<span class=\"tag lock\" title=\"Game started: locked\">🔒</span>');\n  return `<div style=\"min-width:0\"><div class=\"pname\">${esc(p.name)}${tags.join('')}</div>\n    <div class=\"pmeta\">${esc(p.pos || '')}${p.team ? ' · ' + esc(p.team) : ''}</div></div>`;\n}\n\nfunction leagueCard(lg) {\n  const cfg = lg.settings || {};\n  return `<div class=\"card\">\n    <div class=\"row between wrapflex\">\n      <h2>${esc(lg.name)}</h2>\n    </div>\n    <div class=\"chips\">${lg.flags.map((f, i) => `<span class=\"chip ${i < 2 ? 'accent' : ''}\">${esc(f)}</span>`).join('')}</div>\n    ${lg.safety && lg.safety.length ? `<div class=\"banner bad\"><b>Safety check: this plan looks wrong, so nothing in this\n      league is changed (automatically or with the buttons) until it's fixed.</b>\n      <ul style=\"margin:6px 0 0;padding-left:18px\">${lg.safety.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}\n    ${lg.notes.map((n) => `<div class=\"banner info\">${esc(n)}</div>`).join('')}\n    ${lg.lineup ? lineupSection(lg) : ''}\n    ${lg.waivers ? waiverSection(lg) : ''}\n    ${lg.freeAgents ? freeAgentSection(lg) : ''}\n    ${settingsSection(lg, cfg)}\n  </div>`;\n}\n\nfunction lineupSection(lg) {\n  const L = lg.lineup;\n  let body;\n  if (L.error) body = `<div class=\"banner bad\">${esc(L.error)}</div>`;\n  else if (L.skipped) body = `<div class=\"banner info\">${esc(L.skipped)}</div>`;\n  else {\n    const status = L.applied ? '<div class=\"banner ok\">✓ Lineup saved to Sleeper.</div>'\n      : L.applyError ? `<div class=\"banner bad\">Couldn't save: ${esc(L.applyError)}</div>`\n      : L.changes ? `<div class=\"banner warn row between wrapflex\"><span><b>${L.changes} change${L.changes > 1 ? 's' : ''}</b>\n            recommended${L.benched.length ? ': bench ' + L.benched.map((p) => esc(p.name) + (p.why ? ' (' + esc(p.why) + ')' : '')).join(', ') : ''}</span>\n            <button class=\"small primary\" data-action=\"apply-lineup\" data-league=\"${esc(lg.id)}\" ${S.busy['l' + lg.id] ? 'disabled' : ''}>\n              ${S.busy['l' + lg.id] ? '<span class=\"spin\"></span>Saving…' : 'Apply now'}</button></div>`\n      : '<div class=\"banner ok\">✓ Lineup is already optimal.</div>';\n    body = status + L.warnings.map((w) => `<div class=\"banner bad\">⚠ ${esc(w)}</div>`).join('') +\n      `<div class=\"slots\">${L.lineup.map((p) => `<div class=\"slot ${p.isNew ? 'new' : ''} ${p.why && !p.locked ? 'bad' : ''}\">\n          <div class=\"slot-tag\">${esc(p.slot.replace('SUPER_FLEX', 'SFLEX').replace('WRRB_FLEX', 'W/R').replace('REC_FLEX', 'W/T'))}</div>\n          ${playerCell(p)}<div class=\"rank\">${keepBtn(p, lg.id)}${rankTxt(p)}</div></div>`).join('')}</div>\n      ${L.bench.length ? `<details data-key=\"bench-${esc(lg.id)}\"><summary>Bench (${L.bench.length})</summary><div class=\"slots\" style=\"margin-top:8px\">\n        ${L.bench.map((p) => `<div class=\"slot\"><div class=\"slot-tag\">BN</div>${playerCell(p)}<div class=\"rank\">${keepBtn(p, lg.id)}${rankTxt(p)}</div></div>`).join('')}\n      </div></details>` : ''}`;\n  }\n  return `<h3>Week ${esc(L.week || '')} lineup</h3>${body}`;\n}\n\nfunction waiverSection(lg) {\n  const W = lg.waivers, cfg = lg.settings || {};\n  if (W.error) return `<h3>Waivers</h3><div class=\"banner bad\">${esc(W.error)}</div>`;\n  const basis = (c) => (c.kind === 'upgrade' ? 'ROS ' : 'this week ');\n  const kinds = { upgrade: 'upgrade', stream: 'stream', cover: 'fill-in' };\n  const claims = W.claims.map((c) => `<div class=\"claim\">\n      <div><span class=\"add\">+ ${esc(c.add.name)}</span> <span class=\"faint small\">${esc(c.add.pos)} ${esc(c.add.team || '')}\n        · ${basis(c)}${rankTxt(c.add)}</span>\n        ${c.drop ? `<div class=\"small\"><span class=\"drop\">− ${esc(c.drop.name)}</span>${c.drop.why ? `<span class=\"tag out\">${esc(c.drop.why)}</span>` : ''}\n          <span class=\"faint\">${esc(c.drop.pos)} · ${basis(c)}${rankTxt(c.drop)}</span>\n          <button class=\"keep\" data-action=\"keep\" data-league=\"${esc(lg.id)}\" data-player=\"${esc(c.drop.id)}\"\n            title=\"Never drop him\">☆ keep</button></div>`\n          : '<div class=\"small faint\">No drop needed (open roster spot)</div>'}\n        ${c.error ? `<div class=\"small\" style=\"color:var(--bad)\">Failed: ${esc(c.error)}</div>` : ''}</div>\n      <div class=\"small\" style=\"text-align:right\">${c.bid != null ? `<b>$${c.bid}</b><br>` : ''}\n        ${c.submitted ? '<span style=\"color:var(--accent)\">✓ submitted</span>' : `<span class=\"faint\">${kinds[c.kind] || esc(c.kind)}</span>`}</div>\n    </div>`).join('');\n  const when = cfg.auto_waivers ? (S.state.mode === 'auto' ? 'Autopilot will submit these the evening before waivers run.'\n                                                           : 'Turn autopilot on to submit these automatically.')\n                                : 'Auto-claims are off for this league.';\n  return `<h3>Waiver plan</h3>\n    ${W.changed ? '<div class=\"banner warn\">The plan changed since the page loaded, so nothing was sent. Check the claims below and submit again.</div>' : ''}\n    ${W.submitError ? `<div class=\"banner bad\">${esc(W.submitError)}</div>` : ''}\n    ${W.priority && W.priority.rolling ? `<div class=\"small muted\">Waiver priority #${W.priority.position} of ${W.priority.teams} (rolling: a claim sends you to the back).</div>` : ''}\n    ${W.pending ? `<div class=\"banner info\">${W.pending} claim${W.pending > 1 ? 's' : ''} already pending on Sleeper (not repeated).</div>` : ''}\n    ${W.claims.length ? claims : '<div class=\"banner ok\">No pickups clearly better than your roster right now.</div>'}\n    ${W.notes.map((n) => `<div class=\"small faint\">• ${esc(n)}</div>`).join('')}\n    ${W.claims.length && !W.pendingUnknown ? `<div class=\"row between wrapflex\" style=\"margin-top:8px\"><span class=\"small muted\">${esc(when)}</span>\n      <button class=\"small\" data-action=\"submit-claims\" data-league=\"${esc(lg.id)}\" ${S.busy['w' + lg.id] ? 'disabled' : ''}>\n        ${S.busy['w' + lg.id] ? '<span class=\"spin\"></span>Submitting…' : 'Submit claims now'}</button></div>` : ''}\n    <div class=\"small faint\" style=\"margin-top:6px\">Based on ${esc(W.basis)}.</div>`;\n}\n\nfunction freeAgentSection(lg) {\n  const F = lg.freeAgents;\n  if (F.error) return `<h3>Free agents</h3><div class=\"banner bad\">${esc(F.error)}</div>`;\n  if (F.waiting) return `<div class=\"small faint\" style=\"margin-top:8px\">Free agents: ${esc(F.waiting)}</div>`;\n  if (!F.claims.length && !F.notes.length) return '';\n  const basis = (c) => (c.kind === 'upgrade' ? 'ROS ' : 'this week ');\n  const kinds = { upgrade: 'upgrade', stream: 'stream', cover: 'fill-in' };\n  const rows = F.claims.map((c) => `<div class=\"claim\">\n      <div><span class=\"add\">+ ${esc(c.add.name)}</span> <span class=\"faint small\">${esc(c.add.pos)} ${esc(c.add.team || '')}\n        · ${basis(c)}${rankTxt(c.add)}</span>\n        ${c.drop ? `<div class=\"small\"><span class=\"drop\">− ${esc(c.drop.name)}</span>\n          <span class=\"faint\">${esc(c.drop.pos)} · ${basis(c)}${rankTxt(c.drop)}</span>\n          <button class=\"keep\" data-action=\"keep\" data-league=\"${esc(lg.id)}\" data-player=\"${esc(c.drop.id)}\"\n            title=\"Never drop him\">☆ keep</button></div>` : '<div class=\"small faint\">No drop needed (open roster spot)</div>'}\n        ${c.error ? `<div class=\"small\" style=\"color:var(--bad)\">Failed: ${esc(c.error)}</div>` : ''}</div>\n      <div class=\"small\" style=\"text-align:right\">${c.submitted ? '<span style=\"color:var(--accent)\">✓ added</span>'\n        : `<span class=\"faint\">${kinds[c.kind] || esc(c.kind)}</span>`}</div>\n    </div>`).join('');\n  const when = (lg.settings || {}).auto_waivers && S.state.mode === 'auto' ? 'The autopilot picks these up by itself.'\n    : 'Added right away, no waiver priority spent.';\n  return `<h3>Free agents now</h3>\n    ${F.changed ? '<div class=\"banner warn\">The plan changed since the page loaded, so nothing was added. Check it and try again.</div>' : ''}\n    ${F.submitError ? `<div class=\"banner bad\">${esc(F.submitError)}</div>` : ''}\n    ${rows}\n    ${F.notes.map((n) => `<div class=\"small faint\">• ${esc(n)}</div>`).join('')}\n    ${F.claims.length && !F.pendingUnknown ? `<div class=\"row between wrapflex\" style=\"margin-top:8px\"><span class=\"small muted\">${esc(when)}</span>\n      <button class=\"small\" data-action=\"add-free-agents\" data-league=\"${esc(lg.id)}\" ${S.busy['f' + lg.id] ? 'disabled' : ''}>\n        ${S.busy['f' + lg.id] ? '<span class=\"spin\"></span>Adding…' : 'Add now'}</button></div>` : ''}`;\n}\n\nfunction settingsSection(lg, cfg) {\n  const id = esc(lg.id);\n  const toggle = (key, label, hint) => `<div class=\"setting\"><div><div class=\"label\">${label}</div>\n      ${hint ? `<div class=\"hint\">${hint}</div>` : ''}</div>\n      <label class=\"switch sm\"><input type=\"checkbox\" data-setting=\"${key}\" data-league=\"${id}\" ${cfg[key] ? 'checked' : ''}>\n      <span class=\"slider\"></span></label></div>`;\n  const qb = lg.superflex ? `<div class=\"setting\"><div><div class=\"label\">Lean towards a 2nd QB</div>\n      <div class=\"hint\">SUPER_FLEX: a QB counts <b data-out=\"qb-${id}\">${cfg.superflex_qb_bonus}</b> ECR spots better</div></div>\n      <input type=\"range\" min=\"0\" max=\"40\" step=\"5\" value=\"${cfg.superflex_qb_bonus}\" data-setting=\"superflex_qb_bonus\"\n        data-league=\"${id}\"></div>` : '';\n  return `<details data-key=\"settings-${id}\"><summary>League settings</summary><div class=\"settings-grid\">\n      ${toggle('auto_lineup', 'Auto lineup', 'Autopilot sets the best lineup before games')}\n      ${toggle('auto_waivers', 'Auto waiver claims and free agents', 'Autopilot submits the waiver plan before waivers process, then picks up free agents for byes and injuries')}\n      ${toggle('stream_k_def', 'Stream K / DEF', 'Swap kicker/defense for clearly better matchups')}\n      ${toggle('cover_byes', 'Cover byes and injuries', 'One-week pickup when a starter can\\'t play and your bench can\\'t fill in')}\n      ${qb}\n      <div class=\"setting\"><div><div class=\"label\">Upgrades per week</div>\n        <div class=\"hint\">Waiver claims plus free-agent pickups; fill-ins and K/DEF streams come on top</div></div>\n        <input class=\"num\" type=\"number\" min=\"0\" max=\"5\" value=\"${cfg.max_claims}\" data-setting=\"max_claims\" data-league=\"${id}\"></div>\n      <div class=\"setting\"><div><div class=\"label\">Minimum upgrade</div><div class=\"hint\">ROS ECR spots a pickup must gain</div></div>\n        <input class=\"num\" type=\"number\" min=\"0\" max=\"200\" step=\"5\" value=\"${cfg.min_gain}\" data-setting=\"min_gain\" data-league=\"${id}\"></div>\n    </div></details>`;\n}\n\nfunction activityCard(log) {\n  const icon = { change: '✓', error: '!', warn: '!', info: '•' };\n  const items = log.slice(0, 25).map((e) => `<div class=\"entry\">\n      <div class=\"ico ${esc(e.level)}\">${icon[e.level] || '•'}</div>\n      <div><div class=\"row between\"><b style=\"font-size:14px\">${esc(e.title)}</b><span class=\"faint small\">${ago(e.ts)}</span></div>\n        ${e.league ? `<div class=\"small muted\">${esc(e.league)}</div>` : ''}\n        ${e.lines && e.lines.length ? `<pre>${esc(e.lines.join('\\n'))}</pre>` : ''}</div></div>`).join('');\n  return `<div class=\"card\"><h2>Activity</h2>\n    <div class=\"feed\" style=\"margin-top:6px\">${items || '<div class=\"muted small\">Nothing yet. Changes the autopilot makes show up here.</div>'}</div></div>`;\n}\n\n// ---- events ------------------------------------------------------------\n// For the DevTools console on sleeper.com.\nconst CONSOLE_LINE = 'copy(JSON.stringify({token: localStorage.token, user_id: localStorage.user_id}))';\n// Runs on sleeper.com: copies the session sleeper.com keeps in localStorage.\nconst BOOKMARKLET = \"javascript:(()=>{const t=localStorage.getItem('token'),u=localStorage.getItem('user_id');\" +\n  \"if(!t){alert('Log in to sleeper.com first, then tap this again.');return}\" +\n  \"const s=JSON.stringify({token:t,user_id:u});navigator.clipboard.writeText(s)\" +\n  \".then(()=>alert('Copied! Go back to Sleeper Autopilot and paste.'),()=>prompt('Copy this, then paste it into Sleeper Autopilot:',s))})()\";\n\ndocument.addEventListener('submit', async (ev) => {\n  const form = ev.target.closest('form[data-form]');\n  if (!form) return;\n  ev.preventDefault();\n  const f = Object.fromEntries(new FormData(form));\n  S.login.error = null;\n  try {\n    if (form.dataset.form === 'login') {\n      S.login.identifier = f.identifier;\n      const r = await busy('login', async () => {\n        try {\n          const b = await browserLogin(f.identifier, f.password);\n          return b.token ? api('connectWithToken', b.token, f.identifier, b.userId) : Object.assign(b, { via: 'browser' });\n        } catch (e) {\n          if (!(e instanceof Blocked)) throw e;\n          return Object.assign(await api('login', f.identifier, f.password), { via: 'server' });\n        }\n      });\n      if (r.needsCode) {\n        S.login = { step: 'code', sentTo: r.sentTo, via: r.via, identifier: f.identifier };\n        render._focused = false; render(); return;\n      }\n      S.state = r;\n    } else if (form.dataset.form === 'code') {\n      const L = S.login;\n      S.state = await busy('login', async () => {\n        if (L.via === 'server') return api('verifyCode', f.code);\n        const b = await browserLogin(L.identifier, String(f.code).trim());\n        return api('connectWithToken', b.token, L.identifier, b.userId);\n      });\n    } else if (form.dataset.form === 'token') {\n      S.state = await busy('login', () => api('connectWithToken', f.token, f.username || null, null));\n    }\n    S.login = freshLogin();\n    render();\n    toast('Connected to Sleeper');\n    loadDashboard();\n  } catch (e) {\n    S.login.error = e.message; render._focused = false; render();\n  }\n});\n\ndocument.addEventListener('click', async (ev) => {\n  const el = ev.target.closest('[data-action]');\n  if (!el || el.matches('input')) return;\n  const a = el.dataset.action, id = el.dataset.league;\n  if (a === 'reload') { ev.preventDefault(); loadDashboard(); }\n  if (a === 'install-update') installUpdate();\n  if (a === 'remove-update') {\n    S.state = await api('removeUpdate');\n    S.update = {}; render(); toast('Update removed. Reload the app.');\n  }\n  if (a === 'login-token') {\n    S.login = { step: 'token', desktop: matchMedia('(pointer: fine)').matches };\n    render._focused = false; render();\n  }\n  if (a === 'copy-helper') {\n    const done = () => toast('Helper copied. Now make the bookmark.');\n    navigator.clipboard.writeText(BOOKMARKLET).then(done, () => {\n      const t = $('#helper'); t.select();\n      toast(document.execCommand('copy') ? 'Helper copied. Now make the bookmark.' : 'Long-press the text and copy it.');\n    });\n  }\n  if (a === 'add-free-agents') {\n    if (!confirm('Add these free agents on Sleeper now?')) return;\n    const lg = S.dash && S.dash.leagues.find((l) => l.id === id);\n    const shown = lg && lg.freeAgents ? lg.freeAgents.claims.map((c) => [c.add.id, c.drop ? c.drop.id : null, null]) : [];\n    const res = await busy('f' + id, () => api('addFreeAgents', id, shown));\n    replaceLeague(res);\n    S.state = await api('getState'); render();\n    const f = res.freeAgents || {};\n    toast(f.changed ? 'The plan changed: check it and try again' : f.submitError || f.error ? 'Nothing added'\n          : f.claims.some((c) => c.error) ? 'Some pickups failed' : 'Free agents added');\n    loadDashboard();\n  }\n\n  if (a === 'keep') {\n    const lg = S.dash && S.dash.leagues.find((l) => l.id === id);\n    const pid = el.dataset.player;\n    const cur = ((lg && lg.settings.never_drop) || []).map(String);\n    const on = !cur.includes(pid);\n    await busy('keep', () => api('saveLeagueSettings', id, { never_drop: on ? cur.concat(pid) : cur.filter((x) => x !== pid) }));\n    toast(on ? 'Kept: the waiver plan will never drop him' : 'He can be dropped again');\n    loadDashboard();\n  }\n  if (a === 'login-restart') { S.login = { step: 'password' }; render._focused = false; render(); }\n  if (a === 'logout') {\n    if (!confirm('Disconnect from Sleeper? The autopilot stops until you log in again.')) return;\n    S.state = await api('logout'); S.dash = null; render();\n  }\n  if (a === 'run-now') {\n    S.state = await busy('run', () => api('runNow'));\n    toast(S.state.lastTick ? S.state.lastTick.msg : 'Done');\n    loadDashboard();\n  }\n  if (a === 'apply-lineup') {\n    const res = await busy('l' + id, () => api('applyLineup', id));\n    replaceLeague(res);\n    S.state = await api('getState'); render();\n    toast(res.lineup && res.lineup.applied ? 'Lineup saved to Sleeper' : 'Nothing saved');\n  }\n  if (a === 'submit-claims') {\n    if (!confirm('Submit these waiver claims to Sleeper now?')) return;\n    // Send what's on screen: the server only submits it if its fresh plan still matches.\n    const lg = S.dash && S.dash.leagues.find((l) => l.id === id);\n    const shown = lg && lg.waivers ? lg.waivers.claims.map((c) => [c.add.id, c.drop ? c.drop.id : null,\n                                                                   c.bid == null ? null : c.bid]) : [];\n    const res = await busy('w' + id, () => api('submitClaims', id, shown));\n    replaceLeague(res);\n    S.state = await api('getState'); render();\n    const w = res.waivers || {};\n    toast(w.changed ? 'The plan changed: check it and submit again' : w.submitError || w.error ? 'Nothing sent'\n          : w.claims.some((c) => c.error) ? 'Some claims failed' : 'Claims sent');\n  }\n});\n\ndocument.addEventListener('change', async (ev) => {\n  const el = ev.target;\n  if (el.dataset.action === 'mode') {\n    const mode = el.checked ? 'auto' : 'suggest';\n    if (mode === 'auto' && !confirm('Turn autopilot on? It will change lineups on Sleeper by itself '\n        + '(and submit claims in leagues where you enabled auto claims).')) { el.checked = false; return; }\n    S.state = await busy('mode', () => api('setMode', mode));\n    render();\n    toast(mode === 'auto' ? 'Autopilot on' : 'Autopilot paused');\n    return;\n  }\n  if (el.dataset.setting) {\n    const key = el.dataset.setting, id = el.dataset.league;\n    const val = el.type === 'checkbox' ? el.checked : Number(el.value);\n    const cfg = await api('saveLeagueSettings', id, { [key]: val });\n    const lg = S.dash && S.dash.leagues.find((l) => l.id === id);\n    if (lg) lg.settings = cfg;\n    toast('Saved');\n    // These change the plan itself; the others only change what the page says about it.\n    if (['superflex_qb_bonus', 'stream_k_def', 'cover_byes', 'max_claims', 'min_gain'].includes(key)) loadDashboard();\n    else render();\n  }\n});\n\ndocument.addEventListener('input', (ev) => {\n  const el = ev.target;\n  if (el.dataset.setting === 'superflex_qb_bonus') {\n    const out = document.querySelector(`[data-out=\"qb-${el.dataset.league}\"]`);\n    if (out) out.textContent = el.value;\n  }\n});\n\nboot();\n</script>\n</body>\n</html>\n";
-var BUILD_INFO = {"id":"3e129d55b4","version":15,"title":"Safety checks","notes":[{"title":"Safety checks","items":["Every plan is now checked against plain safety rules before anything changes. If a plan breaks one (that would be a bug), nothing happens in that league, automatically or with the buttons, and the league card says why.","Fixed: a free-agent upgrade could choose to drop a player whose game had already started, which Sleeper doesn't allow.","The phone alerts card is gone.","Behind the scenes, every update is now tested on simulated whole weeks and hundreds of random leagues, and a daily check runs the safety rules on your real leagues."]},{"title":"Waiver plan after the waiver run","items":["After Wednesday's waiver run, players nobody claimed are free agents, so upgrades to them now show up under \"Free agents now\" (Add now, or the autopilot with auto claims on) instead of as claims that wouldn't process until next week. The waiver plan only lists players who are actually on waivers.","Players on a bye week count as free agents until the week's first game, like on Sleeper.","A player you picked up in the last 7 days needs twice the usual gain to be dropped again, so a fresh pickup isn't dropped the next day.","A spare kicker/defense shows its real rest-of-season rank instead of \"#999\".","The waiver plan and the free-agent plan never drop the same player, and free-agent upgrades count toward \"Upgrades per week\"."]},{"title":"Free-agent pickups","items":["After Wednesday's waiver run, starters who can't play (byes, injuries, kickers and defenses) are covered with free agents right away, without spending waiver priority.","The autopilot does this in leagues with \"Auto waiver claims and free agents\" on; otherwise the league card shows the pickups with an \"Add now\" button (and an alert, if alerts are on).","Only real free agents are picked up: not on a roster, not just dropped, and their game hasn't started. Pickups work exactly like sleeper.com's Add button.","With a high rolling waiver priority, kicker/defense matchup swaps now come from free agency after waivers instead of being skipped."]},{"title":"Phone alerts, bye-week fill-ins, smarter lineups","items":["Phone alerts (optional, through the free ntfy app): when something needs you, when the autopilot changes something, and when an update is out. In suggestions-only mode they tell you what to change.","When a starter at any position is on bye or out and your bench can't fill in, the waiver plan picks up a one-week fill-in (until now only kickers and defenses got one).","Tap ☆ next to a player to keep him: the waiver plan will never drop him.","6-point passing TDs (both your leagues) now count: QBs get a bigger superflex lean and higher waiver values.","Rolling waivers (Wolfpack): with a high priority, upgrades must gain twice as much, and kicker/defense matchup swaps are skipped so the priority isn't wasted.","Of two close starters, the later game goes in the flex, so a late scratch can still be swapped; a Questionable player needs to rank clearly better than a healthy one.","Lighter on Sleeper: quiet checks download nothing, and the player list is fetched every 6 hours plus once after each game's inactives are announced.","The buttons wait for a running background check, so two saves never overlap."]},{"title":"Safety fixes from a full review","items":["If Sleeper's player list fails to download, the app keeps using its last copy, and it never takes a player out of your lineup without putting someone in.","\"Check lineups now\" no longer changes anything in suggestions-only mode; it only tells you what it would change.","\"Submit claims now\" sends exactly the claims on screen. If the plan changed since the page loaded, nothing is sent and you see the new plan.","Waiver plans no longer drop the same player twice, treat a pending no-drop claim's roster spot as free, or let an injured pickup replace a healthy player you need.","If your pending claims can't be read, no claims are submitted (they could repeat yours); the autopilot tries again later.","Leagues with Monday waivers get their claims on Sunday evening instead of almost a week late.","Failed checks now show as errors under \"Last check\" and are logged once, and a problem in one league no longer stops the other.","Smaller fixes: no false bye warnings for defensive (IDP) players, text you're typing survives the update check, toggles update the page right away, and updates come from main once the app is merged there."]},{"title":"Waiver fixes: weekly limit, kicker byes","items":["Claims already pending on Sleeper now count toward your weekly limit, so no surprise extra suggestions.","When your top kicker/defense is on bye, it adds a one-week replacement by dropping an easy-to-replace bench player instead of leaving the spot empty.","After the bye, the spare kicker/defense is the first player dropped for the next pickup."]},{"title":"Lineups actually save","items":["\"Apply now\" (and the autopilot) now save the lineup for the right week: Sleeper keeps one lineup per week, and the old call only covered the league's current week, which lags a day behind. Sleeper quietly ignored it.","After saving, the app checks what Sleeper stored and shows an error if it didn't take.","No more pointless slot swaps (e.g. two RBs trading the RB and flex spots)."]},{"title":"Smarter waiver claims","items":["Won't drop a top-12 kicker or defense just to stream one week (e.g. during his bye).","Won't stack extra QBs/TEs beyond useful depth at the cost of other positions; a 4th QB can only replace a QB.","Injured (Out/IR) players no longer count toward position minimums, so it keeps enough healthy starters."]}]};
+var BUILD_INFO = {"id":"ee7e2f2391","version":15,"title":"Safety checks","notes":[{"title":"Safety checks","items":["Every plan is now checked against plain safety rules before anything changes. If a plan breaks one (that would be a bug), nothing happens in that league, automatically or with the buttons, and the league card says why.","Fixed: a free-agent upgrade could choose to drop a player whose game had already started, which Sleeper doesn't allow.","The free-agent and waiver plans now make their moves one at a time on the roster as it will be, so they no longer get in each other's way. No move leaves this week's lineup with a spot nobody can play in.","An upgrade that also fills an empty starting spot does both jobs (no second fill-in for the same spot). Fill-ins get first pick of the cheap bench players, and a player just picked up is never dropped for a one-week fill-in.","A kicker or defense on bye who isn't top-12 is swapped for the fill-in instead of dropping a bench player. A top one already covered for his bye gets a better streamer in place of the cover, never a third kicker. A kicker who plays is never joined by a worse one just because a roster spot is open.","Fixed: claims already pending on Sleeper (made on sleeper.com or by the app) could block a needed fill-in or show a false safety alarm after submitting.","\"Submit claims now\" no longer reports a changed plan when free-agent pickups are also on screen.","If Sleeper can't say who is still on waivers, no claims are planned, since they could be for free agents.","If sending a claim fails, the autopilot tries again on its next check instead of giving up for the week.","Position minimums count the claims already pending, and with a high rolling waiver priority an open roster spot no longer invites a marginal claim.","The phone alerts card is gone.","Behind the scenes, every update is now tested on simulated whole weeks and hundreds of random leagues, and a daily check runs the safety rules on your real leagues. An independent review's findings are kept as tests."]},{"title":"Waiver plan after the waiver run","items":["After Wednesday's waiver run, players nobody claimed are free agents, so upgrades to them now show up under \"Free agents now\" (Add now, or the autopilot with auto claims on) instead of as claims that wouldn't process until next week. The waiver plan only lists players who are actually on waivers.","Players on a bye week count as free agents until the week's first game, like on Sleeper.","A player you picked up in the last 7 days needs twice the usual gain to be dropped again, so a fresh pickup isn't dropped the next day.","A spare kicker/defense shows its real rest-of-season rank instead of \"#999\".","The waiver plan and the free-agent plan never drop the same player, and free-agent upgrades count toward \"Upgrades per week\"."]},{"title":"Free-agent pickups","items":["After Wednesday's waiver run, starters who can't play (byes, injuries, kickers and defenses) are covered with free agents right away, without spending waiver priority.","The autopilot does this in leagues with \"Auto waiver claims and free agents\" on; otherwise the league card shows the pickups with an \"Add now\" button (and an alert, if alerts are on).","Only real free agents are picked up: not on a roster, not just dropped, and their game hasn't started. Pickups work exactly like sleeper.com's Add button.","With a high rolling waiver priority, kicker/defense matchup swaps now come from free agency after waivers instead of being skipped."]},{"title":"Phone alerts, bye-week fill-ins, smarter lineups","items":["Phone alerts (optional, through the free ntfy app): when something needs you, when the autopilot changes something, and when an update is out. In suggestions-only mode they tell you what to change.","When a starter at any position is on bye or out and your bench can't fill in, the waiver plan picks up a one-week fill-in (until now only kickers and defenses got one).","Tap ☆ next to a player to keep him: the waiver plan will never drop him.","6-point passing TDs (both your leagues) now count: QBs get a bigger superflex lean and higher waiver values.","Rolling waivers (Wolfpack): with a high priority, upgrades must gain twice as much, and kicker/defense matchup swaps are skipped so the priority isn't wasted.","Of two close starters, the later game goes in the flex, so a late scratch can still be swapped; a Questionable player needs to rank clearly better than a healthy one.","Lighter on Sleeper: quiet checks download nothing, and the player list is fetched every 6 hours plus once after each game's inactives are announced.","The buttons wait for a running background check, so two saves never overlap."]},{"title":"Safety fixes from a full review","items":["If Sleeper's player list fails to download, the app keeps using its last copy, and it never takes a player out of your lineup without putting someone in.","\"Check lineups now\" no longer changes anything in suggestions-only mode; it only tells you what it would change.","\"Submit claims now\" sends exactly the claims on screen. If the plan changed since the page loaded, nothing is sent and you see the new plan.","Waiver plans no longer drop the same player twice, treat a pending no-drop claim's roster spot as free, or let an injured pickup replace a healthy player you need.","If your pending claims can't be read, no claims are submitted (they could repeat yours); the autopilot tries again later.","Leagues with Monday waivers get their claims on Sunday evening instead of almost a week late.","Failed checks now show as errors under \"Last check\" and are logged once, and a problem in one league no longer stops the other.","Smaller fixes: no false bye warnings for defensive (IDP) players, text you're typing survives the update check, toggles update the page right away, and updates come from main once the app is merged there."]},{"title":"Waiver fixes: weekly limit, kicker byes","items":["Claims already pending on Sleeper now count toward your weekly limit, so no surprise extra suggestions.","When your top kicker/defense is on bye, it adds a one-week replacement by dropping an easy-to-replace bench player instead of leaving the spot empty.","After the bye, the spare kicker/defense is the first player dropped for the next pickup."]},{"title":"Lineups actually save","items":["\"Apply now\" (and the autopilot) now save the lineup for the right week: Sleeper keeps one lineup per week, and the old call only covered the league's current week, which lags a day behind. Sleeper quietly ignored it.","After saving, the app checks what Sleeper stored and shows an error if it didn't take.","No more pointless slot swaps (e.g. two RBs trading the RB and flex spots)."]},{"title":"Smarter waiver claims","items":["Won't drop a top-12 kicker or defense just to stream one week (e.g. during his bye).","Won't stack extra QBs/TEs beyond useful depth at the cost of other positions; a 4th QB can only replace a QB.","Injured (Out/IR) players no longer count toward position minimums, so it keeps enough healthy starters."]}]};
 loadInstalledUpdate_();

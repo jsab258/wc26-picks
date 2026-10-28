@@ -156,7 +156,7 @@ function submitClaims(leagueId, shown) {
   if (!shown) throw new Error('Reload the page and try again.');
   return withLock_(function () {
     return withLeague_(leagueId, function (lg) {
-      var res = lg.evaluate({ waivers: true });
+      var res = lg.evaluate({ freeAgents: true, waivers: true });  // as on the page: claims come after free agents
       var w = res.waivers;
       if (w && !w.error && claimKeys_(w.claims) !== shown.map(function (c) { return c.join('|'); }).join(',')) {
         w.changed = true;
@@ -530,14 +530,21 @@ function autopilot_(opts) {
             return;
           }
           lg.applyClaims(wres, 'autopilot');
+          var bad = w.claims.filter(function (c) { return c.error; });
+          var sent = w.claims.length - bad.length;
+          if (bad.length) {
+            // Not marked done: the next check plans again (the claims that went through are pending
+            // on Sleeper by then) and retries the rest while the window is open.
+            summary.push(name + ': ' + sent + ' claim(s), ' + bad.length + ' failed (retrying)');
+            fail(lg.id + ':claims', name, 'Some waiver claims failed', bad.map(function (c) {
+              return c.add.name + ': ' + c.error;
+            }).join(' '), true);
+            return;
+          }
           done[lg.id + ':' + win] = Date.now();
           putJson_('waivers_done', pruneDone_(done));
           summary.push(name + ': ' + w.claims.length + ' claim(s)');
-          if (w.claims.length) {
-            var bad = w.claims.some(function (c) { return c.error; });
-            notify_(bad ? 'action' : 'change', name + (bad ? ': some waiver claims failed' : ': waiver claims submitted'),
-                    claimLines_(w, lg.faab).join('\n'));
-          }
+          if (w.claims.length) notify_('change', name + ': waiver claims submitted', claimLines_(w, lg.faab).join('\n'));
         }
       } catch (e) {
         if (e.expired) throw e;
@@ -1384,11 +1391,12 @@ function planUpgrades_(o) {
   var counts = {};
   var healthy = o.healthy || function () { return true; };
   var maxDepth = o.maxDepth || {};
-  o.myPlayers.forEach(function (p) {
+  (o.countFrom || o.myPlayers).forEach(function (p) {  // the roster as it will be (pending moves included)
     var pos = o.position(p);
     if (healthy(p)) counts[pos] = (counts[pos] || 0) + 1;
   });
   var openSpots = o.rosterLimit - o.myPlayers.length;
+  var allow = o.allow || function () { return true; };  // e.g. "doesn't open a hole in this week's lineup"
   var cands = o.myPlayers.filter(function (p) {
     return !o.protected[p] && !o.blockedDrops[p] && o.dropValue(p) !== null;
   }).sort(function (a, b) { return o.dropValue(b) - o.dropValue(a); });  // weakest first
@@ -1398,7 +1406,9 @@ function planUpgrades_(o) {
   for (var f = 0; f < fas.length && claims.length < o.maxClaims; f++) {
     var fa = fas[f], fv = o.value(fa), fpos = o.position(fa);
     var deep = maxDepth[fpos] !== undefined && (counts[fpos] || 0) >= maxDepth[fpos];
-    if (openSpots > 0 && !deep) {
+    // An open spot needs no drop, but with o.openSpotGain the pickup must still beat your weakest player.
+    var weakest = cands.length ? o.dropValue(cands[0]) : Infinity;
+    if (openSpots > 0 && !deep && (!o.openSpotGain || weakest - fv >= o.openSpotGain) && allow(fa, null, claims)) {
       claims.push({ add: fa, drop: null, addValue: fv, dropValue: null, kind: 'upgrade' });
       openSpots--;
       if (healthy(fa)) counts[fpos] = (counts[fpos] || 0) + 1;
@@ -1408,6 +1418,7 @@ function planUpgrades_(o) {
       var d = cands[c], dv = o.dropValue(d);
       if (dv - fv < o.minGain) break;
       if (o.extraGain && dv - fv < o.minGain + o.extraGain(d)) continue;
+      if (!allow(fa, d, claims)) continue;
       var dpos = o.position(d);
       if (dpos !== fpos && deep) continue;
       // Healthy players left at the drop's position (an injured pickup doesn't replace a healthy one).
@@ -1422,20 +1433,6 @@ function planUpgrades_(o) {
     }
   }
   return claims;
-}
-
-/** Swap a K or DEF for a free agent with a clearly better matchup this week. */
-function planStream_(freeAgents, mine, value, margin, openSpot) {
-  var fas = freeAgents.filter(function (p) { return value(p) !== null; })
-    .sort(function (a, b) { return value(a) - value(b); });
-  if (!fas.length) return null;
-  var best = fas[0];
-  if (!mine.length) return openSpot ? { add: best, drop: null, addValue: value(best), dropValue: null, kind: 'stream' } : null;
-  var v = function (p) { return value(p) === null ? 1e9 : value(p); };
-  var ranked = mine.slice().sort(function (a, b) { return v(a) - v(b); });
-  if (v(ranked[0]) - value(best) < margin) return null;
-  var drop = ranked[ranked.length - 1];
-  return { add: best, drop: drop, addValue: value(best), dropValue: value(drop), kind: 'stream' };
 }
 
 function faabBid_(value, remaining, tiers, minBid) {
@@ -1789,11 +1786,11 @@ League_.prototype.planWaivers = function (opts) {
     Object.keys(t.drops || {}).forEach(function (p) { pendingDrops[p] = true; });
   });
   // Planned free-agent pickups happen first; this waiver plan is for what's left.
-  var after = (opts && opts.after) || null, afterAdds = {}, afterUpgrades = 0, afterNoDrop = 0;
+  var after = (opts && opts.after) || null, afterAdds = {}, afterDrops = {}, afterUpgrades = 0;
   if (after) {
     after.claims.forEach(function (c) {
       afterAdds[c.add.id] = true;
-      if (c.drop) pendingDrops[c.drop.id] = true; else afterNoDrop++;
+      if (c.drop) afterDrops[c.drop.id] = true;
       if (c.kind === 'upgrade') afterUpgrades++;
     });
   }
@@ -1802,7 +1799,8 @@ League_.prototype.planWaivers = function (opts) {
       clears = this.clears_();
     } catch (e) {
       if (e.expired) throw e;
-      clears = null;  // can't tell who's a free agent: plan claims for everyone, as before
+      clears = null;  // can't tell who's a free agent, so no claims (they could be for free agents)
+      notes.push("Couldn't read who's on waivers on Sleeper, so no claims are planned until that works again.");
     }
   }
   var kickoffNow = faOpen ? this.weekKickoffs() : {};
@@ -1871,9 +1869,6 @@ League_.prototype.planWaivers = function (opts) {
   var core = {};
   optimize_(this.slots, [], mine, rosCost).starters.forEach(function (p) { core[p] = true; });
   var limit = (this.data.roster_positions || []).filter(function (s) { return s !== 'IR' && s !== 'TAXI'; }).length;
-  // Pending claims that add more players than they drop will fill open roster spots.
-  var droppingMine = mine.filter(function (p) { return pendingDrops[p]; }).length;
-  limit -= Math.max(0, Object.keys(pendingAdds).length - droppingMine) + afterNoDrop;
   // The weekly limit covers claims already pending on Sleeper, free-agent upgrades made
   // since this week's waivers ran and the ones planned above (fill-ins and streams don't count).
   var pendingUpgrades = Object.keys(pendingAdds).filter(function (p) { return SKILL.indexOf(self.pos(p)) >= 0; }).length;
@@ -1892,105 +1887,160 @@ League_.prototype.planWaivers = function (opts) {
                'so upgrades must gain ' + minGain + ' spots instead of ' + cfg.min_gain + ', and kicker/defense ' +
                'matchup swaps wait until waivers have run, then come from free agency (no priority cost).');
   }
-  // After waivers: free agents are picked up now (free-agent plan); claims are only for players on waivers.
-  var candidates = fas.filter(function (p) { return !afterAdds[p] && (fa ? freeNow(p) : !(faOpen && freeNow(p))); });
-  var claims = planUpgrades_({
-    freeAgents: candidates, myPlayers: mine, value: value, dropValue: dropValue,
-    position: function (p) { return self.pos(p); }, protected: core, minimums: this.minimums(),
-    maxDepth: this.maxDepth(), healthy: healthy, extraGain: function (p) { return recent[p] ? cfg.min_gain : 0; },
-    rosterLimit: limit, maxClaims: room, minGain: minGain, blockedDrops: Object.assign({}, pendingDrops, locked),
-  });
-  var usedDrops = {}, adding = {};
-  claims.forEach(function (c) { if (c.drop) usedDrops[c.drop] = true; adding[c.add] = true; });
   var name = function (pid) { return (self.p(pid) || [pid])[0]; };
   var hardMin = { QB: slotCount.QB || 0, RB: slotCount.RB || 0, WR: slotCount.WR || 0, TE: slotCount.TE || 0 };
-  // This week's games, if they're still ahead (claims process before them).
+
+  // ---- Moves, one at a time, each on the roster as it will be after the ones before -------
+  // Free agents are picked up now; claims go through at the waiver run. Pending claims and
+  // (for the waiver plan) the free-agent plan come first. A move may not open a hole in
+  // this week's lineup while this week can still be helped.
+  var claims = [], usedDrops = {}, adding = {};
+  var blocked = Object.assign({}, pendingDrops, afterDrops, locked);  // this plan can't drop them
+  var base = mine.filter(function (p) { return !pendingDrops[p] && !afterDrops[p]; });
+  Object.keys(pendingAdds).concat(Object.keys(afterAdds)).forEach(function (p) { if (base.indexOf(p) < 0) base.push(p); });
+  var rosterWith = function (moves) {
+    var r = base.slice();
+    moves.forEach(function (c) {
+      if (c.drop) r = r.filter(function (p) { return p !== c.drop; });
+      if (r.indexOf(c.add) < 0) r.push(c.add);
+    });
+    return r;
+  };
+  var rosterNow = function () { return rosterWith(claims); };
+  var available = function (pid) {
+    if (rostered[pid] || pendingAdds[pid] || afterAdds[pid] || adding[pid]) return false;
+    if (fa) return freeNow(pid);
+    // After the waiver run, claims are only for players still on waivers (and none if we can't tell).
+    return !faOpen || (clears !== null && !freeNow(pid));
+  };
+  // This week's games, if a move can still help them (claims go through before Thursday).
   var mainList = this.weeklyList(this.qbPremium ? 'QB' : 'RB');
-  var weekAhead = fa || (mainList.week === Number(ctx.state.week) && mainList.firstKickoff() > ctx.now);
-  var kickoff = weekAhead ? this.weekKickoffs() : {};
-  var isFree = function (pid) { return !rostered[pid] && !pendingAdds[pid] && !adding[pid] && freeNow(pid); };
+  var weekMatters = fa || (!faOpen && mainList.week === Number(ctx.state.week) && mainList.firstKickoff() > ctx.now);
+  var kickoff = weekMatters || faOpen ? this.weekKickoffs() : {};
   var weekCost = function (pid, slot) {
     if (!self.eligible(pid, slot)) return null;
     var r = self.weeklyRank(pid);
     return (r ? r.rank : UNRANKED) + (self.whyOut(pid, kickoff) ? UNAVAILABLE : 0);
   };
-  /** Best lineup for this week with the roster you'll have once these claims go through. */
-  var weekLineup = function () {
-    var roster = mine.filter(function (p) { return !usedDrops[p] && !pendingDrops[p]; });
-    Object.keys(pendingAdds).concat(Object.keys(adding)).forEach(function (p) {
-      if (roster.indexOf(p) < 0) roster.push(p);
+  /** This week's best lineup for a roster (in free agency, locked players stay where they are). */
+  var weekLineup = function (roster) {
+    if (!fa) return optimize_(self.slots, [], roster, weekCost).starters;
+    var current = lp.current.map(function (p) { return roster.indexOf(p) >= 0 ? p : EMPTY; });
+    return optimize_(self.slots, current, roster, weekCost, locked).starters;
+  };
+  /** Starting spots nobody on this roster can fill this week. */
+  var holesOf = function (roster) {
+    if (!weekMatters) return [];
+    return weekLineup(roster).map(function (p, i) { return { slot: self.slots[i], out: p }; }).filter(function (h) {
+      if (!SLOT_ELIGIBILITY[h.slot] || (h.out !== EMPTY && locked[h.out])) return false;
+      return h.out === EMPTY || !!self.whyOut(h.out, kickoff);
     });
-    return optimize_(self.slots, [], roster, weekCost).starters;
   };
-  var weekNeeds = function () {
-    var need = {};
-    if (weekAhead) weekLineup().forEach(function (p) { need[p] = true; });
-    return need;
+  var openSpots = function () { return limit - rosterNow().length; };
+  var droppable = function (p) {
+    return mine.indexOf(p) >= 0 && rosterNow().indexOf(p) >= 0 && !blocked[p] && !usedDrops[p] && !keep[p];
   };
-  /** A bench player we can give up for a one-week pickup: easy to replace and not needed to field a lineup. */
+  /** A bench player to give up for a one-week pickup: cheap, not needed this week, not just picked up. */
   var spare = function () {
-    var need = weekNeeds();
+    var roster = rosterNow(), need = {};
+    if (weekMatters) weekLineup(roster).forEach(function (p) { need[p] = true; });
     var healthyAt = function (pos) {
-      return mine.filter(function (p) {
-        return self.pos(p) === pos && healthy(p) && !pendingDrops[p] && !usedDrops[p];
-      }).length;
+      return roster.filter(function (p) { return self.pos(p) === pos && healthy(p); }).length;
     };
     return mine.filter(function (p) {
       var v = dropValue(p), pos = self.pos(p);
-      if (locked[p] || starting[p]) return false;  // free agency: can't drop a player whose game started
-      return !core[p] && !need[p] && !pendingDrops[p] && !usedDrops[p] && v !== null && v >= SPARE_MIN &&
-        (!healthy(p) || !(pos in hardMin) || healthyAt(pos) - 1 >= hardMin[pos]);
+      if (!droppable(p) || core[p] || need[p] || starting[p] || v === null || v < SPARE_MIN) return false;
+      if (recent[p] && !excessKD[p]) return false;
+      return !healthy(p) || !(pos in hardMin) || healthyAt(pos) - 1 >= hardMin[pos];
     }).sort(function (a, b) { return dropValue(b) - dropValue(a); })[0] || null;
   };
-  var openSpots = limit - mine.length - claims.filter(function (c) { return !c.drop; }).length;
-  // A starter who can't play this week (bye, Out...) and nobody on the bench who can fill
-  // in: pick up the best available player for that spot, for the week.
-  /** Pick up the best available player for a starting spot nobody can fill; false if impossible. */
+  /** Who goes for a pickup that fills ``hole``: a kicker/defense swaps with one of yours if possible. */
+  var dropFor = function (hole) {
+    if (hole.slot === 'K' || hole.slot === 'DEF') {
+      var kds = mine.filter(function (p) { return self.pos(p) === hole.slot && droppable(p) && kdNum(p) > 12; });
+      kds.sort(function (a, b) {
+        return (self.whyOut(b, kickoff) ? 1 : 0) - (self.whyOut(a, kickoff) ? 1 : 0) || kdNum(b) - kdNum(a);
+      });
+      if (kds.length) return kds[0];
+    }
+    return spare();
+  };
+  var noNewHoles = function (extra) {
+    var before = holesOf(rosterNow()).length;
+    return function (add, drop, inner) {
+      var r = rosterWith(claims.concat(inner || [], [{ add: add, drop: drop }]));
+      return holesOf(r).length <= before - (extra || 0);
+    };
+  };
+  var upgrade = function (cands, max, mustFill) {
+    if (max <= 0 || !cands.length) return [];
+    var roster = rosterNow();
+    var made = planUpgrades_({
+      freeAgents: cands, myPlayers: roster, countFrom: roster, value: value, dropValue: dropValue,
+      position: function (p) { return self.pos(p); }, protected: core, minimums: self.minimums(),
+      maxDepth: self.maxDepth(), healthy: healthy, extraGain: function (p) { return recent[p] ? cfg.min_gain : 0; },
+      rosterLimit: limit, maxClaims: max, minGain: minGain, openSpotGain: guard ? minGain : 0,
+      blockedDrops: Object.assign({}, blocked, usedDrops, roster.reduce(function (m, p) {
+        if (mine.indexOf(p) < 0) m[p] = true;
+        return m;
+      }, {})),
+      allow: noNewHoles(mustFill ? 1 : 0),
+    });
+    made.forEach(function (c) { claims.push(c); adding[c.add] = true; if (c.drop) usedDrops[c.drop] = true; });
+    return made;
+  };
+  var label = function (p) {
+    var pos = self.pos(p);
+    return name(p) + (pos === 'K' || pos === 'DEF' ? ' (' + pos + kdNum(p) + ' rest of season)' : '');
+  };
   var fill = function (hole) {
     var best = null, bestRank = Infinity;
     SLOT_ELIGIBILITY[hole.slot].forEach(function (pos) {
       self.weeklyList(pos).byId.forEach(function (r, pid) {
-        if (!self.eligible(pid, hole.slot) || self.whyOut(pid, kickoff)) return;
-        if ((fa ? isFree(pid) : !rostered[pid] && !pendingAdds[pid] && !adding[pid]) && r.rank < bestRank) {
+        if (self.eligible(pid, hole.slot) && !self.whyOut(pid, kickoff) && available(pid) && r.rank < bestRank) {
           best = pid; bestRank = r.rank;
         }
       });
     });
+    var kd = hole.slot === 'K' || hole.slot === 'DEF';
+    var star = hole.out !== EMPTY && kd && (keep[hole.out] || kdNum(hole.out) <= 12);
     var who = hole.out === EMPTY ? 'Your ' + hole.slot + ' spot is empty this week'
-      : name(hole.out) + ' (' + self.pos(hole.out) + ', ' + self.whyOut(hole.out, kickoff) + ") can't play this week";
-    var drop = openSpots > 0 ? null : spare();
-    if (!best || (openSpots <= 0 && !drop)) {
-      notes.push(who + ' and nobody on your bench can fill in, but ' +
+      : name(hole.out) + ' (' + self.pos(hole.out) + ', ' + self.whyOut(hole.out, kickoff) +
+        (kd ? ', ' + self.pos(hole.out) + kdNum(hole.out) + ' rest of season' : '') + ") can't play this week" +
+        (star ? ' and is too good to drop' : '');
+    var drop = openSpots() > 0 ? null : dropFor(hole);
+    if (!best || (openSpots() <= 0 && !drop)) {
+      notes.push(who + (star ? ', but ' : ' and nobody on your bench can fill in, but ') +
                  (best ? 'no bench player is cheap enough to give up' : 'no free agent is available') +
-                 '. Add one yourself if you can.');
-      return false;
+                 (fa ? '. Add one yourself if you can.' : ' right now. The free-agent plan tries again once waivers have run.'));
+      return;
     }
     claims.push({ add: best, drop: drop, addValue: bestRank, dropValue: drop ? dropValue(drop) : null, kind: 'cover' });
     adding[best] = true;
-    if (drop) usedDrops[drop] = true; else openSpots--;
-    notes.push(who + ' and nobody on your bench can fill in, so this ' + (fa ? 'picks up ' : 'adds ') + name(best) +
-               (fa ? ' as a free agent' : ' for the week') +
-               (drop ? ' and drops ' + name(drop) + ', who is easy to replace.' : '.'));
-    return true;
+    if (drop) usedDrops[drop] = true;
+    notes.push(who + (star ? ', so this ' : ' and nobody on your bench can fill in, so this ') +
+               (fa ? 'picks up ' : 'adds ') + name(best) + (fa ? ' as a free agent' : ' for the week') +
+               (drop ? ' and drops ' + name(drop) + (kd && self.pos(drop) === hole.slot ? '.' : ', who is easy to replace.') : '.'));
   };
-  if (fa) {
-    // Holes in the lineup as planned (kickers and defenses included: no waiver claim covered them).
-    lp.holes.forEach(function (hole) {
-      if ((hole.slot === 'K' || hole.slot === 'DEF') ? cfg.stream_k_def : cfg.cover_byes) fill(hole);
+  var fas = [];
+  ros.byId.forEach(function (r, pid) { if (relevant[self.pos(pid)] && (self.p(pid) || [])[2] && available(pid)) fas.push(pid); });
+  var wanted = function (hole) { return (hole.slot === 'K' || hole.slot === 'DEF') ? cfg.stream_k_def : cfg.cover_byes; };
+  // 1. An upgrade that also fills an empty starting spot does both jobs.
+  holesOf(rosterNow()).forEach(function (hole) {
+    if (!wanted(hole) || hole.slot === 'K' || hole.slot === 'DEF') return;
+    var fits = fas.filter(function (p) {
+      return !adding[p] && self.eligible(p, hole.slot) && !self.whyOut(p, kickoff);
     });
-  } else if (cfg.cover_byes && weekAhead && !faOpen) {  // once waivers have run, this week is free agency's
-    for (var tries = 0; tries < 3; tries++) {
-      var lineup = weekLineup(), hole = null;
-      lineup.forEach(function (p, i) {
-        var slot = self.slots[i];
-        if (!hole && SLOT_ELIGIBILITY[slot] && slot !== 'K' && slot !== 'DEF' &&
-            (p === EMPTY || self.whyOut(p, kickoff))) hole = { slot: slot, out: p };
-      });
-      if (!hole || !fill(hole)) break;
-    }
-  }
+    var made = upgrade(fits, Math.min(1, room), true);
+    room -= made.length;
+    made.forEach(function (c) { notes.push(name(c.add) + ' is an upgrade and also fills the ' + hole.slot + ' spot this week.'); });
+  });
+  // 2. Fill-ins for the spots still empty: they get first pick of the cheap bench players.
+  holesOf(rosterNow()).forEach(function (hole) { if (wanted(hole)) fill(hole); });
+  // 3. Rest-of-season upgrades with whatever room is left.
+  room -= upgrade(fas.filter(function (p) { return !adding[p]; }), room, false).length;
+  // 4. Kicker/defense swaps for a clearly better matchup this week.
   if (cfg.stream_k_def && (fa || !faOpen)) {
-    var openSpot = limit - mine.length - claims.filter(function (c) { return !c.drop; }).length > 0;
     [['K', FP.K], ['DEF', FP.DST]].forEach(function (pair) {
       var pos = pair[0];
       if (self.slots.indexOf(pos) < 0) return;
@@ -2000,42 +2050,31 @@ League_.prototype.planWaivers = function (opts) {
         notes.push(pos + " streaming waits for next week's rankings.");
         return;
       }
-      var wv = function (pid) { var r = wl.get(pid); return !r || r.bye ? null : r.rank; };
       var at = function (p) { return self.pos(p) === pos; };
       if (Object.keys(pendingAdds).some(at) || Object.keys(adding).some(at)) return;  // already streaming
-      if (fa && mine.some(function (p) { return at(p) && locked[p]; })) return;      // his game already started
-      var faK = [];
-      wl.byId.forEach(function (r, pid) { if (fa ? isFree(pid) : !rostered[pid] && !pendingAdds[pid]) faK.push(pid); });
-      var my = mine.filter(function (p) {
-        return self.pos(p) === pos && !pendingDrops[p] && !keep[p] && !usedDrops[p];  // not already dropped above
+      var mineAt = rosterNow().filter(at);
+      if (fa && mineAt.some(function (p) { return locked[p]; })) return;            // his game already started
+      var wv = function (pid) { var r = wl.get(pid); return !r || r.bye || self.whyOut(pid, kickoff) ? null : r.rank; };
+      var playing = mineAt.filter(function (p) { return wv(p) !== null; });
+      if (!playing.length || guard) return;  // nobody plays: a hole (handled above); top waiver priority: not for this
+      var myBest = Math.min.apply(null, playing.map(wv));
+      var best = null;
+      wl.byId.forEach(function (r, pid) { if (available(pid) && wv(pid) !== null && (!best || r.rank < wv(best))) best = pid; });
+      if (!best || myBest - wv(best) < cfg.stream_margin) return;
+      var keepers = mineAt.filter(function (p) {
+        return !droppable(p) || (kdNum(p) <= 12 && kdNum(best) >= kdNum(p));  // a top-12 one stays unless the streamer is better for good
       });
-      var canPlay = mine.some(function (p) { return self.pos(p) === pos && !pendingDrops[p] && !usedDrops[p] && wv(p) !== null; });
-      if (guard && canPlay) return;  // a better matchup isn't worth top waiver priority
-      var c = planStream_(faK, my, wv, cfg.stream_margin, openSpot);
-      if (c && c.drop && kdNum(c.drop) <= 12 && kdNum(c.add) >= kdNum(c.drop)) {
-        // Never give away a top-12 K/DEF for one good week, unless the streamer is also
-        // the better pick for the rest of the season. If he can't play this week (bye),
-        // pick the streamer up with an easy-to-replace bench player instead.
-        var star = c.drop, label = name(star) + ' (' + pos + kdNum(star) + ' rest of season)';
-        var other = wv(star) === null ? (openSpot ? 'open' : spare()) : null;
-        if (wv(star) !== null) {
-          notes.push('Keeping ' + label + ' rather than dropping him for a one-week ' + pos + ' stream.');
-          c = null;
-        } else if (other) {
-          c = { add: c.add, drop: other === 'open' ? null : other, addValue: c.addValue,
-                dropValue: other === 'open' ? null : dropValue(other), kind: 'stream' };
-          notes.push(label + " can't play this week and is too good to drop, so this adds " + name(c.add) +
-                     ' for the week' + (c.drop ? ' and drops ' + name(c.drop) + ', who is easy to replace.' : '.'));
-        } else {
-          notes.push(label + " can't play this week, but no bench player is cheap enough to give up for a one-week " +
-                     pos + ' right now. The free-agent plan tries again once waivers have run.');
-          c = null;
-        }
+      var drop = mineAt.filter(function (p) { return keepers.indexOf(p) < 0; })
+        .sort(function (a, b) { return (wv(b) === null ? 1e9 : wv(b)) - (wv(a) === null ? 1e9 : wv(a)); })[0] || null;
+      if (!drop && openSpots() <= 0) {
+        keepers.forEach(function (p) {
+          if (kdNum(p) <= 12) notes.push('Keeping ' + label(p) + ' rather than dropping him for a one-week ' + pos + ' stream.');
+        });
+        return;
       }
-      if (c) {
-        if (c.drop) usedDrops[c.drop] = true; else openSpot = false;
-        claims.push(c);
-      }
+      claims.push({ add: best, drop: drop, addValue: wv(best), dropValue: drop ? dropValue(drop) : null, kind: 'stream' });
+      adding[best] = true;
+      if (drop) usedDrops[drop] = true;
     });
   }
   if (this.faab && !fa) {
@@ -2098,7 +2137,8 @@ function checkPlans_(lg, res) {
       if (p === EMPTY) return;
       if (seen[p]) out.push(name(p) + ' is in the lineup twice.');
       seen[p] = true;
-      if (SLOT_ELIGIBILITY[slot] && lg.p(p) && !lg.eligible(p, slot)) out.push(name(p) + " can't play " + slot + '.');
+      var stays = L.current && L.current[i] === p && locked(p);  // already there and his game started
+      if (SLOT_ELIGIBILITY[slot] && lg.p(p) && !lg.eligible(p, slot) && !stays) out.push(name(p) + " can't play " + slot + '.');
       if (L.current && L.current[i] !== p) {
         if (L.current[i] !== EMPTY && locked(L.current[i])) out.push(name(L.current[i]) + "'s game has started, but he'd be moved.");
         if (locked(p) && L.current.indexOf(p) !== i) out.push(name(p) + "'s game has started, but he'd be moved in.");
@@ -2125,13 +2165,13 @@ function checkPlans_(lg, res) {
     try { clears = faOpen ? lg.clears_() : null; } catch (e) { if (e.expired) throw e; }
     var pending = [];
     try { pending = lg.pending_(); } catch (e) { if (e.expired) throw e; }
-    var size = Object.keys(mine).length, added = {}, dropped = {}, upgrades = 0;
+    var size = Object.keys(mine).length, added = {}, dropped = {}, upgrades = 0, pendingSkill = 0;
     pending.forEach(function (t) {
       size += Object.keys(t.adds || {}).length - Object.keys(t.drops || {}).filter(function (p) { return mine[p]; }).length;
     });
     var before = size;  // after the claims already pending: the plan mustn't make it worse
     pending.forEach(function (t) {
-      Object.keys(t.adds || {}).forEach(function (p) { if (SKILL.indexOf(lg.pos(p)) >= 0) upgrades++; });
+      Object.keys(t.adds || {}).forEach(function (p) { if (SKILL.indexOf(lg.pos(p)) >= 0) pendingSkill++; });
       Object.keys(t.drops || {}).forEach(function (p) { dropped[p] = true; });
     });
     [[F, 'pickup'], [W, 'claim']].forEach(function (pair) {
@@ -2150,6 +2190,7 @@ function checkPlans_(lg, res) {
         if (clears && how === 'claim' && lg.isFreeAgent(a, clears, kickoff)) {
           out.push(name(a) + ' is a free agent right now: he should be picked up, not claimed for next week.');
         }
+        if (!clears && faOpen) out.push("Can't check on Sleeper whether " + name(a) + ' is still on waivers.');
         if (!d) return;
         shown.push(c.drop);
         size--;
@@ -2159,6 +2200,7 @@ function checkPlans_(lg, res) {
         if (keep[d]) out.push(name(d) + ' is starred (kept) but would be dropped.');
         if (how === 'pickup' && locked(d)) out.push(name(d) + "'s game has started, so he can't be dropped now.");
         var kd = lg.pos(d) === 'K' || lg.pos(d) === 'DEF';
+        if (c.kind !== 'upgrade' && recent[d] && !kd) out.push(name(d) + ' was just picked up and would be dropped for a one-week pickup.');
         if (c.kind === 'upgrade' && !kd && c.add.rank && c.drop.rank) {
           var need = cfg.min_gain * (recent[d] ? 2 : 1);
           if (c.drop.rank - c.add.rank < need) {
@@ -2172,8 +2214,35 @@ function checkPlans_(lg, res) {
     if (size > Math.max(limit, before)) {
       out.push('After these moves your roster would have ' + size + ' players; the limit is ' + limit + '.');
     }
-    if (upgrades + upgradesDone_(lg.id, Number(lg.settings.leg)) > cfg.max_claims) {
-      out.push('More upgrades than your limit of ' + cfg.max_claims + ' a week.');
+    // The weekly limit: claims already pending and this week's upgrades leave this much room.
+    var room = Math.max(0, cfg.max_claims - pendingSkill - upgradesDone_(lg.id, Number(lg.settings.leg)));
+    if (upgrades > room) out.push('More upgrades than your limit of ' + cfg.max_claims + ' a week.');
+    // No move may leave a starting spot this week with nobody who can play in it. Free agents
+    // join now; claims made before the waiver run join before this week's games.
+    var weekList = lg.weeklyList(lg.qbPremium ? 'QB' : 'RB'), first = weekList.firstKickoff();
+    var moves = F ? F.claims : W && !faOpen && weekList.week === Number(ctx.state.week) && first > ctx.now ? W.claims : [];
+    if (moves.length) {
+      var lockedNow = {}, startersNow = (L && L.current) || (lg.roster.starters || []).slice();
+      startersNow.forEach(function (p) { if (p !== EMPTY && locked(p)) lockedNow[p] = true; });
+      var cost = function (p, slot) { return !lg.eligible(p, slot) ? null : lg.whyOut(p, kickoff) ? 1 : 0; };
+      var holes = function (roster) {
+        var current = startersNow.map(function (p) { return roster.indexOf(p) >= 0 ? p : EMPTY; });
+        return optimize_(lg.slots, current, roster, cost, lockedNow).starters.filter(function (p, i) {
+          return SLOT_ELIGIBILITY[lg.slots[i]] && (p === EMPTY || (!lockedNow[p] && !!lg.whyOut(p, kickoff)));
+        }).length;
+      };
+      var week = Object.keys(mine);
+      if (!F) {  // pending claims go through first
+        pending.forEach(function (t) {
+          week = week.filter(function (p) { return !(t.drops || {})[p]; }).concat(Object.keys(t.adds || {}));
+        });
+      }
+      var after = week.slice();
+      moves.forEach(function (c) {
+        if (c.drop) after = after.filter(function (p) { return p !== c.drop.id; });
+        after.push(c.add.id);
+      });
+      if (holes(after) > holes(week)) out.push('These moves would leave a starting spot this week with nobody who can play.');
     }
   }
   shown.forEach(function (v) {

@@ -231,7 +231,7 @@ function makeWorld(opts = {}) {
 
   // ---- the app, wired to this world ---------------------------------------------------
   world.gas = () => {
-    const gas = loadGas({ now: () => world.now, props: world.props });
+    const gas = loadGas({ now: () => world.now, props: world.props, file: process.env.GAS_CODE });  // GAS_CODE: test another Code.gs
     world.props = gas.__props._data;
     gas.fpList_ = (slug) => world.lists[slug];
     gas.playersSlim_ = () => world.players;
