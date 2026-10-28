@@ -3,6 +3,21 @@
 Newest first. Each `##` entry becomes the release notes shown by the app's
 "Install update" button. Add one with every change to Code.gs / Index.html.
 
+## Safety checks
+- Every plan is now checked against plain safety rules before anything changes. If a plan breaks one (that would be a bug), nothing happens in that league, automatically or with the buttons, and the league card says why.
+- Fixed: a free-agent upgrade could choose to drop a player whose game had already started, which Sleeper doesn't allow.
+- The free-agent and waiver plans now make their moves one at a time on the roster as it will be, so they no longer get in each other's way. No move leaves this week's lineup with a spot nobody can play in, swaps one empty spot for a harder one to fill (like the only QB who plays for a flex), or relies on another claim winning (including claims already pending on Sleeper).
+- Claims still pending after the waiver run only go through next week, so they no longer hide (or invent) an empty spot this week.
+- An upgrade that also fills an empty starting spot does both jobs (no second fill-in for the same spot). Fill-ins get first pick of the cheap bench players, and a player just picked up is never dropped for a one-week fill-in.
+- A kicker or defense on bye who isn't top-12 is swapped for the fill-in instead of dropping a bench player. A top one already covered for his bye gets a better streamer in place of the cover, never a third kicker. A kicker who plays is never joined by a worse one just because a roster spot is open.
+- Fixed: claims already pending on Sleeper (made on sleeper.com or by the app) could block a needed fill-in or show a false safety alarm after submitting.
+- "Submit claims now" no longer reports a changed plan when free-agent pickups are also on screen.
+- If Sleeper can't say who is still on waivers, no claims are planned, since they could be for free agents.
+- If sending a claim fails, the autopilot tries again on its next check instead of giving up for the week.
+- Position minimums count the claims already pending, and with a high rolling waiver priority an open roster spot no longer invites a marginal claim.
+- The phone alerts card is gone.
+- Behind the scenes, every update is now tested on simulated whole weeks and hundreds of random leagues, and a daily check runs the safety rules on your real leagues. An independent review's findings are kept as tests.
+
 ## Waiver plan after the waiver run
 - After Wednesday's waiver run, players nobody claimed are free agents, so upgrades to them now show up under "Free agents now" (Add now, or the autopilot with auto claims on) instead of as claims that wouldn't process until next week. The waiver plan only lists players who are actually on waivers.
 - Players on a bye week count as free agents until the week's first game, like on Sleeper.

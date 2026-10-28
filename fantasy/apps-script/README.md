@@ -45,17 +45,6 @@ now** only reports what it would change.
 `appsscript.json` is optional: Google works out the same two permissions from
 the code.
 
-### Phone alerts (optional)
-
-Tap **Turn on** under *Phone alerts*, install the free **ntfy** app, subscribe
-to the topic the app shows and send a test alert. You then get a push
-notification when something needs you (session expired, a failed save, a
-starter who can't play with nobody to replace him, an update) and, unless you
-switch it off, when the autopilot changes something. In suggestions-only mode
-the alerts say which changes to make. Alerts go through ntfy.sh, a free public
-service, and need no extra Google permission. Anyone who knows the topic could
-read them, so keep it to yourself.
-
 ### Updates
 
 When a newer version is on GitHub, the app shows **Update available** with
@@ -86,7 +75,8 @@ redeploying, no extra Google permissions.
   - a ☆ next to each player: tap it to never let the waiver plan drop him;
   - settings: auto lineup, auto claims and free agents, K/DEF streaming,
     bye/injury fill-ins, superflex QB lean, upgrades per week, minimum upgrade.
-- **Phone alerts:** on/off, the ntfy topic and a test button.
+- **Safety check:** if a plan ever breaks one of the app's safety rules (a bug),
+  the league card says so in red and nothing in that league is changed until it's fixed.
 - **Activity:** every change the autopilot or you made, and any errors.
 
 ## How it decides
@@ -155,10 +145,35 @@ To ship a change:
 The app then offers the update once the change is in `main`. GitHub runs the
 tests and the bundle check on every push
 (`.github/workflows/sleeper-autopilot-tests.yml`), so a stale `dist/` file
-shows up as a failed check. Every Tuesday and Saturday the canary
-(`.github/workflows/sleeper-autopilot-canary.yml`) plans the leagues from live
-data and fails, which GitHub emails you about, if FantasyPros or Sleeper
-changed something the app relies on.
+shows up as a failed check.
+
+How bugs are kept out:
+- **Safety rules** (`checkPlans_` in `Code.gs`): plain rules every plan must
+  pass, checked separately from the planning code (no claim for a free agent,
+  no player dropped twice, no starred or just-picked-up player dropped for a
+  small gain, nothing that breaks Sleeper's rules, no internal values on screen,
+  roster size and weekly limit respected, no move that leaves this week's lineup
+  with a spot nobody can play in, a sensible lineup). A plan that breaks one is
+  never carried out, by the autopilot or the buttons.
+- **Week simulation** (`test/simulation.test.js`, `test/world.js`): a fake
+  Sleeper league that runs the real app every 30 minutes for whole weeks (claims,
+  the waiver run, free agency, kickoffs, byes, injury news, inactives, rivals
+  taking players), enforcing Sleeper's rules on every write and checking the
+  plans and the lineup at every kickoff. It also checks hundreds of random leagues
+  at random moments of the week, and a control run proves it notices problems.
+  `test/fuzz.test.js` adds hundreds of random leagues with claims pending on
+  Sleeper, starred players, fresh pickups, open roster spots and Sunday locks
+  (`FUZZ_N=4000` for more). New features get covered here before they ship.
+- **Independent review**: before a bigger change ships, a reviewer that didn't
+  write it hunts for bugs with runnable repros. Every confirmed finding becomes a
+  test in `test/plans.test.js` (built on the small configurable league in
+  `test/fixture.js`), checked to fail on the code before the fix:
+  `GAS_CODE=<old Code.gs> node --test test/plans.test.js` runs the tests (and the
+  simulation) against another copy of `Code.gs`.
+- **Daily canary** (`.github/workflows/sleeper-autopilot-canary.yml`): plans your
+  real leagues from live data every day, writing nothing, and applies the safety
+  rules. A failure (a bug, or FantasyPros or Sleeper changing something) fails
+  the run, and GitHub emails you.
 
 The preview server at http://localhost:8080 runs `Code.gs` on Apps Script
 stand-ins (`dev/gas-stub.js`). It reads real data but fakes logins and never

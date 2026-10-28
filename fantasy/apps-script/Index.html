@@ -114,8 +114,6 @@
   input.num { width: 70px; padding: 6px 8px; }
   .keep { border: 0; background: none; padding: 0 6px 0 0; color: var(--faint); font-size: 15px; font-weight: 400; }
   .keep.on { color: var(--warn); }
-  code.topic { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--surface-2);
-    padding: 6px 8px; border-radius: 8px; word-break: break-all; }
 
   /* activity */
   .feed { display: grid; gap: 2px; }
@@ -183,8 +181,6 @@ function api(fn, ...args) {
 const SLEEPER_GQL = 'https:\/\/api.sleeper.app/graphql';
 const SLEEPER_LOGIN_URL = 'https:\/\/sleeper.com/login';
 const AVATAR_URL = 'https:\/\/sleepercdn.com/avatars/thumbs/';
-const NTFY_IOS = 'https:\/\/apps.apple.com/app/ntfy/id1625396347';
-const NTFY_ANDROID = 'https:\/\/play.google.com/store/apps/details?id=io.heckel.ntfy';
 const Q_LOGIN = 'query login($e: String!, $p: String!, $c: String) {' +
   ' login(email_or_phone_or_username: $e, password: $p, captcha: $c) { token } }';
 const Q_CONTEXT = 'query login_context_by_email_or_phone_or_username($e: String!) {' +
@@ -452,7 +448,6 @@ function appView(st) {
     ${permissionBanner(st)}
     ${updateBanner()}
     ${statusCard(st)}
-    ${alertsCard(st)}
     ${S.dashError ? `<div class="card banner bad">Couldn't load your leagues: ${esc(S.dashError)}
         <div style="margin-top:8px"><button class="small" data-action="reload">Try again</button></div></div>` : ''}
     ${S.loadingDash && !S.dash ? skeletonCards() : ''}
@@ -503,33 +498,6 @@ function statusCard(st) {
   </div>`;
 }
 
-function alertsCard(st) {
-  const a = st.alerts || {};
-  if (!a.on) {
-    return `<div class="card"><div class="row between"><div><b>Phone alerts</b>
-        <div class="small muted">A push notification when something needs you (session expired, a failed save, a starter
-          who can't play) and, if you want, when the autopilot changes something.</div></div>
-      <button class="small primary" data-action="alerts-on" ${S.busy.alerts ? 'disabled' : ''}>Turn on</button></div></div>`;
-  }
-  return `<div class="card"><div class="row between"><b>Phone alerts are on</b>
-      <button class="ghost small" data-action="alerts-off">Turn off</button></div>
-    <ol class="small muted" style="padding-left:18px;margin:8px 0 0">
-      <li>Install the free <b>ntfy</b> app (<a href="${NTFY_IOS}" target="_blank">iPhone</a> ·
-        <a href="${NTFY_ANDROID}" target="_blank">Android</a>).</li>
-      <li style="margin-top:4px">In ntfy, tap <b>+</b>, paste this topic and tap <b>Subscribe</b>:
-        <div class="row" style="margin-top:6px"><code class="topic">${esc(a.topic)}</code>
-          <button class="small" data-action="copy-topic">Copy</button></div></li>
-      <li style="margin-top:6px"><button class="small" data-action="alerts-test" ${S.busy.alertTest ? 'disabled' : ''}>
-        ${S.busy.alertTest ? '<span class="spin"></span>Sending…' : 'Send a test alert'}</button></li>
-    </ol>
-    <div class="setting" style="margin-top:12px"><div><div class="label">Also tell me about changes</div>
-        <div class="hint">Lineups saved and claims submitted, not just problems</div></div>
-      <label class="switch sm"><input type="checkbox" data-action="alerts-changes" ${a.changes ? 'checked' : ''}>
-        <span class="slider"></span></label></div>
-    <div class="fine">Alerts go through ntfy.sh, a free public service. Anyone who knows this topic could read them, so
-      keep it to yourself. They only contain league and player names.</div></div>`;
-}
-
 function skeletonCards() {
   return [1, 2].map(() => `<div class="card"><div class="skeleton" style="width:40%"></div>
     <div class="skeleton"></div><div class="skeleton" style="width:80%"></div><div class="skeleton" style="width:60%"></div>
@@ -565,6 +533,9 @@ function leagueCard(lg) {
       <h2>${esc(lg.name)}</h2>
     </div>
     <div class="chips">${lg.flags.map((f, i) => `<span class="chip ${i < 2 ? 'accent' : ''}">${esc(f)}</span>`).join('')}</div>
+    ${lg.safety && lg.safety.length ? `<div class="banner bad"><b>Safety check: this plan looks wrong, so nothing in this
+      league is changed (automatically or with the buttons) until it's fixed.</b>
+      <ul style="margin:6px 0 0;padding-left:18px">${lg.safety.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
     ${lg.notes.map((n) => `<div class="banner info">${esc(n)}</div>`).join('')}
     ${lg.lineup ? lineupSection(lg) : ''}
     ${lg.waivers ? waiverSection(lg) : ''}
@@ -779,22 +750,7 @@ document.addEventListener('click', async (ev) => {
           : f.claims.some((c) => c.error) ? 'Some pickups failed' : 'Free agents added');
     loadDashboard();
   }
-  if (a === 'alerts-on') {
-    S.state = await busy('alerts', () => api('saveAlerts', { on: true }));
-    render(); toast('Alerts on: now subscribe in the ntfy app');
-  }
-  if (a === 'alerts-off') {
-    if (!confirm('Turn phone alerts off?')) return;
-    S.state = await busy('alerts', () => api('saveAlerts', { on: false }));
-    render(); toast('Alerts off');
-  }
-  if (a === 'alerts-test') {
-    await busy('alertTest', () => api('testAlert'));
-    toast('Test alert sent: it should show up in ntfy within seconds');
-  }
-  if (a === 'copy-topic') {
-    navigator.clipboard.writeText(S.state.alerts.topic).then(() => toast('Topic copied'), () => toast('Long-press the topic to copy it'));
-  }
+
   if (a === 'keep') {
     const lg = S.dash && S.dash.leagues.find((l) => l.id === id);
     const pid = el.dataset.player;
@@ -844,11 +800,6 @@ document.addEventListener('change', async (ev) => {
     S.state = await busy('mode', () => api('setMode', mode));
     render();
     toast(mode === 'auto' ? 'Autopilot on' : 'Autopilot paused');
-    return;
-  }
-  if (el.dataset.action === 'alerts-changes') {
-    S.state = await api('saveAlerts', { changes: el.checked });
-    toast('Saved');
     return;
   }
   if (el.dataset.setting) {

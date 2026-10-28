@@ -1,12 +1,12 @@
 name: Sleeper autopilot canary
 
-# Tuesday (before waiver claims go in) and Saturday (before Sunday's games): plan
-# the leagues from live data with the current code, writing nothing. A failure
-# means FantasyPros or Sleeper changed something the app relies on; GitHub emails
-# you when a scheduled run fails. The log shows only pass/fail, no lineups.
+# Every day: plan the leagues from live data with the current code, writing
+# nothing, and apply the app's safety rules to every plan. A failure means a
+# planning bug or that FantasyPros or Sleeper changed something the app relies on;
+# GitHub emails you when a scheduled run fails. The log shows only pass/fail.
 on:
   schedule:
-    - cron: "17 13 * * 2,6"
+    - cron: "17 13 * * *"
   workflow_dispatch:
 
 permissions:

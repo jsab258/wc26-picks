@@ -1,4 +1,4 @@
-// Early warning, run twice a week by .github/workflows/sleeper-autopilot-canary.yml:
+// Early warning, run every day by .github/workflows/sleeper-autopilot-canary.yml:
 // plans every league of SLEEPER_USERNAME with this repo's Code.gs against live data
 // and fails if anything errors or the data looks broken (FantasyPros or Sleeper
 // changed their format). It never logs in, writes nothing, and prints no lineups
@@ -8,9 +8,14 @@ const { loadGas } = require('./gas-stub');
 
 const username = process.env.SLEEPER_USERNAME || 'jsab258';
 const problems = [];
-const gas = loadGas({ gql: () => { throw new Error('the canary never talks to Sleeper GraphQL'); } });
+// Only the public league_players read (who's still on waivers) may reach Sleeper's GraphQL.
+const gas = loadGas({ gql: (body) => {
+  if (/^\s*query league_players\(/.test(body.query)) return undefined;  // sent for real, without a login
+  throw new Error('the canary never talks to Sleeper GraphQL beyond league_players');
+} });
 gas.pendingWaivers_ = () => [];  // private (needs a login); the plan just assumes none
-gas.waiverClears_ = () => ({});   // likewise: every unrostered player counts as a free agent
+const clears = gas.waiverClears_;
+gas.waiverClears_ = (token, leagueId) => clears(null, leagueId);
 gas.setStarters_ = gas.submitClaim_ = () => { throw new Error('the canary never writes'); };
 
 const user = gas.sleeper_('/user/' + username);
@@ -50,6 +55,9 @@ for (const lg of dash.leagues) {
     if (lg.freeAgents.error) problems.push(`${lg.name} free agents: ${lg.freeAgents.error}`);
     parts.push('free agents ' + (lg.freeAgents.error ? 'FAILED' : lg.freeAgents.waiting ? 'waiting for waivers' : 'ok'));
   }
+  // The same safety rules the app applies before changing anything.
+  (lg.safety || []).forEach((x) => problems.push(`${lg.name} safety check: ${x}`));
+  parts.push('safety ' + ((lg.safety || []).length ? 'FAILED' : 'ok'));
   console.log(`${lg.name}: ${parts.join(', ')}`);
 }
 if (!dash.leagues.length) problems.push('no leagues found for ' + username);
