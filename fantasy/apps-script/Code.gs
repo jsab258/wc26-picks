@@ -1382,30 +1382,6 @@ function keepPositions_(slots, current, starters, openIdx) {
 // ===================================================================
 
 /**
- * True if the empty starting spots ``after`` a move (slot names) are no worse than ``before``:
- * each matches a different spot from before that was at least as hard to fill. A FLEX spot
- * for an RB spot is fine; a QB spot for a FLEX spot, or one more empty spot, isn't.
- */
-function noWorseHoles_(after, before) {
-  if (after.length > before.length) return false;
-  var easier = function (a, b) {  // anyone who could fill b could fill a
-    return SLOT_ELIGIBILITY[b].every(function (pos) { return SLOT_ELIGIBILITY[a].indexOf(pos) >= 0; });
-  };
-  var used = {};
-  var match = function (i) {
-    if (i === after.length) return true;
-    for (var j = 0; j < before.length; j++) {
-      if (used[j] || !easier(after[i], before[j])) continue;
-      used[j] = true;
-      if (match(i + 1)) return true;
-      used[j] = false;
-    }
-    return false;
-  };
-  return match(0);
-}
-
-/**
  * Best free agent first; each claim drops the weakest player it clearly beats.
  * Position minimums count healthy players only (an Out WR doesn't fill a WR spot),
  * and past o.maxDepth (e.g. a 4th QB in superflex) a pickup may only replace a
@@ -1769,6 +1745,68 @@ League_.prototype.weekHoles = function (roster, current, locked, kickoff) {
   return out;
 };
 
+/**
+ * True if ``after`` fills this week's starting spots at least as well as ``before`` (with
+ * ``fills``: better): it fills as many, and still as many once up to three players of any
+ * positions are added, so trading the only QB who plays for a flex player counts as worse.
+ * It counts spots that can be filled rather than looking at which one ends up empty, so it
+ * doesn't depend on which of two equal lineups is picked. Locked players stay put.
+ */
+League_.prototype.noWorseWeek = function (before, after, current, locked, kickoff, fills) {
+  var self = this;
+  locked = locked || {};
+  current = current || [];
+  var slots = this.slots.filter(function (slot) { return !!SLOT_ELIGIBILITY[slot]; });
+  var positions = [];
+  slots.forEach(function (slot) {
+    SLOT_ELIGIBILITY[slot].forEach(function (pos) { if (positions.indexOf(pos) < 0) positions.push(pos); });
+  });
+  var shape = function (roster) {
+    var on = {}, open = [], filled = 0;
+    roster.forEach(function (p) { on[p] = true; });
+    self.slots.forEach(function (slot, i) {
+      if (!SLOT_ELIGIBILITY[slot]) return;
+      var p = current[i];
+      if (p && p !== EMPTY && locked[p] && on[p]) filled++; else open.push(slot);
+    });
+    var players = roster.filter(function (p) { return !locked[p] && !self.whyOut(p, kickoff); }).map(function (p) {
+      return open.map(function (slot, j) { return self.eligible(p, slot) ? j : -1; }).filter(function (j) { return j >= 0; });
+    });
+    return { open: open, filled: filled, players: players };
+  };
+  var count = function (sh, extra) {  // most spots filled, with extra players of these positions
+    var players = sh.players.concat(extra.map(function (pos) {
+      return sh.open.map(function (slot, j) { return SLOT_ELIGIBILITY[slot].indexOf(pos) >= 0 ? j : -1; })
+        .filter(function (j) { return j >= 0; });
+    }));
+    var match = {};  // open spot -> player (augmenting paths)
+    var assign = function (pi, seen) {
+      return players[pi].some(function (j) {
+        if (seen[j]) return false;
+        seen[j] = true;
+        if (match[j] === undefined || assign(match[j], seen)) { match[j] = pi; return true; }
+        return false;
+      });
+    };
+    var n = sh.filled;
+    for (var i = 0; i < players.length; i++) if (assign(i, {})) n++;
+    return n;
+  };
+  var b = shape(before), a = shape(after), nb = count(b, []), na = count(a, []);  // b/a: before/after
+  if (fills ? na <= nb : na < nb) return false;
+  var holes = slots.length - nb;
+  if (!holes) return true;
+  // Every mix of up to three added players (as many as there are empty spots).
+  var extras = [[]];
+  for (var k = 0; k < Math.min(holes, 3); k++) {
+    extras = extras.concat(extras.filter(function (x) { return x.length === k; }).reduce(function (all, x) {
+      var from = x.length ? positions.indexOf(x[x.length - 1]) : 0;
+      return all.concat(positions.slice(from).map(function (p) { return x.concat([p]); }));
+    }, []));
+  }
+  return extras.every(function (x) { return !x.length || count(a, x) >= count(b, x); });
+};
+
 League_.prototype.minimums = function () {
   var c = {};
   this.slots.forEach(function (s) { c[s] = (c[s] || 0) + 1; });
@@ -2022,15 +2060,15 @@ League_.prototype.planWaivers = function (opts) {
    * must also fill one of the empty spots.
    */
   var noNewHoles = function (fills) {
+    var noWorse = function (before, after, better) {
+      return self.noWorseWeek(before, after, fa ? lp.current : [], locked, kickoff, better);
+    };
     return function (add, drop, inner) {
+      if (!weekMatters) return true;
       var move = [{ add: add, drop: drop }], prior = claims.concat(inner || []);
-      var before = holesOf(weekRoster(prior)).map(function (h) { return h.slot; });
-      var after = holesOf(weekRoster(prior.concat(move))).map(function (h) { return h.slot; });
-      if (fills && after.length >= before.length) return false;
-      if (!noWorseHoles_(after, before)) return false;
-      if (!prior.length) return true;
-      var alone = holesOf(weekRoster(move)).map(function (h) { return h.slot; });
-      return noWorseHoles_(alone, holesOf(weekRoster([])).map(function (h) { return h.slot; }));
+      if (!noWorse(weekRoster(prior), weekRoster(prior.concat(move)), fills)) return false;
+      // And on its own: the moves before it, and claims pending on Sleeper, may not go through.
+      return noWorse(mine, withMoves(mine, move), false);
     };
   };
   var upgrade = function (cands, max, mustFill) {
@@ -2288,10 +2326,8 @@ function checkPlans_(lg, res) {
       // Players whose game has started stay where they are: in the lineup or on the bench.
       var lockedNow = {}, startersNow = (L && L.current) || (lg.roster.starters || []).slice();
       Object.keys(mine).forEach(function (p) { if (locked(p)) lockedNow[p] = true; });
-      var holes = function (roster) {
-        return lg.weekHoles(roster, startersNow, lockedNow, kickoff).map(function (h) { return h.slot; });
-      };
-      var week = Object.keys(mine);
+      var noWorse = function (before, after) { return lg.noWorseWeek(before, after, startersNow, lockedNow, kickoff, false); };
+      var week0 = Object.keys(mine), week = week0;
       if (!F) {  // before the waiver run, pending claims go through with the plan's
         pending.forEach(function (t) {
           week = week.filter(function (p) { return !(t.drops || {})[p]; }).concat(Object.keys(t.adds || {}));
@@ -2300,11 +2336,11 @@ function checkPlans_(lg, res) {
       var apply = function (roster, c) {
         return roster.filter(function (p) { return !c.drop || p !== c.drop.id; }).concat([c.add.id]);
       };
-      // Each move on its own and after the ones before it (any of them can fail).
+      // Each move after the ones before it, and on its own (they and pending claims can fail).
       var sofar = week, opens = false;
       moves.forEach(function (c) {
         var next = apply(sofar, c);
-        if (!noWorseHoles_(holes(next), holes(sofar)) || !noWorseHoles_(holes(apply(week, c)), holes(week))) opens = true;
+        if (!noWorse(sofar, next) || !noWorse(week0, apply(week0, c))) opens = true;
         sofar = next;
       });
       if (opens) out.push('These moves would leave a starting spot this week with nobody who can play.');

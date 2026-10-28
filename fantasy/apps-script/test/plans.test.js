@@ -392,3 +392,62 @@ test('safety: no false alarm when a locked bench player could have filled the sp
   assert.ok(!drops(lg.freeAgents).includes('qb2'), JSON.stringify(claims(lg.freeAgents)));
   assert.deepEqual(plain(lg.safety), []);
 });
+
+// ---- Third review: ties between equal lineups, claims already pending before the run ------
+
+test('the verdict on a move doesn\'t depend on lineup layout or roster order (no false safety block)', () => {
+  // mx (RB/WR) is the only player who can take the second RB or the second WR spot this week,
+  // so either one is "the empty spot". Claims Tuesday, before the waiver run.
+  const spec = (mxAt, order, fa) => {
+    const s = tuesday(base());
+    Object.assign(s.players, { mx: ['mx', 'WR', 'BUF', null, ['RB', 'WR']], te2: ['te2', 'TE', 'GB', null, null], qb2: ['qb2', 'QB', 'SF', null, null] });
+    s.players.te1[3] = null;
+    s.players.rb2[3] = 'Out';
+    s.players.wr2[2] = 'BYE1'; s.players.rb3[2] = 'BYE1'; s.players.wr3[2] = 'BYE1';
+    s.positions = ['QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'FLEX', 'K', 'DEF', 'BN', 'BN', 'BN', 'BN'];
+    s.mine = order || ['qb1', 'rb1', 'rb2', 'wr1', 'wr2', 'te1', 'k1', 'DET', 'rb3', 'wr3', 'qb2', 'te2', 'mx'];
+    s.starters = ['qb1', 'rb1', mxAt === 'RB' ? 'mx' : 'rb2', 'wr1', mxAt === 'WR' ? 'mx' : 'wr2', 'te1', 'te2', 'k1', 'DET'];
+    s.others = [['p1', 'p2', 'p3', fa === 'wr' ? 'rb_fa' : 'wr_fa', 'te_fa']];
+    s.weekly['ppr-flex'] = s.weekly['ppr-flex'].map((r) => (['wr2', 'rb3', 'wr3'].includes(r[0]) ? [r[0], r[1], r[2], null, true] : r))
+      .concat([['mx', 80, 'WR40'], ['te2', 60, 'TE10']]);
+    s.weekly.qb.push(['qb2', 20, 'QB20']);
+    s.ros['ros-ppr-overall'] = s.ros['ros-ppr-overall'].map((r) => (r[0] === 'rb3' ? ['rb3', 150, 'RB50'] : r[0] === 'wr3' ? ['wr3', 120, 'WR45'] : r))
+      .concat([['mx', 280, 'WR95'], ['te2', 200, 'TE16'], ['qb2', 100, 'QB14']]);
+    s.cfg = { max_claims: 2, stream_k_def: false };
+    return s;
+  };
+  const reversed = ['mx', 'qb1', 'rb1', 'rb2', 'wr1', 'wr2', 'te1', 'k1', 'DET', 'rb3', 'wr3', 'qb2', 'te2'];
+  for (const fa of ['rb', 'wr']) {
+    const seen = new Set();
+    for (const order of [null, reversed]) {
+      for (const at of ['RB', 'WR']) {
+        const lg = page(spec(at, order, fa));
+        assert.deepEqual(plain(lg.safety), [], `${fa} ${at} ${order ? 'reversed' : ''}`);
+        seen.add(JSON.stringify(claims(lg.waivers)));
+        const { gas } = build(spec(at, order, fa));
+        auto(gas, { max_claims: 2, stream_k_def: false });
+        gas.tick();
+        assert.notEqual(gas.getJson_('lastTick').status, 'error', gas.getJson_('lastTick').msg);
+      }
+    }
+    assert.equal(seen.size, 1, [...seen].join(' vs '));
+  }
+});
+
+test('before the waiver run, a new claim doesn\'t rely on a claim already pending on Sleeper', () => {
+  // te1 is Out and te2 is the only other TE who plays. A claim for te_fa is pending: if a
+  // rival wins it, dropping te2 would leave TE empty this week.
+  const s = tuesday(base());
+  s.players.te2 = ['te2', 'TE', 'GB', null, null];
+  s.mine = ['qb1', 'rb1', 'rb2', 'wr1', 'wr2', 'te1', 'k1', 'DET', 'rb3', 'te2'];
+  s.weekly['ppr-flex'].push(['te2', 85, 'TE20']);
+  s.ros['ros-ppr-overall'].push(['te2', 300, 'TE40']);
+  s.others = [['p1', 'p2', 'p3']];
+  s.pending = [{ adds: { te_fa: 1 }, drops: { rb3: 1 } }];
+  s.cfg = { max_claims: 2, stream_k_def: false };
+  const lg = page(s);
+  assert.ok(!drops(lg.waivers).includes('te2'), JSON.stringify(claims(lg.waivers)));
+  assert.deepEqual(plain(lg.safety), []);
+  const out = bad(s, (res, c) => { res.waivers.claims = [c('upgrade', 'wr_fa', 'te2')]; });
+  assert.ok(out.some((x) => /starting spot this week with nobody who can play/.test(x)), JSON.stringify(out));
+});
