@@ -63,21 +63,29 @@ redeploying, no extra Google permissions.
 
 ## What you see
 
-- **Status:** autopilot on/off, the last background check and what it did,
-  and when your Sleeper session expires.
+- **Status:** autopilot on/off, the last background check and what it did.
+- **A tab per league** (a dot marks one that needs you), and an **Activity** tab.
 - **Each league:** detected rules (PPR/half/standard, 1QB/superflex/2QB,
   FAAB, TE premium, 6-pt pass TD), plus:
+  - this week's matchup: every player's projected points for you and your
+    opponent, both totals and your chance of winning, for the lineups as set
+    or the best ones. During games it shows live points plus the projection
+    for the time left, refreshing every 2 minutes while the page is open;
   - this week's best lineup, with injured or bye starters flagged and new
     starters marked **IN**, and an **Apply now** button;
   - the waiver plan (add / drop / FAAB bid) with **Submit claims now**;
   - after Wednesday's waiver run, the free agents to pick up now, with
     **Add now**;
-  - a ☆ next to each player: tap it to never let the waiver plan drop him;
+  - a ☆ next to each player: tap it to never let the waiver plan drop him
+    (or trade him);
+  - trade ideas with every other team (**Find trades**), and **Offer on
+    Sleeper** to send one;
   - settings: auto lineup, auto claims and free agents, K/DEF streaming,
     bye/injury fill-ins, superflex QB lean, upgrades per week, minimum upgrade.
 - **Safety check:** if a plan ever breaks one of the app's safety rules (a bug),
   the league card says so in red and nothing in that league is changed until it's fixed.
-- **Activity:** every change the autopilot or you made, and any errors.
+- **Activity:** every change the autopilot or you made, any errors, and the
+  background check schedule.
 
 ## How it decides
 
@@ -109,6 +117,19 @@ redeploying, no extra Google permissions.
   - Claims go in the evening before your waiver day: for your leagues,
     Tuesday from 16:00 UTC, ahead of Sleeper's Wednesday ~07:10 UTC run. They are
     never repeated.
+- **Matchup projections:** Sleeper's own weekly projections, scored with
+  the league's scoring settings (so 6-point passing TDs count), and Sleeper's
+  live points. The win chance assumes a typical weekly swing that shrinks as
+  the games are played.
+- **Trades:** each player is worth rough points per game from the same
+  rest-of-season values the waiver plan uses. A trade's worth to a team is how
+  much it raises that team's best lineup in every remaining week (bye weeks
+  included, the best free agent filling any gap, playoff weeks counting half).
+  The finder tries one-for-one, two-for-one and one-for-two trades with every
+  team and keeps those where both teams gain and you gain more. Starred players
+  are never offered, it never takes you over the roster limit, and it marks
+  teams in a playoff spot and your opponent this week. Offers go out only when
+  you tap the button, the way sleeper.com sends them; the autopilot never trades.
 - **Background checks:** every 30 minutes, but they only do something when
   games are less than 30 hours away or claims are due; otherwise they don't
   download anything. Sleeper's player list (injury news) refreshes every 6

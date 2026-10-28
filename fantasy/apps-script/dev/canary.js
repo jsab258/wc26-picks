@@ -14,9 +14,10 @@ const gas = loadGas({ gql: (body) => {
   throw new Error('the canary never talks to Sleeper GraphQL beyond league_players');
 } });
 gas.pendingWaivers_ = () => [];  // private (needs a login); the plan just assumes none
+gas.pendingTrades_ = () => [];   // the same for open trade offers
 const clears = gas.waiverClears_;
 gas.waiverClears_ = (token, leagueId) => clears(null, leagueId);
-gas.setStarters_ = gas.submitClaim_ = () => { throw new Error('the canary never writes'); };
+gas.setStarters_ = gas.submitClaim_ = gas.addFreeAgent_ = gas.proposeTrade_ = () => { throw new Error('the canary never writes'); };
 
 const user = gas.sleeper_('/user/' + username);
 if (!user) throw new Error('Sleeper user not found: ' + username);
@@ -54,6 +55,19 @@ for (const lg of dash.leagues) {
   if (lg.freeAgents) {
     if (lg.freeAgents.error) problems.push(`${lg.name} free agents: ${lg.freeAgents.error}`);
     parts.push('free agents ' + (lg.freeAgents.error ? 'FAILED' : lg.freeAgents.waiting ? 'waiting for waivers' : 'ok'));
+  }
+  const M = lg.matchup;
+  if (M) {
+    if (M.error) problems.push(`${lg.name} matchup: ${M.error}`);
+    else if (!M.none && !(M.me && M.me.current.total > 0)) problems.push(`${lg.name} matchup: no projected points`);
+    parts.push('matchup ' + (M.error ? 'FAILED' : M.none ? 'none this week' : 'ok'));
+  }
+  try {
+    const T = gas.findTrades(lg.id, {});
+    parts.push('trades ' + (T.closed ? 'closed' : 'ok'));
+  } catch (e) {
+    problems.push(`${lg.name} trade finder: ${e.message}`);
+    parts.push('trades FAILED');
   }
   // The same safety rules the app applies before changing anything.
   (lg.safety || []).forEach((x) => problems.push(`${lg.name} safety check: ${x}`));

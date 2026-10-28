@@ -17,6 +17,7 @@
 
 var SLEEPER_REST = 'https://api.sleeper.app/v1';
 var SLEEPER_GQL = 'https://api.sleeper.app/graphql';
+var SLEEPER_API = 'https://api.sleeper.com';  // projections and live game scores (read-only, no login)
 var FP_BASE = 'https://www.fantasypros.com/nfl/rankings/';
 var DP_IDS_URL = 'https://raw.githubusercontent.com/dynastyprocess/data/master/files/db_playerids.csv';
 
@@ -58,6 +59,10 @@ var LATE_FLEX = 0.4;     // flex slots: up to this many ECR spots for a later ki
 var QUESTIONABLE = 2;    // a Questionable player must rank this many spots better than a healthy one
 var TD6_QB_LEAN = 10;    // 6-pt passing TDs (ECR assumes 4): extra superflex QB lean, in ECR spots
 var TD6_QB_VALUE = 0.85; // ...and QB waiver values count this much of their ECR rank (lower is better)
+// Trade finder: a rest-of-season value v (an ECR-like rank) is worth roughly TOP - SLOPE * ln(v) points a
+// game (never below FLOOR); kickers and defenses use their position rank.
+var PPG_TOP = 24, PPG_SLOPE = 2.6, PPG_FLOOR = 4;
+var KD_TOP = 9, KD_SLOPE = 1.1, KD_FLOOR = 3;
 var INELIGIBLE = 1e9;
 var EMPTY_COST = 1e6;
 var TEAM_ALIASES = { JAC: 'JAX', WSH: 'WAS', LVR: 'LV', OAK: 'LV', LA: 'LAR', STL: 'LAR', SD: 'LAC' };
@@ -103,7 +108,10 @@ function getDashboard() {
   var leagues = myLeagues_(ctx, user.user_id).map(function (data) {
     var cfg = leagueCfg_(s, data.league_id);
     try {
-      return new League_(ctx, data, user.user_id, cfg).evaluate({ lineup: true, waivers: true, freeAgents: true });
+      var lg = new League_(ctx, data, user.user_id, cfg);
+      var res = lg.evaluate({ lineup: true, waivers: true, freeAgents: true });
+      if (lg.roster && data.status === 'in_season') res.matchup = matchupOrError_(lg);
+      return res;
     } catch (e) {
       if (e.expired) throw e;
       // One league failing to load (e.g. Sleeper erroring on its rosters) mustn't hide the others.
@@ -182,6 +190,43 @@ function addFreeAgents(leagueId, shown) {
       if (!blocked_(res)) lg.applyFreeAgents(res, 'manual');
       return res;
     });
+  });
+}
+
+/** Just this week's matchups: the page refreshes them every couple of minutes while games are on. */
+function getMatchups() {
+  var token = requireToken_();
+  var ctx = new Ctx_(token);
+  var s = settings_();
+  var user = getJson_('user', {});
+  return myLeagues_(ctx, user.user_id).filter(function (d) { return d.status === 'in_season'; }).map(function (data) {
+    var lg = new League_(ctx, data, user.user_id, leagueCfg_(s, data.league_id));
+    return { id: data.league_id, matchup: lg.roster ? matchupOrError_(lg) : null };
+  });
+}
+
+function matchupOrError_(lg) {
+  try {
+    return lg.matchup();
+  } catch (e) {
+    if (e.expired) throw e;
+    return { error: String(e.message || e) };
+  }
+}
+
+/** Trade ideas for one league, plus the offers already open on Sleeper. Nothing is sent. */
+function findTrades(leagueId, opts) {
+  return withLeague_(leagueId, function (lg) { return lg.findTrades(opts || {}); });
+}
+
+/**
+ * Send one trade offer on Sleeper: ``offer`` is {rosterId, give: [ids], get: [ids]} as the page
+ * showed it. Checked against the fresh rosters first; never sent by the autopilot.
+ */
+function proposeTrade(leagueId, offer) {
+  if (!offer || !offer.give || !offer.get) throw new Error('Reload the page and try again.');
+  return withLock_(function () {
+    return withLeague_(leagueId, function (lg) { return lg.proposeTrade(offer); });
   });
 }
 
@@ -761,7 +806,8 @@ function removeUpdate() {
  */
 var PUBLIC_API = ['getState', 'getDashboard', 'setMode', 'saveLeagueSettings', 'applyLineup', 'submitClaims',
                   'runNow', 'login', 'verifyCode', 'connectWithToken', 'logout', 'checkForUpdate',
-                  'installUpdate', 'removeUpdate', 'saveAlerts', 'testAlert', 'addFreeAgents'];
+                  'installUpdate', 'removeUpdate', 'saveAlerts', 'testAlert', 'addFreeAgents', 'getMatchups',
+                  'findTrades', 'proposeTrade'];
 
 function call(name, args) {
   if (PUBLIC_API.indexOf(name) < 0 || typeof GLOBAL_[name] !== 'function') throw new Error('Unknown action: ' + name);
@@ -1034,6 +1080,108 @@ function waiverClears_(token, leagueId) {
   return out;
 }
 
+/** Trade offers open on Sleeper that involve this roster (sent or received). */
+function pendingTrades_(token, leagueId, rosterId) {
+  var q = 'query league_transactions_filtered($leagueId: String!, $rosterIdFilters: [Int], $typeFilters: [String],' +
+    ' $legFilters: [Int], $statusFilters: [String], $limit: Int) { league_transactions_filtered(league_id: $leagueId,' +
+    ' roster_id_filters: $rosterIdFilters, type_filters: $typeFilters, leg_filters: $legFilters,' +
+    ' status_filters: $statusFilters, limit: $limit) { transaction_id type status roster_ids adds drops creator created } }';
+  return gql_(q, { leagueId: leagueId, rosterIdFilters: [rosterId], typeFilters: ['trade'], legFilters: [],
+                   statusFilters: ['proposed'], limit: 50 }, token).league_transactions_filtered || [];
+}
+
+/**
+ * Offer a trade, as sleeper.com's trade screen does: every player is added to the roster
+ * getting him and dropped from the one giving him up. The other manager accepts or not on Sleeper.
+ */
+function proposeTrade_(token, leagueId, myRid, theirRid, give, get) {
+  var q = 'mutation propose_trade($k_adds: [String], $v_adds: [Int], $k_drops: [String], $v_drops: [Int]) {' +
+    ' propose_trade(league_id: "' + String(leagueId).replace(/\D/g, '') + '", k_adds: $k_adds, v_adds: $v_adds,' +
+    ' k_drops: $k_drops, v_drops: $v_drops) { transaction_id status type adds drops roster_ids } }';
+  var players = get.concat(give);
+  var to = get.map(function () { return myRid; }).concat(give.map(function () { return theirRid; }));
+  var from = get.map(function () { return theirRid; }).concat(give.map(function () { return myRid; }));
+  var t = gql_(q, { k_adds: players, v_adds: to, k_drops: players, v_drops: from }, token, 1).propose_trade;
+  if (!t || !t.transaction_id || (t.status && t.status !== 'proposed')) {
+    throw new Error("Sleeper didn't accept the trade offer" + (t && t.status ? ' (' + t.status + ')' : '') + '.');
+  }
+  return t;
+}
+
+/** Display name (and avatar) of each manager in a league, by user id. */
+function leagueUsers_(leagueId) {
+  return cached_('users:' + leagueId, 3600, function () {
+    var out = {};
+    (sleeper_('/league/' + leagueId + '/users') || []).forEach(function (u) {
+      out[u.user_id] = { name: u.display_name || 'Unknown', avatar: u.avatar || null };
+    });
+    return out;
+  });
+}
+
+/** Projected points per player for NFL ``week``: Sleeper's projections, scored with these rules. */
+function projectedPoints_(leagueId, scoring, season, week) {
+  return cachedFresh_('proj:' + leagueId + ':' + season + ':' + week, 3600, function () {
+    var pos = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'].map(function (x) { return '&position%5B%5D=' + x; }).join('');
+    var r = fetch_(SLEEPER_API + '/projections/nfl/' + season + '/' + week + '?season_type=regular' + pos);
+    if (r.code !== 200) throw new Error('Sleeper projections failed (HTTP ' + r.code + ')');
+    var out = {};
+    JSON.parse(r.text).forEach(function (e) {
+      var pts = scorePoints_(e.stats || {}, scoring);
+      if (pts) out[e.player_id] = Math.round(pts * 10) / 10;
+    });
+    return out;
+  });
+}
+
+/** Fantasy points for a stat line under a league's scoring_settings (stat -> points per unit). */
+function scorePoints_(stats, scoring) {
+  var t = 0;
+  Object.keys(stats).forEach(function (k) { if (scoring[k]) t += Number(stats[k]) * scoring[k]; });
+  return t;
+}
+
+/** This week's games by NFL team: {status: 'pre' | 'in' | 'post', left: share still to play, clock}. */
+function gameStates_(season, week) {
+  return cached_('games:' + season + ':' + week, 60, function () {
+    var r = fetch_(SLEEPER_API + '/scores/nfl/regular/' + season + '/' + week);
+    if (r.code !== 200) throw new Error('Sleeper scores failed (HTTP ' + r.code + ')');
+    var out = {};
+    (JSON.parse(r.text) || []).forEach(function (g) {
+      var m = g.metadata || {};
+      var status = m.is_over || g.status === 'complete' ? 'post'
+        : m.is_in_progress || m.has_started || g.status === 'in_progress' ? 'in' : 'pre';
+      var info = { status: status, left: status === 'pre' ? 1 : status === 'post' ? 0 : gameLeft_(m.quarter_num, m.time_remaining),
+                   clock: status === 'in' ? [m.quarter, m.time_remaining].filter(Boolean).join(' ') : null };
+      [m.home_team || g.home, m.away_team || g.away].forEach(function (t) { if (t) out[normTeam_(t)] = info; });
+    });
+    return out;
+  });
+}
+
+/** Share of regulation still to play from the quarter (5+: overtime) and its clock ("MM:SS"). */
+function gameLeft_(quarter, clock) {
+  var q = Number(quarter) || 1;
+  if (q > 4) return 0.02;
+  var m = /^(\d+):(\d+)/.exec(String(clock || ''));
+  var sec = m ? Math.min(900, Number(m[1]) * 60 + Number(m[2])) : 900;
+  return Math.max(0, Math.min(1, ((4 - q) * 900 + sec) / 3600));
+}
+
+/** Chance the first team outscores the second (a weekly swing of ~2.3 x sqrt(points still to come)). */
+function winChance_(a, aLeft, b, bLeft) {
+  var sd = Math.sqrt(5.3 * (Math.max(0, aLeft) + Math.max(0, bLeft)));
+  if (sd < 0.5) return a > b ? 1 : a < b ? 0 : 0.5;
+  return normCdf_((a - b) / sd);
+}
+
+function normCdf_(x) {  // Abramowitz & Stegun 7.1.26
+  var t = 1 / (1 + 0.3275911 * Math.abs(x) / Math.SQRT2);
+  var erf = 1 - ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t *
+    Math.exp(-x * x / 2);
+  return x >= 0 ? 0.5 * (1 + erf) : 0.5 * (1 - erf);
+}
+
 /** Players this roster picked up in the last 7 days (claims or free agents): id -> epoch ms. */
 function recentAdds_(leagueId, rosterId, leg, nowMs) {
   var out = {};
@@ -1256,6 +1404,18 @@ Ctx_.prototype.ranksRaw_ = function (slug) { return fpList_(slug); };
 Ctx_.prototype.ranks = function (slug) {
   if (!this.lists[slug]) this.lists[slug] = new RankList_(fpList_(slug), this.idmap, this.now);
   return this.lists[slug];
+};
+
+/** Bye week of every NFL team, from FantasyPros' rest-of-season lists. */
+Ctx_.prototype.byes = function () {
+  if (!this._byes) {
+    var out = {};
+    [FP.ROS.PPR, FP.ROS_K, FP.ROS_DST].forEach(function (slug) {
+      this.ranksRaw_(slug).players.forEach(function (row) { if (Number(row[6])) out[normTeam_(row[3])] = Number(row[6]); });
+    }, this);
+    this._byes = out;
+  }
+  return this._byes;
 };
 
 function myLeagues_(ctx, userId) {
@@ -1482,6 +1642,7 @@ function League_(ctx, data, userId, cfg) {
   this.faab = this.settings.waiver_type === 2;
   this.rolling = this.settings.waiver_type === 0;  // a successful claim sends you to the back of the line
   this.passTd6 = Number((data.scoring_settings || {}).pass_td || 4) >= 6;
+  this.userId = userId;
   this.rosters = sleeper_('/league/' + this.id + '/rosters', true);
   this.roster = this.rosters.filter(function (r) {
     return r.owner_id === userId || (r.co_owners || []).indexOf(userId) >= 0;
@@ -1538,6 +1699,30 @@ League_.prototype.team = function (pid) { return this.pos(pid) === 'DEF' ? pid :
 League_.prototype.eligible = function (pid, slot) {
   var ok = SLOT_ELIGIBILITY[slot];
   return this.positions(pid).some(function (x) { return ok.indexOf(x) >= 0; });
+};
+
+/** Rest-of-season value of a QB/RB/WR/TE (an ECR-like rank, lower is better), or null. */
+League_.prototype.rosValueFn_ = function () {
+  var self = this, ros = this.ctx.ranks(FP.ROS[this.fmt]);
+  var template = this.qbPremium ? superflexTemplate_(this.weeklyList('QB'), this.ctx.players) : null;
+  return function (pid) {
+    var pos = self.pos(pid), r = ros.get(pid);
+    if (SKILL.indexOf(pos) < 0 || !r) return null;
+    var v = r.rank;
+    if (template) {
+      var m = /(\d+)$/.exec(r.posRank || '');
+      v = templateValue_(template, pos, m ? Number(m[1]) : null);
+    }
+    return v !== null && pos === 'QB' && self.passTd6 ? v * TD6_QB_VALUE : v;
+  };
+};
+
+/** The same league seen from another roster (e.g. this week's opponent). */
+League_.prototype.forRoster = function (roster) {
+  var lg = Object.create(League_.prototype);
+  for (var k in this) if (Object.prototype.hasOwnProperty.call(this, k) && k.charAt(0) !== '_') lg[k] = this[k];
+  lg.roster = roster;
+  return lg;
 };
 
 League_.prototype.activePlayers = function () {
@@ -1894,17 +2079,7 @@ League_.prototype.planWaivers = function (opts) {
   // Players you just picked up need twice the usual gain to be dropped again.
   var recent = this.recent_();
   var ros = ctx.ranks(FP.ROS[this.fmt]);
-  var template = this.qbPremium ? superflexTemplate_(this.weeklyList('QB'), ctx.players) : null;
-  var value = function (pid) {
-    var pos = self.pos(pid), r = ros.get(pid);
-    if (SKILL.indexOf(pos) < 0 || !r) return null;
-    var v = r.rank;
-    if (template) {
-      var m = /(\d+)$/.exec(r.posRank || '');
-      v = templateValue_(template, pos, m ? Number(m[1]) : null);
-    }
-    return v !== null && pos === 'QB' && self.passTd6 ? v * TD6_QB_VALUE : v;
-  };
+  var value = this.rosValueFn_();
   var keep = this.neverDrop();
   var mine = this.activePlayers();
   var slotCount = {};
@@ -2425,4 +2600,335 @@ League_.prototype.applyClaims = function (res, who) {
   });
   log_({ level: w.claims.some(function (c) { return c.error; }) ? 'error' : 'change', league: this.name,
          title: 'Waiver claims submitted (' + who + ')', lines: lines });
+};
+
+// ===================================================================
+// Matchup: projections and live points
+// ===================================================================
+
+/**
+ * This week's matchup: both lineups with Sleeper's projections (in this league's scoring),
+ * live points once games start, and the lineup the autopilot would set for each side.
+ */
+League_.prototype.matchup = function () {
+  var self = this, ctx = this.ctx, week = Number(ctx.state.week), season = ctx.state.league_season;
+  var ms = [];
+  try { ms = sleeper_('/league/' + this.id + '/matchups/' + week, true) || []; } catch (e) { /* no games this week */ }
+  var mine = ms.filter(function (m) { return m.roster_id === self.roster.roster_id; })[0];
+  if (!mine || mine.matchup_id == null) return { week: week, none: 'No matchup this week.' };
+  var theirs = ms.filter(function (m) { return m.matchup_id === mine.matchup_id && m.roster_id !== mine.roster_id; })[0];
+  var oppRoster = theirs ? this.rosters.filter(function (r) { return r.roster_id === theirs.roster_id; })[0] : null;
+  var proj = projectedPoints_(this.id, this.data.scoring_settings || {}, season, week);
+  var games = {};
+  try { games = gameStates_(season, week); } catch (e) { /* no live scores: projections only */ }
+  var haveGames = Object.keys(games).length > 0;
+  var kickoff = this.weekKickoffs(), users = leagueUsers_(this.id);
+  var r1 = function (x) { return Math.round(x * 10) / 10; };
+  var side = function (lg, m) {
+    var row = function (pid, slot) {
+      if (!pid || pid === EMPTY) return { slot: slot, id: EMPTY, name: '(empty)', proj: 0, pts: null, exp: 0, left: 0, status: 'empty' };
+      var g = games[lg.team(pid)], why = lg.whyOut(pid, kickoff);
+      var status = g ? g.status : haveGames || why === 'bye' ? 'bye' : 'pre';
+      var p = why || status === 'bye' ? 0 : proj[pid] || 0;  // out or on bye: nothing to expect
+      var pts = status === 'in' || status === 'post' ? Number((m.players_points || {})[pid] || 0) : null;
+      var left = status === 'in' ? p * g.left : status === 'pre' ? p : 0;
+      return lg.view(pid, null, { slot: slot, proj: r1(p), pts: pts === null ? null : r1(pts), exp: r1((pts || 0) + left),
+                                  left: r1(left), status: status, why: why, clock: status === 'in' ? g.clock : null,
+                                  kickoff: status === 'pre' ? lg.kickoffOf(pid, kickoff) || null : null });
+    };
+    var lineup = function (starters) {
+      var rows = lg.slots.map(function (slot, i) { return row(starters[i], slot); });
+      var total = 0, left = 0;
+      rows.forEach(function (x) { total += x.exp; left += x.left; });
+      return { rows: rows, total: r1(total), left: r1(left) };
+    };
+    var plan = null;
+    try { plan = lg.planLineup(); } catch (e) { if (e.expired) throw e; }
+    var u = users[lg.roster.owner_id] || {}, st = lg.roster.settings || {};
+    return { name: u.name || 'Team ' + lg.roster.roster_id, avatar: u.avatar || null,
+             record: (st.wins || 0) + '-' + (st.losses || 0) + (st.ties ? '-' + st.ties : ''),
+             current: lineup((m.starters && m.starters.length ? m.starters : lg.roster.starters) || []),
+             best: plan && plan.starters ? lineup(plan.starters) : null };
+  };
+  var me = side(this, mine), opp = oppRoster ? side(this.forRoster(oppRoster), theirs) : null;
+  var chance = function (a, b) { return a && b ? Math.round(100 * winChance_(a.total, a.left, b.total, b.left)) : null; };
+  var rows = me.current.rows.concat(opp ? opp.current.rows : []);
+  var next = rows.map(function (x) { return x.kickoff; }).filter(function (k) { return k && k > ctx.now; });
+  return {
+    week: week, me: me, opp: opp,
+    win: { current: chance(me.current, opp && opp.current),
+           best: chance(me.best || me.current, opp && (opp.best || opp.current)) },
+    live: rows.some(function (x) { return x.status === 'in'; }),
+    started: rows.some(function (x) { return x.status === 'in' || x.status === 'post'; }),
+    nextKick: next.length ? Math.min.apply(null, next) : null,  // the page refreshes more often from shortly before
+    updated: Date.now(),
+  };
+};
+
+// ===================================================================
+// Trades
+// ===================================================================
+
+/** Roster spots that count toward the limit (IR and taxi don't). */
+function rosterLimit_(data) {
+  return (data.roster_positions || []).filter(function (s) { return s !== 'IR' && s !== 'TAXI'; }).length;
+}
+
+/** Standing of every roster: roster id -> place (1 = first), by wins and then points scored. */
+function standings_(rosters) {
+  var pts = function (r) { var s = r.settings || {}; return (s.fpts || 0) + (s.fpts_decimal || 0) / 100; };
+  var order = rosters.slice().sort(function (a, b) {
+    return ((b.settings || {}).wins || 0) - ((a.settings || {}).wins || 0) || pts(b) - pts(a);
+  });
+  var out = {};
+  order.forEach(function (r, i) { out[r.roster_id] = i + 1; });
+  return out;
+}
+
+/** True if any two slots' eligible positions are nested or disjoint (then the quick lineup is exact). */
+function laminarSlots_(slots) {
+  var sets = slots.filter(function (s) { return SLOT_ELIGIBILITY[s]; }).map(function (s) { return SLOT_ELIGIBILITY[s]; });
+  return sets.every(function (a) {
+    return sets.every(function (b) {
+      var n = a.filter(function (x) { return b.indexOf(x) >= 0; }).length;
+      return n === 0 || n === a.length || n === b.length;
+    });
+  });
+}
+
+/**
+ * Points of the best lineup from ``items`` ({pos: [position], v: points}): best player first,
+ * each into the narrowest open slot he fits. Exact when the slots are laminar and every player
+ * has one position.
+ */
+function greedyLineup_(slots, items) {
+  var open = slots.filter(function (s) { return SLOT_ELIGIBILITY[s]; }).map(function (s) { return SLOT_ELIGIBILITY[s]; });
+  var total = 0;
+  items.slice().sort(function (a, b) { return b.v - a.v; }).forEach(function (x) {
+    var best = -1;
+    open.forEach(function (el, j) {
+      if (el.indexOf(x.pos[0]) >= 0 && (best < 0 || el.length < open[best].length)) best = j;
+    });
+    if (best >= 0) { total += x.v; open.splice(best, 1); }
+  });
+  return total;
+}
+
+/** The same, for any slots and multi-position players (the full assignment). */
+function exactLineup_(slots, items) {
+  var ids = items.map(function (x, i) { return 'i' + i; });
+  var cost = function (id, slot) {
+    var x = items[Number(id.slice(1))];
+    return x.pos.some(function (p) { return SLOT_ELIGIBILITY[slot].indexOf(p) >= 0; }) ? 100 - x.v : null;
+  };
+  return optimize_(slots, [], ids, cost).starters.reduce(function (t, id) {
+    return t + (id === EMPTY ? 0 : items[Number(id.slice(1))].v);
+  }, 0);
+}
+
+/**
+ * The trade finder's view of the rest of the season: each player's rough points per game (from
+ * the same rest-of-season values the waiver plan uses), bye weeks, and the best free agent at
+ * each position as a fallback. A roster is worth its best lineup in every remaining week
+ * (playoff weeks count half: they only matter if you get there).
+ */
+League_.prototype.tradeModel_ = function () {
+  var self = this, ctx = this.ctx;
+  var value = this.rosValueFn_(), rosK = ctx.ranks(FP.ROS_K), rosD = ctx.ranks(FP.ROS_DST), byes = ctx.byes();
+  var cache = {};
+  var ppg = function (pid) {
+    if (pid in cache) return cache[pid];
+    var pos = self.pos(pid), v = 0;
+    if (pos === 'K' || pos === 'DEF') {
+      var r = (pos === 'K' ? rosK : rosD).get(pid), m = r && /(\d+)$/.exec(r.posRank || '');
+      if (m) v = Math.max(KD_FLOOR, KD_TOP - KD_SLOPE * Math.log(Number(m[1])));
+    } else {
+      var x = value(pid);
+      if (x !== null) v = Math.max(PPG_FLOOR, PPG_TOP - PPG_SLOPE * Math.log(Math.max(1, x)));
+    }
+    return (cache[pid] = v);
+  };
+  var rostered = {};
+  this.rosters.forEach(function (r) {
+    (r.players || []).concat(r.reserve || [], r.taxi || []).forEach(function (p) { rostered[p] = true; });
+  });
+  var best = {};
+  [ctx.ranks(FP.ROS[this.fmt]), rosK, rosD].forEach(function (list) {
+    list.byId.forEach(function (r, pid) {
+      if (rostered[pid] || !self.p(pid)) return;
+      var pos = self.pos(pid), v = ppg(pid);
+      if (v > (best[pos] || 0)) best[pos] = v;
+    });
+  });
+  var spares = [];  // free agents: two at RB and WR (they also fill flex spots), one elsewhere
+  Object.keys(best).forEach(function (pos) {
+    for (var i = 0; i < (pos === 'RB' || pos === 'WR' ? 2 : 1); i++) spares.push({ pos: [pos], v: best[pos] });
+  });
+  var week = Number(ctx.state.week);
+  var first = this.weeklyList(this.qbPremium ? 'QB' : 'RB').firstKickoff();
+  var playoffs = Number(this.settings.playoff_week_start) || 15;
+  var weeks = [];
+  for (var w = week + (first && first <= ctx.now ? 1 : 0); w <= 17; w++) weeks.push({ week: w, weight: w >= playoffs ? 0.5 : 1 });
+  var quick = laminarSlots_(this.slots), memo = {};
+  return {
+    weeks: weeks,
+    weight: weeks.reduce(function (t, x) { return t + x.weight; }, 0),
+    ppg: ppg,
+    season: function (players) {
+      var key = players.slice().sort().join(',');
+      if (key in memo) return memo[key];
+      var items = players.map(function (p) { return { pos: self.positions(p), v: ppg(p), bye: byes[self.team(p)] }; })
+        .filter(function (x) { return x.v > 0; });
+      var exact = !quick || items.some(function (x) { return x.pos.length > 1; });
+      var total = 0;
+      weeks.forEach(function (w) {
+        var avail = items.filter(function (x) { return x.bye !== w.week; }).concat(spares);
+        total += w.weight * (exact ? exactLineup_(self.slots, avail) : greedyLineup_(self.slots, avail));
+      });
+      return (memo[key] = total);
+    },
+  };
+};
+
+/**
+ * Trades where both teams' lineups get better for the rest of the season and yours gets better
+ * by more: one-for-one, two-for-one and one-for-two with every other team, best few per team.
+ * opts.focus: only trades that bring in a player at that position. Nothing is sent.
+ */
+League_.prototype.findTrades = function (opts) {
+  var self = this, ctx = this.ctx, week = Number(ctx.state.week);
+  var deadline = Number(this.settings.trade_deadline) || 0;
+  if (deadline && week > deadline) return { closed: 'The trade deadline (week ' + deadline + ') has passed.', trades: [], offers: [] };
+  var M = this.tradeModel_();
+  if (!M.weeks.length) return { closed: 'No weeks left to play.', trades: [], offers: [] };
+  var keep = this.neverDrop(), users = leagueUsers_(this.id), limit = rosterLimit_(this.data);
+  var mine = this.activePlayers(), base = M.season(mine), myRid = this.roster.roster_id;
+  var place = standings_(this.rosters), playoffTeams = Number(this.settings.playoff_teams) || 0;
+  var opponent = null;
+  try {
+    var ms = sleeper_('/league/' + this.id + '/matchups/' + week, true) || [];
+    var me = ms.filter(function (m) { return m.roster_id === myRid; })[0];
+    var opp = me && ms.filter(function (m) { return m.matchup_id === me.matchup_id && m.roster_id !== myRid; })[0];
+    opponent = opp ? opp.roster_id : null;
+  } catch (e) { /* no matchup this week */ }
+  var ros = ctx.ranks(FP.ROS[this.fmt]), rosK = ctx.ranks(FP.ROS_K), rosD = ctx.ranks(FP.ROS_DST);
+  var view = function (pid) {
+    var pos = self.pos(pid), r = (pos === 'K' ? rosK : pos === 'DEF' ? rosD : ros).get(pid);
+    return self.view(pid, r, { keep: !!keep[pid] });
+  };
+  var team = function (r) {
+    var st = r.settings || {};
+    return { rosterId: r.roster_id, name: (users[r.owner_id] || {}).name || 'Team ' + r.roster_id,
+             record: (st.wins || 0) + '-' + (st.losses || 0) + (st.ties ? '-' + st.ties : ''), place: place[r.roster_id],
+             playoffSpot: !!playoffTeams && place[r.roster_id] <= playoffTeams, opponent: r.roster_id === opponent };
+  };
+  var active = function (r) {
+    var hidden = {};
+    (r.reserve || []).concat(r.taxi || []).forEach(function (p) { hidden[p] = true; });
+    return (r.players || []).filter(function (p) { return !hidden[p]; });
+  };
+  var without = function (list, out) { return list.filter(function (p) { return out.indexOf(p) < 0; }); };
+  var perWeek = function (x) { return Math.round(10 * x / M.weight) / 10; };
+  var gives = mine.filter(function (p) { return M.ppg(p) > 0 && !keep[p]; });
+  var added = {};
+  var myAdd = function (p) {  // what he alone would add to your lineups
+    if (!(p in added)) added[p] = M.season(mine.concat([p])) - base;
+    return added[p];
+  };
+  var minMine = 0.25 * M.weight, minTheirs = 0.05 * M.weight;
+  var trades = [];
+  this.rosters.forEach(function (r) {
+    if (r.roster_id === myRid || !r.owner_id) return;
+    var theirs = active(r), tBase = M.season(theirs), tAdded = {};
+    var helps = function (p) {
+      if (!(p in tAdded)) tAdded[p] = M.season(theirs.concat([p])) - tBase;
+      return tAdded[p] > 0.5;
+    };
+    var gets = theirs.filter(function (p) { return M.ppg(p) > 0 && myAdd(p) > 0.5; });
+    var giveSets = gives.map(function (p) { return [p]; });
+    gives.forEach(function (a, i) {
+      gives.slice(i + 1).forEach(function (b) { if (helps(a) || helps(b)) giveSets.push([a, b]); });
+    });
+    var getSets = gets.map(function (p) { return [p]; });
+    gets.forEach(function (a, i) { gets.slice(i + 1).forEach(function (b) { getSets.push([a, b]); }); });
+    var found = [];
+    giveSets.forEach(function (G) {
+      getSets.forEach(function (R) {
+        if (G.length + R.length > 3) return;
+        if (opts.focus && !R.some(function (p) { return self.pos(p) === opts.focus; })) return;
+        if (mine.length - G.length + R.length > limit) return;  // you'd have to drop someone first
+        var myGain = M.season(without(mine, G).concat(R)) - base;
+        if (myGain < minMine) return;
+        var theirGain = M.season(without(theirs, R).concat(G)) - tBase;
+        if (theirGain < minTheirs || theirGain > myGain) return;
+        found.push({ G: G, R: R, me: myGain, them: theirGain, theyDrop: theirs.length - R.length + G.length > limit });
+      });
+    });
+    found.sort(function (a, b) { return b.me - a.me || (a.G.length + a.R.length) - (b.G.length + b.R.length); });
+    var kept = [];
+    found.forEach(function (t) {
+      if (kept.length >= 3) return;
+      var inside = function (a, b) { return a.every(function (p) { return b.indexOf(p) >= 0; }); };
+      if (kept.some(function (k) { return inside(k.G, t.G) && inside(k.R, t.R); })) return;  // same deal plus a throw-in
+      kept.push(t);
+    });
+    kept.forEach(function (t) {
+      trades.push({ partner: team(r), give: t.G.map(view), get: t.R.map(view), me: perWeek(t.me), them: perWeek(t.them),
+                    fair: t.them >= 0.4 * t.me, theyDrop: t.theyDrop });
+    });
+  });
+  trades.sort(function (a, b) { return b.me - a.me; });
+  // Offers already open on Sleeper, valued the same way.
+  var offers = [];
+  try {
+    pendingTrades_(ctx.token, this.id, myRid).forEach(function (t) {
+      var partnerRid = (t.roster_ids || []).filter(function (x) { return x !== myRid; })[0];
+      var r = self.rosters.filter(function (x) { return x.roster_id === partnerRid; })[0];
+      if (!r) return;
+      var get = Object.keys(t.adds || {}).filter(function (p) { return t.adds[p] === myRid; });
+      var give = Object.keys(t.drops || {}).filter(function (p) { return t.drops[p] === myRid; });
+      var theirs = active(r);
+      offers.push({ id: t.transaction_id, sent: t.creator === self.userId, partner: team(r), give: give.map(view),
+                    get: get.map(view), me: perWeek(M.season(without(mine, give).concat(get)) - base),
+                    them: perWeek(M.season(without(theirs, get).concat(give)) - M.season(theirs)) });
+    });
+  } catch (e) {
+    if (e.expired) throw e;
+  }
+  return { weeks: M.weeks.length, from: M.weeks[0].week, focus: opts.focus || null, trades: trades.slice(0, 30),
+           offers: offers, deadline: deadline || null };
+};
+
+/** Send one trade offer after checking it against the fresh rosters (see proposeTrade). */
+League_.prototype.proposeTrade = function (offer) {
+  var self = this, myRid = this.roster.roster_id, week = Number(this.ctx.state.week);
+  var partner = this.rosters.filter(function (r) { return r.roster_id === Number(offer.rosterId); })[0];
+  var give = (offer.give || []).map(String), get = (offer.get || []).map(String);
+  var deadline = Number(this.settings.trade_deadline) || 0;
+  var name = function (p) { return (self.p(p) || ['Player ' + p])[0]; };
+  if (!partner || partner.roster_id === myRid) throw new Error('That team is not in this league.');
+  if (deadline && week > deadline) throw new Error('The trade deadline (week ' + deadline + ') has passed.');
+  if (!give.length || !get.length || give.length + get.length > 4) throw new Error('A trade needs players on both sides.');
+  var keep = this.neverDrop();
+  give.forEach(function (p) {
+    if ((self.roster.players || []).indexOf(p) < 0) throw new Error(name(p) + ' is no longer on your roster. Reload the page.');
+    if (keep[p]) throw new Error(name(p) + " is starred (kept), so the app won't trade him.");
+  });
+  get.forEach(function (p) {
+    if ((partner.players || []).indexOf(p) < 0) throw new Error(name(p) + ' is no longer on that roster. Reload the page.');
+  });
+  if (this.activePlayers().length - give.length + get.length > rosterLimit_(this.data)) {
+    throw new Error('This trade would put you over the roster limit. Make room first.');
+  }
+  var key = give.concat(get).sort().join(',');
+  var open = [];
+  try { open = pendingTrades_(this.ctx.token, this.id, myRid); } catch (e) { if (e.expired) throw e; }
+  if (open.some(function (t) { return Object.keys(t.adds || {}).sort().join(',') === key; })) {
+    throw new Error('This offer is already open on Sleeper.');
+  }
+  var t = proposeTrade_(this.ctx.token, this.id, myRid, partner.roster_id, give, get);
+  var who = (leagueUsers_(this.id)[partner.owner_id] || {}).name || 'team ' + partner.roster_id;
+  log_({ level: 'change', league: this.name, title: 'Trade offered to ' + who,
+         lines: ['You give: ' + give.map(name).join(', '), 'You get: ' + get.map(name).join(', ')] });
+  return { sent: true, to: who, transactionId: t.transaction_id };
 };

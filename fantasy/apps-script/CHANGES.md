@@ -3,6 +3,12 @@
 Newest first. Each `##` entry becomes the release notes shown by the app's
 "Install update" button. Add one with every change to Code.gs / Index.html.
 
+## League tabs, matchup projections, trade finder
+- Each league has its own tab, and Activity (the history) has one too, so the page is much shorter. A dot on a tab means that league needs you.
+- This week's matchup at the top of each league: every player's projected points for you and your opponent, the totals and your chance of winning, for the lineups as set or the best ones. During games it shows live points plus what's still to come, refreshing every 2 minutes while the page is open.
+- Trade finder: Find trades checks every team for trades where both lineups get better for the rest of the season and yours gets better by more, with Offer on Sleeper to send one. Nothing is ever sent without your tap, and starred players are never offered.
+- Open trade offers (sent and received) are listed with what they're worth to you.
+
 ## Safety checks
 - Every plan is now checked against plain safety rules before anything changes. If a plan breaks one (that would be a bug), nothing happens in that league, automatically or with the buttons, and the league card says why.
 - Fixed: a free-agent upgrade could choose to drop a player whose game had already started, which Sleeper doesn't allow.

@@ -55,6 +55,27 @@ function planProblems(world, d) {
   return out;
 }
 
+/** The matchup card adds up, follows the games' progress and is final once they're over. */
+function matchupProblems(world, M, t) {
+  const out = [], when = iso(t);
+  if (!M || M.error || M.none) return [`${when} matchup missing: ${JSON.stringify(M && (M.error || M.none))}`];
+  [['me', M.me], ['opponent', M.opp]].forEach(([who, side]) => {
+    if (!side) { out.push(`${when} no ${who} in the matchup`); return; }
+    const sum = side.current.rows.reduce((s, x) => s + x.exp, 0);
+    if (Math.abs(sum - side.current.total) > 0.2) out.push(`${when} ${who}: rows add up to ${sum}, total says ${side.current.total}`);
+    side.current.rows.forEach((x) => {
+      if (x.id === '0') return;
+      const e = world.elapsed(x.id);
+      const want = e >= 1 ? 'post' : e > 0 ? 'in' : null;
+      if (want && x.status !== want && x.status !== 'bye') out.push(`${when} ${who}: ${x.id} is ${x.status}, his game is ${want}`);
+      if (x.status === 'post' && Math.abs(x.exp - x.pts) > 0.05) out.push(`${when} ${who}: ${x.id} final but expects ${x.exp} vs ${x.pts}`);
+      if (x.exp < -0.01) out.push(`${when} ${who}: ${x.id} expects ${x.exp}`);
+    });
+  });
+  if (!(M.win.current >= 0 && M.win.current <= 100)) out.push(`${when} win chance ${M.win.current}`);
+  return out;
+}
+
 function runWeek(opts, script) {
   const world = makeWorld(opts);
   if (script) script(world);
@@ -78,6 +99,7 @@ function runWeek(opts, script) {
       const d = gas.getDashboard();
       problems.push(...planProblems(world, d));
       d.leagues.forEach((lg) => (lg.safety || []).forEach((x) => problems.push(`${iso(t)} safety: ${x}`)));
+      d.leagues.forEach((lg) => problems.push(...matchupProblems(world, lg.matchup, t)));
     }
   }
   problems.push(...world.errors.map((e) => 'Sleeper refused: ' + e));
