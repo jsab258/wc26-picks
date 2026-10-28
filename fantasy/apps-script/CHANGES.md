@@ -3,6 +3,13 @@
 Newest first. Each `##` entry becomes the release notes shown by the app's
 "Install update" button. Add one with every change to Code.gs / Index.html.
 
+## Waiver plan after the waiver run
+- After Wednesday's waiver run, players nobody claimed are free agents, so upgrades to them now show up under "Free agents now" (Add now, or the autopilot with auto claims on) instead of as claims that wouldn't process until next week. The waiver plan only lists players who are actually on waivers.
+- Players on a bye week count as free agents until the week's first game, like on Sleeper.
+- A player you picked up in the last 7 days needs twice the usual gain to be dropped again, so a fresh pickup isn't dropped the next day.
+- A spare kicker/defense shows its real rest-of-season rank instead of "#999".
+- The waiver plan and the free-agent plan never drop the same player, and free-agent upgrades count toward "Upgrades per week".
+
 ## Free-agent pickups
 - After Wednesday's waiver run, starters who can't play (byes, injuries, kickers and defenses) are covered with free agents right away, without spending waiver priority.
 - The autopilot does this in leagues with "Auto waiver claims and free agents" on; otherwise the league card shows the pickups with an "Add now" button (and an alert, if alerts are on).
