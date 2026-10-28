@@ -14,6 +14,22 @@ test('projections are scored with the league\'s own rules', () => {
   assert.equal(gasOnly.scorePoints_({ def_td: 0.1, pts_allow_21_27: 1, sack: 2 }, { def_td: 6, pts_allow_21_27: 0, sack: 1 }), 2.6);
 });
 
+test('kicker projections count long field goals and misses the way the league scores them', () => {
+  const proj = { fgm: 2, fgm_30_39: 1, fgm_40_49: 0.6, fgm_50p: 0.4, fgmiss_30_39: 0.1, fgmiss_50p: 0.2, xpm: 3 };
+  const s = gasOnly.completeKicking_(proj);
+  assert.equal(s.fgm_50_59, 0.4);
+  assert.ok(Math.abs(s.fgmiss - 0.3) < 1e-9);
+  // A league scoring fgm_50_59 / fgm_60p / fgmiss (not fgm_50p), like Wolfpack:
+  const wolf = { fgm_30_39: 3, fgm_40_49: 4, fgm_50_59: 5, fgm_60p: 6, fgmiss: -1, xpm: 1 };
+  assert.ok(Math.abs(gasOnly.scorePoints_(s, wolf) - (3 + 2.4 + 2 - 0.3 + 3)) < 1e-9);
+  // A league scoring both forms, like SG Bears: Sleeper adds both on a real 50+ yard kick.
+  const bears = { fgm_30_39: 3, fgm_40_49: 3, fgm_50p: 5, fgm_50_59: 5, xpm: 1 };
+  assert.ok(Math.abs(gasOnly.scorePoints_(s, bears) - (3 + 1.8 + 4 + 3)) < 1e-9);
+  // Stat lines that already carry every form are left as they are.
+  const full = { fgm_50p: 1, fgm_50_59: 1, fgmiss: 0.5, fgmiss_40_49: 0.5 };
+  assert.deepEqual(plain(gasOnly.completeKicking_(full)), full);
+});
+
 test('game clock: share of the game still to play', () => {
   assert.equal(gasOnly.gameLeft_(1, '15:00'), 1);
   assert.equal(gasOnly.gameLeft_(2, '0:00'), 0.5);
@@ -101,6 +117,34 @@ test('matchup: no opponent this week, or the matchup failing, never breaks the p
   assert.equal(again[0].matchup.me.current.total, 73);
 });
 
+test('matchup: players the app does not track (IDP) count with Sleeper\'s own points', () => {
+  const s = matchupSpec();
+  s.positions = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'K', 'DEF', 'DL', 'BN', 'BN', 'BN'];
+  s.mine = s.mine.concat('idp1');
+  s.matchups[0].starters = s.matchups[0].starters.concat('idp1');
+  s.matchups[0].players_points = { idp1: 7.5 };
+  s.matchups[1].starters = s.matchups[1].starters.concat('0');
+  const M = build(s).gas.getDashboard().leagues[0].matchup;
+  const row = M.me.current.rows.find((x) => x.id === 'idp1');
+  assert.deepEqual(plain([row.status, row.pts, row.exp]), ['other', 7.5, 7.5]);
+  assert.equal(M.me.current.total, 73 + 7.5);
+});
+
+test('matchup refresh: one league failing to load still refreshes the others', () => {
+  const s = matchupSpec();
+  const { gas, league } = build(s);
+  const L2 = Object.assign({}, league, { league_id: 'L2', name: 'Second' });
+  const orig = gas.sleeper_;
+  gas.sleeper_ = (p, fresh) => {
+    if (p.includes('/leagues/')) return [league, L2];
+    if (p === '/league/L2/rosters') throw new Error('Sleeper API /league/L2/rosters failed (HTTP 500)');
+    return orig(p, fresh);
+  };
+  const got = gas.getMatchups();
+  assert.equal(got[0].matchup.me.current.total, 73);
+  assert.match(got[1].matchup.error, /HTTP 500/);
+});
+
 // ---- trade finder ----------------------------------------------------------------------
 
 /** I have a spare good RB and a weak WR2; they have a spare good WR and a weak RB2. */
@@ -130,6 +174,7 @@ const tradeSpec = () => {
     },
     ros: { 'ros-ppr-overall': ros, 'ros-k': [['m_k', 5, 'K5'], ['t_k', 6, 'K6']], 'ros-dst': [['DET', 3, 'DST3'], ['MIN', 4, 'DST4']] },
     users: [{ user_id: 'me', display_name: 'me' }, { user_id: 'x0', display_name: 'rival' }],
+    settings: { playoff_week_start: 15, playoff_teams: 6, playoff_round_type: 0 },   // playoffs weeks 15-17
     cfg: { max_claims: 0 },
   };
 };
@@ -151,6 +196,13 @@ test('trade finder: finds the trade that fixes both teams\' weak spots, you gain
   assert.equal(T.weeks, 11);
 });
 
+test('playoff weeks: one round a week, a two-week final, or two weeks a round', () => {
+  assert.equal(gasOnly.lastPlayoffWeek_({ playoff_week_start: 15, playoff_teams: 6, playoff_round_type: 0 }), 17);  // Wolfpack
+  assert.equal(gasOnly.lastPlayoffWeek_({ playoff_week_start: 16, playoff_teams: 4, playoff_round_type: 1 }), 18);  // SG Bears
+  assert.equal(gasOnly.lastPlayoffWeek_({ playoff_week_start: 15, playoff_teams: 4, playoff_round_type: 2 }), 18);
+  assert.equal(gasOnly.lastPlayoffWeek_({ playoff_week_start: 14, playoff_teams: 8, playoff_round_type: 0 }), 16);
+});
+
 test('trade finder: starred players are never offered; focus and the trade deadline are respected', () => {
   let s = tradeSpec();
   s.cfg = { never_drop: ['m_rb4'] };
@@ -161,7 +213,15 @@ test('trade finder: starred players are never offered; focus and the trade deadl
   T = build(tradeSpec()).gas.findTrades('L', { focus: 'TE' });
   assert.ok(T.trades.every((t) => t.get.some((p) => p.pos === 'TE')));
   s = tradeSpec();
-  s.settings = { trade_deadline: 6 };
+  s.settings = Object.assign(s.settings, { trade_deadline: 6 });
+  T = build(s).gas.findTrades('L', {});
+  assert.match(T.closed, /deadline \(week 6\) has passed/);
+  s = tradeSpec();
+  s.settings.disable_trades = 1;
+  T = build(s).gas.findTrades('L', {});
+  assert.match(T.closed, /turned off/);
+  s = tradeSpec();
+  s.settings = Object.assign(s.settings, { trade_deadline: 6 });
   T = build(s).gas.findTrades('L', {});
   assert.match(T.closed, /deadline \(week 6\) has passed/);
   assert.deepEqual(plain(T.trades), []);
@@ -177,20 +237,29 @@ test('trade finder: open offers on Sleeper are listed and valued', () => {
   assert.ok(o.me > 0);
 });
 
-test('quick lineup scoring matches the full assignment whenever it is used', () => {
+test('lineup scoring for trades equals the full assignment, for any slots and multi-position players', () => {
   const sets = [['QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'FLEX', 'K', 'DEF'], ['QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'WRRB_FLEX', 'K', 'DEF'],
-    ['QB', 'RB', 'WR', 'WR', 'TE', 'FLEX', 'FLEX', 'SUPER_FLEX', 'K', 'DEF'], ['QB', 'QB', 'RB', 'WR', 'TE', 'REC_FLEX']];
+    ['QB', 'RB', 'WR', 'WR', 'TE', 'FLEX', 'FLEX', 'SUPER_FLEX', 'K', 'DEF'], ['QB', 'QB', 'RB', 'WR', 'TE', 'REC_FLEX'],
+    ['QB', 'RB', 'WR', 'TE', 'WRRB_FLEX', 'REC_FLEX', 'SUPER_FLEX']];
+  // Reference: the app's lineup optimizer (Hungarian assignment) on the same players.
+  const exact = (slots, items) => {
+    const ids = items.map((x, i) => 'i' + i);
+    const cost = (id, slot) => (items[+id.slice(1)].pos.some((p) => gasOnly.SLOT_ELIGIBILITY[slot].includes(p)) ? 100 - items[+id.slice(1)].v : null);
+    return gasOnly.optimize_(slots, [], ids, cost).starters.reduce((t, id) => t + (id === '0' ? 0 : items[+id.slice(1)].v), 0);
+  };
   let seed = 7;
   const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
   const POS = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
   for (const slots of sets) {
-    assert.ok(gasOnly.laminarSlots_(slots));
     for (let i = 0; i < 200; i++) {
-      const items = Array.from({ length: 4 + Math.floor(rnd() * 14) }, () => ({ pos: [POS[Math.floor(rnd() * 6)]], v: Math.round(rnd() * 250) / 10 }));
-      assert.ok(Math.abs(gasOnly.greedyLineup_(slots, items) - gasOnly.exactLineup_(slots, items)) < 1e-9, JSON.stringify([slots, items]));
+      const items = Array.from({ length: 4 + Math.floor(rnd() * 14) }, () => {
+        const pos = [POS[Math.floor(rnd() * 6)]];
+        if (rnd() < 0.2) pos.push(POS[1 + Math.floor(rnd() * 3)]);   // some RB/WR/TE hybrids
+        return { pos, v: Math.round(rnd() * 250) / 10 };
+      });
+      assert.ok(Math.abs(gasOnly.lineupPoints_(slots, items) - exact(slots, items)) < 1e-9, JSON.stringify([slots, items]));
     }
   }
-  assert.equal(gasOnly.laminarSlots_(['WRRB_FLEX', 'REC_FLEX']), false);   // overlapping flexes use the full assignment
 });
 
 // ---- trade offers ----------------------------------------------------------------------
@@ -221,7 +290,13 @@ test('trade offer: refused for starred players, players who moved, past the dead
     [(s) => { s.cfg = { never_drop: ['m_rb4'] }; }, { give: ['m_rb4'], get: ['t_wr2'] }, /starred/],
     [() => {}, { give: ['m_rb4'], get: ['t_wr9'] }, /no longer on that roster/],
     [() => {}, { give: ['t_wr1'], get: ['t_wr2'] }, /no longer on your roster/],
-    [(s) => { s.settings = { trade_deadline: 6 }; }, { give: ['m_rb4'], get: ['t_wr2'] }, /deadline/],
+    [(s) => { s.settings.trade_deadline = 6; }, { give: ['m_rb4'], get: ['t_wr2'] }, /deadline/],
+    [(s) => { s.settings.disable_trades = 1; }, { give: ['m_rb4'], get: ['t_wr2'] }, /turned off/],
+    [() => {}, { give: ['m_rb4', 'm_rb4'], get: ['t_wr2'] }, /only be in a trade once/],
+    // An IR player frees no active spot: 13 active of 13, giving him and getting one would make 14.
+    [(s) => { s.mine.push('m_x1', 'm_x2', 'm_x3'); s.reserve = ['m_rb4']; Object.assign(s.players, { m_x1: ['m_x1', 'WR', 'KC', null, null],
+      m_x2: ['m_x2', 'WR', 'KC', null, null], m_x3: ['m_x3', 'WR', 'KC', null, null], m_x4: ['m_x4', 'WR', 'KC', null, null] });
+      s.mine.push('m_x4'); s.positions.push('IR'); }, { give: ['m_rb4'], get: ['t_wr2'] }, /roster limit/],
     [(s) => { s.positions = s.positions.slice(0, 10); }, { give: ['m_rb4'], get: ['t_wr2', 't_wr3'] }, /roster limit/],
     [(s) => { s.trades = [{ roster_ids: [1, 2], adds: { t_wr2: 1, m_rb4: 2 } }]; }, { give: ['m_rb4'], get: ['t_wr2'] }, /already open/],
     [() => {}, { give: [], get: ['t_wr2'] }, /both sides/],

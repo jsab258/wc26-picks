@@ -200,8 +200,13 @@ function getMatchups() {
   var s = settings_();
   var user = getJson_('user', {});
   return myLeagues_(ctx, user.user_id).filter(function (d) { return d.status === 'in_season'; }).map(function (data) {
-    var lg = new League_(ctx, data, user.user_id, leagueCfg_(s, data.league_id));
-    return { id: data.league_id, matchup: lg.roster ? matchupOrError_(lg) : null };
+    try {
+      var lg = new League_(ctx, data, user.user_id, leagueCfg_(s, data.league_id));
+      return { id: data.league_id, matchup: lg.roster ? matchupOrError_(lg) : null };
+    } catch (e) {
+      if (e.expired) throw e;
+      return { id: data.league_id, matchup: { error: String(e.message || e) } };  // the other leagues still refresh
+    }
   });
 }
 
@@ -1127,7 +1132,7 @@ function projectedPoints_(leagueId, scoring, season, week) {
     if (r.code !== 200) throw new Error('Sleeper projections failed (HTTP ' + r.code + ')');
     var out = {};
     JSON.parse(r.text).forEach(function (e) {
-      var pts = scorePoints_(e.stats || {}, scoring);
+      var pts = scorePoints_(completeKicking_(e.stats || {}), scoring);
       if (pts) out[e.player_id] = Math.round(pts * 10) / 10;
     });
     return out;
@@ -1139,6 +1144,25 @@ function scorePoints_(stats, scoring) {
   var t = 0;
   Object.keys(stats).forEach(function (k) { if (scoring[k]) t += Number(stats[k]) * scoring[k]; });
   return t;
+}
+
+/**
+ * Sleeper's game stats list long field goals both ways (fgm_50p and fgm_50_59 / fgm_60p) and
+ * misses both by distance and in total, and leagues may score either; its projections only
+ * carry one form. Fill in the others, as the real stat line would have them.
+ */
+function completeKicking_(stats) {
+  var s = {}, n = function (k) { return Number(s[k]) || 0; };
+  Object.keys(stats).forEach(function (k) { s[k] = stats[k]; });
+  ['fgm', 'fgmiss'].forEach(function (k) {
+    if (k + '_50p' in s && !(k + '_50_59' in s) && !(k + '_60p' in s)) s[k + '_50_59'] = s[k + '_50p'];
+    else if (!(k + '_50p' in s) && (k + '_50_59' in s || k + '_60p' in s)) s[k + '_50p'] = n(k + '_50_59') + n(k + '_60p');
+  });
+  if (!('fgmiss' in s)) {
+    var miss = ['fgmiss_0_19', 'fgmiss_20_29', 'fgmiss_30_39', 'fgmiss_40_49', 'fgmiss_50p'];
+    if (miss.some(function (k) { return k in s; })) s.fgmiss = miss.reduce(function (t, k) { return t + n(k); }, 0);
+  }
+  return s;
 }
 
 /** This week's games by NFL team: {status: 'pre' | 'in' | 'post', left: share still to play, clock}. */
@@ -2627,6 +2651,10 @@ League_.prototype.matchup = function () {
   var side = function (lg, m) {
     var row = function (pid, slot) {
       if (!pid || pid === EMPTY) return { slot: slot, id: EMPTY, name: '(empty)', proj: 0, pts: null, exp: 0, left: 0, status: 'empty' };
+      if (!lg.p(pid)) {  // a player the app doesn't track (e.g. IDP): Sleeper's points so far, no projection
+        var got = Number((m.players_points || {})[pid] || 0);
+        return lg.view(pid, null, { slot: slot, proj: 0, pts: r1(got), exp: r1(got), left: 0, status: 'other', why: null, clock: null });
+      }
       var g = games[lg.team(pid)], why = lg.whyOut(pid, kickoff);
       var status = g ? g.status : haveGames || why === 'bye' ? 'bye' : 'pre';
       var p = why || status === 'bye' ? 0 : proj[pid] || 0;  // out or on bye: nothing to expect
@@ -2669,6 +2697,18 @@ League_.prototype.matchup = function () {
 // Trades
 // ===================================================================
 
+/**
+ * The last week of a league's playoffs: one round per week (round type 0), a two-week final
+ * (1) or two weeks a round (2); a bracket of N teams takes ceil(log2 N) rounds.
+ */
+function lastPlayoffWeek_(settings) {
+  var start = Number(settings.playoff_week_start) || 15;
+  var rounds = Math.max(1, Math.ceil(Math.log(Math.max(2, Number(settings.playoff_teams) || 4)) / Math.LN2));
+  var type = Number(settings.playoff_round_type) || 0;
+  var weeks = type === 2 ? 2 * rounds : type === 1 ? rounds + 1 : rounds;
+  return Math.min(18, start + weeks - 1);
+}
+
 /** Roster spots that count toward the limit (IR and taxi don't). */
 function rosterLimit_(data) {
   return (data.roster_positions || []).filter(function (s) { return s !== 'IR' && s !== 'TAXI'; }).length;
@@ -2685,45 +2725,26 @@ function standings_(rosters) {
   return out;
 }
 
-/** True if any two slots' eligible positions are nested or disjoint (then the quick lineup is exact). */
-function laminarSlots_(slots) {
-  var sets = slots.filter(function (s) { return SLOT_ELIGIBILITY[s]; }).map(function (s) { return SLOT_ELIGIBILITY[s]; });
-  return sets.every(function (a) {
-    return sets.every(function (b) {
-      var n = a.filter(function (x) { return b.indexOf(x) >= 0; }).length;
-      return n === 0 || n === a.length || n === b.length;
-    });
-  });
-}
-
 /**
- * Points of the best lineup from ``items`` ({pos: [position], v: points}): best player first,
- * each into the narrowest open slot he fits. Exact when the slots are laminar and every player
- * has one position.
+ * Points of the best lineup from ``items`` ({pos: [positions], v: points}). A player's worth
+ * doesn't depend on his slot, so taking the best players first and keeping each one that still
+ * fits (moving earlier ones around if needed: augmenting paths) gives the exact best lineup.
  */
-function greedyLineup_(slots, items) {
+function lineupPoints_(slots, items) {
   var open = slots.filter(function (s) { return SLOT_ELIGIBILITY[s]; }).map(function (s) { return SLOT_ELIGIBILITY[s]; });
-  var total = 0;
-  items.slice().sort(function (a, b) { return b.v - a.v; }).forEach(function (x) {
-    var best = -1;
-    open.forEach(function (el, j) {
-      if (el.indexOf(x.pos[0]) >= 0 && (best < 0 || el.length < open[best].length)) best = j;
-    });
-    if (best >= 0) { total += x.v; open.splice(best, 1); }
-  });
-  return total;
-}
-
-/** The same, for any slots and multi-position players (the full assignment). */
-function exactLineup_(slots, items) {
-  var ids = items.map(function (x, i) { return 'i' + i; });
-  var cost = function (id, slot) {
-    var x = items[Number(id.slice(1))];
-    return x.pos.some(function (p) { return SLOT_ELIGIBILITY[slot].indexOf(p) >= 0; }) ? 100 - x.v : null;
+  var sorted = items.slice().sort(function (a, b) { return b.v - a.v; });
+  var owner = open.map(function () { return -1; }), total = 0;
+  var fits = function (x, j) { return x.pos.some(function (p) { return open[j].indexOf(p) >= 0; }); };
+  var place = function (i, seen) {
+    for (var j = 0; j < open.length; j++) {
+      if (seen[j] || !fits(sorted[i], j)) continue;
+      seen[j] = true;
+      if (owner[j] < 0 || place(owner[j], seen)) { owner[j] = i; return true; }
+    }
+    return false;
   };
-  return optimize_(slots, [], ids, cost).starters.reduce(function (t, id) {
-    return t + (id === EMPTY ? 0 : items[Number(id.slice(1))].v);
-  }, 0);
+  sorted.forEach(function (x, i) { if (place(i, {})) total += x.v; });
+  return total;
 }
 
 /**
@@ -2766,10 +2787,10 @@ League_.prototype.tradeModel_ = function () {
   });
   var week = Number(ctx.state.week);
   var first = this.weeklyList(this.qbPremium ? 'QB' : 'RB').firstKickoff();
-  var playoffs = Number(this.settings.playoff_week_start) || 15;
+  var playoffs = Number(this.settings.playoff_week_start) || 15, last = lastPlayoffWeek_(this.settings);
   var weeks = [];
-  for (var w = week + (first && first <= ctx.now ? 1 : 0); w <= 17; w++) weeks.push({ week: w, weight: w >= playoffs ? 0.5 : 1 });
-  var quick = laminarSlots_(this.slots), memo = {};
+  for (var w = week + (first && first <= ctx.now ? 1 : 0); w <= last; w++) weeks.push({ week: w, weight: w >= playoffs ? 0.5 : 1 });
+  var memo = {};
   return {
     weeks: weeks,
     weight: weeks.reduce(function (t, x) { return t + x.weight; }, 0),
@@ -2779,11 +2800,9 @@ League_.prototype.tradeModel_ = function () {
       if (key in memo) return memo[key];
       var items = players.map(function (p) { return { pos: self.positions(p), v: ppg(p), bye: byes[self.team(p)] }; })
         .filter(function (x) { return x.v > 0; });
-      var exact = !quick || items.some(function (x) { return x.pos.length > 1; });
       var total = 0;
       weeks.forEach(function (w) {
-        var avail = items.filter(function (x) { return x.bye !== w.week; }).concat(spares);
-        total += w.weight * (exact ? exactLineup_(self.slots, avail) : greedyLineup_(self.slots, avail));
+        total += w.weight * lineupPoints_(self.slots, items.filter(function (x) { return x.bye !== w.week; }).concat(spares));
       });
       return (memo[key] = total);
     },
@@ -2798,6 +2817,7 @@ League_.prototype.tradeModel_ = function () {
 League_.prototype.findTrades = function (opts) {
   var self = this, ctx = this.ctx, week = Number(ctx.state.week);
   var deadline = Number(this.settings.trade_deadline) || 0;
+  if (this.settings.disable_trades) return { closed: 'Trades are turned off in this league.', trades: [], offers: [] };
   if (deadline && week > deadline) return { closed: 'The trade deadline (week ' + deadline + ') has passed.', trades: [], offers: [] };
   var M = this.tradeModel_();
   if (!M.weeks.length) return { closed: 'No weeks left to play.', trades: [], offers: [] };
@@ -2907,8 +2927,11 @@ League_.prototype.proposeTrade = function (offer) {
   var deadline = Number(this.settings.trade_deadline) || 0;
   var name = function (p) { return (self.p(p) || ['Player ' + p])[0]; };
   if (!partner || partner.roster_id === myRid) throw new Error('That team is not in this league.');
+  if (this.settings.disable_trades) throw new Error('Trades are turned off in this league.');
   if (deadline && week > deadline) throw new Error('The trade deadline (week ' + deadline + ') has passed.');
   if (!give.length || !get.length || give.length + get.length > 4) throw new Error('A trade needs players on both sides.');
+  var all = give.concat(get);
+  if (all.some(function (p, i) { return all.indexOf(p) !== i; })) throw new Error('Each player can only be in a trade once.');
   var keep = this.neverDrop();
   give.forEach(function (p) {
     if ((self.roster.players || []).indexOf(p) < 0) throw new Error(name(p) + ' is no longer on your roster. Reload the page.');
@@ -2917,7 +2940,8 @@ League_.prototype.proposeTrade = function (offer) {
   get.forEach(function (p) {
     if ((partner.players || []).indexOf(p) < 0) throw new Error(name(p) + ' is no longer on that roster. Reload the page.');
   });
-  if (this.activePlayers().length - give.length + get.length > rosterLimit_(this.data)) {
+  var activeAfter = this.activePlayers().filter(function (p) { return give.indexOf(p) < 0; }).length + get.length;
+  if (activeAfter > rosterLimit_(this.data)) {
     throw new Error('This trade would put you over the roster limit. Make room first.');
   }
   var key = give.concat(get).sort().join(',');

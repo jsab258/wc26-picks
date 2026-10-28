@@ -347,7 +347,7 @@ async function boot() {
 
 async function checkUpdate() {
   try { S.update = { result: await api('checkForUpdate') }; } catch (e) { S.update = {}; }
-  render();
+  quietRender();
 }
 
 async function installUpdate() {
@@ -397,26 +397,47 @@ async function loadDashboard() {
   scheduleMatchups();
 }
 
-// While games are on (or about to start) and the page is visible, matchups refresh every 2 minutes.
+// While games are on (or start within 3 hours) and the page is visible, matchups refresh every
+// 2 minutes; before that, the page wakes up again 3 hours before the next kickoff.
 function scheduleMatchups() {
   clearTimeout(scheduleMatchups._t);
+  if (!S.state || !S.state.connected) return;
   const ms = S.dash ? S.dash.leagues.map((l) => l.matchup).filter((m) => m && !m.error && !m.none) : [];
-  const soon = ms.some((m) => m.live || (m.nextKick && m.nextKick * 1000 - Date.now() < 3 * 3600000));
-  if (!soon) return;
+  const next = Math.min(...ms.map((m) => (m.nextKick ? m.nextKick * 1000 : Infinity)));
+  const soon = ms.some((m) => m.live) || next - Date.now() < 3 * 3600000;
+  if (!soon) {
+    if (next < Infinity) scheduleMatchups._t = setTimeout(scheduleMatchups, Math.min(6 * 3600000, next - 3 * 3600000 - Date.now()));
+    return;
+  }
   scheduleMatchups._t = setTimeout(async () => {
-    if (document.visibilityState === 'visible') {
+    if (document.visibilityState === 'visible' && S.state && S.state.connected) {
       try {
         (await api('getMatchups')).forEach((x) => {
           const lg = S.dash && S.dash.leagues.find((l) => l.id === x.id);
           if (lg && x.matchup) lg.matchup = x.matchup;
         });
-        render();
+        quietRender();
       } catch (e) { expired(e); }
     }
     scheduleMatchups();
   }, 120000);
 }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') scheduleMatchups(); });
+
+// A background refresh never redraws the page under a field being edited (that would end the
+// edit and save a half-typed value): it waits until the field is left.
+function quietRender() {
+  const a = document.activeElement;
+  if (a && a.matches && a.matches('input, select, textarea')) { S.renderPending = true; return; }
+  render();
+}
+document.addEventListener('focusout', () => {
+  if (!S.renderPending) return;
+  setTimeout(() => {
+    const a = document.activeElement;
+    if (S.renderPending && !(a && a.matches && a.matches('input, select, textarea'))) { S.renderPending = false; render(); }
+  }, 0);
+});
 
 function replaceLeague(res) {
   if (!S.dash) return;
@@ -432,6 +453,7 @@ function replaceLeague(res) {
 function render() {
   const st = S.state;
   if (!st) return;
+  S.renderPending = false;
   // Rebuilding the page must not wipe what's being typed or close what's open.
   const typed = {}, open = {};
   const fieldKey = (el) => el.form.dataset.form + ':' + el.name;
