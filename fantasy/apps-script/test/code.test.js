@@ -175,6 +175,13 @@ function fixtureGas(nowMs) {
   gas.submitClaim_ = (...a) => writes.push(['claim', ...a.slice(1)]);
   gas.__props.setProperty('token', 'a.b.c');
   gas.putJson_('user', { user_id: 'me', display_name: 'me' });
+  // Every plan any test looks at must pass the safety rules.
+  const dashboard = gas.getDashboard;
+  gas.getDashboard = () => {
+    const d = dashboard();
+    d.leagues.forEach((lg) => assert.deepEqual(plain(lg.safety || []), [], 'safety check failed for ' + lg.name));
+    return d;
+  };
   return { gas, writes };
 }
 
@@ -1105,4 +1112,73 @@ test('after waivers: a player whose team is on bye is a free agent until the wee
     assert.ok(!lg.freeAgents.claims.some((c) => c.add.id === 'qb_fa'));
     assert.ok(lg.waivers.claims.some((c) => c.add.id === 'qb_fa'));   // claimable for the next run instead
   });
+});
+
+// ---- safety rules -------------------------------------------------------------------
+function planWith(gas, mutate) {
+  return gas.withLeague_('L', (lg) => {
+    const res = lg.evaluate({ lineup: true, waivers: true, freeAgents: true });
+    mutate(res, lg);
+    return plain(gas.checkPlans_(lg, res));
+  });
+}
+
+test('safety rules catch yesterday\'s bug: a claim for a player who is a free agent right now', () => {
+  withChanges((set) => set(LEAGUE, 'settings', Object.assign({}, LEAGUE.settings, { leg: 7 })), () => {
+    const { gas } = fixtureGas(NOW);
+    gas.saveLeagueSettings('L', { min_roster: { WR: 1 } });
+    const problems = planWith(gas, (res) => {   // what v13 did: the free agent sat in the waiver plan
+      res.waivers.claims.push(...res.freeAgents.claims.filter((c) => c.kind === 'upgrade'));
+      res.freeAgents.claims = res.freeAgents.claims.filter((c) => c.kind !== 'upgrade');
+    });
+    assert.ok(problems.some((x) => /qb_fa is a free agent right now/.test(x)), problems.join(' | '));
+  });
+});
+
+test('safety rules: double drops, starred players, internal values, fresh pickups, roster size', () => {
+  const { gas } = fixtureGas(NOW);
+  gas.saveLeagueSettings('L', { min_roster: { WR: 1 } });
+  const dup = planWith(gas, (res) => { res.waivers.claims.push(Object.assign({}, res.waivers.claims[0], { add: { id: 'wr_fa', name: 'wr_fa' } })); });
+  assert.ok(dup.some((x) => /wr_f would be dropped twice/.test(x)), dup.join(' | '));
+  gas.saveLeagueSettings('L', { never_drop: ['wr_f'] });
+  const kept = planWith(gas, (res) => { res.waivers.claims[0].drop = { id: 'wr_f', name: 'wr_f', rank: 300 }; });
+  assert.ok(kept.some((x) => /wr_f is starred/.test(x)), kept.join(' | '));
+  gas.saveLeagueSettings('L', { never_drop: [] });
+  const internal = planWith(gas, (res) => { res.waivers.claims[0].drop.rank = 999; });
+  assert.ok(internal.some((x) => /internal value \(999\)/.test(x)), internal.join(' | '));
+  const base = gas.sleeper_;
+  gas.sleeper_ = (p, f) => (p.includes('/transactions/') ? [{ status: 'complete', status_updated: NOW - 3600000, adds: { wr_f: 1 } }] : base(p, f));
+  const fresh = planWith(gas, (res) => { res.waivers.claims[0].add.rank = res.waivers.claims[0].drop.rank - 25; });
+  assert.ok(fresh.some((x) => /just picked up/.test(x)), fresh.join(' | '));
+  gas.sleeper_ = base;
+  const big = planWith(gas, (res) => { res.waivers.claims.push({ kind: 'upgrade', add: { id: 'te_fa', name: 'te_fa' }, drop: null }, { kind: 'upgrade', add: { id: 'zz', name: 'zz' }, drop: null }); });
+  assert.ok(big.some((x) => /roster would have/.test(x)), big.join(' | '));
+});
+
+test('safety rules: lineups may not move a locked player or start an injured one over a healthy bench player', () => {
+  const { gas } = fixtureGas(NOW);
+  const benched = planWith(gas, (res) => {
+    const i = res.lineup.starters.indexOf('wr_e');
+    res.lineup.starters[i] = 'wr_f';
+    res.lineup.lineup[i] = Object.assign({}, res.lineup.lineup[i], { id: 'wr_f', name: 'wr_f', why: 'Out' });
+    res.lineup.bench.push({ id: 'wr_e', name: 'wr_e', tracked: true, why: null, locked: false });
+  });
+  assert.ok(benched.some((x) => /wr_f \(Out\) would start at WR while wr_e sits/.test(x)), benched.join(' | '));
+  const late = fixtureGas(KICK * 1000 + 60000).gas;   // every game has started
+  const moved = planWith(late, (res) => { res.lineup.starters[1] = 'rb_d'; });
+  assert.ok(moved.some((x) => /game has started/.test(x)), moved.join(' | '));
+});
+
+test('a plan that fails the safety rules is never carried out', () => {
+  const { gas, writes } = fixtureGas(NOW);
+  gas.checkPlans_ = () => ['something looks wrong'];
+  gas.setMode('auto');
+  gas.saveLeagueSettings('L', { auto_waivers: true });
+  gas.tick();
+  assert.equal(writes.length, 0);
+  assert.match(gas.getJson_('lastTick').msg, /held back by a safety check/);
+  assert.ok(gas.getJson_('log').some((e) => /Safety check stopped the lineup/.test(e.title)));
+  const res = gas.applyLineup('L');
+  assert.deepEqual(plain(res.safety), ['something looks wrong']);
+  assert.equal(writes.length, 0);
 });

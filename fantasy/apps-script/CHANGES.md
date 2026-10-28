@@ -3,6 +3,12 @@
 Newest first. Each `##` entry becomes the release notes shown by the app's
 "Install update" button. Add one with every change to Code.gs / Index.html.
 
+## Safety checks
+- Every plan is now checked against plain safety rules before anything changes. If a plan breaks one (that would be a bug), nothing happens in that league, automatically or with the buttons, and the league card says why.
+- Fixed: a free-agent upgrade could choose to drop a player whose game had already started, which Sleeper doesn't allow.
+- The phone alerts card is gone.
+- Behind the scenes, every update is now tested on simulated whole weeks and hundreds of random leagues, and a daily check runs the safety rules on your real leagues.
+
 ## Waiver plan after the waiver run
 - After Wednesday's waiver run, players nobody claimed are free agents, so upgrades to them now show up under "Free agents now" (Add now, or the autopilot with auto claims on) instead of as claims that wouldn't process until next week. The waiver plan only lists players who are actually on waivers.
 - Players on a bye week count as free agents until the week's first game, like on Sleeper.
