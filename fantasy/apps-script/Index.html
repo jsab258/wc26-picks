@@ -146,9 +146,64 @@
     padding: 10px 14px; border-radius: 10px; font-size: 14px; box-shadow: var(--shadow); max-width: calc(100% - 32px);
     opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; }
   .toast.show { opacity: 1; }
+  /* tabs */
+  .tabs { display: flex; gap: 4px; overflow-x: auto; margin: 0 0 14px; padding: 4px; border-radius: 12px;
+    background: var(--surface-2); border: 1px solid var(--border); scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: 1 0 auto; border: 0; background: transparent; color: var(--muted); padding: 8px 14px; border-radius: 9px;
+    font-weight: 600; white-space: nowrap; position: relative; }
+  .tab.on { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+  .tab .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--warn); margin-left: 6px;
+    vertical-align: 2px; }
+  .tab .dot.bad { background: var(--bad); }
+  .bar-status { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+  /* matchup */
+  .score { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; margin-top: 12px; }
+  .side .who-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .side.opp { text-align: right; }
+  .total { font-size: 30px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .vs { color: var(--faint); font-size: 13px; font-weight: 600; }
+  .winbar { height: 8px; border-radius: 999px; background: var(--bad-soft); overflow: hidden; margin-top: 10px; }
+  .winbar > div { height: 100%; background: var(--accent); border-radius: 999px; }
+  .seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 3px;
+    margin-top: 12px; }
+  .seg button { border: 0; background: transparent; padding: 5px 10px; font-size: 13px; color: var(--muted); border-radius: 8px; }
+  .seg button.on { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+  .mrows { display: grid; gap: 4px; margin-top: 10px; }
+  .mrow { display: grid; grid-template-columns: 44px 1fr 1fr; gap: 8px; align-items: stretch; }
+  .mcell { background: var(--surface-2); border-radius: 9px; padding: 6px 8px; min-width: 0; border: 1px solid transparent; }
+  .mcell.in { border-color: var(--accent); }
+  .mcell.opp { text-align: right; }
+  .mline { display: flex; justify-content: space-between; gap: 6px; align-items: baseline; }
+  .mcell.opp .mline { flex-direction: row-reverse; }
+  .mname { font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mpts { font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .mmeta { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pbar { height: 4px; border-radius: 999px; background: var(--border); margin-top: 4px; overflow: hidden; }
+  .pbar > div { height: 100%; background: var(--accent); }
+  .pbar > div.left { background: var(--accent); opacity: .35; }
+  .mcell.opp .pbar { direction: rtl; }
+  .mrow .slot-tag { display: flex; align-items: center; font-size: 10px; }
+  .live { color: var(--bad); font-weight: 700; }
+
+  /* trades */
+  .partner { margin-top: 14px; }
+  .partner-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+  .trade { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 10px 12px;
+    border-radius: 10px; background: var(--surface-2); margin-bottom: 6px; }
+  .trade .side-l { font-size: 13px; }
+  .gain { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .gain b { color: var(--accent); }
+  select { font: inherit; padding: 7px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface);
+    color: var(--text); }
+
   @media (max-width: 480px) {
     .slot { grid-template-columns: 58px 1fr auto; }
     .wrap { padding: 12px 12px 40px; }
+    .mrow { grid-template-columns: 34px 1fr 1fr; gap: 5px; }
+    .total { font-size: 24px; }
+    .trade { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -160,7 +215,11 @@
 // via sleeper.com is the default; the password form stays as a fallback.
 const freshLogin = (extra) => Object.assign({ step: 'token', desktop: matchMedia('(pointer: fine)').matches }, extra);
 const S = { state: null, dash: null, loadingDash: false, busy: {}, login: freshLogin(), dashError: null,
-            update: {} };
+            update: {}, tab: savedTab(), matchView: {}, trades: {} };
+
+// The open tab (a league id or 'activity') is remembered in this browser only.
+function savedTab() { try { return localStorage.getItem('tab'); } catch (e) { return null; } }
+function saveTab(t) { try { localStorage.setItem('tab', t); } catch (e) { /* private window: fine */ } }
 
 // ---- server calls ------------------------------------------------------
 // Every server call goes through call(name, args): an installed update can then add
@@ -288,7 +347,7 @@ async function boot() {
 
 async function checkUpdate() {
   try { S.update = { result: await api('checkForUpdate') }; } catch (e) { S.update = {}; }
-  render();
+  quietRender();
 }
 
 async function installUpdate() {
@@ -323,7 +382,7 @@ function updateBanner() {
     <div class="row between wrapflex"><b>Update available</b>
       <button class="small primary" data-action="install-update" ${S.busy.update ? 'disabled' : ''}>
         ${S.busy.update ? '<span class="spin"></span>Installing…' : 'Install update'}</button></div>
-    <div class="small">${notes}</div>
+    <details data-key="update-notes"><summary>What's new</summary><div class="small">${notes}</div></details>
     ${U.error ? `<div class="small" style="color:var(--bad);margin-top:8px">${linkify(U.error)}</div>` : ''}
   </div>`;
 }
@@ -335,7 +394,50 @@ async function loadDashboard() {
     S.state = S.dash.state;
   } catch (e) { if (!expired(e)) S.dashError = e.message; }
   S.loadingDash = false; render();
+  scheduleMatchups();
 }
+
+// While games are on (or start within 3 hours) and the page is visible, matchups refresh every
+// 2 minutes; before that, the page wakes up again 3 hours before the next kickoff.
+function scheduleMatchups() {
+  clearTimeout(scheduleMatchups._t);
+  if (!S.state || !S.state.connected) return;
+  const ms = S.dash ? S.dash.leagues.map((l) => l.matchup).filter((m) => m && !m.error && !m.none) : [];
+  const next = Math.min(...ms.map((m) => (m.nextKick ? m.nextKick * 1000 : Infinity)));
+  const soon = ms.some((m) => m.live) || next - Date.now() < 3 * 3600000;
+  if (!soon) {
+    if (next < Infinity) scheduleMatchups._t = setTimeout(scheduleMatchups, Math.min(6 * 3600000, next - 3 * 3600000 - Date.now()));
+    return;
+  }
+  scheduleMatchups._t = setTimeout(async () => {
+    if (document.visibilityState === 'visible' && S.state && S.state.connected) {
+      try {
+        (await api('getMatchups')).forEach((x) => {
+          const lg = S.dash && S.dash.leagues.find((l) => l.id === x.id);
+          if (lg && x.matchup) lg.matchup = x.matchup;
+        });
+        quietRender();
+      } catch (e) { expired(e); }
+    }
+    scheduleMatchups();
+  }, 120000);
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') scheduleMatchups(); });
+
+// A background refresh never redraws the page under a field being edited (that would end the
+// edit and save a half-typed value): it waits until the field is left.
+function quietRender() {
+  const a = document.activeElement;
+  if (a && a.matches && a.matches('input, select, textarea')) { S.renderPending = true; return; }
+  render();
+}
+document.addEventListener('focusout', () => {
+  if (!S.renderPending) return;
+  setTimeout(() => {
+    const a = document.activeElement;
+    if (S.renderPending && !(a && a.matches && a.matches('input, select, textarea'))) { S.renderPending = false; render(); }
+  }, 0);
+});
 
 function replaceLeague(res) {
   if (!S.dash) return;
@@ -351,6 +453,7 @@ function replaceLeague(res) {
 function render() {
   const st = S.state;
   if (!st) return;
+  S.renderPending = false;
   // Rebuilding the page must not wipe what's being typed or close what's open.
   const typed = {}, open = {};
   const fieldKey = (el) => el.form.dataset.form + ':' + el.name;
@@ -451,8 +554,7 @@ function appView(st) {
     ${S.dashError ? `<div class="card banner bad">Couldn't load your leagues: ${esc(S.dashError)}
         <div style="margin-top:8px"><button class="small" data-action="reload">Try again</button></div></div>` : ''}
     ${S.loadingDash && !S.dash ? skeletonCards() : ''}
-    ${S.dash ? S.dash.leagues.map(leagueCard).join('') : ''}
-    ${activityCard(st.log || [])}
+    ${S.dash ? tabsView(st) : ''}
     <div class="faint small" style="text-align:center;margin-top:18px">
       Rankings: FantasyPros ECR · Data: Sleeper · Refreshed ${S.dash ? 'week ' + esc(S.dash.week) : '…'}
       · <a href="#" data-action="reload" style="color:inherit">refresh</a>
@@ -474,28 +576,46 @@ function statusCard(st) {
   const on = st.mode === 'auto';
   const t = st.lastTick;
   const tickTxt = t ? `${esc(t.msg)} <span class="faint">(${ago(t.ts)})</span>` : 'Not run yet';
-  const exp = st.tokenExpires ? when(st.tokenExpires * 1000) : 'not stated by Sleeper';
   const expSoon = st.tokenExpires && st.tokenExpires * 1000 - Date.now() < 7 * 86400000;
-  return `<div class="card hero">
-    <div class="row between">
+  return `<div class="card">
+    <div class="bar-status">
       <div class="row"><span class="status-dot ${on ? 'on' : 'off'}"></span>
-        <div><div class="hero-title">${on ? 'Autopilot is on' : 'Suggestions only'}</div>
-          <div class="muted small">${on ? 'Changes your lineups (and claims where enabled) automatically.'
-                                         : 'Nothing is changed on Sleeper until you turn autopilot on or tap Apply.'}</div></div></div>
-      <label class="switch" title="Autopilot"><input type="checkbox" data-action="mode" ${on ? 'checked' : ''}
-        ${S.busy.mode ? 'disabled' : ''}><span class="slider"></span></label>
+        <div><div style="font-weight:700">${on ? 'Autopilot is on' : 'Suggestions only'}</div>
+          <div class="small ${t && t.status === 'error' ? '' : 'muted'}" style="${t && t.status === 'error' ? 'color:var(--bad)' : ''}">
+            Last check: ${tickTxt}</div></div></div>
+      <div class="row">
+        <button class="small" data-action="run-now" ${S.busy.run ? 'disabled' : ''}>
+          ${S.busy.run ? '<span class="spin"></span>Running…' : 'Check now'}</button>
+        <label class="switch" title="Autopilot"><input type="checkbox" data-action="mode" ${on ? 'checked' : ''}
+          ${S.busy.mode ? 'disabled' : ''}><span class="slider"></span></label></div>
     </div>
-    <div class="facts">
-      <div class="fact"><b>Last check</b>${t && t.status === 'error' ? `<span style="color:var(--bad)">${tickTxt}</span>` : tickTxt}</div>
-      <div class="fact"><b>Schedule</b>Every 30 min: lineups before games, claims the evening before waivers.</div>
-      <div class="fact"><b>Sleeper session</b>${expSoon ? '<span style="color:var(--warn)">Expires ' + exp + '</span>' : 'Valid · expires ' + exp}</div>
-    </div>
-    <div class="row wrapflex">
-      <button class="small" data-action="run-now" ${S.busy.run ? 'disabled' : ''}>
-        ${S.busy.run ? '<span class="spin"></span>Running…' : 'Check lineups now'}</button>
-      <span class="faint small">${st.autopilotScheduled ? 'Background checks scheduled.' : 'Background checks not scheduled yet.'}</span>
-    </div>
+    ${expSoon ? `<div class="banner warn">Your Sleeper session expires ${when(st.tokenExpires * 1000)}. Log out and connect again before then.</div>` : ''}
   </div>`;
+}
+
+/** One tab per league plus Activity; a dot marks a league that needs you. */
+function tabsView(st) {
+  const leagues = S.dash.leagues;
+  if (!leagues.length) return '<div class="card muted">No Sleeper leagues found for this season.</div>';
+  const ids = leagues.map((l) => l.id).concat('activity');
+  if (!ids.includes(S.tab)) S.tab = leagues[0].id;
+  const tabs = leagues.map((lg) => {
+    const n = needs(lg);
+    return `<button class="tab ${S.tab === lg.id ? 'on' : ''}" data-action="tab" data-tab="${esc(lg.id)}">${esc(lg.name)}${
+      n ? `<span class="dot ${n === 'bad' ? 'bad' : ''}" title="Needs a look"></span>` : ''}</button>`;
+  }).join('');
+  const body = S.tab === 'activity' ? activityView(st) : leagueView(leagues.find((l) => l.id === S.tab));
+  return `<div class="tabs">${tabs}<button class="tab ${S.tab === 'activity' ? 'on' : ''}" data-action="tab"
+      data-tab="activity">Activity</button></div>${body}`;
+}
+
+/** 'bad' (safety check, a starter out) or 'warn' (a change to make), else ''. */
+function needs(lg) {
+  const L = lg.lineup || {}, F = lg.freeAgents || {}, W = lg.waivers || {};
+  if ((lg.safety && lg.safety.length) || (L.warnings && L.warnings.length)) return 'bad';
+  if ((L.changes && !L.applied) || (F.claims && F.claims.length && !F.claims.every((c) => c.submitted))) return 'warn';
+  if (W.claims && W.claims.length && !W.claims.every((c) => c.submitted) && !(lg.settings || {}).auto_waivers) return 'warn';
+  return '';
 }
 
 function skeletonCards() {
@@ -526,22 +646,151 @@ function playerCell(p) {
     <div class="pmeta">${esc(p.pos || '')}${p.team ? ' · ' + esc(p.team) : ''}</div></div>`;
 }
 
-function leagueCard(lg) {
+function leagueView(lg) {
   const cfg = lg.settings || {};
-  return `<div class="card">
-    <div class="row between wrapflex">
-      <h2>${esc(lg.name)}</h2>
-    </div>
-    <div class="chips">${lg.flags.map((f, i) => `<span class="chip ${i < 2 ? 'accent' : ''}">${esc(f)}</span>`).join('')}</div>
-    ${lg.safety && lg.safety.length ? `<div class="banner bad"><b>Safety check: this plan looks wrong, so nothing in this
+  const moves = (lg.freeAgents ? freeAgentSection(lg) : '') + (lg.waivers ? waiverSection(lg) : '');
+  return `${lg.safety && lg.safety.length ? `<div class="card banner bad"><b>Safety check: this plan looks wrong, so nothing in this
       league is changed (automatically or with the buttons) until it's fixed.</b>
       <ul style="margin:6px 0 0;padding-left:18px">${lg.safety.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
-    ${lg.notes.map((n) => `<div class="banner info">${esc(n)}</div>`).join('')}
-    ${lg.lineup ? lineupSection(lg) : ''}
-    ${lg.waivers ? waiverSection(lg) : ''}
-    ${lg.freeAgents ? freeAgentSection(lg) : ''}
-    ${settingsSection(lg, cfg)}
+    ${lg.notes.map((n) => `<div class="card banner info">${esc(n)}</div>`).join('')}
+    ${lg.matchup ? matchupCard(lg) : ''}
+    ${lg.lineup ? `<div class="card">${lineupSection(lg)}</div>` : ''}
+    ${moves ? `<div class="card">${moves}</div>` : ''}
+    ${lg.status === 'in_season' ? tradesCard(lg) : ''}
+    <div class="card"><div class="chips" style="margin-top:0">${lg.flags.map((f, i) => `<span class="chip ${i < 2 ? 'accent' : ''}">${esc(f)}</span>`).join('')}</div>
+      ${settingsSection(lg, cfg)}</div>`;
+}
+
+// ---- matchup ------------------------------------------------------------
+const pts = (x) => (x == null ? '–' : Number(x).toFixed(1));
+
+function matchupCard(lg) {
+  const M = lg.matchup;
+  if (M.error) return `<div class="card"><h2>This week's matchup</h2><div class="banner bad">${esc(M.error)}</div></div>`;
+  if (M.none) return `<div class="card"><h2>This week's matchup</h2><div class="small muted" style="margin-top:6px">${esc(M.none)}</div></div>`;
+  const view = S.matchView[lg.id] === 'best' && M.me.best ? 'best' : 'current';
+  const A = M.me[view] || M.me.current, B = M.opp ? (M.opp[view] || M.opp.current) : null;
+  const win = M.win[view];
+  const label = M.live ? '<span class="live">● Live</span>' : M.started ? 'In progress' : 'Projected';
+  const curA = M.me.current.rows.map((x) => x.id), curB = M.opp ? M.opp.current.rows.map((x) => x.id) : [];
+  const max = Math.max(20, ...A.rows.map((x) => x.exp), ...(B ? B.rows.map((x) => x.exp) : []));
+  const cell = (x, opp, cur) => {
+    if (!x) return `<div class="mcell ${opp ? 'opp' : ''}"></div>`;
+    const meta = x.status === 'empty' ? 'empty spot' : x.status === 'bye' ? 'bye' : x.why ? x.why
+      : x.status === 'in' ? x.clock || 'playing' : x.status === 'post' ? 'final' : x.kickoff ? kickTxt(x.kickoff) : 'projected';
+    const done = x.pts == null ? 0 : x.pts, left = Math.max(0, x.exp - done);
+    const isIn = view === 'best' && x.id !== '0' && !cur.includes(x.id);
+    return `<div class="mcell ${opp ? 'opp' : ''} ${isIn ? 'in' : ''}">
+      <div class="mline"><span class="mname" title="${esc(x.name)}">${esc(shortName(x))}${isIn ? '<span class="tag in">IN</span>' : ''}</span>
+        <span class="mpts">${x.status === 'in' ? pts(x.pts) : pts(x.exp)}</span></div>
+      <div class="mmeta">${esc(x.pos || '')}${x.team ? ' ' + esc(x.team) : ''} · ${esc(meta)}${x.status === 'in' ? ' · +' + pts(left) + ' to come' : ''}</div>
+      <div class="pbar"><div style="width:${(100 * done / max).toFixed(1)}%;float:${opp ? 'right' : 'left'}"></div><div class="left"
+        style="width:${(100 * left / max).toFixed(1)}%;float:${opp ? 'right' : 'left'}"></div></div></div>`;
+  };
+  const rows = A.rows.map((x, i) => `<div class="mrow"><div class="slot-tag">${esc(slotName(x.slot))}</div>
+      ${cell(x, false, curA)}${cell(B && B.rows[i], true, curB)}</div>`).join('');
+  const gainMe = M.me.best ? M.me.best.total - M.me.current.total : 0;
+  const gainOpp = M.opp && M.opp.best ? M.opp.best.total - M.opp.current.total : 0;
+  return `<div class="card">
+    <div class="row between"><h2>Week ${esc(M.week)} matchup</h2><span class="small muted">${label}</span></div>
+    <div class="score">
+      <div class="side"><div class="who-name">${esc(M.me.name)}</div><div class="small faint">${esc(M.me.record)}</div>
+        <div class="total">${pts(A.total)}</div></div>
+      <div class="vs">vs</div>
+      <div class="side opp"><div class="who-name">${M.opp ? esc(M.opp.name) : '–'}</div>
+        <div class="small faint">${M.opp ? esc(M.opp.record) : ''}</div><div class="total">${B ? pts(B.total) : '–'}</div></div>
+    </div>
+    ${win != null ? `<div class="winbar"><div style="width:${win}%"></div></div>
+      <div class="row between small" style="margin-top:4px"><b style="color:var(--accent)">Win chance ${win}%</b>
+        <span class="faint">${100 - win}%</span></div>` : ''}
+    <div class="seg"><button class="${view === 'current' ? 'on' : ''}" data-action="match-view" data-league="${esc(lg.id)}"
+        data-view="current">Current lineups</button><button class="${view === 'best' ? 'on' : ''}" data-action="match-view"
+        data-league="${esc(lg.id)}" data-view="best" ${M.me.best ? '' : 'disabled'}>Best lineups</button></div>
+    <div class="small muted" style="margin-top:8px">${view === 'best'
+      ? `Both teams with the lineup the autopilot would set.${gainMe > 0.05 ? ` Yours gains ${pts(gainMe)}.` : ''}${gainOpp > 0.05 ? ` Theirs gains ${pts(gainOpp)}.` : ''}`
+      : `As set on Sleeper right now.${gainMe > 0.05 ? ` Your best lineup scores ${pts(gainMe)} more.` : ''}`}</div>
+    <div class="mrows">${rows}</div>
+    <div class="small faint" style="margin-top:8px">Projections: Sleeper, scored with this league's rules${M.started
+      ? '; live points so far plus the projection for the time left' : ''}. Updated ${ago(M.updated)}.</div>
   </div>`;
+}
+
+// "Ja'Marr Chase" -> "J. Chase", "Minnesota Vikings" -> "Vikings": fits two columns on a phone.
+const shortName = (p) => {
+  const parts = String(p.name || '').split(' ');
+  if (p.id === '0' || parts.length < 2) return p.name;
+  return p.pos === 'DEF' ? parts[parts.length - 1] : parts[0][0] + '. ' + parts.slice(1).join(' ');
+};
+const kickTxt = (ts) => new Date(ts * 1000).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' });
+const slotName = (s) => s.replace('SUPER_FLEX', 'SF').replace('WRRB_FLEX', 'W/R').replace('REC_FLEX', 'W/T').replace('FLEX', 'FLX');
+
+// ---- trades -------------------------------------------------------------
+const FOCUS = [['', 'Any position'], ['QB', 'QB'], ['RB', 'RB'], ['WR', 'WR'], ['TE', 'TE'], ['DEF', 'DEF'], ['K', 'K']];
+
+function tradesCard(lg) {
+  const T = S.trades[lg.id] || {}, id = esc(lg.id), D = T.data;
+  const picker = `<div class="row wrapflex" style="margin-top:10px">
+      <select data-action="trade-focus" data-league="${id}">${FOCUS.map(([v, l]) =>
+        `<option value="${v}" ${(T.focus || '') === v ? 'selected' : ''}>Improve: ${l}</option>`).join('')}</select>
+      <button class="small ${D ? '' : 'primary'}" data-action="find-trades" data-league="${id}" ${T.loading ? 'disabled' : ''}>
+        ${T.loading ? '<span class="spin"></span>Checking every roster…' : D ? 'Search again' : 'Find trades'}</button></div>`;
+  let body = '';
+  if (T.error) body = `<div class="banner bad">${esc(T.error)}</div>`;
+  else if (D && D.closed) body = `<div class="banner info">${esc(D.closed)}</div>`;
+  else if (D) {
+    const offers = (D.offers || []).map((o) => `<div class="trade"><div class="side-l">
+        <b>${o.sent ? 'You offered ' + esc(o.partner.name) : esc(o.partner.name) + ' offers you'}</b>
+        <div>You give ${o.give.map(pname).join(', ')} · you get ${o.get.map(pname).join(', ')}</div>
+        <div class="gain">${gainTxt(o.me, o.them)}</div></div>
+        <div class="small muted">${o.sent ? 'Waiting for them' : 'Answer on Sleeper'}</div></div>`).join('');
+    const groups = [];
+    D.trades.forEach((t) => {
+      let g = groups.find((x) => x.partner.rosterId === t.partner.rosterId);
+      if (!g) groups.push(g = { partner: t.partner, trades: [] });
+      g.trades.push(t);
+    });
+    const list = groups.map((g) => `<div class="partner"><div class="partner-head"><b>${esc(g.partner.name)}</b>
+        <span class="small faint">${esc(g.partner.record)} · ${ordinal(g.partner.place)}</span>
+        ${g.partner.opponent ? '<span class="chip">Playing you this week</span>' : ''}
+        ${g.partner.playoffSpot ? '<span class="chip">In a playoff spot</span>' : ''}</div>
+      ${g.trades.map((t) => tradeRow(lg, t)).join('')}</div>`).join('');
+    body = (offers ? `<h3>Open offers</h3>${offers}` : '') +
+      (D.trades.length ? `<h3>Ideas${D.focus ? ' for ' + esc(D.focus) : ''}</h3>${list}`
+        : '<div class="banner ok">No trade found that clearly helps both teams' + (D.focus ? ' at ' + esc(D.focus) : '') + '.</div>') +
+      `<div class="small faint" style="margin-top:8px">Each trade is scored by how much it improves both teams' best
+        lineups in every remaining week from week ${esc(D.from)} (${esc(D.weeks)} weeks, byes included, free agents filling
+        gaps, playoff weeks counting half), using FantasyPros rest-of-season rankings.${D.deadline ? ' Trade deadline: week ' + esc(D.deadline) + '.' : ''}
+        Starred players are never offered.</div>`;
+  }
+  return `<div class="card"><h2>Trades</h2>
+    <div class="small muted" style="margin-top:4px">Trades where both teams' lineups get better and yours gets better by more.
+      Nothing is sent until you tap Offer.</div>${picker}${body}</div>`;
+}
+
+function tradeRow(lg, t) {
+  const key = 'trade' + lg.id + ':' + t.give.map((p) => p.id).concat(t.get.map((p) => p.id)).join(',');
+  return `<div class="trade"><div class="side-l">
+      <div><span class="drop">Give</span> ${t.give.map(pname).join(' + ')}</div>
+      <div><span class="add">Get</span> ${t.get.map(pname).join(' + ')}</div>
+      <div class="gain">${gainTxt(t.me, t.them)} · ${t.fair ? 'fair for both' : 'better for you'}${t.theyDrop
+        ? ' · they would need to drop a player' : ''}</div></div>
+    <button class="small" data-action="offer-trade" data-league="${esc(lg.id)}" data-roster="${esc(t.partner.rosterId)}"
+      data-give="${esc(t.give.map((p) => p.id).join(','))}" data-get="${esc(t.get.map((p) => p.id).join(','))}"
+      ${S.busy[key] ? 'disabled' : ''}>${S.busy[key] ? '<span class="spin"></span>Sending…' : 'Offer on Sleeper'}</button></div>`;
+}
+
+const pname = (p) => `<b>${esc(p.name)}</b> <span class="faint">${esc(p.posRank || p.pos || '')}</span>`;
+const signed = (x) => (x > 0 ? '+' : '') + Number(x).toFixed(1);
+const gainTxt = (me, them) => `<b>${signed(me)}</b> pts/week for you · ${signed(them)} for them`;
+const ordinal = (n) => n + (n % 10 === 1 && n % 100 !== 11 ? 'st' : n % 10 === 2 && n % 100 !== 12 ? 'nd'
+  : n % 10 === 3 && n % 100 !== 13 ? 'rd' : 'th');
+
+async function findTrades(id) {
+  const T = S.trades[id] = Object.assign(S.trades[id] || {}, { loading: true, error: null });
+  render();
+  try { T.data = await api('findTrades', id, { focus: T.focus || null }); }
+  catch (e) { if (!expired(e)) T.error = e.message; }
+  T.loading = false; render();
 }
 
 function lineupSection(lg) {
@@ -565,7 +814,7 @@ function lineupSection(lg) {
         ${L.bench.map((p) => `<div class="slot"><div class="slot-tag">BN</div>${playerCell(p)}<div class="rank">${keepBtn(p, lg.id)}${rankTxt(p)}</div></div>`).join('')}
       </div></details>` : ''}`;
   }
-  return `<h3>Week ${esc(L.week || '')} lineup</h3>${body}`;
+  return `<h2>Week ${esc(L.week || '')} lineup</h2>${body}`;
 }
 
 function waiverSection(lg) {
@@ -655,6 +904,15 @@ function settingsSection(lg, cfg) {
     </div></details>`;
 }
 
+function activityView(st) {
+  return `${activityCard(st.log || [])}
+    <div class="card"><h2>Background checks</h2><div class="facts" style="margin-top:10px">
+      <div class="fact"><b>Schedule</b>Every 30 min: lineups before games, claims the evening before waivers.</div>
+      <div class="fact"><b>Status</b>${st.autopilotScheduled ? 'Scheduled' : 'Not scheduled yet'}</div>
+      <div class="fact"><b>Sleeper session</b>${st.tokenExpires ? 'Expires ' + when(st.tokenExpires * 1000) : 'No expiry stated'}</div>
+    </div></div>`;
+}
+
 function activityCard(log) {
   const icon = { change: '✓', error: '!', warn: '!', info: '•' };
   const items = log.slice(0, 25).map((e) => `<div class="entry">
@@ -722,6 +980,25 @@ document.addEventListener('click', async (ev) => {
   if (!el || el.matches('input')) return;
   const a = el.dataset.action, id = el.dataset.league;
   if (a === 'reload') { ev.preventDefault(); loadDashboard(); }
+  if (a === 'tab') { S.tab = el.dataset.tab; saveTab(S.tab); render(); window.scrollTo(0, 0); }
+  if (a === 'match-view') { S.matchView[id] = el.dataset.view; render(); }
+  if (a === 'find-trades') findTrades(id);
+  if (a === 'offer-trade') {
+    const lg = S.dash && S.dash.leagues.find((l) => l.id === id);
+    const T = (S.trades[id] || {}).data || { trades: [] };
+    const give = el.dataset.give.split(','), get = el.dataset.get.split(',');
+    const t = T.trades.find((x) => x.give.map((p) => p.id).join(',') === el.dataset.give && x.get.map((p) => p.id).join(',') === el.dataset.get);
+    if (!t || !lg) return;
+    const names = (ps) => ps.map((p) => p.name).join(' + ');
+    if (!confirm(`Send this trade offer to ${t.partner.name} on Sleeper?\n\nYou give: ${names(t.give)}\nYou get: ${names(t.get)}`)) return;
+    const key = 'trade' + id + ':' + give.concat(get).join(',');
+    try {
+      const r = await busy(key, () => api('proposeTrade', id, { rosterId: Number(el.dataset.roster), give, get }));
+      toast('Offer sent to ' + r.to);
+      S.state = await api('getState');
+      findTrades(id);
+    } catch (e) { /* busy() already showed it */ }
+  }
   if (a === 'install-update') installUpdate();
   if (a === 'remove-update') {
     S.state = await api('removeUpdate');
@@ -793,6 +1070,12 @@ document.addEventListener('click', async (ev) => {
 
 document.addEventListener('change', async (ev) => {
   const el = ev.target;
+  if (el.dataset.action === 'trade-focus') {
+    const T = S.trades[el.dataset.league] = S.trades[el.dataset.league] || {};
+    T.focus = el.value;
+    if (T.data) findTrades(el.dataset.league);
+    return;
+  }
   if (el.dataset.action === 'mode') {
     const mode = el.checked ? 'auto' : 'suggest';
     if (mode === 'auto' && !confirm('Turn autopilot on? It will change lineups on Sleeper by itself '

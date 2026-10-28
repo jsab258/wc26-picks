@@ -165,6 +165,9 @@ function fixtureGas(nowMs) {
   gas.sleeper_ = (p) => (p === '/state/nfl' ? { week: 7, league_season: '2026' }
     : p.includes('/leagues/') ? [LEAGUE] : p.endsWith('/rosters') ? [ROSTER, { roster_id: 2, owner_id: 'x', players: ['wr_x'] }] : null);
   gas.pendingWaivers_ = () => [];
+  gas.pendingTrades_ = () => [];
+  gas.projectedPoints_ = () => ({});
+  gas.gameStates_ = () => ({});
   gas.latestBuild_ = () => null;   // no GitHub from the fixtures
   gas.waiverClears_ = () => ({});
   gas.addFreeAgent_ = (...a) => writes.push(['fa', ...a.slice(3)]);

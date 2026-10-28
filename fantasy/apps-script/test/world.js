@@ -229,6 +229,34 @@ function makeWorld(opts = {}) {
     world.refreshStatus();
   };
 
+  // ---- this week's matchup: me against roster 2, games 3 hours long ----------------------
+  const GAME = 3 * 3600000;
+  world.proj = (p) => 4 + (seededHash(p) % 160) / 10;   // a stable projection per player
+  world.elapsed = (p) => {
+    const k = kickoffOf[players[p][2]];
+    return !k ? 0 : Math.max(0, Math.min(1, (world.now - k) / GAME));   // kickoffs are in ms
+  };
+  world.games = () => {
+    const out = {};
+    Object.keys(kickoffOf).forEach((t) => {
+      const e = Math.max(0, Math.min(1, (world.now - kickoffOf[t]) / GAME));
+      out[t] = e <= 0 ? { status: 'pre', left: 1, clock: null } : e >= 1 ? { status: 'post', left: 0, clock: null }
+        : { status: 'in', left: 1 - e, clock: 'Q' + (1 + Math.floor(e * 4)) + ' 7:30' };
+    });
+    return out;
+  };
+  world.matchups = () => {
+    const opp = world.rosters[1], used = {};
+    const oppLineup = world.slots.map((slot) => {
+      const p = opp.players.find((x) => !used[x] && SLOT_POS[slot].includes(players[x][1]));
+      if (p) used[p] = true;
+      return p || '0';
+    });
+    const points = (list) => Object.fromEntries(list.filter((p) => p !== '0').map((p) => [p, Math.round(world.proj(p) * world.elapsed(p) * 10) / 10]));
+    return [{ roster_id: 1, matchup_id: 1, starters: world.lineup.slice(), players_points: points(world.me.players) },
+            { roster_id: 2, matchup_id: 1, starters: oppLineup, players_points: points(opp.players) }];
+  };
+
   // ---- the app, wired to this world ---------------------------------------------------
   world.gas = () => {
     const gas = loadGas({ now: () => world.now, props: world.props, file: process.env.GAS_CODE });  // GAS_CODE: test another Code.gs
@@ -242,13 +270,16 @@ function makeWorld(opts = {}) {
       if (path.includes('/leagues/nfl/')) return [JSON.parse(JSON.stringify(world.league))];
       if (/\/rosters$/.test(path)) return JSON.parse(JSON.stringify(world.rosters));
       const m = /\/matchups\/(\d+)$/.exec(path);
-      if (m) return Number(m[1]) === WEEK ? [{ roster_id: 1, starters: world.lineup.slice() }] : [];
+      if (m) return Number(m[1]) === WEEK ? world.matchups() : [];
       const t = /\/transactions\/(\d+)$/.exec(path);
       if (t) return world.tx.filter((x) => x.leg === Number(t[1]));
       if (path.endsWith('/users')) return [];
       return null;
     };
     gas.pendingWaivers_ = () => world.pending.map((c) => ({ roster_ids: [1], adds: { [c.add]: 1 }, drops: c.drop ? { [c.drop]: 1 } : {} }));
+    gas.pendingTrades_ = () => [];
+    gas.projectedPoints_ = () => Object.fromEntries(Object.keys(world.players).map((p) => [p, world.proj(p)]));
+    gas.gameStates_ = () => world.games();
     gas.waiverClears_ = () => Object.assign({}, world.clears);
     gas.setStarters_ = (token, lid, rid, starters) => world.setStarters(Array.from(starters));
     gas.submitClaim_ = (token, lid, rid, add, d) => world.submitClaim(add, d);
@@ -260,6 +291,12 @@ function makeWorld(opts = {}) {
     return gas;
   };
   return world;
+}
+
+function seededHash(s) {
+  let h = 7;
+  for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return h;
 }
 
 function dedupe(lineup) {

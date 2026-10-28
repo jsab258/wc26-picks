@@ -6,7 +6,8 @@ const { loadGas } = require('../dev/gas-stub');
 const plain = (x) => JSON.parse(JSON.stringify(x));
 // spec: { now (ms), week, leg, players: {id: [name,pos,team,inj,fpos]}, weekly: {slug: [[id, rank, posRank, kickoffSec|null, byeWeek?]]},
 //         ros: {slug: [[id, rank, posRank]]}, positions, mine: [...], starters: [...], others: [[...]], settings, rosterSettings,
-//         pending: [{adds, drops}], clears: {}, tx: {leg: [...]}, cfg: {} }
+//         pending: [{adds, drops}], clears: {}, tx: {leg: [...]}, cfg: {},
+//         matchups: [...], users: [...], proj: {id: points}, games: {team: {status, left, clock}}, trades: [pending offers] }
 function build(spec) {
   const writes = [];
   const P = spec.players;
@@ -37,12 +38,16 @@ function build(spec) {
     if (p.includes('/leagues/')) return [league];
     if (p.endsWith('/rosters')) return plain([roster, ...others]);
     const m = /\/matchups\/(\d+)$/.exec(p);
-    if (m) return [{ roster_id: 1, starters: roster.starters.slice() }];
+    if (m) return spec.matchups ? plain(spec.matchups) : [{ roster_id: 1, starters: roster.starters.slice() }];
+    if (p.endsWith('/users')) return spec.users || [];
     const t = /\/transactions\/(\d+)$/.exec(p);
     if (t) return (spec.tx || {})[t[1]] || [];
     return null;
   };
   gas.pendingWaivers_ = () => (spec.pending || []).map((x) => Object.assign({ roster_ids: [1] }, x));
+  gas.pendingTrades_ = () => plain(spec.trades || []);
+  gas.projectedPoints_ = () => Object.assign({}, spec.proj || {});   // Sleeper projections, already scored
+  gas.gameStates_ = () => Object.assign({}, spec.games || {});
   gas.latestBuild_ = () => null;
   gas.waiverClears_ = () => Object.assign({}, spec.clears || {});
   gas.addFreeAgent_ = (...a) => {
