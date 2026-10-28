@@ -267,4 +267,31 @@ function dedupe(lineup) {
   lineup.forEach((p, i) => { if (p !== '0' && seen[p]) lineup[i] = '0'; seen[p] = true; });
 }
 
-module.exports = { makeWorld, T0, WEEK, KICK, WAIVER_RUN, DAY, SLOT_POS };
+/**
+ * How many starting spots ``roster`` can fill this week with players who can still play
+ * (players whose game started keep their spot or stay benched). With ``ignoreStarted``, as if
+ * no game had started (for claims that go through before the week's games).
+ */
+function fillable(world, roster, ignoreStarted) {
+  const P = world.players;
+  const started = (p) => !ignoreStarted && world.started(p);
+  const canPlay = (p) => P[p][3] !== 'Out' && !!world.kickoffOf[P[p][2]] && !started(p);
+  let n = 0;
+  const open = [], held = new Set();
+  world.slots.forEach((slot, i) => {
+    const p = world.lineup[i];
+    if (p !== '0' && started(p) && roster.includes(p)) { held.add(p); n++; } else open.push(slot);
+  });
+  const pool = roster.filter((p) => !held.has(p) && canPlay(p));
+  const match = {};  // player -> index into open (augmenting paths)
+  const assign = (si, seen) => pool.some((p) => {
+    if (seen.has(p) || !SLOT_POS[open[si]].includes(P[p][1])) return false;
+    seen.add(p);
+    if (match[p] === undefined || assign(match[p], seen)) { match[p] = si; return true; }
+    return false;
+  });
+  open.forEach((_, si) => { if (assign(si, new Set())) n++; });
+  return n;
+}
+
+module.exports = { makeWorld, T0, WEEK, KICK, WAIVER_RUN, DAY, SLOT_POS, fillable };

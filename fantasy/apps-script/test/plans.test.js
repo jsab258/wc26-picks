@@ -287,3 +287,108 @@ test('safety: the weekly limit counts upgrades against the room pending claims l
   out = bad(s, (res, c) => { res.freeAgents.claims = [c('upgrade', 'wr_fa', 'rb3'), c('cover', 'te_fa', 'wr2')]; res.waivers.claims = []; });
   assert.ok(!out.some((x) => /More upgrades/.test(x)), JSON.stringify(out));
 });
+
+// ---- Second review: pending claims after the waiver run, which spot a move empties, locks --
+
+test('after the waiver run, a pending claim neither hides this week\'s hole nor invents one', () => {
+  // A TE claim pending for next week's run: this week's TE spot still needs a fill-in now.
+  let s = base();
+  s.players.te_w = ['te_w', 'TE', 'GB', null, null];
+  s.weekly['ppr-flex'].push(['te_w', 50, 'TE8']);
+  s.ros['ros-ppr-overall'].push(['te_w', 100, 'TE9']);
+  s.clears = { te_w: s.now / 1000 + 6 * 86400 };
+  s.pending = [{ adds: { te_w: 1 }, drops: { wr3: 1 } }];
+  let lg = page(s);
+  assert.ok(lg.freeAgents.claims.some((c) => c.add.id === 'te_fa'), JSON.stringify(claims(lg.freeAgents)));
+  assert.ok(!drops(lg.freeAgents).includes('wr3'));  // the pending claim drops him
+  // A kicker claim pending (that kicker is on bye this week, k1 still plays): nothing to fill.
+  s = base();
+  s.players.te1[3] = null;
+  s.players.k_w = ['k_w', 'K', 'GB', null, null];
+  s.weekly.k = [['k1', 10, 'K10'], ['k_fa', 8, 'K8'], ['k_w', 1, 'K1', null, true]];
+  s.ros['ros-k'] = [['k1', 12, 'K12'], ['k_fa', 20, 'K20'], ['k_w', 2, 'K2']];
+  s.clears = { k_w: s.now / 1000 + 6 * 86400 };
+  s.pending = [{ adds: { k_w: 1 }, drops: { k1: 1 } }];
+  s.cfg = { max_claims: 0 };
+  lg = page(s);
+  assert.deepEqual(claims(lg.freeAgents), []);
+});
+
+test('an upgrade never trades one empty spot for a harder one (drops the only QB who plays to fill FLEX)', () => {
+  const mk = (cfg) => {
+    const s = base();
+    s.players.te1[3] = null;
+    s.players.qb1[2] = 'NYG';                         // on bye
+    s.players.qb2 = ['qb2', 'QB', 'DAL', null, null];
+    s.players.rb2[3] = 'Out'; s.players.wr2[3] = 'Out'; s.players.wr3[3] = 'Out';
+    s.mine = ['qb1', 'rb1', 'rb2', 'wr1', 'wr2', 'te1', 'k1', 'DET', 'qb2', 'wr3'];
+    s.starters = ['qb1', 'rb1', 'wr1', 'te1', 'rb2', 'k1', 'DET'];
+    s.weekly.qb = [['qb1', 5, 'QB5', null, true], ['qb2', 20, 'QB20']];
+    s.ros['ros-ppr-overall'].push(['qb2', 300, 'QB32']);
+    s.ros['ros-ppr-overall'] = s.ros['ros-ppr-overall'].map((r) => (r[0] === 'wr3' ? ['wr3', 300, 'WR99'] : r));
+    s.cfg = Object.assign({ max_claims: 2, stream_k_def: false }, cfg);
+    return s;
+  };
+  for (const cfg of [{ never_drop: ['wr3'] }, { cover_byes: false }]) {
+    const lg = page(mk(cfg));
+    assert.ok(!drops(lg.freeAgents).includes('qb2'), JSON.stringify(claims(lg.freeAgents)));
+    assert.deepEqual(plain(lg.safety), []);
+  }
+});
+
+test('before the waiver run, no claim relies on an earlier claim going through', () => {
+  // rb2 is the only RB who can play; dropping him is only safe if the rb_fa claim wins.
+  const s = tuesday(base());
+  s.players.te1[3] = null;
+  s.players.rb1[3] = 'Out'; s.players.rb3[3] = 'Out';
+  s.ros['ros-ppr-overall'] = s.ros['ros-ppr-overall'].map((r) => (r[0] === 'rb2' ? ['rb2', 280, 'RB80']
+    : r[0] === 'wr3' ? ['wr3', 300, 'WR99'] : r[0] === 'rb_fa' ? ['rb_fa', 165, 'RB58'] : r));
+  s.others = [['p1', 'p2', 'p3', 'te_fa']];
+  s.cfg = { max_claims: 2, stream_k_def: false, min_roster: { RB: 1 } };
+  const lg = page(s);
+  assert.ok(lg.waivers.claims.length > 0);
+  assert.ok(!drops(lg.waivers).includes('rb2'), JSON.stringify(claims(lg.waivers)));
+});
+
+test('safety: a bench player whose game has started can\'t fill an empty spot', () => {
+  // Sunday after the early games: te2 (late game) is the only TE who can still play; te3
+  // already played on the bench. Dropping te2 leaves TE empty.
+  const LATE = Date.parse('2026-10-25T20:25:00Z') / 1000;
+  const s = base();
+  s.now = Date.parse('2026-10-25T17:30:00Z');
+  s.players.te2 = ['te2', 'TE', 'DAL', null, null];
+  s.players.te3 = ['te3', 'TE', 'CHI', null, null];
+  s.players.te1[2] = 'DAL';
+  s.mine = ['qb1', 'rb1', 'rb2', 'wr1', 'wr2', 'te1', 'k1', 'DET', 'te2', 'te3'];
+  s.starters = ['qb1', 'rb1', 'wr1', 'te2', 'rb2', 'k1', 'DET'];
+  s.weekly['ppr-flex'] = s.weekly['ppr-flex'].filter((r) => r[0] !== 'te1')
+    .map((r) => (['rb_fa', 'wr_fa', 'te_fa'].includes(r[0]) ? [r[0], r[1], r[2], LATE] : r))
+    .concat([['te1', 40, 'TE5', LATE], ['te2', 80, 'TE15', LATE], ['te3', 85, 'TE16']]);
+  s.ros['ros-ppr-overall'].push(['te2', 300, 'TE30'], ['te3', 120, 'TE12']);
+  const out = bad(s, (res, c) => { res.freeAgents.claims = [c('upgrade', 'wr_fa', 'te2')]; res.waivers.claims = []; });
+  assert.ok(out.some((x) => /starting spot this week with nobody who can play/.test(x)), JSON.stringify(out));
+  // The planner may swap te2 only for a TE who still plays (te_fa, late game).
+  const swap = page(s).freeAgents.claims.find((c) => c.drop && c.drop.id === 'te2');
+  assert.ok(!swap || swap.add.id === 'te_fa', JSON.stringify(swap && swap.add.id));
+});
+
+test('safety: no false alarm when a locked bench player could have filled the spot earlier', () => {
+  // Sunday: FLEX is empty and the bench players who could fill it already played. The plan
+  // must neither drop qb2 (the only QB who plays) nor get blocked for a hole it didn't open.
+  const LATE = Date.parse('2026-10-25T20:25:00Z') / 1000;
+  const s = base();
+  s.now = Date.parse('2026-10-25T17:30:00Z');
+  s.players.te1[3] = null;
+  s.players.qb2 = ['qb2', 'QB', 'DAL', null, null];
+  s.players.qb1[2] = 'NYG';
+  s.mine = ['qb1', 'rb1', 'rb2', 'wr1', 'wr2', 'te1', 'k1', 'DET', 'qb2', 'wr3'];
+  s.players.rb2[3] = 'Out'; s.players.wr2[3] = 'Out';
+  s.starters = ['qb1', 'rb1', 'wr1', 'te1', '0', 'k1', 'DET'];
+  s.weekly.qb = [['qb1', 5, 'QB5', null, true], ['qb2', 20, 'QB20', LATE]];
+  s.weekly['ppr-flex'] = s.weekly['ppr-flex'].map((r) => (['rb_fa', 'wr_fa', 'te_fa'].includes(r[0]) ? [r[0], r[1], r[2], LATE] : r));
+  s.ros['ros-ppr-overall'].push(['qb2', 250, 'QB30']);
+  s.cfg = { max_claims: 2, stream_k_def: false };
+  const lg = page(s);
+  assert.ok(!drops(lg.freeAgents).includes('qb2'), JSON.stringify(claims(lg.freeAgents)));
+  assert.deepEqual(plain(lg.safety), []);
+});

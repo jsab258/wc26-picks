@@ -161,7 +161,9 @@ How bugs are kept out:
   taking players), enforcing Sleeper's rules on every write and checking the
   plans and the lineup at every kickoff. It also checks hundreds of random leagues
   at random moments of the week, and a control run proves it notices problems.
-  New features get covered here before they ship.
+  `test/fuzz.test.js` adds hundreds of random leagues with claims pending on
+  Sleeper, starred players, fresh pickups, open roster spots and Sunday locks
+  (`FUZZ_N=4000` for more). New features get covered here before they ship.
 - **Independent review**: before a bigger change ships, a reviewer that didn't
   write it hunts for bugs with runnable repros. Every confirmed finding becomes a
   test in `test/plans.test.js` (built on the small configurable league in
