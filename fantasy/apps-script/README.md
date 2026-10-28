@@ -152,8 +152,9 @@ How bugs are kept out:
   pass, checked separately from the planning code (no claim for a free agent,
   no player dropped twice, no starred or just-picked-up player dropped for a
   small gain, nothing that breaks Sleeper's rules, no internal values on screen,
-  roster size and weekly limit respected, a sensible lineup). A plan that breaks
-  one is never carried out, by the autopilot or the buttons.
+  roster size and weekly limit respected, no move that leaves this week's lineup
+  with a spot nobody can play in, a sensible lineup). A plan that breaks one is
+  never carried out, by the autopilot or the buttons.
 - **Week simulation** (`test/simulation.test.js`, `test/world.js`): a fake
   Sleeper league that runs the real app every 30 minutes for whole weeks (claims,
   the waiver run, free agency, kickoffs, byes, injury news, inactives, rivals
@@ -161,6 +162,12 @@ How bugs are kept out:
   plans and the lineup at every kickoff. It also checks hundreds of random leagues
   at random moments of the week, and a control run proves it notices problems.
   New features get covered here before they ship.
+- **Independent review**: before a bigger change ships, a reviewer that didn't
+  write it hunts for bugs with runnable repros. Every confirmed finding becomes a
+  test in `test/plans.test.js` (built on the small configurable league in
+  `test/fixture.js`), checked to fail on the code before the fix:
+  `GAS_CODE=<old Code.gs> node --test test/plans.test.js` runs the tests (and the
+  simulation) against another copy of `Code.gs`.
 - **Daily canary** (`.github/workflows/sleeper-autopilot-canary.yml`): plans your
   real leagues from live data every day, writing nothing, and applies the safety
   rules. A failure (a bug, or FantasyPros or Sleeper changing something) fails
