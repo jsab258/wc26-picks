@@ -3,6 +3,10 @@
 Newest first. Each `##` entry becomes the release notes shown by the app's
 "Install update" button. Add one with every change to Code.gs / Index.html.
 
+## Superflex QBs from projections
+- In the superflex spot, how much a QB counts against a RB/WR/TE is now worked out each week from Sleeper's projections in your league's scoring (so 6-point passing TDs count), instead of a fixed boost. FantasyPros still decides which QB is better.
+- The "Lean towards a 2nd QB" slider is gone: there's nothing to tune. If projections can't be loaded, the old fixed boost is used.
+
 ## Injury badges
 - Players now show Sleeper's injury status as a badge, like on Sleeper: Q (questionable), D (doubtful), O / IR / SUS (out), and BYE. They appear in the lineup, the bench, both sides of the matchup, the waiver and free-agent lists, trade ideas and open offers.
 - Tap a badge (or hover on a computer) to see the injury, e.g. "Questionable (Ankle)".

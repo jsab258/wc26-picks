@@ -913,16 +913,11 @@ function settingsSection(lg, cfg) {
       ${hint ? `<div class="hint">${hint}</div>` : ''}</div>
       <label class="switch sm"><input type="checkbox" data-setting="${key}" data-league="${id}" ${cfg[key] ? 'checked' : ''}>
       <span class="slider"></span></label></div>`;
-  const qb = lg.superflex ? `<div class="setting"><div><div class="label">Lean towards a 2nd QB</div>
-      <div class="hint">SUPER_FLEX: a QB counts <b data-out="qb-${id}">${cfg.superflex_qb_bonus}</b> ECR spots better</div></div>
-      <input type="range" min="0" max="40" step="5" value="${cfg.superflex_qb_bonus}" data-setting="superflex_qb_bonus"
-        data-league="${id}"></div>` : '';
   return `<details data-key="settings-${id}"><summary>League settings</summary><div class="settings-grid">
       ${toggle('auto_lineup', 'Auto lineup', 'Autopilot sets the best lineup before games')}
       ${toggle('auto_waivers', 'Auto waiver claims and free agents', 'Autopilot submits the waiver plan before waivers process, then picks up free agents for byes and injuries')}
       ${toggle('stream_k_def', 'Stream K / DEF', 'Swap kicker/defense for clearly better matchups')}
       ${toggle('cover_byes', 'Cover byes and injuries', 'One-week pickup when a starter can\'t play and your bench can\'t fill in')}
-      ${qb}
       <div class="setting"><div><div class="label">Upgrades per week</div>
         <div class="hint">Waiver claims plus free-agent pickups; fill-ins and K/DEF streams come on top</div></div>
         <input class="num" type="number" min="0" max="5" value="${cfg.max_claims}" data-setting="max_claims" data-league="${id}"></div>
@@ -1121,16 +1116,8 @@ document.addEventListener('change', async (ev) => {
     if (lg) lg.settings = cfg;
     toast('Saved');
     // These change the plan itself; the others only change what the page says about it.
-    if (['superflex_qb_bonus', 'stream_k_def', 'cover_byes', 'max_claims', 'min_gain'].includes(key)) loadDashboard();
+    if (['stream_k_def', 'cover_byes', 'max_claims', 'min_gain'].includes(key)) loadDashboard();
     else render();
-  }
-});
-
-document.addEventListener('input', (ev) => {
-  const el = ev.target;
-  if (el.dataset.setting === 'superflex_qb_bonus') {
-    const out = document.querySelector(`[data-out="qb-${el.dataset.league}"]`);
-    if (out) out.textContent = el.value;
   }
 });
 

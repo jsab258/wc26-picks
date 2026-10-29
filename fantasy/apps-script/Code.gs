@@ -32,7 +32,6 @@ var FP = {
 var DEFAULTS = {
   auto_lineup: true,         // autopilot sets this league's lineup
   auto_waivers: false,       // autopilot submits waiver claims (Tuesday evening)
-  superflex_qb_bonus: 10,    // in SUPER_FLEX a QB counts this many ECR spots better
   bench_statuses: ['Out', 'IR', 'PUP', 'Sus', 'Doubtful', 'NA', 'DNR', 'COV'],
   max_claims: 2,
   min_gain: 20,              // pickup must beat the dropped player by this many ROS spots
@@ -57,7 +56,9 @@ var UNAVAILABLE = 5000;  // bye / injured: only start him if there is nobody els
 var SPARE_MIN = 150;     // ROS value past which a bench player is easy to replace
 var LATE_FLEX = 0.4;     // flex slots: up to this many ECR spots for a later kickoff (keeps a swap open)
 var QUESTIONABLE = 2;    // a Questionable player must rank this many spots better than a healthy one
-var TD6_QB_LEAN = 10;    // 6-pt passing TDs (ECR assumes 4): extra superflex QB lean, in ECR spots
+// SUPER_FLEX without projections (Sleeper's didn't load): a QB counts this many ECR spots better,
+// plus TD6_QB_LEAN more with 6-pt passing TDs (ECR assumes 4). With projections, see superflexLean_.
+var SF_QB_LEAN = 10, TD6_QB_LEAN = 10;
 var TD6_QB_VALUE = 0.85; // ...and QB waiver values count this much of their ECR rank (lower is better)
 // Trade finder: a rest-of-season value v (an ECR-like rank) is worth roughly TOP - SLOPE * ln(v) points a
 // game (never below FLOOR); kickers and defenses use their position rank.
@@ -1742,6 +1743,49 @@ League_.prototype.rosValueFn_ = function () {
   };
 };
 
+/**
+ * How many ECR spots better a QB counts in the SUPER_FLEX spot this week, from Sleeper's projections
+ * in this league's scoring (so 6-point passing TDs count; FantasyPros' superflex ranks assume 4).
+ * Each QB is matched with the RB/WR/TE projected for the same points; the lean is the typical gap
+ * in rank among QBs ranked 10-60. One number for every QB, so ECR still orders the QBs (and two
+ * starting QBs are never swapped between QB and SUPER_FLEX for nothing). Null without projections.
+ */
+League_.prototype.superflexLean_ = function () {
+  if (this._sfLean !== undefined) return this._sfLean;
+  var self = this, lean = null;
+  try {
+    var proj = projectedPoints_(this.id, this.data.scoring_settings || {}, this.ctx.state.league_season,
+                                Number(this.ctx.state.week));
+    var list = this.weeklyList('QB');  // the superflex list: QBs ranked with RB/WR/TE
+    var pts = [], ranks = [], gaps = [];
+    list.byId.forEach(function (r, pid) {
+      var pos = self.pos(pid);
+      if (pos === 'QB' || SKILL.indexOf(pos) < 0 || r.bye || !(proj[pid] > 0)) return;
+      pts.push(proj[pid]);
+      ranks.push(r.rank);
+    });
+    // Match by order: the k-th best projection among RB/WR/TE goes with the k-th best rank.
+    pts.sort(function (a, b) { return b - a; });
+    ranks.sort(function (a, b) { return a - b; });
+    list.byId.forEach(function (r, pid) {
+      var x = proj[pid];
+      if (self.pos(pid) !== 'QB' || r.bye || !(x > 0) || r.rank < 10 || r.rank > 60) return;
+      var k = 0;
+      while (k < pts.length && pts[k] > x) k++;  // RB/WR/TE projected for more than him
+      if (k === 0 || k === pts.length) return;   // off the scale: says nothing about the gap
+      gaps.push(r.rank - (ranks[k - 1] + (pts[k - 1] - x) / (pts[k - 1] - pts[k] || 1) * (ranks[k] - ranks[k - 1])));
+    });
+    if (pts.length >= 30 && gaps.length >= 5) {
+      gaps.sort(function (a, b) { return a - b; });
+      var mid = Math.floor(gaps.length / 2);
+      lean = Math.max(0, gaps.length % 2 ? gaps[mid] : (gaps[mid - 1] + gaps[mid]) / 2);
+    }
+  } catch (e) {
+    if (e.expired) throw e;
+  }
+  return (this._sfLean = lean);
+};
+
 /** The same league seen from another roster (e.g. this week's opponent). */
 League_.prototype.forRoster = function (roster) {
   var lg = Object.create(League_.prototype);
@@ -1884,7 +1928,8 @@ League_.prototype.planLineup = function () {
   });
   var times = Object.keys(info).map(function (pid) { return info[pid].ko; }).filter(Boolean);
   var first = Math.min.apply(null, times), last = Math.max.apply(null, times);
-  var qbLean = cfg.superflex_qb_bonus + (this.passTd6 ? TD6_QB_LEAN : 0);
+  var sfLean = this.slots.indexOf('SUPER_FLEX') >= 0 ? this.superflexLean_() : null;
+  var qbLean = sfLean !== null ? sfLean : SF_QB_LEAN + (this.passTd6 ? TD6_QB_LEAN : 0);
   var cost = function (pid, slot) {
     if (!self.eligible(pid, slot)) return null;
     var i = info[pid];
