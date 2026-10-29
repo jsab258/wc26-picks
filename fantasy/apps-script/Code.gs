@@ -1302,7 +1302,7 @@ function playersMaxAge_(kickoffs, now) {
 
 /**
  * Sleeper's player db is ~14 MB; we keep only fantasy-relevant players as
- * [name, position, team, injury_status, fantasy_positions]. Refreshed more
+ * [name, position, team, injury_status, fantasy_positions, injury_body_part]. Refreshed more
  * often close to kickoff so game-day inactives are picked up.
  */
 function playersSlim_(maxAgeSec) {
@@ -1331,7 +1331,8 @@ function parsePlayers_(text) {
       if (p.team || p.active) {
         var name = p.full_name || ((p.first_name || '') + ' ' + (p.last_name || '')).trim();
         var fpos = p.fantasy_positions && p.fantasy_positions.join(',') !== p.position ? p.fantasy_positions : null;
-        out[text.substring(ks + 1, ke)] = [name, p.position, p.team || null, p.injury_status || null, fpos];
+        out[text.substring(ks + 1, ke)] = [name, p.position, p.team || null, p.injury_status || null, fpos,
+                                           p.injury_status ? p.injury_body_part || null : null];
       }
     }
     i = oe + 1;
@@ -1771,6 +1772,7 @@ League_.prototype.weeklyRank = function (pid) {
 League_.prototype.view = function (pid, rank, extra) {
   var p = this.p(pid) || ['Player ' + pid, '', null];  // not tracked (e.g. IDP): left as you set it
   var v = { id: pid, name: pid === EMPTY ? '(empty)' : p[0], pos: p[1], team: this.team(pid),
+            injury: p[3] || null, injuryDetail: p[5] || null,   // Sleeper's status (Questionable, Out, IR...) and body part
             rank: rank && rank.rank !== undefined ? rank.rank
               : (typeof rank === 'number' && rank < UNRANKED ? Math.round(rank) : null),
             posRank: rank && rank.posRank ? rank.posRank : null };

@@ -3,6 +3,10 @@
 Newest first. Each `##` entry becomes the release notes shown by the app's
 "Install update" button. Add one with every change to Code.gs / Index.html.
 
+## Injury badges
+- Players now show Sleeper's injury status as a badge, like on Sleeper: Q (questionable), D (doubtful), O / IR / SUS (out), and BYE. They appear in the lineup, the bench, both sides of the matchup, the waiver and free-agent lists, trade ideas and open offers.
+- Tap a badge (or hover on a computer) to see the injury, e.g. "Questionable (Ankle)".
+
 ## League tabs, matchup projections, trade finder
 - Each league has its own tab, and Activity (the history) has one too, so the page is much shorter. A dot on a tab means that league needs you.
 - This week's matchup at the top of each league: every player's projected points for you and your opponent, the totals and your chance of winning, for the lineups as set or the best ones. During games it shows live points plus what's still to come, refreshing every 2 minutes while the page is open.

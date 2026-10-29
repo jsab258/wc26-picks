@@ -71,6 +71,8 @@ redeploying, no extra Google permissions.
     opponent, both totals and your chance of winning, for the lineups as set
     or the best ones. During games it shows live points plus the projection
     for the time left, refreshing every 2 minutes while the page is open;
+  - injury badges as on Sleeper (Q, D, O, IR, BYE) on every player; tap one
+    for the injury;
   - this week's best lineup, with injured or bye starters flagged and new
     starters marked **IN**, and an **Apply now** button;
   - the waiver plan (add / drop / FAAB bid) with **Submit claims now**;

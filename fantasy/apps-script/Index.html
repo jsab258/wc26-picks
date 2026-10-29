@@ -10,7 +10,7 @@
     --text: #141a24; --muted: #5f6b7c; --faint: #8b95a5;
     --accent: #0f9d77; --accent-ink: #ffffff; --accent-soft: #e2f5ef;
     --warn: #b7791f; --warn-soft: #fdf3e1; --bad: #c2410c; --bad-soft: #fdece4;
-    --info-soft: #e8effc; --info: #2f5fb3;
+    --info-soft: #e8effc; --info: #2f5fb3; --orange: #c2570c; --orange-soft: #fde6d2;
     --radius: 14px; --shadow: 0 1px 2px rgba(20, 26, 36, .06), 0 4px 16px rgba(20, 26, 36, .05);
   }
   @media (prefers-color-scheme: dark) {
@@ -19,7 +19,7 @@
       --text: #e7ecf3; --muted: #9aa6b8; --faint: #6f7b8e;
       --accent: #2bd4a4; --accent-ink: #062018; --accent-soft: #11342b;
       --warn: #f0b354; --warn-soft: #33270f; --bad: #ff8a5c; --bad-soft: #3a1d13;
-      --info-soft: #18263d; --info: #8fb4ff; --shadow: none;
+      --info-soft: #18263d; --info: #8fb4ff; --orange: #ffa45c; --orange-soft: #3a2413; --shadow: none;
     }
   }
   * { box-sizing: border-box; }
@@ -93,6 +93,13 @@
   .tag.in { background: var(--accent); color: var(--accent-ink); }
   .tag.out { background: var(--bad-soft); color: var(--bad); }
   .tag.lock { background: var(--surface); color: var(--faint); border: 1px solid var(--border); }
+  /* injury badges, as on Sleeper */
+  .inj { display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: .02em; padding: 1px 5px; border-radius: 5px;
+    margin-left: 5px; vertical-align: 1px; cursor: help; line-height: 1.4; }
+  .inj.q { background: var(--warn-soft); color: var(--warn); }
+  .inj.d { background: var(--orange-soft); color: var(--orange); }
+  .inj.o { background: var(--bad); color: #fff; }
+  .inj.bye { background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); padding: 0 4px; }
   .banner { border-radius: 10px; padding: 10px 12px; font-size: 14px; margin: 8px 0; }
   .banner.ok { background: var(--accent-soft); color: var(--accent); }
   .banner.warn { background: var(--warn-soft); color: var(--warn); }
@@ -177,6 +184,10 @@
   .mcell.opp { text-align: right; }
   .mline { display: flex; justify-content: space-between; gap: 6px; align-items: baseline; }
   .mcell.opp .mline { flex-direction: row-reverse; }
+  .mwho { display: flex; align-items: center; min-width: 0; }   /* the name shortens, its badges stay visible */
+  .mcell.opp .mwho { flex-direction: row-reverse; }
+  .mwho .inj, .mwho .tag { flex: none; }
+  .mcell.opp .mwho .inj, .mcell.opp .mwho .tag { margin: 0 5px 0 0; }
   .mname { font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mpts { font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .mmeta { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -637,10 +648,25 @@ function keepBtn(p, leagueId) {
     title="${p.keep ? 'Kept: never dropped. Tap to allow drops.' : 'Tap to never drop him'}">${p.keep ? '★' : '☆'}</button>`;
 }
 
+// Sleeper's injury status as a badge (Q amber, D orange, O/IR/... red, BYE grey); tap or hover for the detail.
+const INJ = { Questionable: ['Q', 'q'], Doubtful: ['D', 'd'], Out: ['O', 'o'], IR: ['IR', 'o'], PUP: ['PUP', 'o'],
+              Sus: ['SUS', 'o'], NA: ['NA', 'o'], DNR: ['DNR', 'o'], COV: ['COV', 'o'] };
+function injBadge(p) {
+  if (!p) return '';
+  const i = INJ[p.injury];
+  if (i) {
+    const detail = p.name + ': ' + p.injury + (p.injuryDetail ? ' (' + p.injuryDetail + ')' : '');
+    return `<span class="inj ${i[1]}" data-action="inj" data-detail="${esc(detail)}" title="${esc(detail)}">${i[0]}</span>`;
+  }
+  return p.why === 'bye' ? '<span class="inj bye" title="On bye this week">BYE</span>' : '';
+}
+
 function playerCell(p) {
   const tags = [];
   if (p.isNew) tags.push('<span class="tag in">IN</span>');
-  if (p.why) tags.push(`<span class="tag out">${esc(p.why)}</span>`);
+  const badge = injBadge(p);
+  if (badge) tags.push(badge);
+  else if (p.why) tags.push(`<span class="tag out">${esc(p.why)}</span>`);
   if (p.locked) tags.push('<span class="tag lock" title="Game started: locked">🔒</span>');
   return `<div style="min-width:0"><div class="pname">${esc(p.name)}${tags.join('')}</div>
     <div class="pmeta">${esc(p.pos || '')}${p.team ? ' · ' + esc(p.team) : ''}</div></div>`;
@@ -676,12 +702,13 @@ function matchupCard(lg) {
   const max = Math.max(20, ...A.rows.map((x) => x.exp), ...(B ? B.rows.map((x) => x.exp) : []));
   const cell = (x, opp, cur) => {
     if (!x) return `<div class="mcell ${opp ? 'opp' : ''}"></div>`;
-    const meta = x.status === 'empty' ? 'empty spot' : x.status === 'bye' ? 'bye' : x.why ? x.why
+    const meta = x.status === 'empty' ? 'empty spot' : x.status === 'bye' ? 'bye' : x.status === 'other' ? 'not tracked'
       : x.status === 'in' ? x.clock || 'playing' : x.status === 'post' ? 'final' : x.kickoff ? kickTxt(x.kickoff) : 'projected';
     const done = x.pts == null ? 0 : x.pts, left = Math.max(0, x.exp - done);
     const isIn = view === 'best' && x.id !== '0' && !cur.includes(x.id);
     return `<div class="mcell ${opp ? 'opp' : ''} ${isIn ? 'in' : ''}">
-      <div class="mline"><span class="mname" title="${esc(x.name)}">${esc(shortName(x))}${isIn ? '<span class="tag in">IN</span>' : ''}</span>
+      <div class="mline"><span class="mwho"><span class="mname" title="${esc(x.name)}">${esc(shortName(x))}</span>${
+        x.status === 'bye' ? '' : injBadge(x)}${isIn ? '<span class="tag in">IN</span>' : ''}</span>
         <span class="mpts">${x.status === 'in' ? pts(x.pts) : pts(x.exp)}</span></div>
       <div class="mmeta">${esc(x.pos || '')}${x.team ? ' ' + esc(x.team) : ''} · ${esc(meta)}${x.status === 'in' ? ' · +' + pts(left) + ' to come' : ''}</div>
       <div class="pbar"><div style="width:${(100 * done / max).toFixed(1)}%;float:${opp ? 'right' : 'left'}"></div><div class="left"
@@ -779,7 +806,7 @@ function tradeRow(lg, t) {
       ${S.busy[key] ? 'disabled' : ''}>${S.busy[key] ? '<span class="spin"></span>Sending…' : 'Offer on Sleeper'}</button></div>`;
 }
 
-const pname = (p) => `<b>${esc(p.name)}</b> <span class="faint">${esc(p.posRank || p.pos || '')}</span>`;
+const pname = (p) => `<b>${esc(p.name)}</b>${injBadge(p)} <span class="faint">${esc(p.posRank || p.pos || '')}</span>`;
 const signed = (x) => (x > 0 ? '+' : '') + Number(x).toFixed(1);
 const gainTxt = (me, them) => `<b>${signed(me)}</b> pts/week for you · ${signed(them)} for them`;
 const ordinal = (n) => n + (n % 10 === 1 && n % 100 !== 11 ? 'st' : n % 10 === 2 && n % 100 !== 12 ? 'nd'
@@ -823,9 +850,9 @@ function waiverSection(lg) {
   const basis = (c) => (c.kind === 'upgrade' ? 'ROS ' : 'this week ');
   const kinds = { upgrade: 'upgrade', stream: 'stream', cover: 'fill-in' };
   const claims = W.claims.map((c) => `<div class="claim">
-      <div><span class="add">+ ${esc(c.add.name)}</span> <span class="faint small">${esc(c.add.pos)} ${esc(c.add.team || '')}
+      <div><span class="add">+ ${esc(c.add.name)}</span>${injBadge(c.add)} <span class="faint small">${esc(c.add.pos)} ${esc(c.add.team || '')}
         · ${basis(c)}${rankTxt(c.add)}</span>
-        ${c.drop ? `<div class="small"><span class="drop">− ${esc(c.drop.name)}</span>${c.drop.why ? `<span class="tag out">${esc(c.drop.why)}</span>` : ''}
+        ${c.drop ? `<div class="small"><span class="drop">− ${esc(c.drop.name)}</span>${injBadge(c.drop) || (c.drop.why ? `<span class="tag out">${esc(c.drop.why)}</span>` : '')}
           <span class="faint">${esc(c.drop.pos)} · ${basis(c)}${rankTxt(c.drop)}</span>
           <button class="keep" data-action="keep" data-league="${esc(lg.id)}" data-player="${esc(c.drop.id)}"
             title="Never drop him">☆ keep</button></div>`
@@ -858,9 +885,9 @@ function freeAgentSection(lg) {
   const basis = (c) => (c.kind === 'upgrade' ? 'ROS ' : 'this week ');
   const kinds = { upgrade: 'upgrade', stream: 'stream', cover: 'fill-in' };
   const rows = F.claims.map((c) => `<div class="claim">
-      <div><span class="add">+ ${esc(c.add.name)}</span> <span class="faint small">${esc(c.add.pos)} ${esc(c.add.team || '')}
+      <div><span class="add">+ ${esc(c.add.name)}</span>${injBadge(c.add)} <span class="faint small">${esc(c.add.pos)} ${esc(c.add.team || '')}
         · ${basis(c)}${rankTxt(c.add)}</span>
-        ${c.drop ? `<div class="small"><span class="drop">− ${esc(c.drop.name)}</span>
+        ${c.drop ? `<div class="small"><span class="drop">− ${esc(c.drop.name)}</span>${injBadge(c.drop)}
           <span class="faint">${esc(c.drop.pos)} · ${basis(c)}${rankTxt(c.drop)}</span>
           <button class="keep" data-action="keep" data-league="${esc(lg.id)}" data-player="${esc(c.drop.id)}"
             title="Never drop him">☆ keep</button></div>` : '<div class="small faint">No drop needed (open roster spot)</div>'}
@@ -980,6 +1007,7 @@ document.addEventListener('click', async (ev) => {
   if (!el || el.matches('input')) return;
   const a = el.dataset.action, id = el.dataset.league;
   if (a === 'reload') { ev.preventDefault(); loadDashboard(); }
+  if (a === 'inj') { toast(el.dataset.detail); return; }
   if (a === 'tab') { S.tab = el.dataset.tab; saveTab(S.tab); render(); window.scrollTo(0, 0); }
   if (a === 'match-view') { S.matchView[id] = el.dataset.view; render(); }
   if (a === 'find-trades') findTrades(id);

@@ -319,3 +319,33 @@ test('the autopilot never offers trades', () => {
   gas.tick();
   assert.equal(sent.length, 0);
 });
+
+// ---- injury badges ------------------------------------------------------------------------
+
+test('the player list keeps the injury and body part (only for injured players)', () => {
+  const text = JSON.stringify({
+    1: { full_name: 'Hurt Guy', position: 'WR', team: 'KC', injury_status: 'Questionable', injury_body_part: 'Hamstring', fantasy_positions: ['WR'] },
+    2: { full_name: 'Fine Guy', position: 'RB', team: 'KC', injury_status: null, injury_body_part: 'Ankle', fantasy_positions: ['RB'] },
+  });
+  const out = plain(gasOnly.parsePlayers_(text));
+  assert.deepEqual(out['1'], ['Hurt Guy', 'WR', 'KC', 'Questionable', null, 'Hamstring']);
+  assert.deepEqual(out['2'], ['Fine Guy', 'RB', 'KC', null, null, null]);
+});
+
+test('every player view carries Sleeper\'s injury status: lineup, bench, matchup, pickups', () => {
+  const s = matchupSpec();
+  s.players.rb2 = ['rb2', 'RB', 'NYJ', 'Questionable', null, 'Hamstring'];
+  s.players.te1[5] = 'Knee';
+  const lg = build(s).gas.getDashboard().leagues[0];
+  const view = (list, id) => list.find((p) => p.id === id);
+  const rb2 = view(lg.lineup.lineup.concat(lg.lineup.bench), 'rb2');
+  assert.deepEqual(plain([rb2.injury, rb2.injuryDetail, rb2.why]), ['Questionable', 'Hamstring', null]);  // Q plays, but shows
+  const te1 = view(lg.lineup.lineup.concat(lg.lineup.bench), 'te1');
+  assert.deepEqual(plain([te1.injury, te1.injuryDetail, te1.why]), ['Out', 'Knee', 'Out']);
+  const row = lg.matchup.me.current.rows.find((x) => x.id === 'rb2');
+  assert.equal(row.injury, 'Questionable');
+  const healthy = lg.lineup.lineup.find((p) => p.id === 'qb1');
+  assert.equal(healthy.injury, null);
+  const claims = (lg.freeAgents.claims || []).concat(lg.waivers.claims || []);
+  claims.forEach((c) => { assert.ok('injury' in c.add); if (c.drop) assert.ok('injury' in c.drop); });
+});
