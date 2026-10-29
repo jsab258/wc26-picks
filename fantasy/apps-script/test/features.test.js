@@ -349,3 +349,69 @@ test('every player view carries Sleeper\'s injury status: lineup, bench, matchup
   const claims = (lg.freeAgents.claims || []).concat(lg.waivers.claims || []);
   claims.forEach((c) => { assert.ok('injury' in c.add); if (c.drop) assert.ok('injury' in c.drop); });
 });
+
+// ---- superflex: QB lean from projections ----------------------------------------------------
+
+/**
+ * Superflex league (6-pt pass TD); qb2 and wr2 compete for SUPER_FLEX. 40 RB/WR set the points-per-rank
+ * scale; 8 other QBs (ECR 33-61) are projected like a RB/WR ranked ``boost`` spots better.
+ */
+const sfSpec = (qb2Rank, boost) => {
+  const s = base();
+  s.scoring = { rec: 1, pass_td: 6 };
+  s.positions = ['QB', 'RB', 'WR', 'SUPER_FLEX', 'BN', 'BN', 'BN'];
+  s.players.qb2 = ['qb2', 'QB', 'BUF', null, null];
+  s.mine = ['qb1', 'rb1', 'wr1', 'qb2', 'wr2', 'rb2'];
+  s.starters = ['qb1', 'rb1', 'wr1', 'wr2'];
+  s.others = [[]];
+  const at = (rank) => 22 - (rank / 2 - 1) * 0.35;   // a RB/WR ranked ``rank`` projects this
+  const rows = [['qb1', 1, 'QB1'], ['rb1', 3, 'RB2'], ['wr1', 5, 'WR3'], ['qb2', qb2Rank, 'QB20'], ['wr2', 35, 'WR20'], ['rb2', 60, 'RB30']];
+  s.proj = { qb1: 26, rb1: 21, wr1: 20, qb2: 15, wr2: 13, rb2: 10 };
+  for (let i = 1; i <= 40; i++) {
+    const id = 'f' + i;
+    s.players[id] = [id, i % 2 ? 'RB' : 'WR', 'TB', null, null];
+    rows.push([id, i * 2, (i % 2 ? 'RB' : 'WR') + i]);
+    s.proj[id] = at(i * 2);
+  }
+  [32, 36, 40, 44, 48, 52, 56, 59].forEach((r, i) => {
+    const id = 'q' + i;
+    s.players[id] = [id, 'QB', 'NO', null, null];
+    rows.push([id, r + 1, 'QB' + (i + 3)]);
+    s.proj[id] = at(r + 1 - boost);
+  });
+  s.weekly['ppr-superflex'] = rows;
+  s.cfg = { max_claims: 0, stream_k_def: false, min_roster: { WR: 1, RB: 1 } };
+  return s;
+};
+const sf = (s) => build(s).gas.getDashboard().leagues[0].lineup.starters[3];
+
+test('superflex lean: the gap between QBs and RB/WR/TE projected for the same points', () => {
+  for (const boost of [0, 12, 30]) {
+    const lean = build(sfSpec(60, boost)).gas.withLeague_('L', (lg) => lg.superflexLean_());
+    assert.ok(Math.abs(lean - boost) < 3, `boost ${boost}: lean ${lean}`);   // the fixture's own RB/WR shift the scale a little
+  }
+});
+
+test('superflex: when QBs project well above their ECR, a lower-ranked QB starts over the WR', () => {
+  // QBs project 30 spots better than ECR says: qb2 (ECR 60) counts as 30, ahead of wr2 (35).
+  // The old fixed lean of 20 would have made him 40 and started wr2.
+  assert.equal(sf(sfSpec(60, 30)), 'qb2');
+});
+
+test('superflex: when QBs project no better than their ECR, the WR starts', () => {
+  // No gap this week: qb2 (ECR 45) stays 45, behind wr2 (35). The old fixed lean (25) would have started him.
+  assert.equal(sf(sfSpec(45, 0)), 'wr2');
+});
+
+test('superflex: without projections the fixed lean still applies', () => {
+  const { gas } = build(sfSpec(45, 0));
+  gas.projectedPoints_ = () => { throw new Error('Sleeper projections failed (HTTP 500)'); };
+  assert.equal(gas.getDashboard().leagues[0].lineup.starters[3], 'qb2');   // 45 - 20 = 25 beats wr2's 35
+});
+
+test('superflex: two starting QBs are not swapped between QB and SUPER_FLEX for nothing', () => {
+  const s = sfSpec(20, 12);
+  s.starters = ['qb2', 'rb1', 'wr1', 'qb1'];   // the better QB already sits in SUPER_FLEX
+  const L = build(s).gas.getDashboard().leagues[0].lineup;
+  assert.deepEqual([L.starters[0], L.starters[3], L.changes], ['qb2', 'qb1', 0]);
+});

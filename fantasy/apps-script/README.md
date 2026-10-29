@@ -83,7 +83,7 @@ redeploying, no extra Google permissions.
   - trade ideas with every other team (**Find trades**), and **Offer on
     Sleeper** to send one;
   - settings: auto lineup, auto claims and free agents, K/DEF streaming,
-    bye/injury fill-ins, superflex QB lean, upgrades per week, minimum upgrade.
+    bye/injury fill-ins, upgrades per week, minimum upgrade.
 - **Safety check:** if a plan ever breaks one of the app's safety rules (a bug),
   the league card says so in red and nothing in that league is changed until it's fixed.
 - **Activity:** every change the autopilot or you made, any errors, and the
@@ -93,7 +93,12 @@ redeploying, no extra Google permissions.
 
 - **Lineups:** an exact assignment over the league's slots, using the weekly
   ECR list for its scoring. In superflex it uses FantasyPros' superflex list,
-  plus the QB lean (bigger with 6-point passing TDs, which ECR doesn't assume).
+  plus a QB lean for the SUPER_FLEX spot worked out each week from Sleeper's
+  projections in the league's scoring: QBs are matched with the RB/WR/TE
+  projected for the same points, and the typical gap in rank (QBs ranked
+  10-60) is how many spots better a QB counts. ECR still orders the QBs.
+  Without projections it falls back to a fixed 10 spots (20 with 6-point
+  passing TDs).
   - It never starts players who are Out, on IR, Doubtful or on bye.
   - It never moves a player whose game has started.
   - A Questionable player has to rank 2 spots better than a healthy one.
