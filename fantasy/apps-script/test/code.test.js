@@ -78,7 +78,7 @@ test('parsing: ecrData blob and slim player db', () => {
   gas.fetch_ = () => ({ code: 200, text: JSON.stringify(db) });
   const slim = gas.playersSlim_(0);
   assert.deepEqual(Object.keys(slim).sort(), ['77', '9221', 'DET']);
-  assert.deepEqual(Array.from(slim['9221']), ['Jahmyr Gibbs', 'RB', 'DET', 'Questionable', null]);
+  assert.deepEqual(Array.from(slim['9221']), ['Jahmyr Gibbs', 'RB', 'DET', 'Questionable', null, null]);  // no body part given
   assert.deepEqual(Array.from(slim['77'][4]), ['QB', 'TE']);
   assert.equal(slim.DET[0], 'Detroit Lions');
 });
