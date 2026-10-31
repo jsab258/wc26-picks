@@ -78,7 +78,7 @@ redeploying, no extra Google permissions.
   - the waiver plan (add / drop / FAAB bid) with **Submit claims now**;
   - after Wednesday's waiver run, the free agents to pick up now, with
     **Add now**;
-  - a ☆ next to each player: tap it to never let the waiver plan drop him
+  - a star next to each player: tap it to never let the waiver plan drop him
     (or trade him);
   - trade ideas with every other team (**Find trades**), and **Offer on
     Sleeper** to send one;
