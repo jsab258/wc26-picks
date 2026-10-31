@@ -3,6 +3,13 @@
 Newest first. Each `##` entry becomes the release notes shown by the app's
 "Install update" button. Add one with every change to Code.gs / Index.html.
 
+## Calmer look
+- Green now only marks what matters: the main button, your side of the matchup, the selected tab and your win chance. Your opponent's bars are grey, and "nothing to do" messages are a quiet line with a check instead of a green box.
+- Easier to read in light mode: a darker green and darker grey text, so all text is clearly readable against its background.
+- Line icons instead of emoji and symbols (lock, star, check, warning), so they look the same on every phone, and a flat bolt as the logo.
+- Totals, points and positions use a fixed-width font so the digits line up, and the win bar has a midfield line at 50%.
+- Even spacing, lighter type, sentence-case section titles and hover states on buttons. Nothing about what the app does has changed.
+
 ## Superflex QBs from projections
 - In the superflex spot, how much a QB counts against a RB/WR/TE is now worked out each week from Sleeper's projections in your league's scoring (so 6-point passing TDs count), instead of a fixed boost. FantasyPros still decides which QB is better.
 - The "Lean towards a 2nd QB" slider is gone: there's nothing to tune. If projections can't be loaded, the old fixed boost is used.
