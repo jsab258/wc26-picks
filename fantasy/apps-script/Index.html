@@ -906,13 +906,26 @@ function waiverSection(lg) {
     ${W.changed ? '<div class="banner warn">The plan changed since the page loaded, so nothing was sent. Check the claims below and submit again.</div>' : ''}
     ${W.submitError ? `<div class="banner bad">${esc(W.submitError)}</div>` : ''}
     ${W.priority && W.priority.rolling ? `<div class="small muted">Waiver priority #${W.priority.position} of ${W.priority.teams} (rolling: a claim sends you to the back)</div>` : ''}
-    ${W.pending ? `<div class="banner info">${W.pending} claim${W.pending > 1 ? 's' : ''} already pending on Sleeper (not repeated)</div>` : ''}
+    ${W.pending ? pendingClaims(W) : ''}
     ${W.claims.length ? claims : okLine('No pickups clearly better than your roster right now')}
     ${W.notes.length ? `<ul class="notes small faint">${W.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
     ${W.claims.length && !W.pendingUnknown ? `<div class="row between wrapflex" style="margin-top:8px"><span class="small muted">${esc(when)}</span>
       <button class="small" data-action="submit-claims" data-league="${esc(lg.id)}" ${S.busy['w' + lg.id] ? 'disabled' : ''}>
         ${S.busy['w' + lg.id] ? '<span class="spin"></span>Submitting…' : 'Submit claims now'}</button></div>` : ''}
     <div class="small faint" style="margin-top:8px">Based on ${esc(W.basis)}</div>`;
+}
+
+// Claims already pending on Sleeper (sent from here or from sleeper.com): the plan never repeats them.
+function pendingClaims(W) {
+  const list = W.pendingClaims || [];
+  const head = `<div class="small muted" style="margin:12px 0 4px">${W.pending} claim${W.pending > 1 ? 's' : ''} pending on Sleeper</div>`;
+  const side = (p) => `${injBadge(p)} <span class="faint" style="white-space:nowrap">${esc(p.pos)}${p.team ? ' ' + esc(p.team) : ''} · ROS ${rankTxt(p)}</span>`;
+  return head + list.map((c) => `<div class="claim">
+      <div>${c.add ? `<span class="add">+ ${esc(c.add.name)}</span><span class="small">${side(c.add)}</span>` : ''}
+        ${c.drop ? `<div class="small"><span class="drop">− ${esc(c.drop.name)}</span>${side(c.drop)}</div>`
+          : '<div class="small faint">No drop</div>'}</div>
+      <div class="small" style="text-align:right">${c.bid != null ? `<b>$${c.bid}</b><br>` : ''}<span class="faint">pending</span></div>
+    </div>`).join('');
 }
 
 function freeAgentSection(lg) {
