@@ -147,6 +147,9 @@ function makeWorld(opts = {}) {
 
   // ---- Sleeper's rules ------------------------------------------------------------------
   const rostered = (p) => world.rosters.some((ro) => ro.players.includes(p));
+  const active = (ro) => ro.players.filter((p) => !(ro.reserve || []).includes(p));   // IR spots take no roster spot
+  // Sleeper refuses adds and claims while a player who no longer qualifies sits in an IR spot.
+  const irOk = () => world.me.reserve.every((p) => players[p][3] === 'IR');
   const started = (p) => { const k = kickoffOf[players[p][2]]; return !!k && k <= world.now; };
   const isFreeAgent = (p) => !rostered(p) && !(world.clears[p] > world.now / 1000) &&
     (kickoffOf[players[p][2]] || firstKick) > world.now;
@@ -168,6 +171,7 @@ function makeWorld(opts = {}) {
       if (seen[p]) err(p + ' starts twice');
       seen[p] = true;
       if (!world.me.players.includes(p)) err(p + ' is not on the roster');
+      if (world.me.reserve.includes(p)) err(p + ' is in an IR spot and cannot start');
       if (!SLOT_POS[slots[i]].includes(players[p][1])) err(p + ' cannot play ' + slots[i]);
       if (started(p) && world.lineup[i] !== p) err(p + ' is locked but was moved in');
     });
@@ -181,6 +185,7 @@ function makeWorld(opts = {}) {
     if (world.league.settings.leg === WEEK && isFreeAgent(add)) err('claim for ' + add + ', who is a free agent right now');
     if (dropId && !world.me.players.includes(dropId)) err('claim drops ' + dropId + ', who is not on the roster');
     if (world.pending.some((t) => t.add === add)) err('second claim for ' + add);
+    if (!irOk()) err('claim for ' + add + ' while a healthy player sits in an IR spot');
     world.pending.push({ add, drop: dropId || null, rid: 1 });
     world.log.push(['claim', world.now, add, dropId]);
   };
@@ -189,13 +194,30 @@ function makeWorld(opts = {}) {
     if (!isFreeAgent(add)) err(add + ' is not a free agent');
     if (dropId && !world.me.players.includes(dropId)) err('drops ' + dropId + ', who is not on the roster');
     if (dropId && started(dropId)) err('drops ' + dropId + ', whose game has started');
-    if (world.me.players.length + 1 - (dropId ? 1 : 0) > world.limit) err('roster too big after adding ' + add);
+    if (active(world.me).length + 1 - (dropId ? 1 : 0) > world.limit) err('roster too big after adding ' + add);
+    if (!irOk()) err('add of ' + add + ' while a healthy player sits in an IR spot');
     if (dropId) drop(world.me, dropId);
     world.me.players.push(add);
     world.tx.push({ type: 'free_agent', status: 'complete', leg: world.league.settings.leg, roster_ids: [1],
                     adds: { [add]: 1 }, drops: dropId ? { [dropId]: 1 } : null, status_updated: world.now });
     world.log.push(['fa', world.now, add, dropId]);
     return { adds: { [add]: 1 }, status: 'complete' };
+  };
+  world.setReserve = (reserve) => {
+    const me = world.me, slotsIr = Number(world.league.settings.reserve_slots) || 0;
+    if (reserve.length > slotsIr) err('more players in IR spots than the league has (' + slotsIr + ')');
+    reserve.forEach((p) => {
+      if (!me.players.includes(p)) err(p + ' is not on the roster, so not to IR');
+      if (!me.reserve.includes(p) && players[p][3] !== 'IR') err(p + ' is not eligible for IR');
+    });
+    const moved = me.reserve.filter((p) => !reserve.includes(p)).concat(reserve.filter((p) => !me.reserve.includes(p)));
+    moved.forEach((p) => { if (started(p)) err(p + ' is locked and cannot move in or out of IR'); });
+    if (me.players.filter((p) => !reserve.includes(p)).length > world.limit) err('roster too big after moving players off IR');
+    world.lineup = world.lineup.map((p) => (reserve.includes(p) ? '0' : p));
+    me.starters = world.lineup;
+    me.reserve = reserve.slice();
+    world.log.push(['reserve', world.now, reserve.join(',')]);
+    return { roster_id: 1, reserve: me.reserve.slice() };
   };
 
   // ---- events ---------------------------------------------------------------------------
@@ -206,7 +228,7 @@ function makeWorld(opts = {}) {
     claims.forEach((c) => {
       const ro = world.rosters.find((x) => x.roster_id === c.rid);
       const ok = !rostered(c.add) && (!c.drop || ro.players.includes(c.drop)) &&
-        ro.players.length + 1 - (c.drop ? 1 : 0) <= world.limit;
+        active(ro).length + 1 - (c.drop ? 1 : 0) <= world.limit && (ro !== world.me || irOk());
       if (ok) {
         if (c.drop) drop(ro, c.drop);
         ro.players.push(c.add);
@@ -284,6 +306,7 @@ function makeWorld(opts = {}) {
     gas.setStarters_ = (token, lid, rid, starters) => world.setStarters(Array.from(starters));
     gas.submitClaim_ = (token, lid, rid, add, d) => world.submitClaim(add, d);
     gas.addFreeAgent_ = (token, lid, rid, add, d) => world.addFreeAgent(add, d);
+    gas.setReserve_ = (token, lid, rid, reserve) => world.setReserve(Array.from(reserve)).reserve;
     if (!world.props || !gas.__props.getProperty('token')) {
       gas.__props.setProperty('token', 'a.b.c');
       gas.putJson_('user', { user_id: 'me', display_name: 'me' });
@@ -312,7 +335,8 @@ function dedupe(lineup) {
 function fillable(world, roster, ignoreStarted) {
   const P = world.players;
   const started = (p) => !ignoreStarted && world.started(p);
-  const canPlay = (p) => P[p][3] !== 'Out' && !!world.kickoffOf[P[p][2]] && !started(p);
+  const canPlay = (p) => P[p][3] !== 'Out' && P[p][3] !== 'IR' && !world.me.reserve.includes(p) &&
+    !!world.kickoffOf[P[p][2]] && !started(p);
   let n = 0;
   const open = [], held = new Set();
   world.slots.forEach((slot, i) => {

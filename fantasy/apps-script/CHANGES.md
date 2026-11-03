@@ -3,6 +3,12 @@
 Newest first. Each `##` entry becomes the release notes shown by the app's
 "Install update" button. Add one with every change to Code.gs / Index.html.
 
+## IR spots
+- Players Sleeper lists as IR now move into an open IR spot by themselves (with Auto lineup on), so they stop taking a roster spot and a pickup can use it. Without autopilot, the league tab shows a Move to IR button. Players who are only Out stay where they are.
+- The waiver and free-agent plans never drop an injured player (IR, Out, PUP or suspended) while an IR spot is open: he can go there instead. Before, a star headed to IR could be suggested as the drop.
+- A healthy player still sitting in an IR spot goes back to the roster when there's room, because Sleeper blocks claims and pickups until he's off IR. If the roster is full, the league tab says so.
+- The lineup card lists who is in your IR spots.
+
 ## Pending claims listed
 - The waiver plan now lists each claim already pending on Sleeper (sent from the app or from sleeper.com): who you add, who you drop and, in FAAB leagues, your bid. Before, it only said how many there were.
 

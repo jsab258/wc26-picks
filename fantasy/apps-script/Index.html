@@ -660,7 +660,9 @@ function tabsView(st) {
 /** 'bad' (safety check, a starter out) or 'warn' (a change to make), else ''. */
 function needs(lg) {
   const L = lg.lineup || {}, F = lg.freeAgents || {}, W = lg.waivers || {};
-  if ((lg.safety && lg.safety.length) || (L.warnings && L.warnings.length)) return 'bad';
+  const R = lg.reserve || {};
+  if ((lg.safety && lg.safety.length) || (L.warnings && L.warnings.length) || (R.stuck && R.stuck.length)) return 'bad';
+  if ((R.moves && R.moves.length) || (R.back && R.back.length)) return 'warn';
   if ((L.changes && !L.applied) || (F.claims && F.claims.length && !F.claims.every((c) => c.submitted))) return 'warn';
   if (W.claims && W.claims.length && !W.claims.every((c) => c.submitted) && !(lg.settings || {}).auto_waivers) return 'warn';
   return '';
@@ -717,12 +719,39 @@ function leagueView(lg) {
       league is changed (automatically or with the buttons) until it's fixed.</b>
       <ul style="margin:8px 0 0;padding-left:20px">${lg.safety.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
     ${lg.notes.map((n) => `<div class="card banner info">${esc(n)}</div>`).join('')}
+    ${irCard(lg)}
     ${lg.matchup ? matchupCard(lg) : ''}
     ${lg.lineup ? `<div class="card">${lineupSection(lg)}</div>` : ''}
     ${moves ? `<div class="card">${moves}</div>` : ''}
     ${lg.status === 'in_season' ? tradesCard(lg) : ''}
     <div class="card"><div class="small muted">${lg.flags.map(esc).join(' · ')}</div>
       ${settingsSection(lg, cfg)}</div>`;
+}
+
+// IR spots: who should go there (listed as IR on Sleeper), and anyone healthy still sitting in one.
+function irCard(lg) {
+  const R = lg.reserve;
+  if (!R) return '';
+  if (R.error) return `<div class="card banner bad">Couldn't check IR: ${esc(R.error)}</div>`;
+  const names = (ps) => ps.map((p) => esc(p.name)).join(', ');
+  const one = (ps, a, b) => (ps.length > 1 ? b : a);
+  let out = '';
+  if (R.moves.length || R.back.length) {
+    const auto = S.state.mode === 'auto' && (lg.settings || {}).auto_lineup;
+    const what = [];
+    if (R.moves.length) what.push(`${names(R.moves)} ${one(R.moves, 'is', 'are')} on IR: an IR spot is open, so ${one(R.moves, 'he', 'they')} can stop taking a roster spot`);
+    if (R.back.length) what.push(`${names(R.back)} ${one(R.back, 'is', 'are')} healthy again but still in an IR spot, which blocks claims and pickups on Sleeper`);
+    const label = R.moves.length && R.back.length ? 'Update IR' : R.moves.length ? 'Move to IR' : 'Move back to roster';
+    const text = what.join('. ') + (auto ? '. The autopilot does this on its next check.' : what.length > 1 ? '.' : '');
+    out += `<div class="card banner warn"><div>${text}</div>
+      <div style="margin-top:8px"><button class="small primary" data-action="update-reserve" data-league="${esc(lg.id)}"
+        ${S.busy['r' + lg.id] ? 'disabled' : ''}>${S.busy['r' + lg.id] ? '<span class="spin"></span>Saving…' : label}</button></div></div>`;
+  }
+  if (R.stuck.length) {
+    out += `<div class="card banner bad">${names(R.stuck)} ${one(R.stuck, 'is', 'are')} healthy again but still in an IR spot,
+      and your roster is full: Sleeper blocks claims and pickups until you drop someone and move ${one(R.stuck, 'him', 'them')} back</div>`;
+  }
+  return out;
 }
 
 // ---- matchup ------------------------------------------------------------
@@ -877,6 +906,10 @@ function lineupSection(lg) {
           ${playerCell(p)}<div class="rank">${keepBtn(p, lg.id)}${rankTxt(p)}</div></div>`).join('')}</div>
       ${L.bench.length ? `<details data-key="bench-${esc(lg.id)}"><summary>Bench (${L.bench.length})</summary><div class="slots" style="margin-top:8px">
         ${L.bench.map((p) => `<div class="slot"><div class="slot-tag">BN</div>${playerCell(p)}<div class="rank">${keepBtn(p, lg.id)}${rankTxt(p)}</div></div>`).join('')}
+      </div></details>` : ''}
+      ${lg.reserve && lg.reserve.players && lg.reserve.players.length ? `<details data-key="ir-${esc(lg.id)}"><summary>IR (${lg.reserve.players.length}
+        of ${lg.reserve.slots})</summary><div class="slots" style="margin-top:8px">
+        ${lg.reserve.players.map((p) => `<div class="slot"><div class="slot-tag">IR</div>${playerCell(p)}<div class="rank">${rankTxt(p)}</div></div>`).join('')}
       </div></details>` : ''}`;
   }
   return `<h2>Week ${esc(L.week || '')} lineup</h2>${body}`;
@@ -1119,6 +1152,13 @@ document.addEventListener('click', async (ev) => {
   if (a === 'run-now') {
     S.state = await busy('run', () => api('runNow'));
     toast(S.state.lastTick ? S.state.lastTick.msg : 'Done');
+    loadDashboard();
+  }
+  if (a === 'update-reserve') {
+    const res = await busy('r' + id, () => api('updateReserve', id));
+    const r = res.reserve || {};
+    toast(r.applied ? 'IR updated on Sleeper' : r.applyError ? "Couldn't update IR: " + r.applyError
+          : res.safety && res.safety.length ? 'Held back by a safety check' : 'Nothing to change');
     loadDashboard();
   }
   if (a === 'apply-lineup') {

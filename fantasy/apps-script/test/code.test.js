@@ -1186,3 +1186,17 @@ test('a plan that fails the safety rules is never carried out', () => {
   assert.deepEqual(plain(res.safety), ['something looks wrong']);
   assert.equal(writes.length, 0);
 });
+
+test('IR: the change is sent as sleeper.com does and checked against what Sleeper keeps', () => {
+  const sent = [];
+  let keep = null;
+  const gas = loadGas({ gql(body) {
+    sent.push(body);
+    return { data: { roster_update_reserve: { roster_id: 3, reserve: keep || body.variables.reserve } } };
+  } });
+  gas.setReserve_('t', '1393366794277765120', 3, ['4881']);
+  assert.match(sent[0].query, /roster_update_reserve\(league_id: "1393366794277765120", roster_id: \$rosterId, reserve: \$reserve\)/);
+  assert.deepEqual(plain(sent[0].variables), { rosterId: 3, reserve: ['4881'] });
+  keep = [];
+  assert.throws(() => gas.setReserve_('t', '1', 3, ['4881']), /didn't accept the IR change/);
+});

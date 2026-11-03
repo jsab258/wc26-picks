@@ -104,9 +104,16 @@ redeploying, no extra Google permissions.
   - A Questionable player has to rank 2 spots better than a healthy one.
   - Of two close starters, the later game goes in the flex, so he can still
     be swapped for almost anyone if he's ruled out late.
+- **IR spots:** players Sleeper lists as IR move into an open IR spot, so they
+  stop taking a roster spot (with Auto lineup on; otherwise the league tab
+  shows a Move to IR button). Players who are only Out stay put. A healthy
+  player still in an IR spot goes back to the roster when there's room,
+  since Sleeper blocks claims and pickups until he's off IR.
 - **Waivers:** rest-of-season ECR, with QBs re-valued for superflex and 2QB
   and for 6-point passing TDs.
-  - It keeps your best starters, position minimums and starred players.
+  - It keeps your best starters, position minimums and starred players, and
+    never drops an injured player (IR, Out, PUP, suspended) while an IR spot
+    is open: he can go there instead.
   - When a starter can't play this week and the bench can't fill in, it
     picks up a one-week fill-in, giving up an easy-to-replace bench player.
   - With rolling waivers, a high priority is only spent on a clear upgrade or

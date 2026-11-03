@@ -86,6 +86,9 @@ function fakeGql(body) {
       drops: Object.fromEntries((v.k_drops || []).map((k, i) => [k, v.v_drops[i]])) } } };
   }
   if (q.includes('league_players(')) return { data: { league_players: [] } };
+  if (q.includes('roster_update_reserve')) {
+    return { data: { roster_update_reserve: { roster_id: body.variables.rosterId, reserve: body.variables.reserve } } };
+  }
   if (q.includes('propose_trade')) return { data: { propose_trade: { transaction_id: 'demo', status: 'proposed' } } };
   return undefined;
 }

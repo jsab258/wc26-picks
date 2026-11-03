@@ -63,6 +63,7 @@ function build(spec) {
   };
   gas.setStarters_ = (...a) => { writes.push(['starters', ...a.slice(3)]); if (spec.mutate) roster.starters = Array.from(a[3]); };
   gas.submitClaim_ = (...a) => writes.push(['claim', ...a.slice(3)]);
+  gas.setReserve_ = (...a) => { writes.push(['reserve', Array.from(a[3])]); if (spec.mutate) roster.reserve = Array.from(a[3]); };
   if (!gas.__props.getProperty('token')) {
     gas.__props.setProperty('token', 'a.b.c');
     gas.putJson_('user', { user_id: 'me', display_name: 'me' });
