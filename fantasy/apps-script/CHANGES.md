@@ -3,6 +3,9 @@
 Newest first. Each `##` entry becomes the release notes shown by the app's
 "Install update" button. Add one with every change to Code.gs / Index.html.
 
+## Pending claims listed
+- The waiver plan now lists each claim already pending on Sleeper (sent from the app or from sleeper.com): who you add, who you drop and, in FAAB leagues, your bid. Before, it only said how many there were.
+
 ## Calmer look
 - Green now only marks what matters: the main button, your side of the matchup, the selected tab and your win chance. Your opponent's bars are grey, and "nothing to do" messages are a quiet line with a check instead of a green box.
 - Easier to read in light mode: a darker green and darker grey text, so all text is clearly readable against its background.

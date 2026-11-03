@@ -1687,6 +1687,22 @@ League_.prototype.pending_ = function () {
   }
   return this._pending;
 };
+/** A claim pending on Sleeper as the page shows it: who comes in, who goes and the bid (FAAB leagues). */
+League_.prototype.pendingClaimView_ = function (t) {
+  var self = this, ros = this.ctx.ranks(FP.ROS[this.fmt]);
+  var vw = function (pid) {
+    var pos = self.pos(pid);
+    var r = pos === 'K' || pos === 'DEF' ? self.ctx.ranks(pos === 'K' ? FP.ROS_K : FP.ROS_DST).get(pid) : ros.get(pid);
+    return self.view(pid, r || null);
+  };
+  var settings = t.settings;
+  if (typeof settings === 'string') {
+    try { settings = JSON.parse(settings); } catch (e) { settings = null; }
+  }
+  var add = Object.keys(t.adds || {})[0], drop = Object.keys(t.drops || {})[0];
+  var bid = this.faab && settings && settings.waiver_bid != null ? Number(settings.waiver_bid) : null;
+  return { add: add ? vw(add) : null, drop: drop ? vw(drop) : null, bid: bid };
+};
 League_.prototype.clears_ = function () {
   if (this._clears === undefined) this._clears = waiverClears_(this.ctx.token, this.id);
   return this._clears;
@@ -2437,6 +2453,7 @@ League_.prototype.planWaivers = function (opts) {
   return {
     freeAgents: fa,
     pending: pending.length,
+    pendingClaims: pending.map(function (t) { return self.pendingClaimView_(t); }),
     pendingUnknown: pendingUnknown,
     faab: this.faab,
     priority: prio ? { position: prio, teams: teams, rolling: this.rolling } : null,

@@ -451,3 +451,16 @@ test('before the waiver run, a new claim doesn\'t rely on a claim already pendin
   const out = bad(s, (res, c) => { res.waivers.claims = [c('upgrade', 'wr_fa', 'te2')]; });
   assert.ok(out.some((x) => /starting spot this week with nobody who can play/.test(x)), JSON.stringify(out));
 });
+
+test('claims pending on Sleeper are listed with who comes in, who goes and the bid', () => {
+  const s = tuesday(base());
+  s.others = [[]];
+  s.pending = [{ adds: { te_fa: 1 }, drops: { wr3: 1 }, settings: { waiver_bid: 7 } }, { adds: { rb_fa: 1 }, drops: {} }];
+  const view = (W) => plain(W.pendingClaims).map((c) => [c.add && c.add.name, c.add && c.add.posRank, c.drop && c.drop.name, c.bid]);
+  const W = page(s).waivers;
+  assert.equal(W.pending, 2);
+  assert.deepEqual(view(W), [['te_fa', 'TE14', 'wr3', null], ['rb_fa', 'RB60', null, null]]);   // no bids without FAAB
+  s.settings = { waiver_type: 2, waiver_budget: 100 };
+  s.pending[1].settings = '{"waiver_bid":3}';   // Sleeper may send settings as JSON text
+  assert.deepEqual(view(page(s).waivers), [['te_fa', 'TE14', 'wr3', 7], ['rb_fa', 'RB60', null, 3]]);
+});
