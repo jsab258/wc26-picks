@@ -177,6 +177,17 @@ function submitClaims(leagueId, shown) {
   });
 }
 
+/** Make the IR change the page showed: players listed as IR in, healthy players back to the roster. */
+function updateReserve(leagueId) {
+  return withLock_(function () {
+    return withLeague_(leagueId, function (lg) {
+      var res = lg.evaluate({ reserve: true });
+      if (!blocked_(res)) lg.applyReserve(res, 'manual');
+      return res;
+    });
+  });
+}
+
 /** Pick up the free agents the page showed (same check as submitClaims). */
 function addFreeAgents(leagueId, shown) {
   if (!shown) throw new Error('Reload the page and try again.');
@@ -499,6 +510,31 @@ function autopilot_(opts) {
         var cfg = leagueCfg_(s, data.league_id);
         var lg = new League_(ctx, data, user.user_id, cfg);
         if (!lg.roster || data.status !== 'in_season') return;
+        // IR first: a player moved there frees a roster spot for the pickups and claims below.
+        if (auto && cfg.auto_lineup) {
+          var rres = lg.evaluate({ reserve: true }), rv = rres.reserve;
+          if (rv && rv.error) {
+            summary.push(name + ": couldn't check IR");
+            fail(lg.id + ':ir', name, 'IR check failed', rv.error);
+          } else if (rv && (rv.moves.length || rv.back.length)) {
+            if (blocked_(rres)) {
+              summary.push(name + ': IR change held back by a safety check');
+              fail(lg.id + ':ir-safety', name, 'Safety check stopped the IR change', rres.safety.join(' '));
+            } else {
+              lg.applyReserve(rres, 'autopilot');
+              if (rv.applied) {
+                summary.push(name + ': IR updated');
+                notify_('change', name + ': IR updated', reserveLines_(rv).join('\n'));
+              } else {
+                summary.push(name + ': updating IR failed');
+                fail(lg.id + ':ir-save', name, 'Updating IR failed', rv.applyError, true);
+              }
+            }
+          }
+          if (rv && rv.stuck && rv.stuck.length) {
+            summary.push(name + ': ' + rv.stuck.map(function (v) { return v.name; }).join(', ') + ' must come off IR');
+          }
+        }
         // After this week's waivers: fill holes with free agents (no waiver priority spent).
         if (cfg.auto_waivers && !opts.force && Number(lg.settings.leg) === Number(ctx.state.week)) {
           var fres = lg.evaluate({ freeAgents: true }), f = fres.freeAgents || {};
@@ -617,6 +653,11 @@ function lineupLines_(l) {
   var lines = l.benched.map(function (p) { return 'OUT ' + p.name + (p.why ? ' (' + p.why + ')' : ''); })
     .concat(l.lineup.filter(function (p) { return p.isNew; }).map(function (p) { return 'IN  ' + p.name + ' → ' + p.slot; }));
   return lines.length ? lines : ['Same players, new spots (a later game goes in the flex).'];
+}
+
+function reserveLines_(r) {
+  return r.moves.map(function (v) { return 'To IR: ' + v.name; })
+    .concat(r.back.map(function (v) { return 'Off IR: ' + v.name; }));
 }
 
 function claimLines_(w, faab) {
@@ -810,7 +851,7 @@ function removeUpdate() {
  * UI entry point for every server call, so an installed update can add server
  * functions the pasted code never had.
  */
-var PUBLIC_API = ['getState', 'getDashboard', 'setMode', 'saveLeagueSettings', 'applyLineup', 'submitClaims',
+var PUBLIC_API = ['getState', 'getDashboard', 'setMode', 'saveLeagueSettings', 'applyLineup', 'submitClaims', 'updateReserve',
                   'runNow', 'login', 'verifyCode', 'connectWithToken', 'logout', 'checkForUpdate',
                   'installUpdate', 'removeUpdate', 'saveAlerts', 'testAlert', 'addFreeAgents', 'getMatchups',
                   'findTrades', 'proposeTrade'];
@@ -1073,6 +1114,20 @@ function addFreeAgent_(token, leagueId, rosterId, add, drop) {
     throw new Error("Sleeper didn't complete the pickup" + (t && t.status ? ' (' + t.status + ')' : '') + '.');
   }
   return t;
+}
+
+/**
+ * Put exactly ``reserve`` in this roster's IR spots, as sleeper.com's IR button does: the
+ * players stay on the roster, and those in IR spots stop taking a roster spot.
+ */
+function setReserve_(token, leagueId, rosterId, reserve) {
+  var q = 'mutation roster_update_reserve($rosterId: Int!, $reserve: [String]) {' +
+    ' roster_update_reserve(league_id: "' + String(leagueId).replace(/\D/g, '') + '", roster_id: $rosterId,' +
+    ' reserve: $reserve) { roster_id reserve } }';
+  var r = gql_(q, { rosterId: rosterId, reserve: reserve }, token, 1).roster_update_reserve;
+  var key = function (list) { return (list || []).slice().sort().join(','); };
+  if (!r || key(r.reserve) !== key(reserve)) throw new Error("Sleeper didn't accept the IR change.");
+  return r.reserve || [];
 }
 
 /** Recently dropped players are on waivers until waiver_clears_at: player id -> epoch seconds. */
@@ -1687,14 +1742,20 @@ League_.prototype.pending_ = function () {
   }
   return this._pending;
 };
+/** A player as the page shows him, with his rest-of-season rank (none if the list won't load). */
+League_.prototype.rosView_ = function (pid) {
+  var pos = this.pos(pid), rank = null;
+  try {
+    rank = this.ctx.ranks(pos === 'K' ? FP.ROS_K : pos === 'DEF' ? FP.ROS_DST : FP.ROS[this.fmt]).get(pid) || null;
+  } catch (e) {
+    if (e.expired) throw e;
+  }
+  return this.view(pid, rank);
+};
+
 /** A claim pending on Sleeper as the page shows it: who comes in, who goes and the bid (FAAB leagues). */
 League_.prototype.pendingClaimView_ = function (t) {
-  var self = this, ros = this.ctx.ranks(FP.ROS[this.fmt]);
-  var vw = function (pid) {
-    var pos = self.pos(pid);
-    var r = pos === 'K' || pos === 'DEF' ? self.ctx.ranks(pos === 'K' ? FP.ROS_K : FP.ROS_DST).get(pid) : ros.get(pid);
-    return self.view(pid, r || null);
-  };
+  var self = this, vw = function (pid) { return self.rosView_(pid); };
   var settings = t.settings;
   if (typeof settings === 'string') {
     try { settings = JSON.parse(settings); } catch (e) { settings = null; }
@@ -1703,6 +1764,88 @@ League_.prototype.pendingClaimView_ = function (t) {
   var bid = this.faab && settings && settings.waiver_bid != null ? Number(settings.waiver_bid) : null;
   return { add: add ? vw(add) : null, drop: drop ? vw(drop) : null, bid: bid };
 };
+/**
+ * IR spots. Players Sleeper lists as IR move into open spots, so they stop taking a roster spot
+ * (players who are only Out stay put: most are back within days, and Sleeper blocks every add and
+ * drop while a healthy player sits in an IR spot). A healthy player still in an IR spot goes back
+ * to the roster when there's room, and is flagged when there isn't.
+ */
+League_.prototype.planReserve = function () {
+  if (this._reserve) return this._reserve;
+  var self = this, slots = Number(this.settings.reserve_slots) || 0, reserve = (this.roster.reserve || []).slice();
+  var status = function (p) { return (self.p(p) || [])[3]; };
+  // Rankings are only looked at for the few players who might move, so a FantasyPros list
+  // that fails to load (say, kickers) doesn't stop anything else.
+  var locked = function (p) {  // his game has started: Sleeper doesn't move him in or out of IR
+    try {
+      var l = self.weeklyList(self.pos(p)), r = l && l.get(p);
+      var ko = (r && r.kickoff) || (l ? l.teamKickoff[self.team(p)] : 0);
+      return !!(r && r.started) || !!(ko && ko <= self.ctx.now);
+    } catch (e) {
+      if (e.expired) throw e;
+      return true;  // can't tell whether his game has started: leave him where he is
+    }
+  };
+  // Healthy or only questionable: no league's IR takes him. Untracked players (IDP) are left alone.
+  var stale = reserve.filter(function (p) { return self.p(p) && (!status(p) || status(p) === 'Questionable'); });
+  var value = null, num = function (p) {
+    try {
+      value = value || self.rosValueFn_();
+      var v = value(p);
+      return v === null ? UNRANKED : v;
+    } catch (e) {
+      if (e.expired) throw e;
+      return UNRANKED;
+    }
+  };
+  var cands = this.activePlayers().filter(function (p) { return status(p) === 'IR' && !locked(p); })
+    .sort(function (a, b) { return num(a) - num(b); });
+  var room = rosterLimit_(this.data) - this.activePlayers().length;
+  var m = Math.min(cands.length, Math.max(0, slots - reserve.length));
+  var free = stale.filter(function (p) { return !locked(p); });
+  var b = Math.min(free.length, Math.max(0, room + m));        // the roster has room once IR players leave it
+  m = Math.min(cands.length, Math.max(0, slots - reserve.length + b));  // ...and IR spots once they're back
+  var back = free.slice(0, b);
+  return (this._reserve = { slots: slots, players: reserve, moves: cands.slice(0, m), back: back,
+                            stuck: stale.filter(function (p) { return back.indexOf(p) < 0; }) });
+};
+
+/** Injured players kept off the drop lists while an IR spot is open: they can go there instead. */
+League_.prototype.irHold_ = function () {
+  var self = this, r = this.planReserve(), out = {};
+  if (r.slots - r.players.length + r.back.length <= 0) return out;
+  this.activePlayers().forEach(function (p) {
+    if (['IR', 'Out', 'PUP', 'Sus'].indexOf((self.p(p) || [])[3]) >= 0) out[p] = true;
+  });
+  return out;
+};
+
+League_.prototype.reserveView_ = function () {
+  var self = this, r = this.planReserve(), vw = function (p) { return self.rosView_(p); };
+  if (!r.slots && !r.players.length) return null;
+  return { slots: r.slots, players: r.players.map(vw), moves: r.moves.map(vw), back: r.back.map(vw),
+           stuck: r.stuck.map(vw) };
+};
+
+League_.prototype.applyReserve = function (res, who) {
+  var r = res.reserve;
+  if (!r || r.error || (!r.moves.length && !r.back.length)) return;
+  var back = r.back.map(function (v) { return v.id; });
+  var next = (this.roster.reserve || []).filter(function (p) { return back.indexOf(p) < 0; })
+    .concat(r.moves.map(function (v) { return v.id; }));
+  try {
+    setReserve_(this.ctx.token, this.id, this.roster.roster_id, next);
+    this.roster.reserve = next;
+    this._reserve = undefined;
+    r.applied = true;
+    log_({ level: 'change', league: this.name, title: 'IR updated (' + who + ')', lines: reserveLines_(r) });
+  } catch (e) {
+    if (e.expired) throw e;
+    r.applyError = String(e.message || e);
+    log_({ level: 'error', league: this.name, title: 'IR update failed', lines: [r.applyError] });
+  }
+};
+
 League_.prototype.clears_ = function () {
   if (this._clears === undefined) this._clears = waiverClears_(this.ctx.token, this.id);
   return this._clears;
@@ -1865,6 +2008,12 @@ League_.prototype.evaluate = function (what) {
   } catch (e) {
     if (e.expired) throw e;
     res.lineup = { error: String(e.message || e) };
+  }
+  try {
+    if (what.lineup || what.reserve) res.reserve = this.reserveView_();
+  } catch (e) {
+    if (e.expired) throw e;
+    res.reserve = { error: String(e.message || e) };
   }
   // Free agents first: they're added now, and the waiver plan covers what's left.
   try {
@@ -2167,7 +2316,7 @@ League_.prototype.planWaivers = function (opts) {
   var recent = this.recent_();
   var ros = ctx.ranks(FP.ROS[this.fmt]);
   var value = this.rosValueFn_();
-  var keep = this.neverDrop();
+  var keep = Object.assign(this.neverDrop(), this.irHold_());
   var mine = this.activePlayers();
   var slotCount = {};
   this.slots.forEach(function (s) { slotCount[s] = (slotCount[s] || 0) + 1; });
@@ -2440,6 +2589,14 @@ League_.prototype.planWaivers = function (opts) {
       if (drop) usedDrops[drop] = true;
     });
   }
+  var ir = this.planReserve(), offIr = ir.back.concat(ir.stuck);
+  if (offIr.length) {
+    if (claims.length) {
+      notes.push('No ' + (fa ? 'pickups' : 'claims') + ' until ' + offIr.map(name).join(', ') + (offIr.length > 1 ? ' are' : ' is') +
+                 ' off IR: Sleeper refuses them while a healthy player sits in an IR spot.');
+    }
+    claims = [];
+  }
   if (this.faab && !fa) {
     var budget = (this.settings.waiver_budget || 0) - ((this.roster.settings || {}).waiver_budget_used || 0);
     var minBid = this.settings.waiver_bid_min || 0;
@@ -2516,11 +2673,27 @@ function checkPlans_(lg, res) {
     });
     shown = shown.concat(L.lineup || [], L.bench || []);
   }
+  // IR: only players listed as IR go in, and never more than the league's IR spots.
+  var R = res.reserve;
+  if (R && !R.error && (R.moves.length || R.back.length)) {
+    var active = {};
+    lg.activePlayers().forEach(function (p) { active[p] = true; });
+    R.moves.forEach(function (v) {
+      if (!active[v.id]) out.push(v.name + " isn't on your roster, so he can't go on IR.");
+      if ((lg.p(v.id) || [])[3] !== 'IR') out.push(v.name + " would go on IR, but Sleeper doesn't list him as IR.");
+    });
+    R.back.forEach(function (v) {
+      if ((lg.roster.reserve || []).indexOf(v.id) < 0) out.push(v.name + " isn't in an IR spot.");
+    });
+    if ((lg.roster.reserve || []).length - R.back.length + R.moves.length > R.slots) {
+      out.push('The IR change needs more IR spots than the league has (' + R.slots + ').');
+    }
+  }
   // Moves: free-agent pickups happen first, then the waiver claims.
   var F = res.freeAgents && !res.freeAgents.error && !res.freeAgents.waiting ? res.freeAgents : null;
   var W = res.waivers && !res.waivers.error ? res.waivers : null;
   if (F || W) {
-    var rostered = {}, mine = {}, keep = lg.neverDrop(), recent = lg.recent_();
+    var rostered = {}, mine = {}, keep = lg.neverDrop(), hold = lg.irHold_(), recent = lg.recent_();
     lg.rosters.forEach(function (r) {
       (r.players || []).concat(r.reserve || [], r.taxi || []).forEach(function (p) { rostered[p] = true; });
     });
@@ -2562,6 +2735,7 @@ function checkPlans_(lg, res) {
         if (dropped[d]) out.push(name(d) + ' would be dropped twice.');
         dropped[d] = true;
         if (keep[d]) out.push(name(d) + ' is starred (kept) but would be dropped.');
+        if (hold[d]) out.push(name(d) + ' can go on IR (an IR spot is open) but would be dropped.');
         if (how === 'pickup' && locked(d)) out.push(name(d) + "'s game has started, so he can't be dropped now.");
         var kd = lg.pos(d) === 'K' || lg.pos(d) === 'DEF';
         if (c.kind !== 'upgrade' && recent[d] && !kd) out.push(name(d) + ' was just picked up and would be dropped for a one-week pickup.');

@@ -1,6 +1,6 @@
 // Random leagues with what the other random tests don't vary: claims pending on Sleeper (before
 // and after the waiver run), starred players, fresh pickups, open roster spots, FAAB, Sunday
-// locks. Every plan is judged by the fake world's own rules, not the app's safety check.
+// locks, IR spots (players listed as IR, healthy players still in one). Every plan is judged by the fake world's own rules, not the app's safety check.
 // FUZZ_N=4000 node --test test/fuzz.test.js runs more leagues.
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -24,11 +24,20 @@ function league(seed) {
                             waiversRan, bench: 3 + Math.floor(r() * 5), injuries: 0.03 + r() * 0.15, passTd: r() < 0.3 ? 6 : 4,
                             priorityShift: Math.floor(r() * 10) });
   if (r() < 0.25) world.league.settings.waiver_type = 2;  // FAAB
+  const irSlots = r() < 0.35 ? 1 + Math.floor(r() * 2) : 0;
+  if (irSlots) world.league.settings.reserve_slots = irSlots;
+  Object.keys(world.players).forEach((p) => {
+    if (!['K', 'DEF'].includes(world.players[p][1]) && r() < 0.03) world.players[p][3] = 'IR';
+  });
+  if (irSlots && r() < 0.4) {  // someone already in an IR spot: listed as IR, or healthy again
+    const p = world.me.players.filter((x) => !world.lineup.includes(x))[0];
+    if (p) { world.players[p][3] = r() < 0.5 ? 'IR' : null; world.me.reserve = [p]; }
+  }
   world.refreshStatus();
   Object.keys(world.players).forEach((p) => { if (r() < 0.04) world.clears[p] = Math.floor(now / 1000) + 86400; });
   const P = world.players;
   const rostered = (p) => world.rosters.some((ro) => ro.players.includes(p));
-  const bench = () => world.me.players.filter((p) => !world.lineup.includes(p));
+  const bench = () => world.me.players.filter((p) => !world.lineup.includes(p) && !world.me.reserve.includes(p));
   const nOpen = r() < 0.3 ? 1 + Math.floor(r() * 2) : 0;
   for (let i = 0; i < nOpen; i++) {
     const b = bench();
@@ -86,6 +95,8 @@ function league(seed) {
         if (dropped[d]) out.push(`${how} drops ${d} twice (${dropped[d]})`);
         dropped[d] = how;
         if (stars.includes(d)) out.push(`${how} drops starred ${d}`);
+        const irOpen = irSlots - world.me.reserve.length > 0;
+        if (irOpen && ['IR', 'Out', 'PUP', 'Sus'].includes(P[d][3])) out.push(`${how} drops injured ${d} while an IR spot is open`);
         if (how === 'F' && world.started(d)) out.push(`F drops ${d}, whose game started`);
         const kd = P[d][1] === 'K' || P[d][1] === 'DEF';
         if (c.kind !== 'upgrade' && recent.includes(d) && !kd) out.push(`${how} ${c.kind} drops fresh pickup ${d}`);
@@ -111,8 +122,9 @@ function league(seed) {
         }
         R.push(a2);
       });
-      const size = world.me.players.length + F.claims.reduce((s, c) => s + 1 - (c.drop ? 1 : 0), 0);
-      if (size > world.limit && size > world.me.players.length) out.push(`F overfills the roster ${size}/${world.limit}`);
+      const act = world.me.players.filter((p) => !world.me.reserve.includes(p)).length;   // IR spots take no roster spot
+      const size = act + F.claims.reduce((s, c) => s + 1 - (c.drop ? 1 : 0), 0);
+      if (size > world.limit && size > act) out.push(`F overfills the roster ${size}/${world.limit}`);
     }
     if (W && !waiversRan && W.claims.length && now < KICK.TNF) {
       let week = world.me.players.slice();
@@ -125,7 +137,7 @@ function league(seed) {
       const after = withMoves(world.me.players, F), a = fillable(world, after);
       const cand = Object.keys(P).filter((p) => world.isFreeAgent(p) && P[p][3] !== 'Out' && world.kickoffOf[P[p][2]] && !world.started(p));
       const fixable = a < world.slots.length && cand.some((p) => fillable(world, after.concat(p)) > a);
-      if (fixable && !F.notes.some((n) => /can't play this week|spot is empty/.test(n))) out.push(`F silently leaves a fillable spot ${moves(F)}`);
+      if (fixable && !F.notes.some((n) => /can't play this week|spot is empty|off IR/.test(n))) out.push(`F silently leaves a fillable spot ${moves(F)}`);
     }
     gas = world.gas();
     gas.tick();

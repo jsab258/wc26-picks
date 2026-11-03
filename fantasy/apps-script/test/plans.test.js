@@ -464,3 +464,74 @@ test('claims pending on Sleeper are listed with who comes in, who goes and the b
   s.pending[1].settings = '{"waiver_bid":3}';   // Sleeper may send settings as JSON text
   assert.deepEqual(view(page(s).waivers), [['te_fa', 'TE14', 'wr3', 7], ['rb_fa', 'RB60', null, 3]]);
 });
+
+// IR spots. wr3 is the cheap bench receiver; here he's injured with a collapsed rank (Lamar after his surgery).
+const injured = (status) => {
+  const s = tuesday(base());
+  s.players.wr3 = ['wr3', 'WR', 'MIN', status, null];
+  s.ros['ros-ppr-overall'] = s.ros['ros-ppr-overall'].map((r) => (r[0] === 'wr3' ? ['wr3', 400, 'WR120'] : r));
+  return s;
+};
+
+test('an injured player is never dropped while an IR spot is open; without one he can be', () => {
+  assert.ok(drops(page(injured('Out')).waivers).includes('wr3'));
+  const s = injured('Out');
+  s.settings = { reserve_slots: 1 };
+  const lg = page(s);
+  assert.ok(!drops(lg.waivers).includes('wr3'), JSON.stringify(claims(lg.waivers)));
+  assert.deepEqual(plain(lg.reserve.moves), []);   // only Out: he isn't moved to IR by himself
+  const full = injured('Out');
+  full.settings = { reserve_slots: 1 };
+  full.mine.push('p_ir'); full.reserve = ['p_ir']; full.players.p_ir = ['p_ir', 'RB', 'KC', 'IR', null];
+  assert.ok(drops(page(full).waivers).includes('wr3'));   // the IR spot is taken
+});
+
+test('the autopilot moves a player listed as IR to an open IR spot first, then uses the roster spot', () => {
+  const s = base();
+  s.players.wr3 = ['wr3', 'WR', 'MIN', 'IR', null];
+  s.settings = { reserve_slots: 1 };
+  s.mutate = true;
+  const lg = page(s);
+  assert.deepEqual(lg.reserve.moves.map((v) => v.id), ['wr3']);
+  const { gas, writes } = build(s);
+  auto(gas);
+  gas.tick();
+  assert.deepEqual(writes[0], ['reserve', ['wr3']]);
+  assert.deepEqual(writes.slice(1).filter((w) => w[1] === 'te_fa'), [['fa', 'te_fa', null]]);   // no drop needed now
+  assert.deepEqual(s._roster.reserve, ['wr3']);
+  const after = page(s);
+  assert.deepEqual(after.reserve.players.map((v) => v.id), ['wr3']);
+  assert.deepEqual(plain(after.reserve.moves), []);
+  // Suggestions only: nothing moves by itself, but the page's button does it.
+  const t = base();
+  t.players.wr3 = ['wr3', 'WR', 'MIN', 'IR', null];
+  t.settings = { reserve_slots: 1 };
+  const b = build(t);
+  b.gas.tick();
+  assert.deepEqual(b.writes, []);
+  assert.equal(b.gas.updateReserve('L').reserve.applied, true);
+  assert.deepEqual(b.writes, [['reserve', ['wr3']]]);
+});
+
+test('a healthy player still in an IR spot goes back to the roster when there is room, and is flagged when not', () => {
+  const s = base();
+  s.settings = { reserve_slots: 1 };
+  s.reserve = ['wr3'];
+  const lg = page(s);
+  assert.deepEqual([lg.reserve.back.map((v) => v.id), lg.reserve.stuck.map((v) => v.id)], [['wr3'], []]);
+  const { gas, writes } = build(s);
+  auto(gas);
+  gas.tick();
+  assert.deepEqual(writes[0], ['reserve', []]);
+  const full = base();
+  full.settings = { reserve_slots: 1 };
+  full.reserve = ['wr3'];
+  full.mine.push('p_x'); full.players.p_x = ['p_x', 'RB', 'KC', null, null];
+  const f = page(full);
+  assert.deepEqual([f.reserve.back.map((v) => v.id), f.reserve.stuck.map((v) => v.id)], [[], ['wr3']]);
+  const b = build(full);
+  auto(b.gas);
+  b.gas.tick();
+  assert.ok(!b.writes.some((w) => w[0] === 'reserve'));
+  assert.match(b.gas.getJson_('lastTick').msg, /wr3 must come off IR/);
+});

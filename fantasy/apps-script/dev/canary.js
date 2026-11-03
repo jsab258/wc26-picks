@@ -17,7 +17,7 @@ gas.pendingWaivers_ = () => [];  // private (needs a login); the plan just assum
 gas.pendingTrades_ = () => [];   // the same for open trade offers
 const clears = gas.waiverClears_;
 gas.waiverClears_ = (token, leagueId) => clears(null, leagueId);
-gas.setStarters_ = gas.submitClaim_ = gas.addFreeAgent_ = gas.proposeTrade_ = () => { throw new Error('the canary never writes'); };
+gas.setStarters_ = gas.submitClaim_ = gas.addFreeAgent_ = gas.proposeTrade_ = gas.setReserve_ = () => { throw new Error('the canary never writes'); };
 
 const user = gas.sleeper_('/user/' + username);
 if (!user) throw new Error('Sleeper user not found: ' + username);
