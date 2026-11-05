@@ -919,7 +919,7 @@ function waiverSection(lg) {
   const W = lg.waivers, cfg = lg.settings || {};
   if (W.error) return `<h3>Waivers</h3><div class="banner bad">${esc(W.error)}</div>`;
   const basis = (c) => (c.kind === 'upgrade' ? 'ROS ' : 'this week ');
-  const kinds = { upgrade: 'upgrade', stream: 'stream', cover: 'fill-in' };
+  const kinds = { upgrade: 'upgrade', stream: 'stream', cover: 'fill-in', backup: 'backup' };
   const claims = W.claims.map((c) => `<div class="claim">
       <div><span class="add">+ ${esc(c.add.name)}</span>${injBadge(c.add)} <span class="faint small">${esc(c.add.pos)} ${esc(c.add.team || '')}
         · ${basis(c)}${rankTxt(c.add)}</span>
@@ -967,7 +967,7 @@ function freeAgentSection(lg) {
   if (F.waiting) return `<div class="small faint" style="margin-top:8px">Free agents: ${esc(F.waiting)}</div>`;
   if (!F.claims.length && !F.notes.length) return '';
   const basis = (c) => (c.kind === 'upgrade' ? 'ROS ' : 'this week ');
-  const kinds = { upgrade: 'upgrade', stream: 'stream', cover: 'fill-in' };
+  const kinds = { upgrade: 'upgrade', stream: 'stream', cover: 'fill-in', backup: 'backup' };
   const rows = F.claims.map((c) => `<div class="claim">
       <div><span class="add">+ ${esc(c.add.name)}</span>${injBadge(c.add)} <span class="faint small">${esc(c.add.pos)} ${esc(c.add.team || '')}
         · ${basis(c)}${rankTxt(c.add)}</span>

@@ -87,6 +87,7 @@ function loadGas(opts = {}) {
   const now = opts.now || (() => Date.now());
   const calls = { gql: [], fetch: [] };
   const triggers = [];
+  let triggerSeq = 0;
   const cache = makeCache(opts.cacheFile, now);
   const props = makeProps(opts.props);
   const RealDate = Date;
@@ -137,8 +138,15 @@ function loadGas(opts = {}) {
       getScriptId: () => 'SCRIPT_ID',
       getService: () => ({ getUrl: () => 'https://script.google.com/macros/s/DEPLOY_ID/exec' }),
       getProjectTriggers: () => triggers.slice(),
-      newTrigger: (fn) => ({ timeBased: () => ({ everyMinutes: (n) => ({ create: () => {
-        const t = { getHandlerFunction: () => fn, minutes: n }; triggers.push(t); return t; } }) }) }),
+      newTrigger: (fn) => {
+        const make = (extra) => ({ create: () => {
+          const id = 'trig' + (++triggerSeq);
+          const t = Object.assign({ getHandlerFunction: () => fn, getUniqueId: () => id }, extra);
+          triggers.push(t);
+          return t;
+        } });
+        return { timeBased: () => ({ everyMinutes: (n) => make({ minutes: n }), at: (d) => make({ at: d.getTime() }) }) };
+      },
       deleteTrigger: (t) => triggers.splice(triggers.indexOf(t), 1),
     },
     HtmlService: {

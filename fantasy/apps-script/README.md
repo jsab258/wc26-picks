@@ -116,6 +116,11 @@ redeploying, no extra Google permissions.
     is open: he can go there instead.
   - When a starter can't play this week and the bench can't fill in, it
     picks up a one-week fill-in, giving up an easy-to-replace bench player.
+  - A questionable starter whose spot nobody could take if he's ruled out
+    (counting only players whose game hasn't started by then) gets a backup
+    from free agency ahead of time, in the daytime: an open roster spot first,
+    otherwise an easy-to-replace bench player. If he's ruled out, the lineup
+    check swaps the backup in. Part of "Cover byes and injuries".
   - With rolling waivers, a high priority is only spent on a clear upgrade or
     a fill-in, not on a kicker/defense matchup swap.
   - After the waiver run, upgrades to free agents and starters who can't
@@ -146,9 +151,12 @@ redeploying, no extra Google permissions.
   you tap the button, the way sleeper.com sends them; the autopilot never trades.
 - **Background checks:** every 30 minutes, but they only do something when
   games are less than 30 hours away or claims are due; otherwise they don't
-  download anything. Sleeper's player list (injury news) refreshes every 6
-  hours and again once each game's inactives are announced, so game-day
-  inactives get benched.
+  download anything. With autopilot on there are three extra checks before
+  each kickoff (75, 50 and 30 minutes before), right after the inactives are
+  announced about 90 minutes before the games. Sleeper's player list (injury
+  news) refreshes every 6 hours, and is never more than 15 minutes old from
+  the inactives until kickoff, so a starter ruled out is swapped for his
+  backup at any hour.
 
 ## Caveats
 
