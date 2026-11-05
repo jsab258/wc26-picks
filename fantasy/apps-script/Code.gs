@@ -130,6 +130,7 @@ function setMode(mode) {
   putJson_('settings', s);
   deleteJson_('idle_until');
   ensureTrigger_();
+  if (s.mode !== 'auto') scheduleKickoffChecks_(null, Date.now() / 1000);
   log_({ level: 'info', title: s.mode === 'auto' ? 'Autopilot turned on' : 'Autopilot paused (suggestions only)' });
   return getState();
 }
@@ -490,6 +491,13 @@ function autopilot_(opts) {
   var user = getJson_('user', {});
   var schedule = ctx.ranks(FP.OP.PPR);
   var nextKick = nextKickoff_(schedule, ctx.now);
+  if (auto) {
+    try {
+      scheduleKickoffChecks_(nextKick, ctx.now);
+    } catch (e) {
+      log_({ level: 'warn', title: "Couldn't schedule the checks before kickoff", lines: [String(e.message || e)] });
+    }
+  }
   var lineupWindow = opts.force || (schedule.week === Number(ctx.state.week) && nextKick &&
                                     nextKick - ctx.now <= 30 * 3600);
   var done = getJson_('waivers_done', {});
@@ -724,8 +732,35 @@ function ensureTrigger_() {
   if (!hasTrigger_()) ScriptApp.newTrigger('tick').timeBased().everyMinutes(30).create();
 }
 
+/** The every-30-minutes check (the one-off kickoff checks below run the same function). */
 function hasTrigger_() {
-  return ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'tick'; });
+  var extra = (getJson_('kickoff_checks', null) || {}).ids || [];
+  return ScriptApp.getProjectTriggers().some(function (t) {
+    return t.getHandlerFunction() === 'tick' && extra.indexOf(t.getUniqueId()) < 0;
+  });
+}
+
+/**
+ * Extra checks before the next kickoff (75, 50 and 30 minutes before), right after Sleeper marks
+ * the inactives (about 90 minutes before), so a starter ruled out is swapped for his backup in time
+ * at any hour. One-off triggers for the next kickoff only (Google allows 20 per script); with no
+ * ``nextKick`` they're removed.
+ */
+function scheduleKickoffChecks_(nextKick, now) {
+  var st = getJson_('kickoff_checks', null);
+  if (st && st.at === nextKick) return;
+  var old = (st && st.ids) || [];
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (old.indexOf(t.getUniqueId()) >= 0) ScriptApp.deleteTrigger(t);
+  });
+  var ids = [];
+  if (nextKick) {
+    [75, 50, 30].forEach(function (min) {
+      var at = nextKick - min * 60;
+      if (at > now + 60) ids.push(ScriptApp.newTrigger('tick').timeBased().at(new Date(at * 1000)).create().getUniqueId());
+    });
+  }
+  if (ids.length || st) putJson_('kickoff_checks', { at: nextKick || null, ids: ids });
 }
 
 // ===================================================================
@@ -1344,8 +1379,9 @@ function fpToSleeper_() {
 
 /**
  * How old Sleeper's player list (injury news) may be. Sleeper asks apps to fetch it
- * rarely, so it's refreshed every 6 hours, plus once after each kickoff slot's
- * inactives are announced (about 90 minutes before the games).
+ * rarely, so it's refreshed every 6 hours, but from the moment a kickoff slot's inactives
+ * are announced (about 90 minutes before the games) until kickoff, at most 15 minutes, so
+ * each check before kickoff sees who was ruled out.
  */
 function playersMaxAge_(kickoffs, now) {
   var since = null;
@@ -1353,7 +1389,7 @@ function playersMaxAge_(kickoffs, now) {
     var out = k - 80 * 60;
     if (out <= now && now < k && (since === null || out > since)) since = out;
   });
-  return since === null ? 6 * 3600 : Math.max(60, now - since);
+  return since === null ? 6 * 3600 : Math.min(15 * 60, Math.max(60, now - since));
 }
 
 /**
@@ -2478,6 +2514,7 @@ League_.prototype.planWaivers = function (opts) {
       if (!weekMatters) return true;
       var move = [{ add: add, drop: drop }], prior = claims.concat(inner || []);
       if (!noWorse(weekRoster(prior), weekRoster(prior.concat(move)), fills)) return false;
+      if (fa && drop && cfg.cover_byes && !keepsBackups(weekRoster(prior), weekRoster(prior.concat(move)))) return false;
       // And on its own: the moves before it, and claims pending on Sleeper, may not go through.
       return noWorse(mine, withMoves(mine, move), false);
     };
@@ -2533,6 +2570,82 @@ League_.prototype.planWaivers = function (opts) {
                (fa ? 'picks up ' : 'adds ') + name(best) + (fa ? ' as a free agent' : ' for the week') +
                (drop ? ' and drops ' + name(drop) + (kd && self.pos(drop) === hole.slot ? '.' : ', who is easy to replace.') : '.'));
   };
+  /**
+   * Whether ``x`` (a questionable starter) has a backup: if he's ruled out, ``after`` (default: the
+   * same roster) fills as many spots as ``roster`` does with him, using only players whose game
+   * hasn't started by the time his inactives are out (those who started earlier stay where they are).
+   */
+  var coveredOn = function (x, roster, plan, after) {
+    var ko = self.kickoffOf(x, kickoff), gone = Object.assign({}, locked);
+    var without = (after || roster).filter(function (p) { return p !== x; });
+    roster.concat(without).forEach(function (p) {
+      var k = self.kickoffOf(p, kickoff);
+      if (p !== x && k && k < ko) gone[p] = true;
+    });
+    return self.noWorseWeek(roster, without, plan, gone, kickoff, false);
+  };
+  /** This week's questionable starters (in the lineup the autopilot sets) whose game is still ahead. */
+  var shaky = function (plan) {
+    return plan.filter(function (p) {
+      var ko = p !== EMPTY && self.kickoffOf(p, kickoff);
+      return ko && ko > ctx.now && !locked[p] && SKILL.indexOf(self.pos(p)) >= 0 && (self.p(p) || [])[3] === 'Questionable';
+    });
+  };
+  /** A move from ``before`` to ``after`` mustn't take away the backup a questionable starter has. */
+  var keepsBackups = function (before, after) {
+    var plan = weekLineup(before);
+    return shaky(plan).every(function (y) {
+      return after.indexOf(y) < 0 || !coveredOn(y, before, plan) || coveredOn(y, after, weekLineup(after));
+    });
+  };
+  var backups = function () {
+    var plan = weekLineup(weekRoster());  // the lineup the autopilot sets
+    var risky = shaky(plan);
+    risky.forEach(function (x) {
+      var roster = weekRoster();
+      if (coveredOn(x, roster, plan)) return;
+      var ko = self.kickoffOf(x, kickoff);
+      // The best free agent (by this week's rank) who would take over, playing no earlier than him.
+      var seen = {}, pool = [];
+      SKILL.forEach(function (pos) {
+        if (!relevant[pos]) return;
+        self.weeklyList(pos).byId.forEach(function (r, pid) {
+          if (seen[pid] || self.pos(pid) !== pos) return;
+          seen[pid] = true;
+          var k = self.kickoffOf(pid, kickoff), inj = (self.p(pid) || [])[3];
+          if (k >= ko && !self.whyOut(pid, kickoff) && inj !== 'Questionable' && available(pid)) pool.push([pid, r.rank]);
+        });
+      });
+      pool.sort(function (a, b) { return a[1] - b[1]; });
+      var best = null, bestRank = null;
+      for (var i = 0; i < pool.length && i < 80 && !best; i++) {
+        if (coveredOn(x, roster, plan, roster.concat(pool[i][0]))) { best = pool[i][0]; bestRank = pool[i][1]; }
+      }
+      var who = name(x) + ' (' + self.pos(x) + ', questionable) starts and nobody on your bench could take his spot ' +
+        'if he\'s ruled out';
+      if (!best) {
+        notes.push(who + ', and no free agent who plays at the same time or later could either.');
+        return;
+      }
+      var drop = openSpots() > 0 ? null : spare();
+      if (drop) {
+        var after = roster.filter(function (p) { return p !== drop; }).concat(best);
+        var keepsOthers = risky.every(function (y) {
+          return y === x || !coveredOn(y, roster, plan) || coveredOn(y, after, plan);  // nobody else loses his backup
+        });
+        if (!keepsOthers || !coveredOn(x, roster, plan, after) || !noNewHoles(false)(best, drop)) drop = null;
+      }
+      if (openSpots() <= 0 && !drop) {
+        notes.push(who + ', but no bench player is cheap enough to give up for a backup.');
+        return;
+      }
+      claims.push({ add: best, drop: drop, addValue: bestRank, dropValue: drop ? dropValue(drop) : null, kind: 'backup' });
+      adding[best] = true;
+      if (drop) usedDrops[drop] = true;
+      notes.push(who + ', so this picks up ' + name(best) + ' as a backup' +
+                 (drop ? ' and drops ' + name(drop) + ', who is easy to replace.' : '.'));
+    });
+  };
   var fas = [];
   ros.byId.forEach(function (r, pid) { if (relevant[self.pos(pid)] && (self.p(pid) || [])[2] && available(pid)) fas.push(pid); });
   var wanted = function (hole) { return (hole.slot === 'K' || hole.slot === 'DEF') ? cfg.stream_k_def : cfg.cover_byes; };
@@ -2548,6 +2661,9 @@ League_.prototype.planWaivers = function (opts) {
   });
   // 2. Fill-ins for the spots still empty: they get first pick of the cheap bench players.
   holesOf(weekRoster()).forEach(function (hole) { if (wanted(hole)) fill(hole); });
+  // 2b. Backups, picked up in the daytime: a questionable starter whose spot nobody could take
+  // if he's ruled out gets one, so the autopilot can swap him in right after inactives, at any hour.
+  if (fa && cfg.cover_byes) backups();
   // 3. Rest-of-season upgrades with whatever room is left.
   room -= upgrade(fas.filter(function (p) { return !adding[p]; }), room, false).length;
   // 4. Kicker/defense swaps for a clearly better matchup this week.

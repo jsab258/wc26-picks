@@ -908,11 +908,12 @@ test('idle checks (no games within 30h, no waiver window) download nothing', () 
   assert.ok(calls > before);
 });
 
-test('Sleeper\'s player list: every 6 hours, plus once after each kickoff slot\'s inactives are out', () => {
+test('Sleeper\'s player list: every 6 hours, and at most 15 minutes old once a kickoff slot\'s inactives are out', () => {
   const gas = loadGas();
   const k = 1_800_000_000;
   assert.equal(gas.playersMaxAge_([k], k - 3 * 3600), 6 * 3600);
-  assert.equal(gas.playersMaxAge_([k], k - 60 * 60), 20 * 60);   // inactives at k-80min
+  assert.equal(gas.playersMaxAge_([k], k - 75 * 60), 5 * 60);    // inactives at k-80min: nothing older than that
+  assert.equal(gas.playersMaxAge_([k], k - 30 * 60), 15 * 60);   // each later check sees fresh news
   assert.equal(gas.playersMaxAge_([k], k + 60), 6 * 3600);       // game started
 });
 
@@ -1199,4 +1200,20 @@ test('IR: the change is sent as sleeper.com does and checked against what Sleepe
   assert.deepEqual(plain(sent[0].variables), { rosterId: 3, reserve: ['4881'] });
   keep = [];
   assert.throws(() => gas.setReserve_('t', '1', 3, ['4881']), /didn't accept the IR change/);
+});
+
+test('checks are scheduled 75, 50 and 30 minutes before the next kickoff, only while the autopilot is on', () => {
+  const { gas } = fixtureGas(NOW);
+  const extra = () => gas.ScriptApp.getProjectTriggers().filter((t) => t.at);
+  gas.tick();   // suggestions only: nothing extra
+  assert.equal(extra().length, 0);
+  gas.setMode('auto');
+  gas.tick();
+  assert.deepEqual(extra().map((t) => (KICK * 1000 - t.at) / 60000), [75, 50, 30]);
+  assert.ok(gas.hasTrigger_());   // the 30-minute check is still recognized as such
+  gas.tick();
+  assert.equal(extra().length, 3);   // not scheduled twice
+  gas.setMode('suggest');
+  assert.equal(extra().length, 0);
+  assert.equal(gas.ScriptApp.getProjectTriggers().filter((t) => t.minutes === 30).length, 1);
 });

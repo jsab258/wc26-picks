@@ -3,6 +3,11 @@
 Newest first. Each `##` entry becomes the release notes shown by the app's
 "Install update" button. Add one with every change to Code.gs / Index.html.
 
+## Backups and kickoff checks
+- A questionable starter whose spot nobody on your roster could take if he's ruled out now gets a backup from free agency ahead of time, in the daytime: into an open roster spot first, otherwise for an easy-to-replace bench player. Only players whose game hasn't started by the time his inactives come out count as backups. It's part of "Cover byes and injuries", shows in the free-agent plan as "backup" and is picked up by the autopilot when auto claims are on.
+- With autopilot on, there are now three extra checks before each kickoff (75, 50 and 30 minutes before), right after Sleeper marks the inactives, and the injury news is never more than 15 minutes old then. A starter ruled out late at night is swapped for his backup without anyone staying up.
+- The better player still starts while he's only questionable; the backup comes in if he's ruled out.
+
 ## IR spots
 - Players Sleeper lists as IR now move into an open IR spot by themselves (with Auto lineup on), so they stop taking a roster spot and a pickup can use it. Without autopilot, the league tab shows a Move to IR button. Players who are only Out stay where they are.
 - The waiver and free-agent plans never drop an injured player (IR, Out, PUP or suspended) while an IR spot is open: he can go there instead. Before, a star headed to IR could be suggested as the drop.

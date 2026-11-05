@@ -535,3 +535,70 @@ test('a healthy player still in an IR spot goes back to the roster when there is
   assert.ok(!b.writes.some((w) => w[0] === 'reserve'));
   assert.match(b.gas.getJson_('lastTick').msg, /wr3 must come off IR/);
 });
+
+// Backups. A Wolfpack-shaped team: two RB spots and a flex; rb2 is questionable and plays first;
+// no RB on the bench (wr3 only) and one roster spot open. rb_fa is a free agent who plays later.
+const shaky = (status) => {
+  const s = base();
+  s.positions = ['QB', 'RB', 'RB', 'WR', 'TE', 'FLEX', 'K', 'DEF', 'BN', 'BN'];
+  s.mine = ['qb1', 'rb1', 'rb2', 'wr1', 'wr2', 'te1', 'k1', 'DET', 'wr3'];
+  s.starters = ['qb1', 'rb2', 'rb1', 'wr1', 'te1', 'wr2', 'k1', 'DET'];
+  s.players.te1 = ['te1', 'TE', 'LV', null, null];
+  s.players.rb2 = ['rb2', 'RB', 'NYJ', status === undefined ? 'Questionable' : status, null];
+  s.weekly['ppr-flex'] = s.weekly['ppr-flex'].map((r) => (r[0] === 'rb2' ? ['rb2', 20, 'RB10', s.kick - 2 * 86400] : r));
+  s.now = (s.kick - 3 * 86400) * 1000;   // the day before his game, free agency open
+  return s;
+};
+
+test('a questionable starter nobody could replace gets a backup, picked up in the daytime', () => {
+  const lg = page(shaky());
+  assert.deepEqual(claims(lg.freeAgents).filter((c) => c[0] === 'backup'), [['backup', 'rb_fa', null]]);
+  assert.ok(lg.freeAgents.notes.some((n) => /rb2 \(RB, questionable\).*picks up rb_fa as a backup/.test(n)), lg.freeAgents.notes.join(' | '));
+  // A healthy RB on the bench who plays at the same time or later is a backup already...
+  const covered = shaky();
+  covered.mine.push('rb3'); covered.positions.push('BN');
+  assert.deepEqual(claims(page(covered).freeAgents).filter((c) => c[0] === 'backup'), []);
+  // ...but not one whose game is over by the time the starter's inactives are out.
+  const early = shaky();
+  early.mine.push('rb3'); early.positions.push('BN');
+  early.weekly['ppr-flex'] = early.weekly['ppr-flex'].map((r) => (r[0] === 'rb3' ? ['rb3', 90, 'RB40', early.kick - 2 * 86400 - 3 * 3600] : r));
+  assert.deepEqual(claims(page(early).freeAgents).filter((c) => c[0] === 'backup').map((c) => c[1]), ['rb_fa']);
+  // Healthy starters need no backup, and "Cover byes and injuries" off means none.
+  assert.deepEqual(claims(page(shaky(null)).freeAgents).filter((c) => c[0] === 'backup'), []);
+  const off = shaky();
+  off.cfg = { cover_byes: false };
+  const b = build(off);
+  b.gas.saveLeagueSettings('L', { cover_byes: false });
+  assert.deepEqual(claims(b.gas.getDashboard().leagues[0].freeAgents).filter((c) => c[0] === 'backup'), []);
+});
+
+test('the autopilot picks up the backup ahead of time and swaps him in once the starter is ruled out', () => {
+  const s = shaky();
+  s.mutate = true;
+  let b = build(s);
+  auto(b.gas, { max_claims: 0 });   // no upgrades: only the backup
+  b.gas.tick();
+  assert.deepEqual(b.writes.filter((w) => w[0] === 'fa'), [['fa', 'rb_fa', null]]);
+  assert.ok(s._roster.starters.includes('rb2'));   // the better player still starts while questionable
+  // Game day: Sleeper marks him out an hour before his game; the next check swaps the backup in.
+  s.players.rb2 = ['rb2', 'RB', 'NYJ', 'Out', null];
+  s.now = (s.kick - 2 * 86400 - 3600) * 1000;
+  b = build(s);
+  b.gas.tick();
+  assert.ok(!s._roster.starters.includes('rb2'));
+  assert.ok(s._roster.starters.includes('rb_fa'), JSON.stringify(s._roster.starters));
+});
+
+test('no upgrade, fill-in or stream drops the backup a questionable starter has', () => {
+  // rb3 (a cheap RB who plays later) is rb2's only backup; an upgrade at WR would otherwise drop him.
+  const s = shaky();
+  s.mine.push('rb3');
+  s.positions = ['QB', 'RB', 'RB', 'WR', 'TE', 'FLEX', 'K', 'DEF', 'BN'];   // roster full: an upgrade needs a drop
+  s.others = [['p1', 'p2', 'p3', 'rb_fa']];   // the free agents worth adding are receivers (an RB could take over as backup)
+  s.cfg = { max_claims: 2, never_drop: ['wr3'], min_roster: { RB: 2 } };   // rb3 is the only cheap bench player, and not needed for depth
+  const lg = page(s);
+  assert.ok(!drops(lg.freeAgents).includes('rb3'), JSON.stringify(claims(lg.freeAgents)));
+  assert.deepEqual(claims(lg.freeAgents).filter((c) => c[0] === 'backup'), []);   // he's covered
+  s.players.rb2 = ['rb2', 'RB', 'NYJ', null, null];   // once rb2 is healthy, rb3 is just a cheap bench player again
+  assert.ok(drops(page(s).freeAgents).includes('rb3'), JSON.stringify(claims(page(s).freeAgents)));
+});
