@@ -602,3 +602,49 @@ test('no upgrade, fill-in or stream drops the backup a questionable starter has'
   s.players.rb2 = ['rb2', 'RB', 'NYJ', null, null];   // once rb2 is healthy, rb3 is just a cheap bench player again
   assert.ok(drops(page(s).freeAgents).includes('rb3'), JSON.stringify(claims(page(s).freeAgents)));
 });
+
+test('no move weakens this week\'s lineup: a rest-of-season upgrade that drops a starter waits until after his game', () => {
+  // wr2 is the worst player for the rest of the season but starts in the flex this week; wr_fa is far
+  // better for the rest of the season but on bye this week.
+  const spec = () => {
+    const s = base();
+    s.players.te1 = ['te1', 'TE', 'LV', null, null];
+    s.weekly['ppr-flex'] = s.weekly['ppr-flex'].map((r) => (r[0] === 'wr2' ? ['wr2', 15, 'WR8'] : r[0] === 'wr_fa' ? ['wr_fa', 60, 'WR30', null, true] : r));
+    s.ros['ros-ppr-overall'] = s.ros['ros-ppr-overall'].map((r) => (r[0] === 'wr2' ? ['wr2', 300, 'WR95'] : r[0] === 'wr_fa' ? ['wr_fa', 100, 'WR40'] : r));
+    return s;
+  };
+  const lg = page(spec());
+  assert.ok(lg.lineup.starters.includes('wr2'));
+  assert.ok(!drops(lg.freeAgents).includes('wr2'), JSON.stringify(claims(lg.freeAgents)));
+  assert.ok(claims(lg.freeAgents).some((c) => c[1] === 'wr_fa'), JSON.stringify(claims(lg.freeAgents)));   // made with another drop
+  // With nobody else to give up (a full roster without the cheap bench players), the upgrade waits and the page says why.
+  const full = spec();
+  full.mine = full.mine.filter((p) => p !== 'wr3' && p !== 'rb3');
+  full.positions = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'K', 'DEF', 'BN'];
+  const held = page(full).freeAgents;
+  assert.deepEqual(claims(held).filter((c) => c[1] === 'wr_fa'), []);
+  assert.ok(held.notes.some((n) => /wr_fa would be an upgrade over wr2, but wr2 helps your lineup this week/.test(n)), held.notes.join(' | '));
+});
+
+test('the safety check blocks a plan that weakens this week\'s lineup or takes a backup, however it was made', () => {
+  const s = base();
+  s.players.te1 = ['te1', 'TE', 'LV', null, null];
+  s.weekly['ppr-flex'] = s.weekly['ppr-flex'].map((r) => (r[0] === 'wr2' ? ['wr2', 15, 'WR8'] : r));
+  const { gas } = build(s);
+  gas.withLeague_('L', (lg) => {
+    const res = lg.evaluate({ lineup: true, freeAgents: true });
+    assert.deepEqual(plain(res.safety), []);
+    // A planner bug that drops this week's flex starter for a free agent who is worse this week:
+    res.freeAgents.claims = [{ kind: 'upgrade', add: lg.rosView_('rb_fa'), drop: lg.rosView_('wr2') }];
+    assert.ok(gas.checkPlans_(lg, res).some((x) => /Dropping wr2 for rb_fa would weaken this week's lineup/.test(x)));
+  });
+  const q = shaky();
+  q.mine.push('rb3'); q.positions.push('BN');
+  const b = build(q);
+  b.gas.withLeague_('L', (lg) => {
+    const res = lg.evaluate({ lineup: true, freeAgents: true });
+    res.freeAgents.claims = [{ kind: 'upgrade', add: lg.rosView_('wr_fa'), drop: lg.rosView_('rb3') }];
+    assert.ok(b.gas.checkPlans_(lg, res).some((x) => /Dropping rb3 would leave rb2 \(questionable\) without a backup/.test(x)),
+              JSON.stringify(b.gas.checkPlans_(lg, res)));
+  });
+});

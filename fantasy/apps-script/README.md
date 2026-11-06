@@ -158,6 +158,35 @@ redeploying, no extra Google permissions.
   the inactives until kickoff, so a starter ruled out is swapped for his
   backup at any hour.
 
+## What the autopilot guarantees
+
+Every plan is checked against these rules right before anything is sent to
+Sleeper (the safety check, `checkPlans_`), separately from the code that made
+the plan. A plan that breaks one is never carried out, by the autopilot or the
+buttons, and the league tab says why. The random-league and whole-week tests
+check the same rules on thousands of simulated leagues.
+
+- **Sleeper's rules:** no claim for a free agent or pickup of a player on
+  waivers, nobody added twice or dropped twice, no player dropped after his
+  game started, roster size and IR spots respected, only players listed as IR
+  go into IR spots.
+- **Your choices:** starred players are never dropped, the weekly upgrade limit
+  holds, a player just picked up needs twice the usual gain to be dropped.
+- **This week first:** no move leaves a starting spot this week with nobody who
+  can play in it, and no move makes this week's lineup weaker while its games
+  are still ahead (a rest-of-season upgrade that would waits until the player
+  it drops has played).
+- **Injuries:** nobody who is out, doubtful or on bye starts while a healthy
+  player could; an injured player is never dropped while an IR spot is open;
+  a questionable starter never loses the backup he has.
+- **Lineups:** valid for the league's slots, and no player whose game started
+  is moved in or out.
+
+What it can't promise: a player who gets hurt or barely plays after his game
+starts; a late scratch that Sleeper doesn't mark before kickoff; Google's timer
+or Sleeper's servers failing (the next check retries, and Activity shows it);
+the experts' rankings being wrong.
+
 ## Caveats
 
 - Logging in and saving changes use Sleeper's **private** web API, the same

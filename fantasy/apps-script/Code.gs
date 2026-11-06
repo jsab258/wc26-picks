@@ -2264,6 +2264,58 @@ League_.prototype.noWorseWeek = function (before, after, current, locked, kickof
   return extras.every(function (x) { return !x.length || count(a, x) >= count(b, x); });
 };
 
+/**
+ * This week's lineup as the planner and the safety check judge a move: ``current`` (free agency:
+ * the lineup on Sleeper) and ``locked`` (players whose game started, who stay where they are).
+ * - lineup(roster): the best lineup by this week's ranks;
+ * - score(roster): that lineup as one number, lower is better (empty spots count as very bad);
+ * - shaky(plan): its questionable starters whose game is still ahead;
+ * - covered(x, roster, plan, after): whether x has a backup, i.e. if he's ruled out ``after``
+ *   (default: the same roster) still fills as many spots as ``roster`` with him, using only players
+ *   whose game hasn't started by the time his inactives are out.
+ */
+League_.prototype.weekModel_ = function (current, locked, kickoff) {
+  var self = this;
+  locked = locked || {};
+  var cost = function (pid, slot) {
+    if (!self.eligible(pid, slot)) return null;
+    var r = self.weeklyRank(pid);
+    return (r ? r.rank : UNRANKED) + (self.whyOut(pid, kickoff) ? UNAVAILABLE : 0);
+  };
+  var lineup = function (roster) {
+    if (!current) return optimize_(self.slots, [], roster, cost).starters;
+    var cur = current.map(function (p) { return roster.indexOf(p) >= 0 ? p : EMPTY; });
+    return optimize_(self.slots, cur, roster, cost, locked).starters;
+  };
+  return {
+    cost: cost,
+    lineup: lineup,
+    score: function (roster) {
+      return lineup(roster).reduce(function (t, p, i) {
+        var slot = self.slots[i];
+        if (!SLOT_ELIGIBILITY[slot]) return t;
+        return t + (p === EMPTY ? UNRANKED + UNAVAILABLE : cost(p, slot));
+      }, 0);
+    },
+    shaky: function (plan) {
+      return plan.filter(function (p) {
+        var ko = p !== EMPTY && self.kickoffOf(p, kickoff);
+        return ko && ko > self.ctx.now && !locked[p] && SKILL.indexOf(self.pos(p)) >= 0 &&
+          (self.p(p) || [])[3] === 'Questionable';
+      });
+    },
+    covered: function (x, roster, plan, after) {
+      var ko = self.kickoffOf(x, kickoff), gone = Object.assign({}, locked);
+      var without = (after || roster).filter(function (p) { return p !== x; });
+      roster.concat(without).forEach(function (p) {
+        var k = self.kickoffOf(p, kickoff);
+        if (p !== x && k && k < ko) gone[p] = true;
+      });
+      return self.noWorseWeek(roster, without, plan, gone, kickoff, false);
+    },
+  };
+};
+
 League_.prototype.minimums = function () {
   var c = {};
   this.slots.forEach(function (s) { c[s] = (c[s] || 0) + 1; });
@@ -2427,7 +2479,7 @@ League_.prototype.planWaivers = function (opts) {
   // Free agents are picked up now; claims go through at the waiver run. Pending claims and
   // (for the waiver plan) the free-agent plan come first. A move may not open a hole in
   // this week's lineup while this week can still be helped.
-  var claims = [], usedDrops = {}, adding = {};
+  var claims = [], usedDrops = {}, adding = {}, heldForWeek = [];
   var blocked = Object.assign({}, pendingDrops, afterDrops, locked);  // this plan can't drop them
   var withMoves = function (roster, moves) {
     var r = roster.slice();
@@ -2455,17 +2507,9 @@ League_.prototype.planWaivers = function (opts) {
   var mainList = this.weeklyList(this.qbPremium ? 'QB' : 'RB');
   var weekMatters = fa || (!faOpen && mainList.week === Number(ctx.state.week) && mainList.firstKickoff() > ctx.now);
   var kickoff = weekMatters || faOpen ? this.weekKickoffs() : {};
-  var weekCost = function (pid, slot) {
-    if (!self.eligible(pid, slot)) return null;
-    var r = self.weeklyRank(pid);
-    return (r ? r.rank : UNRANKED) + (self.whyOut(pid, kickoff) ? UNAVAILABLE : 0);
-  };
+  var week = this.weekModel_(fa ? lp.current : null, locked, kickoff);
   /** This week's best lineup for a roster (in free agency, locked players stay where they are). */
-  var weekLineup = function (roster) {
-    if (!fa) return optimize_(self.slots, [], roster, weekCost).starters;
-    var current = lp.current.map(function (p) { return roster.indexOf(p) >= 0 ? p : EMPTY; });
-    return optimize_(self.slots, current, roster, weekCost, locked).starters;
-  };
+  var weekLineup = week.lineup;
   /** Starting spots nobody on this roster can fill this week. */
   var holesOf = function (roster) {
     return weekMatters ? self.weekHoles(roster, fa ? lp.current : [], locked, kickoff) : [];
@@ -2513,8 +2557,15 @@ League_.prototype.planWaivers = function (opts) {
     return function (add, drop, inner) {
       if (!weekMatters) return true;
       var move = [{ add: add, drop: drop }], prior = claims.concat(inner || []);
-      if (!noWorse(weekRoster(prior), weekRoster(prior.concat(move)), fills)) return false;
-      if (fa && drop && cfg.cover_byes && !keepsBackups(weekRoster(prior), weekRoster(prior.concat(move)))) return false;
+      var before = weekRoster(prior), after = weekRoster(prior.concat(move));
+      if (!noWorse(before, after, fills)) return false;
+      // This week's games come first: a rest-of-season move that weakens this week's lineup
+      // waits until the player it drops has played.
+      if (drop && week.score(after) > week.score(before)) {
+        if (!heldForWeek.some(function (h) { return h.add === add; })) heldForWeek.push({ add: add, drop: drop });
+        return false;
+      }
+      if (fa && drop && cfg.cover_byes && !keepsBackups(before, after)) return false;
       // And on its own: the moves before it, and claims pending on Sleeper, may not go through.
       return noWorse(mine, withMoves(mine, move), false);
     };
@@ -2575,22 +2626,7 @@ League_.prototype.planWaivers = function (opts) {
    * same roster) fills as many spots as ``roster`` does with him, using only players whose game
    * hasn't started by the time his inactives are out (those who started earlier stay where they are).
    */
-  var coveredOn = function (x, roster, plan, after) {
-    var ko = self.kickoffOf(x, kickoff), gone = Object.assign({}, locked);
-    var without = (after || roster).filter(function (p) { return p !== x; });
-    roster.concat(without).forEach(function (p) {
-      var k = self.kickoffOf(p, kickoff);
-      if (p !== x && k && k < ko) gone[p] = true;
-    });
-    return self.noWorseWeek(roster, without, plan, gone, kickoff, false);
-  };
-  /** This week's questionable starters (in the lineup the autopilot sets) whose game is still ahead. */
-  var shaky = function (plan) {
-    return plan.filter(function (p) {
-      var ko = p !== EMPTY && self.kickoffOf(p, kickoff);
-      return ko && ko > ctx.now && !locked[p] && SKILL.indexOf(self.pos(p)) >= 0 && (self.p(p) || [])[3] === 'Questionable';
-    });
-  };
+  var coveredOn = week.covered, shaky = week.shaky;
   /** A move from ``before`` to ``after`` mustn't take away the backup a questionable starter has. */
   var keepsBackups = function (before, after) {
     var plan = weekLineup(before);
@@ -2666,6 +2702,10 @@ League_.prototype.planWaivers = function (opts) {
   if (fa && cfg.cover_byes) backups();
   // 3. Rest-of-season upgrades with whatever room is left.
   room -= upgrade(fas.filter(function (p) { return !adding[p]; }), room, false).length;
+  heldForWeek.filter(function (h) { return !adding[h.add]; }).slice(0, 1).forEach(function (h) {
+    notes.push(name(h.add) + ' would be an upgrade over ' + name(h.drop) + ', but ' + name(h.drop) +
+               ' helps your lineup this week, so that waits until after his game.');
+  });
   // 4. Kicker/defense swaps for a clearly better matchup this week.
   if (cfg.stream_k_def && (fa || !faOpen)) {
     [['K', FP.K], ['DEF', FP.DST]].forEach(function (pair) {
@@ -2890,10 +2930,24 @@ function checkPlans_(lg, res) {
         return roster.filter(function (p) { return !c.drop || p !== c.drop.id; }).concat([c.add.id]);
       };
       // Each move after the ones before it, and on its own (they and pending claims can fail).
+      var model = lg.weekModel_(F ? startersNow : null, lockedNow, kickoff);
       var sofar = week, opens = false;
       moves.forEach(function (c) {
         var next = apply(sofar, c);
         if (!noWorse(sofar, next) || !noWorse(week0, apply(week0, c))) opens = true;
+        // This week's lineup never gets weaker from a move made before its games.
+        if (c.drop && model.score(next) > model.score(sofar)) {
+          out.push('Dropping ' + c.drop.name + ' for ' + c.add.name + " would weaken this week's lineup.");
+        }
+        // A questionable starter never loses the backup he has (free agency: this week).
+        if (F && cfg.cover_byes && c.drop) {
+          var plan = model.lineup(sofar);
+          model.shaky(plan).forEach(function (y) {
+            if (next.indexOf(y) >= 0 && model.covered(y, sofar, plan) && !model.covered(y, next, model.lineup(next))) {
+              out.push('Dropping ' + c.drop.name + ' would leave ' + name(y) + ' (questionable) without a backup.');
+            }
+          });
+        }
         sofar = next;
       });
       if (opens) out.push('These moves would leave a starting spot this week with nobody who can play.');

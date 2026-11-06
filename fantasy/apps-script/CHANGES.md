@@ -3,6 +3,10 @@
 Newest first. Each `##` entry becomes the release notes shown by the app's
 "Install update" button. Add one with every change to Code.gs / Index.html.
 
+## This week first
+- No move makes this week's lineup weaker while its games are still ahead. A rest-of-season upgrade that would drop a player who helps your lineup this week now waits until after his game, and the free-agent plan says so. Before, the app could drop a starter for a better long-term player who doesn't help this week (it suggested dropping Dylan Sampson, your RB2 this week, for Deebo Samuel).
+- The safety check now also enforces this, and that a questionable starter never loses his backup, on every plan before anything is sent. The README lists everything the autopilot guarantees.
+
 ## Backups and kickoff checks
 - A questionable starter whose spot nobody on your roster could take if he's ruled out now gets a backup from free agency ahead of time, in the daytime: into an open roster spot first, otherwise for an easy-to-replace bench player. Only players whose game hasn't started by the time his inactives come out count as backups. It's part of "Cover byes and injuries", shows in the free-agent plan as "backup" and is picked up by the autopilot when auto claims are on.
 - With autopilot on, there are now three extra checks before each kickoff (75, 50 and 30 minutes before), right after Sleeper marks the inactives, and the injury news is never more than 15 minutes old then. A starter ruled out late at night is swapped for his backup without anyone staying up.
