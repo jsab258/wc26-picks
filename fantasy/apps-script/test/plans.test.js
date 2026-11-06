@@ -826,3 +826,75 @@ test('review: the safety check refuses claims planned while a player must come o
     assert.ok(gas.checkPlans_(lg, res).some((x) => /while a player must come off IR/.test(x)));
   });
 });
+
+// ---- From the third review --------------------------------------------------------------------------
+
+test('review 3: a one-off failure fetching the main ranking list doesn\'t sink the whole check', () => {
+  const s = base();
+  s.starters = ['qb1', 'rb1', 'wr1', 'te1', 'wr3', 'k1', 'DET'];   // wr3 in the flex: the lineup step should fix it
+  s.settings = { reserve_slots: 1 };
+  s.players.irx = ['irx', 'WR', 'BUF', 'IR', null]; s.reserve = ['irx']; s.mine = s.mine.concat(['irx']);
+  s.now = (s.kick - 3 * 3600) * 1000;
+  const b = build(s);
+  b.gas.setMode('auto');
+  const orig = b.gas.fpList_;
+  let n = 0;
+  b.gas.fpList_ = (slug) => { if (slug === 'ppr-flex' && n++ === 0) throw new Error('Address unavailable: fantasypros'); return orig(slug); };
+  b.gas.tick();
+  assert.ok(b.writes.some((w) => w[0] === 'starters'), b.gas.getJson_('lastTick').msg);
+});
+
+test('review 3: with Auto lineup off, a player who can come back from IR is reported (pickups wait for him)', () => {
+  const s = base();
+  s.settings = { reserve_slots: 1 };
+  s.players.ir1 = ['ir1', 'WR', 'BUF', null, null];
+  s.ros['ros-ppr-overall'].push(['ir1', 30, 'WR10']);
+  s.mine = s.mine.filter((p) => p !== 'wr3').concat(['ir1']); s.reserve = ['ir1'];
+  const b = build(s);
+  auto(b.gas, { auto_lineup: false });
+  b.gas.tick();
+  assert.ok(b.gas.getState().log.some((e) => e.title === 'ir1 must come off IR' && /Move back to roster/.test(e.lines.join(' '))));
+  assert.deepEqual(b.writes, []);
+});
+
+test('review 3: no "claims are waiting" when there was nothing to claim; the window is used up as usual', () => {
+  const s = tuesday(base());
+  s.players.te1 = ['te1', 'TE', 'LV', null, null];
+  for (const k of Object.keys(s.weekly)) s.weekly[k] = s.weekly[k].filter((r) => !/_fa$/.test(r[0]));
+  for (const k of Object.keys(s.ros)) s.ros[k] = s.ros[k].filter((r) => !/_fa$/.test(r[0]));
+  s.players.ir1 = ['ir1', 'WR', 'BUF', 'Doubtful', null];
+  s.ros['ros-ppr-overall'].push(['ir1', 30, 'WR10']);
+  s.mine = s.mine.concat(['ir1']); s.reserve = ['ir1'];
+  s.settings = { reserve_slots: 1 };
+  const b = build(s);
+  auto(b.gas);
+  b.gas.tick();
+  assert.ok(!b.gas.getState().log.some((e) => e.title === 'Waiver claims are waiting'));
+  assert.notDeepEqual(b.gas.getJson_('waivers_done', {}), {});
+});
+
+test('review 3: no "drop X" advice while open trade offers can\'t be read', () => {
+  const s = base();
+  s.settings = { reserve_slots: 1 };
+  s.players.ir1 = ['ir1', 'WR', 'BUF', null, null];
+  s.ros['ros-ppr-overall'].push(['ir1', 30, 'WR10']);
+  s.reserve = ['ir1']; s.mine = s.mine.concat(['ir1']);
+  const b = build(s);
+  b.gas.pendingTrades_ = () => { throw new Error('Sleeper API timeout'); };
+  const r = b.gas.getDashboard().leagues[0].reserve;
+  assert.deepEqual(r.stuck.map((v) => v.id), ['ir1']);
+  assert.equal(r.makeRoom, null);
+});
+
+test('review 3: kicker rankings that didn\'t load are said as such, never shown as a rank', () => {
+  const s = base();
+  s.players.te1 = ['te1', 'TE', 'LV', null, null];
+  s.weekly.k = s.weekly.k.map((r) => (r[0] === 'k1' ? ['k1', 10, 'K10', null, true] : r));   // k1 on bye: a fill-in is needed
+  const b = build(s);
+  const orig = b.gas.fpList_;
+  b.gas.fpList_ = (slug) => { if (slug === 'ros-k') throw new Error('FantasyPros ros-k failed (HTTP 503)'); return orig(slug); };
+  const f = b.gas.getDashboard().leagues[0].freeAgents;
+  assert.ok(!f.error, f.error);
+  const said = f.notes.filter((n) => /k1/.test(n)).join(' | ');
+  assert.ok(/no K rankings loaded/.test(said) && !/K1 rest of season/.test(said), said);
+});

@@ -552,6 +552,12 @@ function autopilot_(opts) {
           var stuckNow = rv && rv.stuck ? rv.stuck.filter(function (v) {
             return !rv.stuckLocked.some(function (x) { return x.id === v.id; });
           }) : [];
+          if (rv && !rv.error && !cfg.auto_lineup && rv.back.length) {
+            var backWho = rv.back.map(function (v) { return v.name; }).join(', ');
+            summary.push(name + ': ' + backWho + ' must come off IR');
+            fail(lg.id + ':ir-back', name, backWho + ' must come off IR', backWho + " isn't allowed in an IR spot any more, " +
+                 'so Sleeper refuses every claim and pickup. Tap "Move back to roster" in the app (or turn on Auto lineup).');
+          }
           if (stuckNow.length) {
             var who = stuckNow.map(function (v) { return v.name; }).join(', ');
             summary.push(name + ': ' + who + ' must come off IR');
@@ -1562,13 +1568,14 @@ Ctx_.prototype.ranksRaw_ = function (slug) { return fpList_(slug); };
 
 Ctx_.prototype.ranks = function (slug) {
   if (!this.lists[slug]) {
-    // A list that failed is not tried again in the same check: every later lookup gets the same error.
+    // A kicker/defense list that failed isn't tried again in the same check (those lookups are frequent and
+    // their failure is worked around); a main list is, since one blip mustn't sink the whole check.
     this.failedLists = this.failedLists || {};
     if (this.failedLists[slug]) throw this.failedLists[slug];
     try {
       this.lists[slug] = new RankList_(fpList_(slug), this.idmap, this.now);
     } catch (e) {
-      if (!e.expired) this.failedLists[slug] = e;
+      if (!e.expired && [FP.K, FP.DST, FP.ROS_K, FP.ROS_DST].indexOf(slug) >= 0) this.failedLists[slug] = e;
       throw e;
     }
   }
@@ -1899,8 +1906,9 @@ League_.prototype.planReserve = function () {
   // To make room: the least valuable player who isn't starred, locked or in a trade offer (the stuck
   // player himself if he's worth less).
   var makeRoom = null, lead = stuck.filter(function (p) { return !locked(p); })[0];
-  if (lead) {
-    var keep = Object.assign(this.neverDrop(), this.tradeHold_());
+  var offers = lead ? this.tradeHold_() : {};
+  if (lead && !this._tradeUnknown) {  // can't tell who's in a trade offer: no advice on whom to drop
+    var keep = Object.assign(this.neverDrop(), offers);
     var starting = this.roster.starters || [];
     var longTerm = Number(this.settings.type) === 1 || Number(this.settings.type) === 2;
     var pool = this.activePlayers().concat(lead).filter(function (p) {   // bench QB/RB/WR/TE (or him)
@@ -2529,12 +2537,14 @@ League_.prototype.planWaivers = function (opts) {
   var slotCount = {};
   this.slots.forEach(function (s) { slotCount[s] = (slotCount[s] || 0) + 1; });
   // Rest-of-season K/DEF rank (1 = best); 999 when unranked.
+  var kdMissing = {};  // positions whose rest-of-season list didn't load
   var kdNum = function (pid) {
     var list;
     try {
       list = ctx.ranks(self.pos(pid) === 'K' ? FP.ROS_K : FP.ROS_DST);
     } catch (e) {
       if (e.expired) throw e;
+      kdMissing[self.pos(pid)] = true;
       return 1;  // no rankings: counts as a top one, so he's never dropped or streamed out
     }
     var r = list.get(pid), m = r && /(\d+)$/.exec(r.posRank || '');
@@ -2720,9 +2730,13 @@ League_.prototype.planWaivers = function (opts) {
     made.forEach(function (c) { claims.push(c); adding[c.add] = true; if (c.drop) usedDrops[c.drop] = true; });
     return made;
   };
+  var kdText = function (p) {
+    var pos = self.pos(p), n = kdNum(p);
+    return kdMissing[pos] ? 'no ' + pos + ' rankings loaded' : pos + n + ' rest of season';
+  };
   var label = function (p) {
     var pos = self.pos(p);
-    return name(p) + (pos === 'K' || pos === 'DEF' ? ' (' + pos + kdNum(p) + ' rest of season)' : '');
+    return name(p) + (pos === 'K' || pos === 'DEF' ? ' (' + kdText(p) + ')' : '');
   };
   var fill = function (hole) {
     var best = null, bestRank = Infinity, unranked = false;
@@ -2750,8 +2764,8 @@ League_.prototype.planWaivers = function (opts) {
     var star = hole.out !== EMPTY && kd && (keep[hole.out] || kdNum(hole.out) <= 12);
     var who = hole.out === EMPTY ? 'Your ' + hole.slot + ' spot is empty this week'
       : name(hole.out) + ' (' + self.pos(hole.out) + ', ' + self.whyOut(hole.out, kickoff) +
-        (kd ? ', ' + self.pos(hole.out) + kdNum(hole.out) + ' rest of season' : '') + ") can't play this week" +
-        (star ? ' and is too good to drop' : '');
+        (kd ? ', ' + kdText(hole.out) : '') + ") can't play this week" +
+        (star ? (kd && kdMissing[self.pos(hole.out)] ? " and isn't dropped without rankings" : ' and is too good to drop') : '');
     var drop = openSpots() > 0 ? null : dropFor(hole);
     if (best && drop && !noNewHoles(false)(best, drop)) drop = null;  // he'd be needed if an earlier move fails
     if (!best || (openSpots() <= 0 && !drop)) {
@@ -2897,7 +2911,7 @@ League_.prototype.planWaivers = function (opts) {
       if (drop) usedDrops[drop] = true;
     });
   }
-  var ir = this.planReserve(), offIr = ir.back.concat(ir.stuck);
+  var ir = this.planReserve(), offIr = ir.back.concat(ir.stuck), held = offIr.length && claims.length;
   if (offIr.length) {
     if (claims.length) {
       notes.push('No ' + (fa ? 'pickups' : 'claims') + ' until ' + offIr.map(name).join(', ') + (offIr.length > 1 ? ' are' : ' is') +
@@ -2920,7 +2934,7 @@ League_.prototype.planWaivers = function (opts) {
     pending: pending.length,
     pendingClaims: pending.map(function (t) { return self.pendingClaimView_(t); }),
     pendingUnknown: pendingUnknown,
-    irBlocked: offIr.length ? offIr.map(name) : null,  // claims wait for these players to come off IR
+    irBlocked: held ? offIr.map(name) : null,  // claims held until these players are off IR
     faab: this.faab,
     priority: prio ? { position: prio, teams: teams, rolling: this.rolling } : null,
     basis: (this.qbPremium ? 'rest-of-season ECR, superflex-adjusted' : 'rest-of-season ECR') +
