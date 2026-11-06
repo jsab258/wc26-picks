@@ -466,7 +466,14 @@ function tick() {
     checkUpdateDaily_();
     autopilot_({ force: false });
   } catch (e) {
-    recordTick_('error', String(e.message || e));
+    // The whole check failed (e.g. FantasyPros or Sleeper down with no saved copy): say so once.
+    var msg = String(e.message || e);
+    recordTick_('error', msg);
+    if (getJson_('tick_crash', null) !== msg) {
+      putJson_('tick_crash', msg);
+      log_({ level: 'error', title: 'The background check failed', lines: [msg, 'It tries again every 30 minutes.'] });
+      notify_('action', 'Background check failed', msg);
+    }
   } finally {
     lock.releaseLock();
   }
@@ -518,13 +525,14 @@ function autopilot_(opts) {
         var cfg = leagueCfg_(s, data.league_id);
         var lg = new League_(ctx, data, user.user_id, cfg);
         if (!lg.roster || data.status !== 'in_season') return;
-        // IR first: a player moved there frees a roster spot for the pickups and claims below.
-        if (auto && cfg.auto_lineup) {
+        // IR first: a player moved there frees a roster spot for the pickups and claims below. Moving
+        // players needs Auto lineup; a player who must come off IR is reported either way.
+        if (auto) {
           var rres = lg.evaluate({ reserve: true }), rv = rres.reserve;
           if (rv && rv.error) {
             summary.push(name + ": couldn't check IR");
             fail(lg.id + ':ir', name, 'IR check failed', rv.error);
-          } else if (rv && (rv.moves.length || rv.back.length)) {
+          } else if (rv && cfg.auto_lineup && (rv.moves.length || rv.back.length)) {
             if (blocked_(rres)) {
               summary.push(name + ': IR change held back by a safety check');
               fail(lg.id + ':ir-safety', name, 'Safety check stopped the IR change', rres.safety.join(' '));
@@ -539,8 +547,24 @@ function autopilot_(opts) {
               }
             }
           }
-          if (rv && rv.stuck && rv.stuck.length) {
-            summary.push(name + ': ' + rv.stuck.map(function (v) { return v.name; }).join(', ') + ' must come off IR');
+          // Stuck players whose game has started can only come off IR after this week's games (then the
+          // autopilot moves them back if there's room); the others need you to make room.
+          var stuckNow = rv && rv.stuck ? rv.stuck.filter(function (v) {
+            return !rv.stuckLocked.some(function (x) { return x.id === v.id; });
+          }) : [];
+          if (rv && !rv.error && !cfg.auto_lineup && rv.back.length) {
+            var backWho = rv.back.map(function (v) { return v.name; }).join(', ');
+            summary.push(name + ': ' + backWho + ' must come off IR');
+            fail(lg.id + ':ir-back', name, backWho + ' must come off IR', backWho + " isn't allowed in an IR spot any more, " +
+                 'so Sleeper refuses every claim and pickup. Tap "Move back to roster" in the app (or turn on Auto lineup).');
+          }
+          if (stuckNow.length) {
+            var who = stuckNow.map(function (v) { return v.name; }).join(', ');
+            summary.push(name + ': ' + who + ' must come off IR');
+            fail(lg.id + ':ir-stuck', name, who + ' must come off IR', who + " isn't allowed in an IR spot any more and the " +
+                 "roster is full, so Sleeper refuses every claim and pickup. " +
+                 (rv.makeRoom ? 'Drop ' + rv.makeRoom.name + ' on Sleeper (your least valuable player), then move ' +
+                  stuckNow[0].name + ' back to the roster.' : 'Drop a player on Sleeper, then move him back to the roster.'));
           }
         }
         // After this week's waivers: fill holes with free agents (no waiver priority spent).
@@ -552,14 +576,21 @@ function autopilot_(opts) {
           } else if (blocked_(fres)) {
             summary.push(name + ': free agents held back by a safety check');
             fail(lg.id + ':fa-safety', name, 'Safety check stopped free-agent pickups', fres.safety.join(' '));
+          } else if (f.irBlocked) {
+            summary.push(name + ': pickups wait until ' + f.irBlocked.join(', ') + ' is off IR');
           } else if (f.claims && f.claims.length && !f.pendingUnknown) {
             if (auto) {
               lg.applyFreeAgents(fres, 'autopilot');
               var added = f.claims.filter(function (c) { return c.submitted; }).length;
-              var failedFa = f.claims.some(function (c) { return c.error; });
-              summary.push(name + ': ' + added + ' free agent' + (added === 1 ? '' : 's') + ' added');
-              notify_(failedFa ? 'action' : 'change', name + (failedFa ? ': a free-agent pickup failed' : ': free agents picked up'),
-                      claimLines_(f, false).join('\n'));
+              var badFa = f.claims.filter(function (c) { return c.error; });
+              summary.push(name + ': ' + added + ' free agent' + (added === 1 ? '' : 's') + ' added' +
+                           (badFa.length ? ', ' + badFa.length + ' failed (retrying)' : ''));
+              if (added) notify_('change', name + ': free agents picked up', claimLines_(f, false).join('\n'));
+              if (badFa.length) {
+                fail(lg.id + ':fa-failed', name, 'A free-agent pickup failed', badFa.map(function (c) {
+                  return c.add.name + ': ' + c.error;
+                }).join(' '));
+              }
               if (added) lg = new League_(ctx, data, user.user_id, cfg);  // fresh roster for the lineup below
             } else if (alerting) {
               notify_('action', name + ': free agents to add', claimLines_(f, false).join('\n') +
@@ -612,6 +643,12 @@ function autopilot_(opts) {
             fail(lg.id + ':waivers', name, 'Waiver planning failed', w.error || PENDING_UNKNOWN_MSG);
             return;  // try again on the next tick
           }
+          if (w.irBlocked) {  // not done: once he's off IR, the next check in the window plans and sends them
+            summary.push(name + ': claims wait until ' + w.irBlocked.join(', ') + ' is off IR');
+            fail(lg.id + ':waivers-ir', name, 'Waiver claims are waiting', 'No claims until ' + w.irBlocked.join(', ') +
+                 " is off IR: Sleeper refuses them while someone the league doesn't allow there sits in an IR spot.");
+            return;
+          }
           if (blocked_(wres)) {
             summary.push(name + ': claims held back by a safety check');
             fail(lg.id + ':waivers-safety', name, 'Safety check stopped the waiver claims', wres.safety.join(' '));
@@ -633,7 +670,7 @@ function autopilot_(opts) {
             summary.push(name + ': ' + sent + ' claim(s), ' + bad.length + ' failed (retrying)');
             fail(lg.id + ':claims', name, 'Some waiver claims failed', bad.map(function (c) {
               return c.add.name + ': ' + c.error;
-            }).join(' '), true);
+            }).join(' '));
             return;
           }
           done[lg.id + ':' + win] = Date.now();
@@ -652,6 +689,7 @@ function autopilot_(opts) {
     throw e;
   }
   putJson_('tick_errors', errors);
+  deleteJson_('tick_crash');
   if (!opts.force && !lineupWindow && !failed) putJson_('idle_until', Math.min(wake, ctx.now + 12 * 3600));
   var idle = !lineupWindow ? 'No games in the next 30h; nothing to do.' : 'Checked lineups: all optimal.';
   recordTick_(failed ? 'error' : 'ok', summary.length ? summary.join(' · ') : idle);
@@ -1046,9 +1084,16 @@ function sleeper_(path, fresh) {
 }
 
 function gql_(query, variables, token, retries) {
-  var r = fetch_(SLEEPER_GQL, { payload: { query: query, variables: variables },
-                                headers: token ? { Authorization: token } : {}, retries: retries });
-  if (token && r.code === 401) throw sessionExpired_();
+  var send = function () {
+    return fetch_(SLEEPER_GQL, { payload: { query: query, variables: variables },
+                                 headers: token ? { Authorization: token } : {}, retries: retries });
+  };
+  var r = send();
+  if (token && r.code === 401) {  // a refused request is retried once before the session counts as expired
+    Utilities.sleep(1500);
+    r = send();
+    if (r.code === 401) throw sessionExpired_();
+  }
   var body;
   try { body = JSON.parse(r.text); } catch (e) { throw new Error('Sleeper returned HTTP ' + r.code); }
   if (body.errors && body.errors.length) {
@@ -1346,7 +1391,8 @@ function parseEcr_(html) {
 
 /** One FantasyPros ECR list, slimmed down for caching. */
 function fpList_(slug) {
-  return cached_('fp:' + slug, 30 * 60, function () {
+  // Refreshed every 30 minutes; if FantasyPros fails, the last good copy (kept up to 6 hours) is used.
+  return cachedFresh_('fp2:' + slug, 30 * 60, function () {
     var r = fetch_(FP_BASE + slug + '.php');
     if (r.code !== 200) throw new Error('FantasyPros ' + slug + ' failed (HTTP ' + r.code + ')');
     var d = parseEcr_(r.text);
@@ -1476,11 +1522,13 @@ function RankList_(data, idmap, now) {
   this.byId = new Map();
   this.unmatched = [];
   this.teamKickoff = {};
+  this.teamTbd = {};  // teams with an opponent this week but no kickoff time yet
   var self = this;
   data.players.forEach(function (row) {
     var name = row[1], pos = row[2], team = normTeam_(row[3]), bye = row[6], opp = row[7];
     var kickoff = row[8], status = row[9];
     if (kickoff) self.teamKickoff[team] = kickoff;
+    else if (opp && String(bye) !== String(self.week)) self.teamTbd[team] = true;
     var sid = idmap.sleeperId(row[0], name, pos, team);
     if (!sid) { self.unmatched.push(name); return; }
     if (self.byId.has(sid)) return;
@@ -1519,7 +1567,18 @@ function Ctx_(token) {
 Ctx_.prototype.ranksRaw_ = function (slug) { return fpList_(slug); };
 
 Ctx_.prototype.ranks = function (slug) {
-  if (!this.lists[slug]) this.lists[slug] = new RankList_(fpList_(slug), this.idmap, this.now);
+  if (!this.lists[slug]) {
+    // A kicker/defense list that failed isn't tried again in the same check (those lookups are frequent and
+    // their failure is worked around); a main list is, since one blip mustn't sink the whole check.
+    this.failedLists = this.failedLists || {};
+    if (this.failedLists[slug]) throw this.failedLists[slug];
+    try {
+      this.lists[slug] = new RankList_(fpList_(slug), this.idmap, this.now);
+    } catch (e) {
+      if (!e.expired && [FP.K, FP.DST, FP.ROS_K, FP.ROS_DST].indexOf(slug) >= 0) this.failedLists[slug] = e;
+      throw e;
+    }
+  }
   return this.lists[slug];
 };
 
@@ -1822,8 +1881,9 @@ League_.prototype.planReserve = function () {
       return true;  // can't tell whether his game has started: leave him where he is
     }
   };
-  // Healthy or only questionable: no league's IR takes him. Untracked players (IDP) are left alone.
-  var stale = reserve.filter(function (p) { return self.p(p) && (!status(p) || status(p) === 'Questionable'); });
+  // No longer allowed in an IR spot by this league's rules (healthy, questionable, or e.g. Doubtful in a
+  // league that only takes IR): Sleeper blocks adds and claims until he's off. Untracked players are left alone.
+  var stale = reserve.filter(function (p) { return self.p(p) && !self.irAllowed_(status(p)); });
   var value = null, num = function (p) {
     try {
       value = value || self.rosValueFn_();
@@ -1842,8 +1902,46 @@ League_.prototype.planReserve = function () {
   var b = Math.min(free.length, Math.max(0, room + m));        // the roster has room once IR players leave it
   m = Math.min(cands.length, Math.max(0, slots - reserve.length + b));  // ...and IR spots once they're back
   var back = free.slice(0, b);
-  return (this._reserve = { slots: slots, players: reserve, moves: cands.slice(0, m), back: back,
-                            stuck: stale.filter(function (p) { return back.indexOf(p) < 0; }) });
+  var stuck = stale.filter(function (p) { return back.indexOf(p) < 0; });
+  // To make room: the least valuable player who isn't starred, locked or in a trade offer (the stuck
+  // player himself if he's worth less).
+  var makeRoom = null, lead = stuck.filter(function (p) { return !locked(p); })[0];
+  var offers = lead ? this.tradeHold_() : {};
+  if (lead && !this._tradeUnknown) {  // can't tell who's in a trade offer: no advice on whom to drop
+    var keep = Object.assign(this.neverDrop(), offers);
+    var starting = this.roster.starters || [];
+    var longTerm = Number(this.settings.type) === 1 || Number(this.settings.type) === 2;
+    var pool = this.activePlayers().concat(lead).filter(function (p) {   // bench QB/RB/WR/TE (or him)
+      if (longTerm && (num(p) >= UNRANKED || status(p) === 'IR')) return false;  // keeper/dynasty: never cut
+      return !keep[p] && !locked(p) && SKILL.indexOf(self.pos(p)) >= 0 && (p === lead || starting.indexOf(p) < 0);
+    });
+    makeRoom = pool.sort(function (a, b) { return num(b) - num(a); })[0] || null;
+  }
+  return (this._reserve = { slots: slots, players: reserve, moves: cands.slice(0, m), back: back, stuck: stuck,
+                            stuckLocked: stuck.filter(locked), makeRoom: makeRoom });
+};
+
+/** Whether this league's IR spots take a player with this Sleeper status (IR and PUP always). */
+League_.prototype.irAllowed_ = function (status) {
+  if (status === 'IR' || status === 'PUP') return true;
+  var key = { Out: 'reserve_allow_out', Doubtful: 'reserve_allow_doubtful', Sus: 'reserve_allow_sus',
+              NA: 'reserve_allow_na', DNR: 'reserve_allow_dnr', COV: 'reserve_allow_cov' }[status];
+  return !!(key && Number(this.settings[key]));
+};
+
+/** Players in an open trade offer (sent or received): dropping one would quietly kill the offer. */
+League_.prototype.tradeHold_ = function () {
+  if (this._tradeHold) return this._tradeHold;
+  var rid = this.roster.roster_id, out = {};
+  try {
+    pendingTrades_(this.ctx.token, this.id, rid).forEach(function (t) {
+      Object.keys(t.drops || {}).forEach(function (p) { if (Number(t.drops[p]) === rid) out[p] = true; });
+    });
+  } catch (e) {
+    if (e.expired) throw e;
+    this._tradeUnknown = String(e.message || e);  // can't tell who's in an offer: no drops this check
+  }
+  return (this._tradeHold = out);
 };
 
 /** Injured players kept off the drop lists while an IR spot is open: they can go there instead. */
@@ -1860,7 +1958,7 @@ League_.prototype.reserveView_ = function () {
   var self = this, r = this.planReserve(), vw = function (p) { return self.rosView_(p); };
   if (!r.slots && !r.players.length) return null;
   return { slots: r.slots, players: r.players.map(vw), moves: r.moves.map(vw), back: r.back.map(vw),
-           stuck: r.stuck.map(vw) };
+           stuck: r.stuck.map(vw), stuckLocked: r.stuckLocked.map(vw), makeRoom: r.makeRoom ? vw(r.makeRoom) : null };
 };
 
 League_.prototype.applyReserve = function (res, who) {
@@ -1911,7 +2009,7 @@ League_.prototype.kickoffOf = function (pid, kickoff) {
  * until the week's first game kicks off).
  */
 League_.prototype.isFreeAgent = function (pid, clears, kickoff) {
-  var first = Math.min.apply(null, Object.keys(kickoff).map(function (t) { return kickoff[t]; }));
+  var first = Math.min.apply(null, Object.keys(kickoff).map(function (t) { return kickoff[t]; }).filter(Boolean));
   return !(clears[pid] > this.ctx.now) && (this.kickoffOf(pid, kickoff) || first) > this.ctx.now;
 };
 League_.prototype.pos = function (pid) { var p = this.p(pid); return p ? p[1] : '?'; };
@@ -2004,7 +2102,15 @@ League_.prototype.weeklyList = function (pos) {
 };
 
 League_.prototype.weeklyRank = function (pid) {
-  var l = this.weeklyList(this.pos(pid));
+  var pos = this.pos(pid), l;
+  try {
+    l = this.weeklyList(pos);
+  } catch (e) {
+    // A kicker or defense list that won't load leaves those spots as they are (no rank to compare);
+    // the main list failing still stops the lineup check.
+    if (e.expired || (pos !== 'K' && pos !== 'DEF')) throw e;
+    return null;
+  }
   return l ? l.get(pid) : null;
 };
 
@@ -2092,8 +2198,16 @@ League_.prototype.weekKickoffs = function () {
   var self = this, kickoff = {};
   this.slots.forEach(function (s) {
     (SLOT_ELIGIBILITY[s] || []).forEach(function (pos) {
-      var l = self.weeklyList(pos);
+      var l;
+      try {
+        l = self.weeklyList(pos);
+      } catch (e) {
+        if (e.expired || (pos !== 'K' && pos !== 'DEF')) throw e;
+        return;  // the other lists have the same teams' games
+      }
       Object.keys(l.teamKickoff).forEach(function (t) { kickoff[t] = l.teamKickoff[t]; });
+      // A game whose time isn't set yet (postponed, rescheduled, late-season TBD) is still a game.
+      Object.keys(l.teamTbd).forEach(function (t) { if (!(t in kickoff)) kickoff[t] = 0; });
     });
   });
   return kickoff;
@@ -2264,6 +2378,64 @@ League_.prototype.noWorseWeek = function (before, after, current, locked, kickof
   return extras.every(function (x) { return !x.length || count(a, x) >= count(b, x); });
 };
 
+/**
+ * This week's lineup as the planner and the safety check judge a move: ``current`` (free agency:
+ * the lineup on Sleeper) and ``locked`` (players whose game started, who stay where they are).
+ * - lineup(roster): the best lineup by this week's ranks;
+ * - score(roster): that lineup as one number, lower is better (empty spots count as very bad);
+ * - shaky(plan): its questionable starters whose game is still ahead;
+ * - covered(x, roster, plan, after): whether x has a backup, i.e. if he's ruled out ``after``
+ *   (default: the same roster) still fills as many spots as ``roster`` with him, using only players
+ *   whose game hasn't started by the time his inactives are out.
+ */
+League_.prototype.weekModel_ = function (current, locked, kickoff) {
+  var self = this;
+  locked = locked || {};
+  var lean = 0;
+  if (this.slots.indexOf('SUPER_FLEX') >= 0) {
+    var sf = this.superflexLean_();
+    lean = sf !== null ? sf : SF_QB_LEAN + (this.passTd6 ? TD6_QB_LEAN : 0);
+  }
+  var cost = function (pid, slot) {
+    if (!self.eligible(pid, slot)) return null;
+    var r = self.weeklyRank(pid);
+    var c = (r ? r.rank : UNRANKED) + (self.whyOut(pid, kickoff) ? UNAVAILABLE : 0);
+    return slot === 'SUPER_FLEX' && self.positions(pid).indexOf('QB') >= 0 ? c - lean : c;
+  };
+  var lineup = function (roster) {
+    if (!current) return optimize_(self.slots, [], roster, cost).starters;
+    var cur = current.map(function (p) { return roster.indexOf(p) >= 0 ? p : EMPTY; });
+    return optimize_(self.slots, cur, roster, cost, locked).starters;
+  };
+  return {
+    cost: cost,
+    lineup: lineup,
+    score: function (roster) {
+      return lineup(roster).reduce(function (t, p, i) {
+        var slot = self.slots[i];
+        if (!SLOT_ELIGIBILITY[slot]) return t;
+        return t + (p === EMPTY ? UNRANKED + UNAVAILABLE : cost(p, slot));
+      }, 0);
+    },
+    shaky: function (plan) {
+      return plan.filter(function (p) {
+        var ko = p !== EMPTY && self.kickoffOf(p, kickoff);
+        return ko && ko > self.ctx.now && !locked[p] && SKILL.indexOf(self.pos(p)) >= 0 &&
+          (self.p(p) || [])[3] === 'Questionable';
+      });
+    },
+    covered: function (x, roster, plan, after) {
+      var ko = self.kickoffOf(x, kickoff), gone = Object.assign({}, locked);
+      var without = (after || roster).filter(function (p) { return p !== x; });
+      roster.concat(without).forEach(function (p) {
+        var k = self.kickoffOf(p, kickoff);
+        if (p !== x && k && k < ko) gone[p] = true;
+      });
+      return self.noWorseWeek(roster, without, plan, gone, kickoff, false);
+    },
+  };
+};
+
 League_.prototype.minimums = function () {
   var c = {};
   this.slots.forEach(function (s) { c[s] = (c[s] || 0) + 1; });
@@ -2352,13 +2524,29 @@ League_.prototype.planWaivers = function (opts) {
   var recent = this.recent_();
   var ros = ctx.ranks(FP.ROS[this.fmt]);
   var value = this.rosValueFn_();
-  var keep = Object.assign(this.neverDrop(), this.irHold_());
+  var keep = Object.assign(this.neverDrop(), this.irHold_(), this.tradeHold_());
+  var noDrops = !!this._tradeUnknown;
+  if (noDrops) {
+    notes.push("Couldn't read your open trade offers on Sleeper (" + this._tradeUnknown + '), so nobody is dropped ' +
+               'until that works again.');
+  }
   var mine = this.activePlayers();
+  // Keeper and dynasty leagues: a player FantasyPros' redraft lists leave out (a stashed rookie) or one on
+  // IR is never cut-able, since he can't be got back.
+  var longTerm = Number(this.settings.type) === 1 || Number(this.settings.type) === 2;
   var slotCount = {};
   this.slots.forEach(function (s) { slotCount[s] = (slotCount[s] || 0) + 1; });
   // Rest-of-season K/DEF rank (1 = best); 999 when unranked.
+  var kdMissing = {};  // positions whose rest-of-season list didn't load
   var kdNum = function (pid) {
-    var list = ctx.ranks(self.pos(pid) === 'K' ? FP.ROS_K : FP.ROS_DST);
+    var list;
+    try {
+      list = ctx.ranks(self.pos(pid) === 'K' ? FP.ROS_K : FP.ROS_DST);
+    } catch (e) {
+      if (e.expired) throw e;
+      kdMissing[self.pos(pid)] = true;
+      return 1;  // no rankings: counts as a top one, so he's never dropped or streamed out
+    }
     var r = list.get(pid), m = r && /(\d+)$/.exec(r.posRank || '');
     return m ? Number(m[1]) : 999;
   };
@@ -2369,7 +2557,13 @@ League_.prototype.planWaivers = function (opts) {
     var at = mine.filter(function (p) { return self.pos(p) === pos; });
     var n = slotCount[pos] || 0;
     if (!n || at.length <= n) return;
-    var weekly = ctx.ranks(pos === 'K' ? FP.K : FP.DST);
+    var weekly;
+    try {
+      weekly = ctx.ranks(pos === 'K' ? FP.K : FP.DST);
+    } catch (e) {
+      if (e.expired) throw e;
+      return;  // no weekly rankings: nobody counts as an extra
+    }
     var thisWeek = function (p) { var r = weekly.get(p); return r && !r.bye ? r.rank : 999; };
     var needed = {};
     at.slice().sort(function (a, b) { return kdNum(a) - kdNum(b); }).slice(0, n).forEach(function (p) { needed[p] = true; });
@@ -2378,11 +2572,12 @@ League_.prototype.planWaivers = function (opts) {
   });
   var healthy = function (p) { return cfg.bench_statuses.indexOf((self.p(p) || [])[3]) < 0; };
   var dropValue = function (pid) {
-    if (keep[pid]) return null;
+    if (noDrops || keep[pid]) return null;
     if (excessKD[pid]) return UNRANKED;
     if (SKILL.indexOf(self.pos(pid)) < 0) return null;
+    if (longTerm && (self.p(pid) || [])[3] === 'IR') return null;
     var v = value(pid);
-    if (v === null && !ros.get(pid) && !self.weeklyRank(pid)) return UNRANKED;  // in no ECR list: cut-able
+    if (v === null && !ros.get(pid) && !self.weeklyRank(pid)) return longTerm ? null : UNRANKED;  // in no ECR list: cut-able
     return v;
   };
   var relevant = {};
@@ -2427,7 +2622,7 @@ League_.prototype.planWaivers = function (opts) {
   // Free agents are picked up now; claims go through at the waiver run. Pending claims and
   // (for the waiver plan) the free-agent plan come first. A move may not open a hole in
   // this week's lineup while this week can still be helped.
-  var claims = [], usedDrops = {}, adding = {};
+  var claims = [], usedDrops = {}, adding = {}, heldForWeek = [];
   var blocked = Object.assign({}, pendingDrops, afterDrops, locked);  // this plan can't drop them
   var withMoves = function (roster, moves) {
     var r = roster.slice();
@@ -2455,24 +2650,16 @@ League_.prototype.planWaivers = function (opts) {
   var mainList = this.weeklyList(this.qbPremium ? 'QB' : 'RB');
   var weekMatters = fa || (!faOpen && mainList.week === Number(ctx.state.week) && mainList.firstKickoff() > ctx.now);
   var kickoff = weekMatters || faOpen ? this.weekKickoffs() : {};
-  var weekCost = function (pid, slot) {
-    if (!self.eligible(pid, slot)) return null;
-    var r = self.weeklyRank(pid);
-    return (r ? r.rank : UNRANKED) + (self.whyOut(pid, kickoff) ? UNAVAILABLE : 0);
-  };
+  var week = this.weekModel_(fa ? lp.current : null, locked, kickoff);
   /** This week's best lineup for a roster (in free agency, locked players stay where they are). */
-  var weekLineup = function (roster) {
-    if (!fa) return optimize_(self.slots, [], roster, weekCost).starters;
-    var current = lp.current.map(function (p) { return roster.indexOf(p) >= 0 ? p : EMPTY; });
-    return optimize_(self.slots, current, roster, weekCost, locked).starters;
-  };
+  var weekLineup = week.lineup;
   /** Starting spots nobody on this roster can fill this week. */
   var holesOf = function (roster) {
     return weekMatters ? self.weekHoles(roster, fa ? lp.current : [], locked, kickoff) : [];
   };
   var openSpots = function () { return limit - rosterNow().length; };
   var droppable = function (p) {
-    return mine.indexOf(p) >= 0 && rosterNow().indexOf(p) >= 0 && !blocked[p] && !usedDrops[p] && !keep[p];
+    return !noDrops && mine.indexOf(p) >= 0 && rosterNow().indexOf(p) >= 0 && !blocked[p] && !usedDrops[p] && !keep[p];
   };
   /** A bench player to give up for a one-week pickup: cheap, not needed this week, not just picked up. */
   var spare = function () {
@@ -2513,8 +2700,15 @@ League_.prototype.planWaivers = function (opts) {
     return function (add, drop, inner) {
       if (!weekMatters) return true;
       var move = [{ add: add, drop: drop }], prior = claims.concat(inner || []);
-      if (!noWorse(weekRoster(prior), weekRoster(prior.concat(move)), fills)) return false;
-      if (fa && drop && cfg.cover_byes && !keepsBackups(weekRoster(prior), weekRoster(prior.concat(move)))) return false;
+      var before = weekRoster(prior), after = weekRoster(prior.concat(move));
+      if (!noWorse(before, after, fills)) return false;
+      // This week's games come first: a rest-of-season move that weakens this week's lineup
+      // waits until the player it drops has played.
+      if (drop && (week.score(after) > week.score(before) || week.score(withMoves(mine, move)) > week.score(mine))) {
+        if (!heldForWeek.some(function (h) { return h.add === add; })) heldForWeek.push({ add: add, drop: drop });
+        return false;
+      }
+      if (fa && drop && cfg.cover_byes && !keepsBackups(before, after)) return false;
       // And on its own: the moves before it, and claims pending on Sleeper, may not go through.
       return noWorse(mine, withMoves(mine, move), false);
     };
@@ -2536,25 +2730,42 @@ League_.prototype.planWaivers = function (opts) {
     made.forEach(function (c) { claims.push(c); adding[c.add] = true; if (c.drop) usedDrops[c.drop] = true; });
     return made;
   };
+  var kdText = function (p) {
+    var pos = self.pos(p), n = kdNum(p);
+    return kdMissing[pos] ? 'no ' + pos + ' rankings loaded' : pos + n + ' rest of season';
+  };
   var label = function (p) {
     var pos = self.pos(p);
-    return name(p) + (pos === 'K' || pos === 'DEF' ? ' (' + pos + kdNum(p) + ' rest of season)' : '');
+    return name(p) + (pos === 'K' || pos === 'DEF' ? ' (' + kdText(p) + ')' : '');
   };
   var fill = function (hole) {
-    var best = null, bestRank = Infinity;
+    var best = null, bestRank = Infinity, unranked = false;
     SLOT_ELIGIBILITY[hole.slot].forEach(function (pos) {
-      self.weeklyList(pos).byId.forEach(function (r, pid) {
+      var list;
+      try {
+        list = self.weeklyList(pos);
+      } catch (e) {
+        if (e.expired || (pos !== 'K' && pos !== 'DEF')) throw e;
+        unranked = true;
+        return;
+      }
+      list.byId.forEach(function (r, pid) {
         if (self.eligible(pid, hole.slot) && !self.whyOut(pid, kickoff) && available(pid) && r.rank < bestRank) {
           best = pid; bestRank = r.rank;
         }
       });
     });
+    if (unranked && !best) {
+      notes.push('Your ' + hole.slot + " spot needs someone this week, but FantasyPros' " + hole.slot +
+                 " rankings didn't load, so pick one yourself.");
+      return;
+    }
     var kd = hole.slot === 'K' || hole.slot === 'DEF';
     var star = hole.out !== EMPTY && kd && (keep[hole.out] || kdNum(hole.out) <= 12);
     var who = hole.out === EMPTY ? 'Your ' + hole.slot + ' spot is empty this week'
       : name(hole.out) + ' (' + self.pos(hole.out) + ', ' + self.whyOut(hole.out, kickoff) +
-        (kd ? ', ' + self.pos(hole.out) + kdNum(hole.out) + ' rest of season' : '') + ") can't play this week" +
-        (star ? ' and is too good to drop' : '');
+        (kd ? ', ' + kdText(hole.out) : '') + ") can't play this week" +
+        (star ? (kd && kdMissing[self.pos(hole.out)] ? " and isn't dropped without rankings" : ' and is too good to drop') : '');
     var drop = openSpots() > 0 ? null : dropFor(hole);
     if (best && drop && !noNewHoles(false)(best, drop)) drop = null;  // he'd be needed if an earlier move fails
     if (!best || (openSpots() <= 0 && !drop)) {
@@ -2575,22 +2786,7 @@ League_.prototype.planWaivers = function (opts) {
    * same roster) fills as many spots as ``roster`` does with him, using only players whose game
    * hasn't started by the time his inactives are out (those who started earlier stay where they are).
    */
-  var coveredOn = function (x, roster, plan, after) {
-    var ko = self.kickoffOf(x, kickoff), gone = Object.assign({}, locked);
-    var without = (after || roster).filter(function (p) { return p !== x; });
-    roster.concat(without).forEach(function (p) {
-      var k = self.kickoffOf(p, kickoff);
-      if (p !== x && k && k < ko) gone[p] = true;
-    });
-    return self.noWorseWeek(roster, without, plan, gone, kickoff, false);
-  };
-  /** This week's questionable starters (in the lineup the autopilot sets) whose game is still ahead. */
-  var shaky = function (plan) {
-    return plan.filter(function (p) {
-      var ko = p !== EMPTY && self.kickoffOf(p, kickoff);
-      return ko && ko > ctx.now && !locked[p] && SKILL.indexOf(self.pos(p)) >= 0 && (self.p(p) || [])[3] === 'Questionable';
-    });
-  };
+  var coveredOn = week.covered, shaky = week.shaky;
   /** A move from ``before`` to ``after`` mustn't take away the backup a questionable starter has. */
   var keepsBackups = function (before, after) {
     var plan = weekLineup(before);
@@ -2666,12 +2862,22 @@ League_.prototype.planWaivers = function (opts) {
   if (fa && cfg.cover_byes) backups();
   // 3. Rest-of-season upgrades with whatever room is left.
   room -= upgrade(fas.filter(function (p) { return !adding[p]; }), room, false).length;
+  heldForWeek.filter(function (h) { return !adding[h.add]; }).slice(0, 1).forEach(function (h) {
+    notes.push(name(h.add) + ' would be an upgrade over ' + name(h.drop) + ', but ' + name(h.drop) +
+               ' helps your lineup this week, so that waits until after his game.');
+  });
   // 4. Kicker/defense swaps for a clearly better matchup this week.
   if (cfg.stream_k_def && (fa || !faOpen)) {
     [['K', FP.K], ['DEF', FP.DST]].forEach(function (pair) {
       var pos = pair[0];
       if (self.slots.indexOf(pos) < 0) return;
-      var wl = ctx.ranks(pair[1]);
+      var wl;
+      try {
+        wl = ctx.ranks(pair[1]);
+      } catch (e) {
+        if (e.expired) throw e;
+        return;  // no weekly rankings for this position: no stream this week
+      }
       var first = wl.firstKickoff();
       if (!fa && (!first || first <= ctx.now)) {
         notes.push(pos + " streaming waits for next week's rankings.");
@@ -2705,11 +2911,11 @@ League_.prototype.planWaivers = function (opts) {
       if (drop) usedDrops[drop] = true;
     });
   }
-  var ir = this.planReserve(), offIr = ir.back.concat(ir.stuck);
+  var ir = this.planReserve(), offIr = ir.back.concat(ir.stuck), held = offIr.length && claims.length;
   if (offIr.length) {
     if (claims.length) {
       notes.push('No ' + (fa ? 'pickups' : 'claims') + ' until ' + offIr.map(name).join(', ') + (offIr.length > 1 ? ' are' : ' is') +
-                 ' off IR: Sleeper refuses them while a healthy player sits in an IR spot.');
+                 " off IR: Sleeper refuses them while someone the league doesn't allow there sits in an IR spot.");
     }
     claims = [];
   }
@@ -2728,6 +2934,7 @@ League_.prototype.planWaivers = function (opts) {
     pending: pending.length,
     pendingClaims: pending.map(function (t) { return self.pendingClaimView_(t); }),
     pendingUnknown: pendingUnknown,
+    irBlocked: held ? offIr.map(name) : null,  // claims held until these players are off IR
     faab: this.faab,
     priority: prio ? { position: prio, teams: teams, rolling: this.rolling } : null,
     basis: (this.qbPremium ? 'rest-of-season ECR, superflex-adjusted' : 'rest-of-season ECR') +
@@ -2737,11 +2944,13 @@ League_.prototype.planWaivers = function (opts) {
       var vw = function (pid, value) {
         if (c.kind === 'upgrade') {
           var pos = self.pos(pid);  // a spare K/DEF: show his real rest-of-season rank
-          var kd = pos === 'K' || pos === 'DEF' ? ctx.ranks(pos === 'K' ? FP.ROS_K : FP.ROS_DST).get(pid) : null;
-          return self.view(pid, kd || value);
+          var kd = pos === 'K' || pos === 'DEF' ? self.rosView_(pid) : null;
+          return kd && kd.rank !== null ? kd : self.view(pid, value);
         }
-        var r = self.weeklyRank(pid), wl = self.weeklyList(self.pos(pid));
-        return self.view(pid, r || value, { why: !(self.team(pid) in wl.teamKickoff) || (r && r.bye) ? 'bye' : null });
+        var r = self.weeklyRank(pid), wl = null, team = self.team(pid);
+        try { wl = self.weeklyList(self.pos(pid)); } catch (e) { if (e.expired) throw e; }
+        var noGame = wl && !(team in wl.teamKickoff) && !(team in wl.teamTbd);
+        return self.view(pid, r || value, { why: noGame || (r && r.bye) ? 'bye' : null });
       };
       return { kind: c.kind, bid: c.bid === undefined ? null : c.bid,
                add: vw(c.add, c.addValue), drop: c.drop ? vw(c.drop, c.dropValue) : null };
@@ -2805,11 +3014,17 @@ function checkPlans_(lg, res) {
       out.push('The IR change needs more IR spots than the league has (' + R.slots + ').');
     }
   }
+  // No claims or pickups while someone the league doesn't allow in an IR spot sits there: Sleeper refuses them.
+  var ir = lg.planReserve();
+  if ((ir.back.length || ir.stuck.length) && ((res.freeAgents && (res.freeAgents.claims || []).length) ||
+                                              (res.waivers && (res.waivers.claims || []).length))) {
+    out.push('Claims or pickups are planned while a player must come off IR first.');
+  }
   // Moves: free-agent pickups happen first, then the waiver claims.
   var F = res.freeAgents && !res.freeAgents.error && !res.freeAgents.waiting ? res.freeAgents : null;
   var W = res.waivers && !res.waivers.error ? res.waivers : null;
   if (F || W) {
-    var rostered = {}, mine = {}, keep = lg.neverDrop(), hold = lg.irHold_(), recent = lg.recent_();
+    var rostered = {}, mine = {}, keep = lg.neverDrop(), hold = lg.irHold_(), trading = lg.tradeHold_(), recent = lg.recent_();
     lg.rosters.forEach(function (r) {
       (r.players || []).concat(r.reserve || [], r.taxi || []).forEach(function (p) { rostered[p] = true; });
     });
@@ -2851,7 +3066,13 @@ function checkPlans_(lg, res) {
         if (dropped[d]) out.push(name(d) + ' would be dropped twice.');
         dropped[d] = true;
         if (keep[d]) out.push(name(d) + ' is starred (kept) but would be dropped.');
-        if (hold[d]) out.push(name(d) + ' can go on IR (an IR spot is open) but would be dropped.');
+        if (hold[d]) out.push(name(d) + ' is injured and an IR spot is open, but would be dropped.');
+        if (trading[d]) out.push(name(d) + ' is in an open trade offer but would be dropped.');
+        if (lg._tradeUnknown) out.push("Couldn't read your open trade offers, so " + name(d) + " can't be dropped safely.");
+        if ((Number(lg.settings.type) === 1 || Number(lg.settings.type) === 2) && SKILL.indexOf(lg.pos(d)) >= 0 &&
+            ((lg.p(d) || [])[3] === 'IR' || !ctx.ranks(FP.ROS[lg.fmt]).get(d))) {
+          out.push(name(d) + ' would be cut, but in a keeper or dynasty league a player on IR or missing from the rankings is kept.');
+        }
         if (how === 'pickup' && locked(d)) out.push(name(d) + "'s game has started, so he can't be dropped now.");
         var kd = lg.pos(d) === 'K' || lg.pos(d) === 'DEF';
         if (c.kind !== 'upgrade' && recent[d] && !kd) out.push(name(d) + ' was just picked up and would be dropped for a one-week pickup.');
@@ -2890,10 +3111,24 @@ function checkPlans_(lg, res) {
         return roster.filter(function (p) { return !c.drop || p !== c.drop.id; }).concat([c.add.id]);
       };
       // Each move after the ones before it, and on its own (they and pending claims can fail).
+      var model = lg.weekModel_(F ? startersNow : null, lockedNow, kickoff);
       var sofar = week, opens = false;
       moves.forEach(function (c) {
         var next = apply(sofar, c);
         if (!noWorse(sofar, next) || !noWorse(week0, apply(week0, c))) opens = true;
+        // This week's lineup never gets weaker from a move made before its games.
+        if (c.drop && (model.score(next) > model.score(sofar) || model.score(apply(week0, c)) > model.score(week0))) {
+          out.push('Dropping ' + c.drop.name + ' for ' + c.add.name + " would weaken this week's lineup.");
+        }
+        // A questionable starter never loses the backup he has (free agency: this week).
+        if (F && cfg.cover_byes && c.drop) {
+          var plan = model.lineup(sofar);
+          model.shaky(plan).forEach(function (y) {
+            if (next.indexOf(y) >= 0 && model.covered(y, sofar, plan) && !model.covered(y, next, model.lineup(next))) {
+              out.push('Dropping ' + c.drop.name + ' would leave ' + name(y) + ' (questionable) without a backup.');
+            }
+          });
+        }
         sofar = next;
       });
       if (opens) out.push('These moves would leave a starting spot this week with nobody who can play.');
@@ -2952,8 +3187,10 @@ League_.prototype.applyFreeAgents = function (res, who) {
       lines.push('FAILED ' + c.add.name + ': ' + c.error);
     }
   });
-  log_({ level: f.claims.some(function (c) { return c.error; }) ? 'error' : 'change', league: this.name,
-         title: 'Free agents picked up (' + who + ')', lines: lines });
+  if (who === 'autopilot') lines = lines.filter(function (l) { return l.indexOf('FAILED ') !== 0; });
+  if (!lines.length) return;
+  log_({ level: who !== 'autopilot' && f.claims.some(function (c) { return c.error; }) ? 'error' : 'change',
+         league: this.name, title: 'Free agents picked up (' + who + ')', lines: lines });
 };
 
 League_.prototype.applyClaims = function (res, who) {
@@ -2976,8 +3213,10 @@ League_.prototype.applyClaims = function (res, who) {
       lines.push('FAILED ' + c.add.name + ': ' + c.error);
     }
   });
-  log_({ level: w.claims.some(function (c) { return c.error; }) ? 'error' : 'change', league: this.name,
-         title: 'Waiver claims submitted (' + who + ')', lines: lines });
+  if (who === 'autopilot') lines = lines.filter(function (l) { return l.indexOf('FAILED ') !== 0; });
+  if (!lines.length) return;
+  log_({ level: who !== 'autopilot' && w.claims.some(function (c) { return c.error; }) ? 'error' : 'change',
+         league: this.name, title: 'Waiver claims submitted (' + who + ')', lines: lines });
 };
 
 // ===================================================================

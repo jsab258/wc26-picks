@@ -7,6 +7,18 @@ const assert = require('node:assert/strict');
 const { makeWorld, KICK, WAIVER_RUN, SLOT_POS, fillable } = require('./world');
 
 const iso = (t) => new Date(t).toISOString().slice(5, 16);
+const OUT = ['Out', 'IR', 'PUP', 'Sus', 'Doubtful', 'NA', 'DNR', 'COV'];
+
+/** This week's best lineup for ``roster`` as one number (lower is better), from the world's weekly lists. */
+function weekScore(world, gas, roster) {
+  const P = world.players, sf = world.slots.includes('SUPER_FLEX'), rank = {};
+  Object.entries(world.lists).forEach(([slug, l]) => { if (l.week) l.players.forEach((x) => { rank[slug + ':' + x[0]] = x[4]; }); });
+  const list = (p) => { const pos = P[p][1]; return pos === 'K' ? 'k' : pos === 'DEF' ? 'dst' : sf ? 'ppr-superflex' : pos === 'QB' ? 'qb' : 'ppr-flex'; };
+  const cost = (p, slot) => (SLOT_POS[slot].includes(P[p][1])
+    ? (rank[list(p) + ':' + p] ?? gas.UNRANKED) + (OUT.includes(P[p][3]) || !world.kickoffOf[P[p][2]] ? gas.UNAVAILABLE : 0) : null);
+  const st = gas.optimize_(world.slots, [], roster, cost).starters;
+  return st.reduce((t, p, i) => t + (p === '0' ? gas.UNRANKED + gas.UNAVAILABLE : cost(p, world.slots[i])), 0);
+}
 const N = Number(process.env.FUZZ_N || 400);
 
 /** One random league at a random moment; returns what went wrong. */
@@ -122,6 +134,13 @@ function league(seed) {
         }
         R.push(a2);
       });
+      // Before the week's games, free-agent moves never weaken this week's best lineup (by the weekly
+      // ranks the app sees; out, injured or on bye counts as unavailable).
+      if (now < KICK.TNF) {
+        const active = world.me.players.filter((p) => !world.me.reserve.includes(p));
+        const b = weekScore(world, gas, active), a = weekScore(world, gas, withMoves(active, F));
+        if (a > b) out.push(`F weakens this week's lineup (${b} -> ${a}) ${moves(F)}`);
+      }
       const act = world.me.players.filter((p) => !world.me.reserve.includes(p)).length;   // IR spots take no roster spot
       const size = act + F.claims.reduce((s, c) => s + 1 - (c.drop ? 1 : 0), 0);
       if (size > world.limit && size > act) out.push(`F overfills the roster ${size}/${world.limit}`);
@@ -142,7 +161,8 @@ function league(seed) {
     gas = world.gas();
     gas.tick();
     const last = gas.getJson_('lastTick');
-    if (last && last.status === 'error') out.push('check failed: ' + last.msg);
+    const problems = last ? last.msg.split(' · ').filter((x) => !/must come off IR/.test(x)) : [];
+    if (last && last.status === 'error' && problems.some((x) => /couldn't|failed|safety|error/i.test(x))) out.push('check failed: ' + last.msg);
   } catch (e) {
     out.push('crashed: ' + e.stack);
   }

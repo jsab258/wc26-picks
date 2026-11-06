@@ -740,16 +740,25 @@ function irCard(lg) {
     const auto = S.state.mode === 'auto' && (lg.settings || {}).auto_lineup;
     const what = [];
     if (R.moves.length) what.push(`${names(R.moves)} ${one(R.moves, 'is', 'are')} on IR: an IR spot is open, so ${one(R.moves, 'he', 'they')} can stop taking a roster spot`);
-    if (R.back.length) what.push(`${names(R.back)} ${one(R.back, 'is', 'are')} healthy again but still in an IR spot, which blocks claims and pickups on Sleeper`);
+    if (R.back.length) what.push(`${names(R.back)} ${one(R.back, "isn't", "aren't")} allowed in an IR spot any more (no longer listed as IR), which blocks claims and pickups on Sleeper`);
     const label = R.moves.length && R.back.length ? 'Update IR' : R.moves.length ? 'Move to IR' : 'Move back to roster';
     const text = what.join('. ') + (auto ? '. The autopilot does this on its next check.' : what.length > 1 ? '.' : '');
     out += `<div class="card banner warn"><div>${text}</div>
       <div style="margin-top:8px"><button class="small primary" data-action="update-reserve" data-league="${esc(lg.id)}"
         ${S.busy['r' + lg.id] ? 'disabled' : ''}>${S.busy['r' + lg.id] ? '<span class="spin"></span>Saving…' : label}</button></div></div>`;
   }
-  if (R.stuck.length) {
-    out += `<div class="card banner bad">${names(R.stuck)} ${one(R.stuck, 'is', 'are')} healthy again but still in an IR spot,
-      and your roster is full: Sleeper blocks claims and pickups until you drop someone and move ${one(R.stuck, 'him', 'them')} back</div>`;
+  const waiting = R.stuckLocked || [];
+  if (R.stuck.length && waiting.length === R.stuck.length) {
+    out += `<div class="card banner warn">${names(R.stuck)} ${one(R.stuck, "isn't", "aren't")} allowed in an IR spot any more, which
+      blocks claims and pickups on Sleeper. ${one(R.stuck, 'His', 'Their')} game has started, so ${one(R.stuck, 'he', 'they')} can come off IR after
+      this week's games; the autopilot moves ${one(R.stuck, 'him', 'them')} back then if there's room</div>`;
+  } else if (R.stuck.length) {
+    const lead = R.stuck.find((v) => !waiting.some((w) => w.id === v.id)) || R.stuck[0];
+    const fix = R.makeRoom && R.makeRoom.id === lead.id ? `Drop ${esc(lead.name)} on Sleeper (he's worth the least)`
+      : R.makeRoom ? `Drop ${esc(R.makeRoom.name)} on Sleeper (your least valuable player), then move ${esc(lead.name)} back`
+      : `Drop a player on Sleeper, then move ${one(R.stuck, 'him', 'them')} back`;
+    out += `<div class="card banner bad">${names(R.stuck)} ${one(R.stuck, "isn't", "aren't")} allowed in an IR spot any more and your
+      roster is full, so Sleeper refuses every claim and pickup until that's fixed. ${fix}</div>`;
   }
   return out;
 }

@@ -602,3 +602,299 @@ test('no upgrade, fill-in or stream drops the backup a questionable starter has'
   s.players.rb2 = ['rb2', 'RB', 'NYJ', null, null];   // once rb2 is healthy, rb3 is just a cheap bench player again
   assert.ok(drops(page(s).freeAgents).includes('rb3'), JSON.stringify(claims(page(s).freeAgents)));
 });
+
+test('no move weakens this week\'s lineup: a rest-of-season upgrade that drops a starter waits until after his game', () => {
+  // wr2 is the worst player for the rest of the season but starts in the flex this week; wr_fa is far
+  // better for the rest of the season but on bye this week.
+  const spec = () => {
+    const s = base();
+    s.players.te1 = ['te1', 'TE', 'LV', null, null];
+    s.weekly['ppr-flex'] = s.weekly['ppr-flex'].map((r) => (r[0] === 'wr2' ? ['wr2', 15, 'WR8'] : r[0] === 'wr_fa' ? ['wr_fa', 60, 'WR30', null, true] : r));
+    s.ros['ros-ppr-overall'] = s.ros['ros-ppr-overall'].map((r) => (r[0] === 'wr2' ? ['wr2', 300, 'WR95'] : r[0] === 'wr_fa' ? ['wr_fa', 100, 'WR40'] : r));
+    return s;
+  };
+  const lg = page(spec());
+  assert.ok(lg.lineup.starters.includes('wr2'));
+  assert.ok(!drops(lg.freeAgents).includes('wr2'), JSON.stringify(claims(lg.freeAgents)));
+  assert.ok(claims(lg.freeAgents).some((c) => c[1] === 'wr_fa'), JSON.stringify(claims(lg.freeAgents)));   // made with another drop
+  // With nobody else to give up (a full roster without the cheap bench players), the upgrade waits and the page says why.
+  const full = spec();
+  full.mine = full.mine.filter((p) => p !== 'wr3' && p !== 'rb3');
+  full.positions = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'K', 'DEF', 'BN'];
+  const held = page(full).freeAgents;
+  assert.deepEqual(claims(held).filter((c) => c[1] === 'wr_fa'), []);
+  assert.ok(held.notes.some((n) => /wr_fa would be an upgrade over wr2, but wr2 helps your lineup this week/.test(n)), held.notes.join(' | '));
+});
+
+test('the safety check blocks a plan that weakens this week\'s lineup or takes a backup, however it was made', () => {
+  const s = base();
+  s.players.te1 = ['te1', 'TE', 'LV', null, null];
+  s.weekly['ppr-flex'] = s.weekly['ppr-flex'].map((r) => (r[0] === 'wr2' ? ['wr2', 15, 'WR8'] : r));
+  const { gas } = build(s);
+  gas.withLeague_('L', (lg) => {
+    const res = lg.evaluate({ lineup: true, freeAgents: true });
+    assert.deepEqual(plain(res.safety), []);
+    // A planner bug that drops this week's flex starter for a free agent who is worse this week:
+    res.freeAgents.claims = [{ kind: 'upgrade', add: lg.rosView_('rb_fa'), drop: lg.rosView_('wr2') }];
+    assert.ok(gas.checkPlans_(lg, res).some((x) => /Dropping wr2 for rb_fa would weaken this week's lineup/.test(x)));
+  });
+  const q = shaky();
+  q.mine.push('rb3'); q.positions.push('BN');
+  const b = build(q);
+  b.gas.withLeague_('L', (lg) => {
+    const res = lg.evaluate({ lineup: true, freeAgents: true });
+    res.freeAgents.claims = [{ kind: 'upgrade', add: lg.rosView_('wr_fa'), drop: lg.rosView_('rb3') }];
+    assert.ok(b.gas.checkPlans_(lg, res).some((x) => /Dropping rb3 would leave rb2 \(questionable\) without a backup/.test(x)),
+              JSON.stringify(b.gas.checkPlans_(lg, res)));
+  });
+});
+
+// ---- From the independent audit: each was a confirmed wrong decision -------------------------------
+
+test('audit: a player in an IR spot whose status the league doesn\'t allow there must come off it (and claims wait)', () => {
+  for (const st of ['Doubtful', 'Out', 'NA', 'DNR', 'COV', 'Sus', 'Questionable', null]) {
+    const s = base();
+    s.players.ir1 = ['ir1', 'WR', 'BUF', st, null];
+    s.reserve = ['ir1']; s.mine = s.mine.concat(['ir1']); s.positions = s.positions.concat(['IR']);
+    s.settings = { reserve_slots: 1, reserve_allow_out: 0, reserve_allow_doubtful: 0 };
+    const lg = page(s);
+    const off = lg.reserve.stuck.concat(lg.reserve.back).map((v) => v.id);
+    assert.deepEqual(off, ['ir1'], String(st));
+    assert.deepEqual(claims(lg.freeAgents), [], String(st) + ' ' + JSON.stringify(claims(lg.freeAgents)));
+  }
+  // A league that allows Out players on IR keeps him there; IR and PUP are always fine.
+  for (const [st, allow] of [['Out', { reserve_allow_out: 1 }], ['IR', {}], ['PUP', {}]]) {
+    const s = base();
+    s.players.ir1 = ['ir1', 'WR', 'BUF', st, null];
+    s.reserve = ['ir1']; s.mine = s.mine.concat(['ir1']); s.positions = s.positions.concat(['IR']);
+    s.settings = Object.assign({ reserve_slots: 1 }, allow);
+    const lg = page(s);
+    assert.deepEqual(lg.reserve.stuck.concat(lg.reserve.back), [], st);
+  }
+});
+
+test('audit: stuck in an IR spot with a full roster: the page and the log say exactly whom to drop', () => {
+  const s = base();
+  s.players.ir1 = ['ir1', 'WR', 'BUF', null, null];   // a good receiver, healthy again
+  s.ros['ros-ppr-overall'].push(['ir1', 30, 'WR10']);
+  s.reserve = ['ir1']; s.mine = s.mine.concat(['ir1']);
+  s.settings = { reserve_slots: 1 };
+  const lg = page(s);
+  assert.deepEqual(lg.reserve.stuck.map((v) => v.id), ['ir1']);
+  assert.equal(lg.reserve.makeRoom.id, 'wr3');   // the least valuable bench player
+  const { gas } = build(s);
+  auto(gas);
+  gas.tick();
+  gas.tick();
+  const logged = gas.getState().log.filter((e) => /ir1 must come off IR/.test(e.title));
+  assert.equal(logged.length, 1);
+  assert.match(logged[0].lines.join(' '), /Drop wr3 on Sleeper \(your least valuable player\), then move ir1 back/);
+});
+
+test('audit: keeper and dynasty leagues never cut a stashed player missing from the redraft lists, or one on IR', () => {
+  const run = (type) => {
+    const s = base();
+    s.players.rookie = ['rookie', 'QB', 'NYG', null, null];
+    s.players.acl = ['acl', 'WR', 'CIN', 'IR', null];
+    s.mine = ['qb1', 'rb1', 'rb2', 'wr1', 'wr2', 'te1', 'k1', 'DET', 'rookie', 'acl'];
+    s.players.te1 = ['te1', 'TE', 'LV', null, null];
+    s.settings = { type };
+    return drops(page(s).freeAgents);
+  };
+  assert.ok(run(0).includes('rookie'));   // redraft: unranked is cut-able
+  const d = run(2);
+  assert.ok(!d.includes('rookie') && !d.includes('acl'), JSON.stringify(d));
+  assert.ok(!run(1).includes('rookie'));
+});
+
+test('audit: players in an open trade offer are never dropped', () => {
+  const s = base();
+  s.trades = [{ transaction_id: 't1', type: 'trade', status: 'proposed', roster_ids: [1, 2], creator: 'me',
+                adds: { rb3: 2, wr3: 2, p1: 1 }, drops: { rb3: 1, wr3: 1, p1: 2 } }];
+  const lg = page(s);
+  assert.ok(!drops(lg.freeAgents).some((d) => d === 'rb3' || d === 'wr3'), JSON.stringify(claims(lg.freeAgents)));
+  assert.deepEqual(plain(lg.safety), []);
+});
+
+test('audit: a game with no kickoff time yet is a game, not a bye', () => {
+  const s = base();
+  s.players.te1[3] = null;
+  for (const slug of Object.keys(s.weekly)) s.weekly[slug] = s.weekly[slug].map((r) => (s.players[r[0]][2] === 'DET' ? [r[0], r[1], r[2], null] : r));
+  const lg = page(s);
+  assert.ok(!lg.lineup.benched.some((v) => v.why === 'bye'), JSON.stringify(lg.lineup.benched));
+  assert.ok(lg.lineup.starters.includes('rb1'));   // DET's RB still starts
+});
+
+test('audit: a pickup Sleeper keeps refusing is logged once, not on every 30-minute check', () => {
+  const s = base();
+  const first = build(s);
+  auto(first.gas, { max_claims: 2 });
+  let attempts = 0;
+  for (let i = 0; i < 6; i++) {
+    s.now = Date.parse('2026-10-24T18:00:00Z') + i * 30 * 60e3;
+    const b = build(s);
+    b.gas.addFreeAgent_ = () => { attempts++; throw new Error('Sleeper refused the pickup'); };
+    b.gas.tick();
+  }
+  assert.ok(attempts >= 6);   // still retried every check
+  const log = build(s).gas.getState().log;
+  assert.equal(log.filter((e) => e.title === 'A free-agent pickup failed').length, 1, JSON.stringify(log.map((e) => e.title)));
+  assert.equal(log.filter((e) => /Free agents picked up/.test(e.title)).length, 0);
+});
+
+// ---- From the second review (each was a confirmed defect in the first round of fixes) ---------------
+
+test('review: a kicker/defense ranking page that stays down is tried once per check, and the plans still work', () => {
+  for (const tuesday of [false, true]) {
+    const s = base();
+    if (tuesday) { s.now = TUESDAY; s.leg = 6; }
+    const b = build(s);
+    const orig = b.gas.fpList_, counts = {};
+    b.gas.fpList_ = (slug) => { counts[slug] = (counts[slug] || 0) + 1; if (slug === 'k' || slug === 'dst') throw new Error('FantasyPros ' + slug + ' failed (HTTP 503)'); return orig(slug); };
+    const lg = b.gas.getDashboard().leagues[0];
+    assert.ok(!lg.lineup.error && !(lg.freeAgents && lg.freeAgents.error) && !(lg.waivers && lg.waivers.error), JSON.stringify([lg.lineup.error, lg.freeAgents, lg.waivers.error]));
+    assert.ok((counts.k || 0) <= 1 && (counts.dst || 0) <= 1, JSON.stringify(counts));
+  }
+});
+
+test('review: claims held for a player who must come off IR wait (the window isn\'t used up), with or without Auto lineup', () => {
+  for (const autoLineup of [true, false]) {
+    const s = tuesday(base());
+    s.players.ir1 = ['ir1', 'WR', 'BUF', 'Doubtful', null];
+    s.ros['ros-ppr-overall'].push(['ir1', 30, 'WR10']);
+    s.reserve = ['ir1']; s.mine = s.mine.concat(['ir1']);
+    s.settings = { reserve_slots: 1 };
+    let b = build(s);
+    auto(b.gas, { auto_lineup: autoLineup });
+    b.gas.tick();
+    assert.deepEqual(b.writes, []);
+    assert.deepEqual(b.gas.getJson_('waivers_done', {}), {});
+    assert.ok(b.gas.getState().log.some((e) => e.title === 'Waiver claims are waiting'), String(autoLineup));
+    // The manager follows the advice (drops wr3, moves ir1 back); the next check sends the claims.
+    s._roster.players = s._roster.players.filter((p) => p !== 'wr3'); s._roster.reserve = [];
+    s.now += 3600e3;
+    b = build(s);
+    b.gas.tick();
+    assert.ok(b.writes.some((w) => w[0] === 'claim'), JSON.stringify(b.writes));
+  }
+});
+
+test('review: "no weaker lineup this week" also holds if an earlier claim in the plan is lost', () => {
+  const s = tuesday(base());
+  s.players.te1 = ['te1', 'TE', 'LV', null, null];
+  s.mine = s.mine.filter((p) => p !== 'wr3');   // one open roster spot
+  s.weekly['ppr-flex'] = s.weekly['ppr-flex'].map((r) => (r[0] === 'wr_fa' ? ['wr_fa', 10, 'WR5'] : r[0] === 'rb_fa' ? ['rb_fa', 65, 'RB30', null, true] : r));
+  s.ros['ros-ppr-overall'] = s.ros['ros-ppr-overall'].map((r) => (r[0] === 'rb2' ? ['rb2', 300, 'RB90'] : r[0] === 'rb3' ? ['rb3', 200, 'RB70']
+    : r[0] === 'wr_fa' ? ['wr_fa', 100, 'WR40'] : r[0] === 'rb_fa' ? ['rb_fa', 110, 'RB45'] : r));
+  const lg = page(s);
+  assert.ok(lg.lineup.starters.includes('rb2'));
+  assert.ok(!drops(lg.waivers).includes('rb2'), JSON.stringify(claims(lg.waivers)));
+  assert.deepEqual(plain(lg.safety), []);
+});
+
+test('review: if open trade offers can\'t be read, nobody is dropped and the plan says why', () => {
+  const s = base();
+  s.trades = [{ transaction_id: 't1', type: 'trade', status: 'proposed', roster_ids: [1, 2], adds: { rb3: 2, wr3: 2, p1: 1 }, drops: { rb3: 1, wr3: 1, p1: 2 } }];
+  const b = build(s);
+  b.gas.pendingTrades_ = () => { throw new Error('Sleeper API timeout'); };
+  const f = b.gas.getDashboard().leagues[0].freeAgents;
+  assert.equal(drops(f).length, 0, JSON.stringify(claims(f)));
+  assert.ok(f.notes.some((n) => /Couldn't read your open trade offers/.test(n)));
+});
+
+test('review: in a dynasty league the "make room" advice never names a stashed player', () => {
+  const s = base();
+  s.settings = { type: 2, reserve_slots: 1 };
+  s.players.ir1 = ['ir1', 'WR', 'BUF', null, null];
+  s.ros['ros-ppr-overall'].push(['ir1', 30, 'WR10']);
+  s.players.rookie = ['rookie', 'QB', 'NYG', null, null];
+  s.mine = ['qb1', 'rb1', 'rb2', 'wr1', 'wr2', 'te1', 'k1', 'DET', 'rookie', 'wr3', 'ir1'];
+  s.reserve = ['ir1'];
+  s.players.te1 = ['te1', 'TE', 'LV', null, null];
+  assert.equal(page(s).reserve.makeRoom.id, 'wr3');
+});
+
+test('review: the safety check refuses claims planned while a player must come off IR', () => {
+  const s = base();
+  s.players.ir1 = ['ir1', 'WR', 'BUF', 'Doubtful', null];
+  s.reserve = ['ir1']; s.mine = s.mine.concat(['ir1']);
+  s.settings = { reserve_slots: 1 };
+  const { gas } = build(s);
+  gas.withLeague_('L', (lg) => {
+    const res = lg.evaluate({ lineup: true, freeAgents: true });
+    res.freeAgents.claims = [{ kind: 'cover', add: lg.rosView_('te_fa'), drop: null }];
+    assert.ok(gas.checkPlans_(lg, res).some((x) => /while a player must come off IR/.test(x)));
+  });
+});
+
+// ---- From the third review --------------------------------------------------------------------------
+
+test('review 3: a one-off failure fetching the main ranking list doesn\'t sink the whole check', () => {
+  const s = base();
+  s.starters = ['qb1', 'rb1', 'wr1', 'te1', 'wr3', 'k1', 'DET'];   // wr3 in the flex: the lineup step should fix it
+  s.settings = { reserve_slots: 1 };
+  s.players.irx = ['irx', 'WR', 'BUF', 'IR', null]; s.reserve = ['irx']; s.mine = s.mine.concat(['irx']);
+  s.now = (s.kick - 3 * 3600) * 1000;
+  const b = build(s);
+  b.gas.setMode('auto');
+  const orig = b.gas.fpList_;
+  let n = 0;
+  b.gas.fpList_ = (slug) => { if (slug === 'ppr-flex' && n++ === 0) throw new Error('Address unavailable: fantasypros'); return orig(slug); };
+  b.gas.tick();
+  assert.ok(b.writes.some((w) => w[0] === 'starters'), b.gas.getJson_('lastTick').msg);
+});
+
+test('review 3: with Auto lineup off, a player who can come back from IR is reported (pickups wait for him)', () => {
+  const s = base();
+  s.settings = { reserve_slots: 1 };
+  s.players.ir1 = ['ir1', 'WR', 'BUF', null, null];
+  s.ros['ros-ppr-overall'].push(['ir1', 30, 'WR10']);
+  s.mine = s.mine.filter((p) => p !== 'wr3').concat(['ir1']); s.reserve = ['ir1'];
+  const b = build(s);
+  auto(b.gas, { auto_lineup: false });
+  b.gas.tick();
+  assert.ok(b.gas.getState().log.some((e) => e.title === 'ir1 must come off IR' && /Move back to roster/.test(e.lines.join(' '))));
+  assert.deepEqual(b.writes, []);
+});
+
+test('review 3: no "claims are waiting" when there was nothing to claim; the window is used up as usual', () => {
+  const s = tuesday(base());
+  s.players.te1 = ['te1', 'TE', 'LV', null, null];
+  for (const k of Object.keys(s.weekly)) s.weekly[k] = s.weekly[k].filter((r) => !/_fa$/.test(r[0]));
+  for (const k of Object.keys(s.ros)) s.ros[k] = s.ros[k].filter((r) => !/_fa$/.test(r[0]));
+  s.players.ir1 = ['ir1', 'WR', 'BUF', 'Doubtful', null];
+  s.ros['ros-ppr-overall'].push(['ir1', 30, 'WR10']);
+  s.mine = s.mine.concat(['ir1']); s.reserve = ['ir1'];
+  s.settings = { reserve_slots: 1 };
+  const b = build(s);
+  auto(b.gas);
+  b.gas.tick();
+  assert.ok(!b.gas.getState().log.some((e) => e.title === 'Waiver claims are waiting'));
+  assert.notDeepEqual(b.gas.getJson_('waivers_done', {}), {});
+});
+
+test('review 3: no "drop X" advice while open trade offers can\'t be read', () => {
+  const s = base();
+  s.settings = { reserve_slots: 1 };
+  s.players.ir1 = ['ir1', 'WR', 'BUF', null, null];
+  s.ros['ros-ppr-overall'].push(['ir1', 30, 'WR10']);
+  s.reserve = ['ir1']; s.mine = s.mine.concat(['ir1']);
+  const b = build(s);
+  b.gas.pendingTrades_ = () => { throw new Error('Sleeper API timeout'); };
+  const r = b.gas.getDashboard().leagues[0].reserve;
+  assert.deepEqual(r.stuck.map((v) => v.id), ['ir1']);
+  assert.equal(r.makeRoom, null);
+});
+
+test('review 3: kicker rankings that didn\'t load are said as such, never shown as a rank', () => {
+  const s = base();
+  s.players.te1 = ['te1', 'TE', 'LV', null, null];
+  s.weekly.k = s.weekly.k.map((r) => (r[0] === 'k1' ? ['k1', 10, 'K10', null, true] : r));   // k1 on bye: a fill-in is needed
+  const b = build(s);
+  const orig = b.gas.fpList_;
+  b.gas.fpList_ = (slug) => { if (slug === 'ros-k') throw new Error('FantasyPros ros-k failed (HTTP 503)'); return orig(slug); };
+  const f = b.gas.getDashboard().leagues[0].freeAgents;
+  assert.ok(!f.error, f.error);
+  const said = f.notes.filter((n) => /k1/.test(n)).join(' | ');
+  assert.ok(/no K rankings loaded/.test(said) && !/K1 rest of season/.test(said), said);
+});
