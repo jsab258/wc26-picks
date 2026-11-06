@@ -14,6 +14,11 @@ Newest first. Each `##` entry becomes the release notes shown by the app's
   - A pickup or claim Sleeper keeps refusing is written to Activity once instead of every 30 minutes.
   - A single refused request from Sleeper is retried once before you're logged out.
   - Keeper and dynasty leagues never cut a stashed player missing from the redraft rankings, or one on IR.
+- Fixed from a second review of those fixes:
+  - Claims held for a player who must come off IR now wait instead of being skipped for the week, and go out as soon as he's off IR. This is reported even with Auto lineup off.
+  - If your open trade offers can't be read, nobody is dropped until they can.
+  - A kicker or defense ranking page that stays down is tried once per check (it could slow a check past Google's time limit), and the pickup plans keep working.
+  - "No weaker lineup this week" also holds if an earlier claim in the plan is lost to another team.
 
 ## Backups and kickoff checks
 - A questionable starter whose spot nobody on your roster could take if he's ruled out now gets a backup from free agency ahead of time, in the daytime: into an open roster spot first, otherwise for an easy-to-replace bench player. Only players whose game hasn't started by the time his inactives come out count as backups. It's part of "Cover byes and injuries", shows in the free-agent plan as "backup" and is picked up by the autopilot when auto claims are on.

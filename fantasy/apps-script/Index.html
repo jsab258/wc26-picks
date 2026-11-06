@@ -753,8 +753,9 @@ function irCard(lg) {
       blocks claims and pickups on Sleeper. ${one(R.stuck, 'His', 'Their')} game has started, so ${one(R.stuck, 'he', 'they')} can come off IR after
       this week's games; the autopilot moves ${one(R.stuck, 'him', 'them')} back then if there's room</div>`;
   } else if (R.stuck.length) {
-    const fix = R.makeRoom && R.makeRoom.id === R.stuck[0].id ? `Drop ${esc(R.stuck[0].name)} on Sleeper (he's worth the least)`
-      : R.makeRoom ? `Drop ${esc(R.makeRoom.name)} on Sleeper (your least valuable player), then move ${esc(R.stuck[0].name)} back`
+    const lead = R.stuck.find((v) => !waiting.some((w) => w.id === v.id)) || R.stuck[0];
+    const fix = R.makeRoom && R.makeRoom.id === lead.id ? `Drop ${esc(lead.name)} on Sleeper (he's worth the least)`
+      : R.makeRoom ? `Drop ${esc(R.makeRoom.name)} on Sleeper (your least valuable player), then move ${esc(lead.name)} back`
       : `Drop a player on Sleeper, then move ${one(R.stuck, 'him', 'them')} back`;
     out += `<div class="card banner bad">${names(R.stuck)} ${one(R.stuck, "isn't", "aren't")} allowed in an IR spot any more and your
       roster is full, so Sleeper refuses every claim and pickup until that's fixed. ${fix}</div>`;

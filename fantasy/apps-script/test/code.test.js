@@ -1255,3 +1255,10 @@ test('audit: a single refused request (401) is retried once before the Sleeper s
   codes = [401, 401];
   assert.throws(() => gas.gql_('query x { ok }', {}, 'a.b.c'), /expired/i);
 });
+
+test('review: a ranking list saved by the previous version (another format) is never read as the new one', () => {
+  const t = Date.parse('2026-10-22T12:00:00Z');
+  const gas = loadGas({ now: () => t, fetch(url) { if (/fantasypros/.test(url)) return { code: 503, body: '' }; } });
+  gas.cachePut_('fp:qb', { week: 7, label: 'qb', players: [[1, 'A B', 'QB', 'KC', 1, 'QB1', '14', 'vs. X', null, null]] }, 1800);
+  assert.throws(() => gas.fpList_('qb'), /FantasyPros qb failed \(HTTP 503\)/);   // a clear error, not a crash on undefined
+});

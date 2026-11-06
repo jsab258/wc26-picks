@@ -741,3 +741,88 @@ test('audit: a pickup Sleeper keeps refusing is logged once, not on every 30-min
   assert.equal(log.filter((e) => e.title === 'A free-agent pickup failed').length, 1, JSON.stringify(log.map((e) => e.title)));
   assert.equal(log.filter((e) => /Free agents picked up/.test(e.title)).length, 0);
 });
+
+// ---- From the second review (each was a confirmed defect in the first round of fixes) ---------------
+
+test('review: a kicker/defense ranking page that stays down is tried once per check, and the plans still work', () => {
+  for (const tuesday of [false, true]) {
+    const s = base();
+    if (tuesday) { s.now = TUESDAY; s.leg = 6; }
+    const b = build(s);
+    const orig = b.gas.fpList_, counts = {};
+    b.gas.fpList_ = (slug) => { counts[slug] = (counts[slug] || 0) + 1; if (slug === 'k' || slug === 'dst') throw new Error('FantasyPros ' + slug + ' failed (HTTP 503)'); return orig(slug); };
+    const lg = b.gas.getDashboard().leagues[0];
+    assert.ok(!lg.lineup.error && !(lg.freeAgents && lg.freeAgents.error) && !(lg.waivers && lg.waivers.error), JSON.stringify([lg.lineup.error, lg.freeAgents, lg.waivers.error]));
+    assert.ok((counts.k || 0) <= 1 && (counts.dst || 0) <= 1, JSON.stringify(counts));
+  }
+});
+
+test('review: claims held for a player who must come off IR wait (the window isn\'t used up), with or without Auto lineup', () => {
+  for (const autoLineup of [true, false]) {
+    const s = tuesday(base());
+    s.players.ir1 = ['ir1', 'WR', 'BUF', 'Doubtful', null];
+    s.ros['ros-ppr-overall'].push(['ir1', 30, 'WR10']);
+    s.reserve = ['ir1']; s.mine = s.mine.concat(['ir1']);
+    s.settings = { reserve_slots: 1 };
+    let b = build(s);
+    auto(b.gas, { auto_lineup: autoLineup });
+    b.gas.tick();
+    assert.deepEqual(b.writes, []);
+    assert.deepEqual(b.gas.getJson_('waivers_done', {}), {});
+    assert.ok(b.gas.getState().log.some((e) => e.title === 'Waiver claims are waiting'), String(autoLineup));
+    // The manager follows the advice (drops wr3, moves ir1 back); the next check sends the claims.
+    s._roster.players = s._roster.players.filter((p) => p !== 'wr3'); s._roster.reserve = [];
+    s.now += 3600e3;
+    b = build(s);
+    b.gas.tick();
+    assert.ok(b.writes.some((w) => w[0] === 'claim'), JSON.stringify(b.writes));
+  }
+});
+
+test('review: "no weaker lineup this week" also holds if an earlier claim in the plan is lost', () => {
+  const s = tuesday(base());
+  s.players.te1 = ['te1', 'TE', 'LV', null, null];
+  s.mine = s.mine.filter((p) => p !== 'wr3');   // one open roster spot
+  s.weekly['ppr-flex'] = s.weekly['ppr-flex'].map((r) => (r[0] === 'wr_fa' ? ['wr_fa', 10, 'WR5'] : r[0] === 'rb_fa' ? ['rb_fa', 65, 'RB30', null, true] : r));
+  s.ros['ros-ppr-overall'] = s.ros['ros-ppr-overall'].map((r) => (r[0] === 'rb2' ? ['rb2', 300, 'RB90'] : r[0] === 'rb3' ? ['rb3', 200, 'RB70']
+    : r[0] === 'wr_fa' ? ['wr_fa', 100, 'WR40'] : r[0] === 'rb_fa' ? ['rb_fa', 110, 'RB45'] : r));
+  const lg = page(s);
+  assert.ok(lg.lineup.starters.includes('rb2'));
+  assert.ok(!drops(lg.waivers).includes('rb2'), JSON.stringify(claims(lg.waivers)));
+  assert.deepEqual(plain(lg.safety), []);
+});
+
+test('review: if open trade offers can\'t be read, nobody is dropped and the plan says why', () => {
+  const s = base();
+  s.trades = [{ transaction_id: 't1', type: 'trade', status: 'proposed', roster_ids: [1, 2], adds: { rb3: 2, wr3: 2, p1: 1 }, drops: { rb3: 1, wr3: 1, p1: 2 } }];
+  const b = build(s);
+  b.gas.pendingTrades_ = () => { throw new Error('Sleeper API timeout'); };
+  const f = b.gas.getDashboard().leagues[0].freeAgents;
+  assert.equal(drops(f).length, 0, JSON.stringify(claims(f)));
+  assert.ok(f.notes.some((n) => /Couldn't read your open trade offers/.test(n)));
+});
+
+test('review: in a dynasty league the "make room" advice never names a stashed player', () => {
+  const s = base();
+  s.settings = { type: 2, reserve_slots: 1 };
+  s.players.ir1 = ['ir1', 'WR', 'BUF', null, null];
+  s.ros['ros-ppr-overall'].push(['ir1', 30, 'WR10']);
+  s.players.rookie = ['rookie', 'QB', 'NYG', null, null];
+  s.mine = ['qb1', 'rb1', 'rb2', 'wr1', 'wr2', 'te1', 'k1', 'DET', 'rookie', 'wr3', 'ir1'];
+  s.reserve = ['ir1'];
+  s.players.te1 = ['te1', 'TE', 'LV', null, null];
+  assert.equal(page(s).reserve.makeRoom.id, 'wr3');
+});
+
+test('review: the safety check refuses claims planned while a player must come off IR', () => {
+  const s = base();
+  s.players.ir1 = ['ir1', 'WR', 'BUF', 'Doubtful', null];
+  s.reserve = ['ir1']; s.mine = s.mine.concat(['ir1']);
+  s.settings = { reserve_slots: 1 };
+  const { gas } = build(s);
+  gas.withLeague_('L', (lg) => {
+    const res = lg.evaluate({ lineup: true, freeAgents: true });
+    res.freeAgents.claims = [{ kind: 'cover', add: lg.rosView_('te_fa'), drop: null }];
+    assert.ok(gas.checkPlans_(lg, res).some((x) => /while a player must come off IR/.test(x)));
+  });
+});
