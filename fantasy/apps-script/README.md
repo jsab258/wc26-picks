@@ -169,9 +169,14 @@ check the same rules on thousands of simulated leagues.
 - **Sleeper's rules:** no claim for a free agent or pickup of a player on
   waivers, nobody added twice or dropped twice, no player dropped after his
   game started, roster size and IR spots respected, only players listed as IR
-  go into IR spots.
-- **Your choices:** starred players are never dropped, the weekly upgrade limit
-  holds, a player just picked up needs twice the usual gain to be dropped.
+  go into IR spots. A player in an IR spot whose status the league no longer
+  allows there (its "IR eligibility" settings) is moved back, or flagged with
+  exactly whom to drop, and no claims or pickups are sent until then, since
+  Sleeper refuses them.
+- **Your choices:** starred players and players in an open trade offer are
+  never dropped, the weekly upgrade limit holds, a player just picked up needs
+  twice the usual gain to be dropped. In keeper and dynasty leagues, a player
+  missing from the redraft rankings (a stashed rookie) or on IR is never cut.
 - **This week first:** no move leaves a starting spot this week with nobody who
   can play in it, and no move makes this week's lineup weaker while its games
   are still ahead (a rest-of-season upgrade that would waits until the player
@@ -182,10 +187,18 @@ check the same rules on thousands of simulated leagues.
 - **Lineups:** valid for the league's slots, and no player whose game started
   is moved in or out.
 
+When something outside the app fails, it degrades instead of stopping:
+FantasyPros down uses the last good rankings (up to 6 hours); a kicker or
+defense ranking page down leaves those spots as they are and still sets the
+rest; a game with no kickoff time yet still counts as a game; a single refused
+request from Sleeper is retried before the session counts as expired. A check
+that fails outright, a pickup Sleeper keeps refusing, or a player stuck in an
+IR spot is written to Activity once (not every 30 minutes) and keeps being
+retried.
+
 What it can't promise: a player who gets hurt or barely plays after his game
-starts; a late scratch that Sleeper doesn't mark before kickoff; Google's timer
-or Sleeper's servers failing (the next check retries, and Activity shows it);
-the experts' rankings being wrong.
+starts; a late scratch that Sleeper doesn't mark before kickoff; an outage
+longer than the saved copies; the experts' rankings being wrong.
 
 ## Caveats
 

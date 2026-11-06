@@ -563,18 +563,19 @@ test('"Check lineups now" in suggestions-only mode reports but never saves', () 
   assert.deepEqual(writes.map((w) => w[0]), ['starters']);
 });
 
-test('autopilot: a failed lineup check or save is reported as such, and logged once', () => {
+test('autopilot: a check that fails outright (rankings down, no saved copy) or a failed save is reported, and logged once', () => {
   const { gas, writes } = fixtureGas(NOW);
   const lists = gas.fpList_;
-  gas.fpList_ = (slug) => { if (slug === 'k') throw new Error('FantasyPros k failed (HTTP 503)'); return lists(slug); };
+  gas.fpList_ = (slug) => { if (slug === 'ppr-superflex') throw new Error('FantasyPros ppr-superflex failed (HTTP 503)'); return lists(slug); };
   gas.setMode('auto');
   gas.tick();
   gas.tick();
-  assert.equal(gas.getJson_('lastTick').status, 'error');
-  assert.match(gas.getJson_('lastTick').msg, /couldn't check the lineup/);
-  assert.equal(gas.getJson_('log').filter((e) => e.title === 'Lineup check failed').length, 1);
+  assert.deepEqual([gas.getJson_('lastTick').status, gas.getJson_('lastTick').msg], ['error', 'FantasyPros ppr-superflex failed (HTTP 503)']);
+  assert.equal(gas.getJson_('log').filter((e) => e.title === 'The background check failed').length, 1);
   assert.equal(writes.length, 0);
   gas.fpList_ = lists;
+  gas.tick();   // back to normal: a later failure is reported again
+  assert.equal(gas.getJson_('tick_crash', null), null);
   gas.setStarters_ = () => { throw new Error("Sleeper didn't accept the lineup."); };
   gas.tick();
   assert.deepEqual([gas.getJson_('lastTick').status, gas.getJson_('lastTick').msg], ['error', 'Test: saving the lineup failed']);
@@ -853,10 +854,10 @@ test('alerts: lineup changes are sent (unless turned off); a lasting problem is 
   assert.deepEqual(sent.map((a) => a[0]), ['Test: lineup updated']);
   assert.match(sent[0][1], /OUT wr_f \(Out\)/);
   const lists = gas.fpList_;
-  gas.fpList_ = (slug) => { if (slug === 'k') throw new Error('FantasyPros k failed (HTTP 503)'); return lists(slug); };
+  gas.fpList_ = (slug) => { if (slug === 'ppr-superflex') throw new Error('FantasyPros ppr-superflex failed (HTTP 503)'); return lists(slug); };
   gas.tick();
   gas.tick();
-  assert.deepEqual(sent.slice(1).map((a) => [a[0], a[2]]), [['Test: lineup check failed', 4]]);
+  assert.deepEqual(sent.slice(1).map((a) => [a[0], a[2]]), [['Background check failed', 4]]);
 });
 
 test('alerts: in suggestions-only mode they say what to change, once per suggestion; nothing is saved', () => {
@@ -1216,4 +1217,41 @@ test('checks are scheduled 75, 50 and 30 minutes before the next kickoff, only w
   gas.setMode('suggest');
   assert.equal(extra().length, 0);
   assert.equal(gas.ScriptApp.getProjectTriggers().filter((t) => t.minutes === 30).length, 1);
+});
+
+test('one ranking page down: the kicker list failing leaves kickers as they are, the rest of the lineup is still set', () => {
+  const { gas, writes } = fixtureGas(NOW);
+  const lists = gas.fpList_;
+  gas.fpList_ = (slug) => { if (slug === 'k' || slug === 'dst') throw new Error('FantasyPros ' + slug + ' failed (HTTP 503)'); return lists(slug); };
+  gas.setMode('auto');
+  gas.tick();
+  assert.equal(gas.getJson_('lastTick').status, 'ok', gas.getJson_('lastTick').msg);
+  const saved = writes.filter((w) => w[0] === 'starters');
+  assert.equal(saved.length, 1);
+  const slots = LEAGUE.roster_positions.filter((x) => x !== 'BN');
+  ['K', 'DEF'].forEach((pos) => assert.equal(saved[0][3][slots.indexOf(pos)], ROSTER.starters[slots.indexOf(pos)]));
+});
+
+test('FantasyPros down for a while: the last good copy of a ranking list is used (up to 6 hours)', () => {
+  let t = Date.parse('2026-10-22T12:00:00Z'), up = true;
+  const page = 'x<script>var ecrData = {"week":"7","players":[{"player_id":1,"player_name":"A B","player_position_id":"QB",' +
+    '"player_team_id":"KC","rank_ecr":1,"pos_rank":"QB1"}]};\nvar y={};</script>';
+  const gas = loadGas({ now: () => t, fetch(url) { if (/fantasypros/.test(url)) return up ? { body: page } : { code: 503, body: '' }; } });
+  assert.equal(gas.fpList_('qb').players.length, 1);
+  up = false;
+  t += 40 * 60e3;   // past the 30-minute refresh: FantasyPros fails, the saved copy is used
+  assert.equal(gas.fpList_('qb').players.length, 1);
+  t += 6 * 3600e3;  // and after 6 hours there's nothing left to fall back on
+  assert.throws(() => gas.fpList_('qb'), /FantasyPros qb failed \(HTTP 503\)/);
+});
+
+test('audit: a single refused request (401) is retried once before the Sleeper session counts as expired', () => {
+  let calls = 0, codes = [401, 200];
+  const gas = loadGas({ gql() { calls++; const c = codes.shift(); return c === 401 ? { __status: 401 } : { data: { ok: 1 } }; } });
+  gas.__props.setProperty('token', 'a.b.c');
+  assert.deepEqual(plain(gas.gql_('query x { ok }', {}, 'a.b.c')), { ok: 1 });
+  assert.equal(calls, 2);
+  assert.equal(gas.__props.getProperty('token'), 'a.b.c');   // still logged in
+  codes = [401, 401];
+  assert.throws(() => gas.gql_('query x { ok }', {}, 'a.b.c'), /expired/i);
 });

@@ -161,7 +161,8 @@ function league(seed) {
     gas = world.gas();
     gas.tick();
     const last = gas.getJson_('lastTick');
-    if (last && last.status === 'error') out.push('check failed: ' + last.msg);
+    const problems = last ? last.msg.split(' · ').filter((x) => !/must come off IR/.test(x)) : [];
+    if (last && last.status === 'error' && problems.some((x) => /couldn't|failed|safety|error/i.test(x))) out.push('check failed: ' + last.msg);
   } catch (e) {
     out.push('crashed: ' + e.stack);
   }

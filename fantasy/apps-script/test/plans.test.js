@@ -648,3 +648,96 @@ test('the safety check blocks a plan that weakens this week\'s lineup or takes a
               JSON.stringify(b.gas.checkPlans_(lg, res)));
   });
 });
+
+// ---- From the independent audit: each was a confirmed wrong decision -------------------------------
+
+test('audit: a player in an IR spot whose status the league doesn\'t allow there must come off it (and claims wait)', () => {
+  for (const st of ['Doubtful', 'Out', 'NA', 'DNR', 'COV', 'Sus', 'Questionable', null]) {
+    const s = base();
+    s.players.ir1 = ['ir1', 'WR', 'BUF', st, null];
+    s.reserve = ['ir1']; s.mine = s.mine.concat(['ir1']); s.positions = s.positions.concat(['IR']);
+    s.settings = { reserve_slots: 1, reserve_allow_out: 0, reserve_allow_doubtful: 0 };
+    const lg = page(s);
+    const off = lg.reserve.stuck.concat(lg.reserve.back).map((v) => v.id);
+    assert.deepEqual(off, ['ir1'], String(st));
+    assert.deepEqual(claims(lg.freeAgents), [], String(st) + ' ' + JSON.stringify(claims(lg.freeAgents)));
+  }
+  // A league that allows Out players on IR keeps him there; IR and PUP are always fine.
+  for (const [st, allow] of [['Out', { reserve_allow_out: 1 }], ['IR', {}], ['PUP', {}]]) {
+    const s = base();
+    s.players.ir1 = ['ir1', 'WR', 'BUF', st, null];
+    s.reserve = ['ir1']; s.mine = s.mine.concat(['ir1']); s.positions = s.positions.concat(['IR']);
+    s.settings = Object.assign({ reserve_slots: 1 }, allow);
+    const lg = page(s);
+    assert.deepEqual(lg.reserve.stuck.concat(lg.reserve.back), [], st);
+  }
+});
+
+test('audit: stuck in an IR spot with a full roster: the page and the log say exactly whom to drop', () => {
+  const s = base();
+  s.players.ir1 = ['ir1', 'WR', 'BUF', null, null];   // a good receiver, healthy again
+  s.ros['ros-ppr-overall'].push(['ir1', 30, 'WR10']);
+  s.reserve = ['ir1']; s.mine = s.mine.concat(['ir1']);
+  s.settings = { reserve_slots: 1 };
+  const lg = page(s);
+  assert.deepEqual(lg.reserve.stuck.map((v) => v.id), ['ir1']);
+  assert.equal(lg.reserve.makeRoom.id, 'wr3');   // the least valuable bench player
+  const { gas } = build(s);
+  auto(gas);
+  gas.tick();
+  gas.tick();
+  const logged = gas.getState().log.filter((e) => /ir1 must come off IR/.test(e.title));
+  assert.equal(logged.length, 1);
+  assert.match(logged[0].lines.join(' '), /Drop wr3 on Sleeper \(your least valuable player\), then move ir1 back/);
+});
+
+test('audit: keeper and dynasty leagues never cut a stashed player missing from the redraft lists, or one on IR', () => {
+  const run = (type) => {
+    const s = base();
+    s.players.rookie = ['rookie', 'QB', 'NYG', null, null];
+    s.players.acl = ['acl', 'WR', 'CIN', 'IR', null];
+    s.mine = ['qb1', 'rb1', 'rb2', 'wr1', 'wr2', 'te1', 'k1', 'DET', 'rookie', 'acl'];
+    s.players.te1 = ['te1', 'TE', 'LV', null, null];
+    s.settings = { type };
+    return drops(page(s).freeAgents);
+  };
+  assert.ok(run(0).includes('rookie'));   // redraft: unranked is cut-able
+  const d = run(2);
+  assert.ok(!d.includes('rookie') && !d.includes('acl'), JSON.stringify(d));
+  assert.ok(!run(1).includes('rookie'));
+});
+
+test('audit: players in an open trade offer are never dropped', () => {
+  const s = base();
+  s.trades = [{ transaction_id: 't1', type: 'trade', status: 'proposed', roster_ids: [1, 2], creator: 'me',
+                adds: { rb3: 2, wr3: 2, p1: 1 }, drops: { rb3: 1, wr3: 1, p1: 2 } }];
+  const lg = page(s);
+  assert.ok(!drops(lg.freeAgents).some((d) => d === 'rb3' || d === 'wr3'), JSON.stringify(claims(lg.freeAgents)));
+  assert.deepEqual(plain(lg.safety), []);
+});
+
+test('audit: a game with no kickoff time yet is a game, not a bye', () => {
+  const s = base();
+  s.players.te1[3] = null;
+  for (const slug of Object.keys(s.weekly)) s.weekly[slug] = s.weekly[slug].map((r) => (s.players[r[0]][2] === 'DET' ? [r[0], r[1], r[2], null] : r));
+  const lg = page(s);
+  assert.ok(!lg.lineup.benched.some((v) => v.why === 'bye'), JSON.stringify(lg.lineup.benched));
+  assert.ok(lg.lineup.starters.includes('rb1'));   // DET's RB still starts
+});
+
+test('audit: a pickup Sleeper keeps refusing is logged once, not on every 30-minute check', () => {
+  const s = base();
+  const first = build(s);
+  auto(first.gas, { max_claims: 2 });
+  let attempts = 0;
+  for (let i = 0; i < 6; i++) {
+    s.now = Date.parse('2026-10-24T18:00:00Z') + i * 30 * 60e3;
+    const b = build(s);
+    b.gas.addFreeAgent_ = () => { attempts++; throw new Error('Sleeper refused the pickup'); };
+    b.gas.tick();
+  }
+  assert.ok(attempts >= 6);   // still retried every check
+  const log = build(s).gas.getState().log;
+  assert.equal(log.filter((e) => e.title === 'A free-agent pickup failed').length, 1, JSON.stringify(log.map((e) => e.title)));
+  assert.equal(log.filter((e) => /Free agents picked up/.test(e.title)).length, 0);
+});

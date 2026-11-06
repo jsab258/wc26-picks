@@ -466,7 +466,14 @@ function tick() {
     checkUpdateDaily_();
     autopilot_({ force: false });
   } catch (e) {
-    recordTick_('error', String(e.message || e));
+    // The whole check failed (e.g. FantasyPros or Sleeper down with no saved copy): say so once.
+    var msg = String(e.message || e);
+    recordTick_('error', msg);
+    if (getJson_('tick_crash', null) !== msg) {
+      putJson_('tick_crash', msg);
+      log_({ level: 'error', title: 'The background check failed', lines: [msg, 'It tries again every 30 minutes.'] });
+      notify_('action', 'Background check failed', msg);
+    }
   } finally {
     lock.releaseLock();
   }
@@ -539,8 +546,18 @@ function autopilot_(opts) {
               }
             }
           }
-          if (rv && rv.stuck && rv.stuck.length) {
-            summary.push(name + ': ' + rv.stuck.map(function (v) { return v.name; }).join(', ') + ' must come off IR');
+          // Stuck players whose game has started can only come off IR after this week's games (then the
+          // autopilot moves them back if there's room); the others need you to make room.
+          var stuckNow = rv && rv.stuck ? rv.stuck.filter(function (v) {
+            return !rv.stuckLocked.some(function (x) { return x.id === v.id; });
+          }) : [];
+          if (stuckNow.length) {
+            var who = stuckNow.map(function (v) { return v.name; }).join(', ');
+            summary.push(name + ': ' + who + ' must come off IR');
+            fail(lg.id + ':ir-stuck', name, who + ' must come off IR', who + " isn't allowed in an IR spot any more and the " +
+                 "roster is full, so Sleeper refuses every claim and pickup. " +
+                 (rv.makeRoom ? 'Drop ' + rv.makeRoom.name + ' on Sleeper (your least valuable player), then move ' +
+                  stuckNow[0].name + ' back to the roster.' : 'Drop a player on Sleeper, then move him back to the roster.'));
           }
         }
         // After this week's waivers: fill holes with free agents (no waiver priority spent).
@@ -556,10 +573,15 @@ function autopilot_(opts) {
             if (auto) {
               lg.applyFreeAgents(fres, 'autopilot');
               var added = f.claims.filter(function (c) { return c.submitted; }).length;
-              var failedFa = f.claims.some(function (c) { return c.error; });
-              summary.push(name + ': ' + added + ' free agent' + (added === 1 ? '' : 's') + ' added');
-              notify_(failedFa ? 'action' : 'change', name + (failedFa ? ': a free-agent pickup failed' : ': free agents picked up'),
-                      claimLines_(f, false).join('\n'));
+              var badFa = f.claims.filter(function (c) { return c.error; });
+              summary.push(name + ': ' + added + ' free agent' + (added === 1 ? '' : 's') + ' added' +
+                           (badFa.length ? ', ' + badFa.length + ' failed (retrying)' : ''));
+              if (added) notify_('change', name + ': free agents picked up', claimLines_(f, false).join('\n'));
+              if (badFa.length) {
+                fail(lg.id + ':fa-failed', name, 'A free-agent pickup failed', badFa.map(function (c) {
+                  return c.add.name + ': ' + c.error;
+                }).join(' '));
+              }
               if (added) lg = new League_(ctx, data, user.user_id, cfg);  // fresh roster for the lineup below
             } else if (alerting) {
               notify_('action', name + ': free agents to add', claimLines_(f, false).join('\n') +
@@ -633,7 +655,7 @@ function autopilot_(opts) {
             summary.push(name + ': ' + sent + ' claim(s), ' + bad.length + ' failed (retrying)');
             fail(lg.id + ':claims', name, 'Some waiver claims failed', bad.map(function (c) {
               return c.add.name + ': ' + c.error;
-            }).join(' '), true);
+            }).join(' '));
             return;
           }
           done[lg.id + ':' + win] = Date.now();
@@ -652,6 +674,7 @@ function autopilot_(opts) {
     throw e;
   }
   putJson_('tick_errors', errors);
+  deleteJson_('tick_crash');
   if (!opts.force && !lineupWindow && !failed) putJson_('idle_until', Math.min(wake, ctx.now + 12 * 3600));
   var idle = !lineupWindow ? 'No games in the next 30h; nothing to do.' : 'Checked lineups: all optimal.';
   recordTick_(failed ? 'error' : 'ok', summary.length ? summary.join(' · ') : idle);
@@ -1046,9 +1069,16 @@ function sleeper_(path, fresh) {
 }
 
 function gql_(query, variables, token, retries) {
-  var r = fetch_(SLEEPER_GQL, { payload: { query: query, variables: variables },
-                                headers: token ? { Authorization: token } : {}, retries: retries });
-  if (token && r.code === 401) throw sessionExpired_();
+  var send = function () {
+    return fetch_(SLEEPER_GQL, { payload: { query: query, variables: variables },
+                                 headers: token ? { Authorization: token } : {}, retries: retries });
+  };
+  var r = send();
+  if (token && r.code === 401) {  // a refused request is retried once before the session counts as expired
+    Utilities.sleep(1500);
+    r = send();
+    if (r.code === 401) throw sessionExpired_();
+  }
   var body;
   try { body = JSON.parse(r.text); } catch (e) { throw new Error('Sleeper returned HTTP ' + r.code); }
   if (body.errors && body.errors.length) {
@@ -1346,7 +1376,8 @@ function parseEcr_(html) {
 
 /** One FantasyPros ECR list, slimmed down for caching. */
 function fpList_(slug) {
-  return cached_('fp:' + slug, 30 * 60, function () {
+  // Refreshed every 30 minutes; if FantasyPros fails, the last good copy (kept up to 6 hours) is used.
+  return cachedFresh_('fp:' + slug, 30 * 60, function () {
     var r = fetch_(FP_BASE + slug + '.php');
     if (r.code !== 200) throw new Error('FantasyPros ' + slug + ' failed (HTTP ' + r.code + ')');
     var d = parseEcr_(r.text);
@@ -1476,11 +1507,13 @@ function RankList_(data, idmap, now) {
   this.byId = new Map();
   this.unmatched = [];
   this.teamKickoff = {};
+  this.teamTbd = {};  // teams with an opponent this week but no kickoff time yet
   var self = this;
   data.players.forEach(function (row) {
     var name = row[1], pos = row[2], team = normTeam_(row[3]), bye = row[6], opp = row[7];
     var kickoff = row[8], status = row[9];
     if (kickoff) self.teamKickoff[team] = kickoff;
+    else if (opp && String(bye) !== String(self.week)) self.teamTbd[team] = true;
     var sid = idmap.sleeperId(row[0], name, pos, team);
     if (!sid) { self.unmatched.push(name); return; }
     if (self.byId.has(sid)) return;
@@ -1822,8 +1855,9 @@ League_.prototype.planReserve = function () {
       return true;  // can't tell whether his game has started: leave him where he is
     }
   };
-  // Healthy or only questionable: no league's IR takes him. Untracked players (IDP) are left alone.
-  var stale = reserve.filter(function (p) { return self.p(p) && (!status(p) || status(p) === 'Questionable'); });
+  // No longer allowed in an IR spot by this league's rules (healthy, questionable, or e.g. Doubtful in a
+  // league that only takes IR): Sleeper blocks adds and claims until he's off. Untracked players are left alone.
+  var stale = reserve.filter(function (p) { return self.p(p) && !self.irAllowed_(status(p)); });
   var value = null, num = function (p) {
     try {
       value = value || self.rosValueFn_();
@@ -1842,8 +1876,42 @@ League_.prototype.planReserve = function () {
   var b = Math.min(free.length, Math.max(0, room + m));        // the roster has room once IR players leave it
   m = Math.min(cands.length, Math.max(0, slots - reserve.length + b));  // ...and IR spots once they're back
   var back = free.slice(0, b);
-  return (this._reserve = { slots: slots, players: reserve, moves: cands.slice(0, m), back: back,
-                            stuck: stale.filter(function (p) { return back.indexOf(p) < 0; }) });
+  var stuck = stale.filter(function (p) { return back.indexOf(p) < 0; });
+  // To make room: the least valuable player who isn't starred, locked or in a trade offer (the stuck
+  // player himself if he's worth less).
+  var makeRoom = null;
+  if (stuck.length) {
+    var keep = Object.assign(this.neverDrop(), this.tradeHold_());
+    var starting = this.roster.starters || [];
+    var pool = this.activePlayers().concat(stuck[0]).filter(function (p) {   // bench QB/RB/WR/TE (or him)
+      return !keep[p] && !locked(p) && SKILL.indexOf(self.pos(p)) >= 0 && (p === stuck[0] || starting.indexOf(p) < 0);
+    });
+    makeRoom = pool.sort(function (a, b) { return num(b) - num(a); })[0] || null;
+  }
+  return (this._reserve = { slots: slots, players: reserve, moves: cands.slice(0, m), back: back, stuck: stuck,
+                            stuckLocked: stuck.filter(locked), makeRoom: makeRoom });
+};
+
+/** Whether this league's IR spots take a player with this Sleeper status (IR and PUP always). */
+League_.prototype.irAllowed_ = function (status) {
+  if (status === 'IR' || status === 'PUP') return true;
+  var key = { Out: 'reserve_allow_out', Doubtful: 'reserve_allow_doubtful', Sus: 'reserve_allow_sus',
+              NA: 'reserve_allow_na', DNR: 'reserve_allow_dnr', COV: 'reserve_allow_cov' }[status];
+  return !!(key && Number(this.settings[key]));
+};
+
+/** Players in an open trade offer (sent or received): dropping one would quietly kill the offer. */
+League_.prototype.tradeHold_ = function () {
+  if (this._tradeHold) return this._tradeHold;
+  var rid = this.roster.roster_id, out = {};
+  try {
+    pendingTrades_(this.ctx.token, this.id, rid).forEach(function (t) {
+      Object.keys(t.drops || {}).forEach(function (p) { if (Number(t.drops[p]) === rid) out[p] = true; });
+    });
+  } catch (e) {
+    if (e.expired) throw e;
+  }
+  return (this._tradeHold = out);
 };
 
 /** Injured players kept off the drop lists while an IR spot is open: they can go there instead. */
@@ -1860,7 +1928,7 @@ League_.prototype.reserveView_ = function () {
   var self = this, r = this.planReserve(), vw = function (p) { return self.rosView_(p); };
   if (!r.slots && !r.players.length) return null;
   return { slots: r.slots, players: r.players.map(vw), moves: r.moves.map(vw), back: r.back.map(vw),
-           stuck: r.stuck.map(vw) };
+           stuck: r.stuck.map(vw), stuckLocked: r.stuckLocked.map(vw), makeRoom: r.makeRoom ? vw(r.makeRoom) : null };
 };
 
 League_.prototype.applyReserve = function (res, who) {
@@ -1911,7 +1979,7 @@ League_.prototype.kickoffOf = function (pid, kickoff) {
  * until the week's first game kicks off).
  */
 League_.prototype.isFreeAgent = function (pid, clears, kickoff) {
-  var first = Math.min.apply(null, Object.keys(kickoff).map(function (t) { return kickoff[t]; }));
+  var first = Math.min.apply(null, Object.keys(kickoff).map(function (t) { return kickoff[t]; }).filter(Boolean));
   return !(clears[pid] > this.ctx.now) && (this.kickoffOf(pid, kickoff) || first) > this.ctx.now;
 };
 League_.prototype.pos = function (pid) { var p = this.p(pid); return p ? p[1] : '?'; };
@@ -2004,7 +2072,15 @@ League_.prototype.weeklyList = function (pos) {
 };
 
 League_.prototype.weeklyRank = function (pid) {
-  var l = this.weeklyList(this.pos(pid));
+  var pos = this.pos(pid), l;
+  try {
+    l = this.weeklyList(pos);
+  } catch (e) {
+    // A kicker or defense list that won't load leaves those spots as they are (no rank to compare);
+    // the main list failing still stops the lineup check.
+    if (e.expired || (pos !== 'K' && pos !== 'DEF')) throw e;
+    return null;
+  }
   return l ? l.get(pid) : null;
 };
 
@@ -2092,8 +2168,16 @@ League_.prototype.weekKickoffs = function () {
   var self = this, kickoff = {};
   this.slots.forEach(function (s) {
     (SLOT_ELIGIBILITY[s] || []).forEach(function (pos) {
-      var l = self.weeklyList(pos);
+      var l;
+      try {
+        l = self.weeklyList(pos);
+      } catch (e) {
+        if (e.expired || (pos !== 'K' && pos !== 'DEF')) throw e;
+        return;  // the other lists have the same teams' games
+      }
       Object.keys(l.teamKickoff).forEach(function (t) { kickoff[t] = l.teamKickoff[t]; });
+      // A game whose time isn't set yet (postponed, rescheduled, late-season TBD) is still a game.
+      Object.keys(l.teamTbd).forEach(function (t) { if (!(t in kickoff)) kickoff[t] = 0; });
     });
   });
   return kickoff;
@@ -2404,8 +2488,11 @@ League_.prototype.planWaivers = function (opts) {
   var recent = this.recent_();
   var ros = ctx.ranks(FP.ROS[this.fmt]);
   var value = this.rosValueFn_();
-  var keep = Object.assign(this.neverDrop(), this.irHold_());
+  var keep = Object.assign(this.neverDrop(), this.irHold_(), this.tradeHold_());
   var mine = this.activePlayers();
+  // Keeper and dynasty leagues: a player FantasyPros' redraft lists leave out (a stashed rookie) or one on
+  // IR is never cut-able, since he can't be got back.
+  var longTerm = Number(this.settings.type) === 1 || Number(this.settings.type) === 2;
   var slotCount = {};
   this.slots.forEach(function (s) { slotCount[s] = (slotCount[s] || 0) + 1; });
   // Rest-of-season K/DEF rank (1 = best); 999 when unranked.
@@ -2433,8 +2520,9 @@ League_.prototype.planWaivers = function (opts) {
     if (keep[pid]) return null;
     if (excessKD[pid]) return UNRANKED;
     if (SKILL.indexOf(self.pos(pid)) < 0) return null;
+    if (longTerm && (self.p(pid) || [])[3] === 'IR') return null;
     var v = value(pid);
-    if (v === null && !ros.get(pid) && !self.weeklyRank(pid)) return UNRANKED;  // in no ECR list: cut-able
+    if (v === null && !ros.get(pid) && !self.weeklyRank(pid)) return longTerm ? null : UNRANKED;  // in no ECR list: cut-able
     return v;
   };
   var relevant = {};
@@ -2849,7 +2937,7 @@ function checkPlans_(lg, res) {
   var F = res.freeAgents && !res.freeAgents.error && !res.freeAgents.waiting ? res.freeAgents : null;
   var W = res.waivers && !res.waivers.error ? res.waivers : null;
   if (F || W) {
-    var rostered = {}, mine = {}, keep = lg.neverDrop(), hold = lg.irHold_(), recent = lg.recent_();
+    var rostered = {}, mine = {}, keep = lg.neverDrop(), hold = lg.irHold_(), trading = lg.tradeHold_(), recent = lg.recent_();
     lg.rosters.forEach(function (r) {
       (r.players || []).concat(r.reserve || [], r.taxi || []).forEach(function (p) { rostered[p] = true; });
     });
@@ -2892,6 +2980,7 @@ function checkPlans_(lg, res) {
         dropped[d] = true;
         if (keep[d]) out.push(name(d) + ' is starred (kept) but would be dropped.');
         if (hold[d]) out.push(name(d) + ' can go on IR (an IR spot is open) but would be dropped.');
+        if (trading[d]) out.push(name(d) + ' is in an open trade offer but would be dropped.');
         if (how === 'pickup' && locked(d)) out.push(name(d) + "'s game has started, so he can't be dropped now.");
         var kd = lg.pos(d) === 'K' || lg.pos(d) === 'DEF';
         if (c.kind !== 'upgrade' && recent[d] && !kd) out.push(name(d) + ' was just picked up and would be dropped for a one-week pickup.');
@@ -3006,8 +3095,10 @@ League_.prototype.applyFreeAgents = function (res, who) {
       lines.push('FAILED ' + c.add.name + ': ' + c.error);
     }
   });
-  log_({ level: f.claims.some(function (c) { return c.error; }) ? 'error' : 'change', league: this.name,
-         title: 'Free agents picked up (' + who + ')', lines: lines });
+  if (who === 'autopilot') lines = lines.filter(function (l) { return l.indexOf('FAILED ') !== 0; });
+  if (!lines.length) return;
+  log_({ level: who !== 'autopilot' && f.claims.some(function (c) { return c.error; }) ? 'error' : 'change',
+         league: this.name, title: 'Free agents picked up (' + who + ')', lines: lines });
 };
 
 League_.prototype.applyClaims = function (res, who) {
@@ -3030,8 +3121,10 @@ League_.prototype.applyClaims = function (res, who) {
       lines.push('FAILED ' + c.add.name + ': ' + c.error);
     }
   });
-  log_({ level: w.claims.some(function (c) { return c.error; }) ? 'error' : 'change', league: this.name,
-         title: 'Waiver claims submitted (' + who + ')', lines: lines });
+  if (who === 'autopilot') lines = lines.filter(function (l) { return l.indexOf('FAILED ') !== 0; });
+  if (!lines.length) return;
+  log_({ level: who !== 'autopilot' && w.claims.some(function (c) { return c.error; }) ? 'error' : 'change',
+         league: this.name, title: 'Waiver claims submitted (' + who + ')', lines: lines });
 };
 
 // ===================================================================

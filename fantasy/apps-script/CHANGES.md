@@ -6,6 +6,14 @@ Newest first. Each `##` entry becomes the release notes shown by the app's
 ## This week first
 - No move makes this week's lineup weaker while its games are still ahead. A rest-of-season upgrade that would drop a player who helps your lineup this week now waits until after his game, and the free-agent plan says so. Before, the app could drop a starter for a better long-term player who doesn't help this week (it suggested dropping Dylan Sampson, your RB2 this week, for Deebo Samuel).
 - The safety check now also enforces this, and that a questionable starter never loses his backup, on every plan before anything is sent. The README lists everything the autopilot guarantees.
+- Fixed from an independent review of real game-week situations:
+  - IR spots follow your league's IR eligibility settings. A player who comes back from IR as Doubtful or Out (not allowed in your leagues) blocks every claim and pickup on Sleeper; the app now moves him back, or says exactly whom to drop, and holds claims until then.
+  - Players in an open trade offer are never dropped by a pickup or claim.
+  - FantasyPros down no longer stops the autopilot: it uses the last good rankings (up to 6 hours), and a kicker or defense page failing only leaves those spots as they are. A check that fails outright is now written to Activity.
+  - A game with no kickoff time yet (postponed, rescheduled) is no longer treated as a bye.
+  - A pickup or claim Sleeper keeps refusing is written to Activity once instead of every 30 minutes.
+  - A single refused request from Sleeper is retried once before you're logged out.
+  - Keeper and dynasty leagues never cut a stashed player missing from the redraft rankings, or one on IR.
 
 ## Backups and kickoff checks
 - A questionable starter whose spot nobody on your roster could take if he's ruled out now gets a backup from free agency ahead of time, in the daytime: into an open roster spot first, otherwise for an easy-to-replace bench player. Only players whose game hasn't started by the time his inactives come out count as backups. It's part of "Cover byes and injuries", shows in the free-agent plan as "backup" and is picked up by the autopilot when auto claims are on.
