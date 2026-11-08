@@ -1724,11 +1724,12 @@ function keepPositions_(slots, current, starters, openIdx) {
  * player at its own position.
  */
 function planUpgrades_(o) {
-  var counts = {};
+  var counts = {}, total = {};
   var healthy = o.healthy || function () { return true; };
   var maxDepth = o.maxDepth || {};
   (o.countFrom || o.myPlayers).forEach(function (p) {  // the roster as it will be (pending moves included)
     var pos = o.position(p);
+    total[pos] = (total[pos] || 0) + 1;
     if (healthy(p)) counts[pos] = (counts[pos] || 0) + 1;
   });
   var openSpots = o.rosterLimit - o.myPlayers.length;
@@ -1741,12 +1742,16 @@ function planUpgrades_(o) {
   var claims = [];
   for (var f = 0; f < fas.length && claims.length < o.maxClaims; f++) {
     var fa = fas[f], fv = o.value(fa), fpos = o.position(fa);
-    var deep = maxDepth[fpos] !== undefined && (counts[fpos] || 0) >= maxDepth[fpos];
+    // Past useful depth (a 4th QB): healthy players count for a healthy pickup; an injured pickup adds no
+    // usable depth, so everyone at the position counts (two injured QBs don't make room for a third).
+    var have = healthy(fa) ? (counts[fpos] || 0) : (total[fpos] || 0);
+    var deep = maxDepth[fpos] !== undefined && have >= maxDepth[fpos];
     // An open spot needs no drop, but with o.openSpotGain the pickup must still beat your weakest player.
     var weakest = cands.length ? o.dropValue(cands[0]) : Infinity;
     if (openSpots > 0 && !deep && (!o.openSpotGain || weakest - fv >= o.openSpotGain) && allow(fa, null, claims)) {
       claims.push({ add: fa, drop: null, addValue: fv, dropValue: null, kind: 'upgrade' });
       openSpots--;
+      total[fpos] = (total[fpos] || 0) + 1;
       if (healthy(fa)) counts[fpos] = (counts[fpos] || 0) + 1;
       continue;
     }
@@ -1754,15 +1759,18 @@ function planUpgrades_(o) {
       var d = cands[c], dv = o.dropValue(d);
       if (dv - fv < o.minGain) break;
       if (o.extraGain && dv - fv < o.minGain + o.extraGain(d)) continue;
-      if (!allow(fa, d, claims)) continue;
       var dpos = o.position(d);
       if (dpos !== fpos && deep) continue;
       // Healthy players left at the drop's position (an injured pickup doesn't replace a healthy one).
-      var have = counts[dpos] || 0;
-      var left = have - (healthy(d) ? 1 : 0) + (dpos === fpos && healthy(fa) ? 1 : 0);
-      if (left < have && left < (o.minimums[dpos] || 0)) continue;
+      var atPos = counts[dpos] || 0;
+      var left = atPos - (healthy(d) ? 1 : 0) + (dpos === fpos && healthy(fa) ? 1 : 0);
+      if (left < atPos && left < (o.minimums[dpos] || 0)) continue;
+      // Last, as it's the costly check (and it notes a move that only waits for this week's games).
+      if (!allow(fa, d, claims)) continue;
       claims.push({ add: fa, drop: d, addValue: fv, dropValue: dv, kind: 'upgrade' });
       cands.splice(c, 1);
+      total[dpos]--;
+      total[fpos] = (total[fpos] || 0) + 1;
       if (healthy(d)) counts[dpos]--;
       if (healthy(fa)) counts[fpos] = (counts[fpos] || 0) + 1;
       break;
@@ -3042,6 +3050,21 @@ function checkPlans_(lg, res) {
       Object.keys(t.adds || {}).forEach(function (p) { if (SKILL.indexOf(lg.pos(p)) >= 0) pendingSkill++; });
       Object.keys(t.drops || {}).forEach(function (p) { dropped[p] = true; });
     });
+    // Depth at each position as the moves go through (pending claims first): past useful depth
+    // (a 4th QB) an upgrade only replaces a player at its own position, and an injured pickup
+    // counts everyone at it, healthy or not.
+    var depth = lg.maxDepth(), all = {}, fit = {};
+    var isFit = function (p) { return cfg.bench_statuses.indexOf((lg.p(p) || [])[3]) < 0; };
+    var count = function (p, n) {
+      var pos = lg.pos(p);
+      all[pos] = (all[pos] || 0) + n;
+      if (isFit(p)) fit[pos] = (fit[pos] || 0) + n;
+    };
+    var depthRoster = Object.keys(mine).filter(function (p) { return !dropped[p]; });
+    pending.forEach(function (t) {
+      Object.keys(t.adds || {}).forEach(function (p) { if (depthRoster.indexOf(p) < 0) depthRoster.push(p); });
+    });
+    depthRoster.forEach(function (p) { count(p, 1); });
     [[F, 'pickup'], [W, 'claim']].forEach(function (pair) {
       var plan = pair[0], how = pair[1];
       if (!plan) return;
@@ -3053,6 +3076,12 @@ function checkPlans_(lg, res) {
         added[a] = true;
         size++;
         if (c.kind === 'upgrade') upgrades++;
+        var apos = lg.pos(a), have = isFit(a) ? fit[apos] || 0 : all[apos] || 0;
+        if (c.kind === 'upgrade' && depth[apos] !== undefined && have >= depth[apos] && (!d || lg.pos(d) !== apos)) {
+          out.push(name(a) + ' would be ' + apos + ' number ' + (have + 1) + ' (past useful depth) without replacing a ' + apos + '.');
+        }
+        count(a, 1);
+        if (d) count(d, -1);
         if (c.kind !== 'upgrade' && lg.whyOut(a, kickoff)) out.push(name(a) + " can't play this week but is picked up for it.");
         if (clears && how === 'pickup' && !lg.isFreeAgent(a, clears, kickoff)) out.push(name(a) + " isn't a free agent right now.");
         if (clears && how === 'claim' && lg.isFreeAgent(a, clears, kickoff)) {
