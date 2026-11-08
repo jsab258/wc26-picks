@@ -225,6 +225,7 @@ node --test fantasy/apps-script/test/*.test.js      # offline tests
 node fantasy/apps-script/dev/bundle.js              # rebuild dist/ after editing Code.gs / Index.html
 DEMO_USER_ID=<sleeper user id> node fantasy/apps-script/dev/server.js [--fake-update]
 node fantasy/apps-script/dev/canary.js              # plan the leagues from live data, writing nothing
+node fantasy/apps-script/dev/audit.js               # plan as ~2,000 owners in real leagues, flag odd moves (~15 min)
 ```
 
 To ship a change:
@@ -261,6 +262,16 @@ How bugs are kept out:
   `test/fixture.js`), checked to fail on the code before the fix:
   `GAS_CODE=<old Code.gs> node --test test/plans.test.js` runs the tests (and the
   simulation) against another copy of `Code.gs`.
+- **Real-league audit** (`dev/audit.js`): the tests above catch moves that are
+  unsafe, not moves that are bad. The audit plans as several owners in each of
+  about 340 real Sleeper leagues (found through your league-mates) and flags
+  moves the real managers would disagree with. Examples: dropping a player
+  rostered in far more leagues than the pickup, an injured upgrade, or a QB
+  added for a non-QB in a 1-QB league. Roster rates come from real managers,
+  not from the rankings the planner uses, so they're an independent check.
+  Flags are leads: look at each pattern before changing code. Run it after any
+  change to how players are valued, and every few weeks. It found the
+  backup-QB bug in 1 of 5 upgrades in 1-QB leagues.
 - **Daily canary** (`.github/workflows/sleeper-autopilot-canary.yml`): plans your
   real leagues from live data every day, writing nothing, and applies the safety
   rules. A failure (a bug, or FantasyPros or Sleeper changing something) fails
