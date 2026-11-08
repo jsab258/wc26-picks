@@ -898,3 +898,45 @@ test('review 3: kicker rankings that didn\'t load are said as such, never shown 
   const said = f.notes.filter((n) => /k1/.test(n)).join(' | ');
   assert.ok(/no K rankings loaded/.test(said) && !/K1 rest of season/.test(said), said);
 });
+
+// ---- Depth: an injured pickup doesn't get past the useful-depth cap ---------------------------------
+
+// Two TEs already (te1 Out, te2 healthy); the cap for a 1-TE league is 2. te_out is a strong TE who is Out.
+const twoTes = (outFa) => {
+  const s = base();
+  s.positions = s.positions.concat(['BN']);
+  s.players.te2 = ['te2', 'TE', 'GB', null, null];
+  s.players.te_out = ['te_out', 'TE', 'BAL', outFa ? 'Out' : null, null];
+  s.mine = s.mine.concat(['te2']);
+  s.starters = s.starters.map((p) => (p === 'te1' ? 'te2' : p));
+  s.others = [['p1', 'p2', 'p3', 'te_fa', 'wr_fa', 'rb_fa']];
+  s.weekly['ppr-flex'] = s.weekly['ppr-flex'].concat([['te2', 45, 'TE8'], ['te_out', 30, 'TE4']]);
+  s.ros['ros-ppr-overall'] = s.ros['ros-ppr-overall'].concat([['te2', 150, 'TE12'], ['te_out', 30, 'TE3']]);
+  return s;
+};
+
+test('depth: an injured free agent is not added as a 3rd TE for a player at another position', () => {
+  const s = twoTes(true);
+  s.weekly['ppr-flex'] = s.weekly['ppr-flex'].map((r) => (r[0] === 'wr3' ? ['wr3', 10, 'WR4'] : r));  // wr3 starts this week
+  const lg = page(s);
+  assert.ok(!ids(lg.freeAgents).includes('te_out'), JSON.stringify(claims(lg.freeAgents)));
+  // ...and no note promises him for after this week's games either
+  assert.ok(!lg.freeAgents.notes.some((n) => /te_out/.test(n)), JSON.stringify(lg.freeAgents.notes));
+  assert.deepEqual(plain(lg.safety), []);
+});
+
+test('depth: a healthy TE is still added while one of the two is out', () => {
+  const lg = page(twoTes(false));
+  assert.ok(ids(lg.freeAgents).includes('te_out'), JSON.stringify(claims(lg.freeAgents)));
+  assert.deepEqual(plain(lg.safety), []);
+});
+
+test('depth: the safety check refuses a pickup past useful depth that replaces another position', () => {
+  const { gas } = build(twoTes(true));
+  gas.withLeague_('L', (lg) => {
+    const res = lg.evaluate({ lineup: true, freeAgents: true });
+    res.freeAgents.claims = [{ kind: 'upgrade', add: lg.rosView_('te_out'), drop: lg.rosView_('wr3') }];
+    const out = gas.checkPlans_(lg, res);
+    assert.ok(out.some((x) => /te_out would be TE number 3 \(past useful depth\)/.test(x)), JSON.stringify(out));
+  });
+});

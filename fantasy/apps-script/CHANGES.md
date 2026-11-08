@@ -3,6 +3,11 @@
 Newest first. Each `##` entry becomes the release notes shown by the app's
 "Install update" button. Add one with every change to Code.gs / Index.html.
 
+## Sensible depth
+- An injured free agent no longer gets past the "no 4th QB" rule. In superflex, a 3rd QB is worth having, but past that an extra QB only replaces a QB. An injured QB on your roster used to not count, so the app suggested Deshaun Watson (Out, concussion) as a 4th QB while Kyler Murray is out, dropping Rico Dowdle. An injured pickup now counts everyone at his position. A healthy backup QB while one is out is still added (now: Daniel Jones for Rico Dowdle, who is on bye this week). The same applies to TEs past two.
+- The free-agent plan no longer says an upgrade "waits until after his game" when it would never happen anyway.
+- The safety check enforces the depth rule on every plan before anything is sent.
+
 ## This week first
 - No move makes this week's lineup weaker while its games are still ahead. A rest-of-season upgrade that would drop a player who helps your lineup this week now waits until after his game, and the free-agent plan says so. Before, the app could drop a starter for a better long-term player who doesn't help this week (it suggested dropping Dylan Sampson, your RB2 this week, for Deebo Samuel).
 - The safety check now also enforces this, and that a questionable starter never loses his backup, on every plan before anything is sent. The README lists everything the autopilot guarantees.

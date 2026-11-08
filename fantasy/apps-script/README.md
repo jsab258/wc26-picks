@@ -177,6 +177,10 @@ check the same rules on thousands of simulated leagues.
   never dropped, the weekly upgrade limit holds, a player just picked up needs
   twice the usual gain to be dropped. In keeper and dynasty leagues, a player
   missing from the redraft rankings (a stashed rookie) or on IR is never cut.
+- **Sensible depth:** past useful depth at QB (starting QBs + 1, e.g. a 4th QB
+  in superflex) and TE (starting TEs + 1), a pickup only replaces a player at
+  his own position. Injured players count toward that depth when the pickup is
+  injured too, so a hurt QB is never added as a 4th QB.
 - **This week first:** no move leaves a starting spot this week with nobody who
   can play in it, and no move makes this week's lineup weaker while its games
   are still ahead (a rest-of-season upgrade that would waits until the player
