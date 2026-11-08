@@ -3,6 +3,10 @@
 Newest first. Each `##` entry becomes the release notes shown by the app's
 "Install update" button. Add one with every change to Code.gs / Index.html.
 
+## Backup QBs
+- In a league that starts one QB, a QB is no longer picked up for a player at another position unless he would clearly start. A backup QB only plays in your starter's bye week (that week is covered by a one-week pickup), but he was valued at his overall ranking, as if he started. A check of about 2,000 plans in 340 real Sleeper leagues found this in 1 of 5 upgrades in 1-QB leagues. For example, Geno Smith for Alvin Kamara on a team that starts Josh Allen. Superflex leagues are unchanged.
+- The safety check enforces this on every plan.
+
 ## Sensible depth
 - An injured free agent no longer gets past the "no 4th QB" rule. In superflex, a 3rd QB is worth having, but past that an extra QB only replaces a QB. An injured QB on your roster used to not count, so the app suggested Deshaun Watson (Out, concussion) as a 4th QB while Kyler Murray is out, dropping Rico Dowdle. An injured pickup now counts everyone at his position. A healthy backup QB while one is out is still added (now: Daniel Jones for Rico Dowdle, who is on bye this week). The same applies to TEs past two.
 - The free-agent plan no longer says an upgrade "waits until after his game" when it would never happen anyway.

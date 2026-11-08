@@ -940,3 +940,47 @@ test('depth: the safety check refuses a pickup past useful depth that replaces a
     assert.ok(out.some((x) => /te_out would be TE number 3 \(past useful depth\)/.test(x)), JSON.stringify(out));
   });
 });
+
+// ---- A position whose bench never plays: a 2nd QB in a 1-QB league ---------------------------------
+
+const qbFa = (rosRank) => {
+  const s = base();
+  s.players.qb_fa = ['qb_fa', 'QB', 'NE', null, null];
+  s.others = [['p1', 'p2', 'p3', 'te_fa', 'wr_fa', 'rb_fa']];
+  s.weekly.qb = s.weekly.qb.concat([['qb_fa', 12, 'QB12']]);
+  s.ros['ros-ppr-overall'] = s.ros['ros-ppr-overall'].concat([['qb_fa', rosRank, 'QB' + Math.round(rosRank / 8)]]);
+  return s;
+};
+
+test('1-QB league: a backup QB is not picked up for a bench player, however well he ranks overall', () => {
+  // qb_fa (#100) beats wr3 (#260) on the overall list, but qb1 (#40) starts every week: he'd never play.
+  const lg = page(qbFa(100));
+  assert.ok(!ids(lg.freeAgents).includes('qb_fa'), JSON.stringify(claims(lg.freeAgents)));
+  assert.deepEqual(plain(lg.safety), []);
+});
+
+test('1-QB league: a QB who would clearly start is still picked up', () => {
+  const lg = page(qbFa(10));  // clearly better than qb1 (#40)
+  assert.ok(ids(lg.freeAgents).includes('qb_fa'), JSON.stringify(claims(lg.freeAgents)));
+  assert.deepEqual(plain(lg.safety), []);
+});
+
+test('1-QB league: the safety check refuses a backup QB picked up for another position', () => {
+  const { gas } = build(qbFa(100));
+  gas.withLeague_('L', (lg) => {
+    const res = lg.evaluate({ lineup: true, freeAgents: true });
+    res.freeAgents.claims = [{ kind: 'upgrade', add: lg.rosView_('qb_fa'), drop: lg.rosView_('wr3') }];
+    const out = gas.checkPlans_(lg, res);
+    assert.ok(out.some((x) => /qb_fa wouldn't start \(your league starts 1 QB\)/.test(x)), JSON.stringify(out));
+  });
+});
+
+test('superflex leagues have no start-only positions; a 1-QB league has QB', () => {
+  const s = base();
+  const { gas } = build(s);
+  gas.withLeague_('L', (lg) => assert.deepEqual(plain(lg.startOnly()), { QB: 1 }));
+  const t = base();
+  t.positions = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'SUPER_FLEX', 'K', 'DEF', 'BN', 'BN', 'BN'];
+  t.starters = t.starters.slice(0, 5).concat(['0'], t.starters.slice(5));
+  build(t).gas.withLeague_('L', (lg) => assert.deepEqual(plain(lg.startOnly()), {}));
+});
