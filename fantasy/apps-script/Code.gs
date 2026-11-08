@@ -1724,14 +1724,26 @@ function keepPositions_(slots, current, starters, openIdx) {
  * player at its own position.
  */
 function planUpgrades_(o) {
-  var counts = {}, total = {};
+  var counts = {}, total = {}, fit = {};
   var healthy = o.healthy || function () { return true; };
-  var maxDepth = o.maxDepth || {};
+  var maxDepth = o.maxDepth || {}, startOnly = o.startOnly || {};
   (o.countFrom || o.myPlayers).forEach(function (p) {  // the roster as it will be (pending moves included)
     var pos = o.position(p);
     total[pos] = (total[pos] || 0) + 1;
-    if (healthy(p)) counts[pos] = (counts[pos] || 0) + 1;
+    if (healthy(p)) {
+      counts[pos] = (counts[pos] || 0) + 1;
+      (fit[pos] = fit[pos] || []).push(p);
+    }
   });
+  // At a position whose bench never plays (a 2nd QB in a 1-QB league), a pickup is worth his rank
+  // only if he'd start: he must clearly beat the healthy player he'd take the spot from.
+  var benchOnly = function (fa, fv, fpos) {
+    var n = startOnly[fpos];
+    if (n === undefined) return false;
+    var vals = (fit[fpos] || []).map(o.value).filter(function (v) { return v !== null; })
+      .sort(function (a, b) { return a - b; });
+    return vals.length >= n && vals[n - 1] - fv < o.minGain;
+  };
   var openSpots = o.rosterLimit - o.myPlayers.length;
   var allow = o.allow || function () { return true; };  // e.g. "doesn't open a hole in this week's lineup"
   var cands = o.myPlayers.filter(function (p) {
@@ -1745,14 +1757,14 @@ function planUpgrades_(o) {
     // Past useful depth (a 4th QB): healthy players count for a healthy pickup; an injured pickup adds no
     // usable depth, so everyone at the position counts (two injured QBs don't make room for a third).
     var have = healthy(fa) ? (counts[fpos] || 0) : (total[fpos] || 0);
-    var deep = maxDepth[fpos] !== undefined && have >= maxDepth[fpos];
+    var deep = maxDepth[fpos] !== undefined && have >= maxDepth[fpos] || benchOnly(fa, fv, fpos);
     // An open spot needs no drop, but with o.openSpotGain the pickup must still beat your weakest player.
     var weakest = cands.length ? o.dropValue(cands[0]) : Infinity;
     if (openSpots > 0 && !deep && (!o.openSpotGain || weakest - fv >= o.openSpotGain) && allow(fa, null, claims)) {
       claims.push({ add: fa, drop: null, addValue: fv, dropValue: null, kind: 'upgrade' });
       openSpots--;
       total[fpos] = (total[fpos] || 0) + 1;
-      if (healthy(fa)) counts[fpos] = (counts[fpos] || 0) + 1;
+      if (healthy(fa)) { counts[fpos] = (counts[fpos] || 0) + 1; (fit[fpos] = fit[fpos] || []).push(fa); }
       continue;
     }
     for (var c = 0; c < cands.length; c++) {
@@ -1771,8 +1783,8 @@ function planUpgrades_(o) {
       cands.splice(c, 1);
       total[dpos]--;
       total[fpos] = (total[fpos] || 0) + 1;
-      if (healthy(d)) counts[dpos]--;
-      if (healthy(fa)) counts[fpos] = (counts[fpos] || 0) + 1;
+      if (healthy(d)) { counts[dpos]--; fit[dpos] = fit[dpos].filter(function (p) { return p !== d; }); }
+      if (healthy(fa)) { counts[fpos] = (counts[fpos] || 0) + 1; (fit[fpos] = fit[fpos] || []).push(fa); }
       break;
     }
   }
@@ -2457,6 +2469,23 @@ League_.prototype.minimums = function () {
   return mins;
 };
 
+/**
+ * Positions whose bench players never play because no flex spot takes them (QB without a
+ * SUPER_FLEX), each with its number of starting spots: {QB: 1} in a 1-QB league.
+ */
+League_.prototype.startOnly = function () {
+  var slots = this.slots, out = {};
+  SKILL.forEach(function (pos) {
+    var own = 0, flex = false;
+    slots.forEach(function (s) {
+      if ((SLOT_ELIGIBILITY[s] || []).indexOf(pos) < 0) return;
+      if (s === pos) own++; else flex = true;
+    });
+    if (own && !flex) out[pos] = own;
+  });
+  return out;
+};
+
 /** Past this many healthy players at a position, extra ones barely help (a 4th QB). */
 League_.prototype.maxDepth = function () {
   var c = {};
@@ -2727,7 +2756,7 @@ League_.prototype.planWaivers = function (opts) {
     var made = planUpgrades_({
       freeAgents: cands, myPlayers: roster, countFrom: roster, value: value, dropValue: dropValue,
       position: function (p) { return self.pos(p); }, protected: core, minimums: self.minimums(),
-      maxDepth: self.maxDepth(), healthy: healthy, extraGain: function (p) { return recent[p] ? cfg.min_gain : 0; },
+      maxDepth: self.maxDepth(), startOnly: self.startOnly(), healthy: healthy, extraGain: function (p) { return recent[p] ? cfg.min_gain : 0; },
       rosterLimit: limit, maxClaims: max, minGain: minGain, openSpotGain: guard ? minGain : 0,
       blockedDrops: Object.assign({}, blocked, usedDrops, roster.reduce(function (m, p) {
         if (mine.indexOf(p) < 0) m[p] = true;
@@ -3053,12 +3082,14 @@ function checkPlans_(lg, res) {
     // Depth at each position as the moves go through (pending claims first): past useful depth
     // (a 4th QB) an upgrade only replaces a player at its own position, and an injured pickup
     // counts everyone at it, healthy or not.
-    var depth = lg.maxDepth(), all = {}, fit = {};
+    var depth = lg.maxDepth(), startOnly = lg.startOnly(), rosValue = lg.rosValueFn_(), all = {}, fit = {}, fitAt = {};
     var isFit = function (p) { return cfg.bench_statuses.indexOf((lg.p(p) || [])[3]) < 0; };
     var count = function (p, n) {
       var pos = lg.pos(p);
       all[pos] = (all[pos] || 0) + n;
-      if (isFit(p)) fit[pos] = (fit[pos] || 0) + n;
+      if (!isFit(p)) return;
+      fit[pos] = (fit[pos] || 0) + n;
+      fitAt[pos] = (fitAt[pos] || []).filter(function (x) { return x !== p; }).concat(n > 0 ? [p] : []);
     };
     var depthRoster = Object.keys(mine).filter(function (p) { return !dropped[p]; });
     pending.forEach(function (t) {
@@ -3079,6 +3110,15 @@ function checkPlans_(lg, res) {
         var apos = lg.pos(a), have = isFit(a) ? fit[apos] || 0 : all[apos] || 0;
         if (c.kind === 'upgrade' && depth[apos] !== undefined && have >= depth[apos] && (!d || lg.pos(d) !== apos)) {
           out.push(name(a) + ' would be ' + apos + ' number ' + (have + 1) + ' (past useful depth) without replacing a ' + apos + '.');
+        }
+        // A position whose bench never plays (a 2nd QB in a 1-QB league): an upgrade there must start.
+        if (c.kind === 'upgrade' && startOnly[apos] !== undefined && (!d || lg.pos(d) !== apos) && c.add.rank) {
+          var vals = (fitAt[apos] || []).map(rosValue).filter(function (v) { return v !== null; })
+            .sort(function (x, y) { return x - y; });
+          if (vals.length >= startOnly[apos] && vals[startOnly[apos] - 1] - c.add.rank < cfg.min_gain) {
+            out.push(name(a) + " wouldn't start (your league starts " + startOnly[apos] + ' ' + apos + ') and would replace ' +
+                     (d ? 'a ' + lg.pos(d) : 'nobody') + ', so he adds nothing.');
+          }
         }
         count(a, 1);
         if (d) count(d, -1);
