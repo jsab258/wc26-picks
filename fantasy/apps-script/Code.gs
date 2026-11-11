@@ -598,7 +598,11 @@ function autopilot_(opts) {
             }
           }
         }
-        if (lineupWindow && !lg.settings.best_ball && (cfg.auto_lineup || !auto)) {
+        // A starting spot left empty (a claim or pickup dropped a starter) is filled at once instead
+        // of from 30 hours before kickoff: more chances to fix it if a later check fails.
+        var hole = !lineupWindow && auto && cfg.auto_lineup && !lg.settings.best_ball &&
+                   schedule.week === Number(ctx.state.week) && lg.lineupHole_();
+        if ((lineupWindow || hole) && !lg.settings.best_ball && (cfg.auto_lineup || !auto)) {
           var res = lg.evaluate({ lineup: true }), l = res.lineup || {};
           if (l.error) {
             summary.push(name + ": couldn't check the lineup");
@@ -2211,6 +2215,16 @@ League_.prototype.weekStarters = function (week) {
       .filter(function (m) { return m.roster_id === rid; })[0];
   } catch (e) { /* no matchups for this week (bye/offseason): fall back */ }
   return (mine && mine.starters && mine.starters.length ? mine.starters : this.roster.starters) || [];
+};
+
+/** Whether this week's lineup on Sleeper has a starting spot that's empty or holds someone no longer on the roster. */
+League_.prototype.lineupHole_ = function () {
+  var mine = {};
+  this.activePlayers().forEach(function (p) { mine[p] = true; });
+  var slots = this.slots;
+  return this.weekStarters(Number(this.ctx.state.week)).some(function (p, i) {
+    return SLOT_ELIGIBILITY[slots[i]] && (p === EMPTY || !mine[p]);
+  });
 };
 
 /** Kickoff time per NFL team this week, from the weekly lists this league uses. */

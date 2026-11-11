@@ -3,6 +3,9 @@
 Newest first. Each `##` entry becomes the release notes shown by the app's
 "Install update" button. Add one with every change to Code.gs / Index.html.
 
+## Empty spots filled at once
+- When a waiver claim or free-agent pickup drops a player who was in your starting lineup, the autopilot now fills that spot at its next check, instead of waiting until 30 hours before the next kickoff. If a later check fails, the autopilot still has a day of chances to fix the lineup before the game. Other lineup changes still wait for the 30-hour window, so they use the latest rankings and injury news.
+
 ## Backup QBs
 - In a league that starts one QB, a QB is no longer picked up for a player at another position unless he would clearly start. A backup QB only plays in your starter's bye week (that week is covered by a one-week pickup), but he was valued at his overall ranking, as if he started. A check of about 2,000 plans in 340 real Sleeper leagues found this in 1 of 5 upgrades in 1-QB leagues. For example, Geno Smith for Alvin Kamara on a team that starts Josh Allen. Superflex leagues are unchanged.
 - The safety check enforces this on every plan.
