@@ -984,3 +984,41 @@ test('superflex leagues have no start-only positions; a 1-QB league has QB', () 
   t.starters = t.starters.slice(0, 5).concat(['0'], t.starters.slice(5));
   build(t).gas.withLeague_('L', (lg) => assert.deepEqual(plain(lg.startOnly()), {}));
 });
+
+// ---- A starting spot left empty is filled at once, not only from 30 hours before kickoff ---------
+
+test('autopilot fills an empty starting spot right away, days before kickoff', () => {
+  // Thursday noon, Sunday's games are 53 hours away (outside the 30-hour lineup window), and the RB
+  // spot is empty: the starter there was dropped by a claim.
+  const s = base();
+  s.others = [['p1', 'p2', 'p3', 'te_fa', 'wr_fa', 'rb_fa', 'k_fa']];
+  s.starters = s.starters.map((p) => (p === 'rb1' ? '0' : p));
+  s.mutate = true;
+  const { gas, writes } = build(s);
+  auto(gas);
+  gas.tick();
+  const saved = writes.filter((w) => w[0] === 'starters');
+  assert.equal(saved.length, 1, JSON.stringify(writes));
+  assert.ok(!s._roster.starters.includes('0'), JSON.stringify(s._roster.starters));
+  assert.ok(s._roster.starters.includes('rb1'));
+});
+
+test('no empty spot: the lineup still waits for the 30-hour window (rankings closer to the games)', () => {
+  const s = base();
+  s.others = [['p1', 'p2', 'p3', 'te_fa', 'wr_fa', 'rb_fa', 'k_fa']];
+  s.starters = ['qb1', 'rb2', 'wr1', 'te1', 'rb1', 'k1', 'DET'];  // valid, not the best order
+  const { gas, writes } = build(s);
+  auto(gas);
+  gas.tick();
+  assert.deepEqual(writes.filter((w) => w[0] === 'starters'), []);
+});
+
+test('with Auto lineup off, an empty spot is left to you', () => {
+  const s = base();
+  s.others = [['p1', 'p2', 'p3', 'te_fa', 'wr_fa', 'rb_fa', 'k_fa']];
+  s.starters = s.starters.map((p) => (p === 'rb1' ? '0' : p));
+  const { gas, writes } = build(s);
+  auto(gas, { auto_lineup: false });
+  gas.tick();
+  assert.deepEqual(writes.filter((w) => w[0] === 'starters'), []);
+});

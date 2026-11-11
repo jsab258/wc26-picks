@@ -156,7 +156,9 @@ redeploying, no extra Google permissions.
   announced about 90 minutes before the games. Sleeper's player list (injury
   news) refreshes every 6 hours, and is never more than 15 minutes old from
   the inactives until kickoff, so a starter ruled out is swapped for his
-  backup at any hour.
+  backup at any hour. Lineups are set from 30 hours before the next kickoff,
+  except that a starting spot left empty (a waiver claim or pickup dropped the
+  player in it) is filled at the first check after the move.
 
 ## What the autopilot guarantees
 
