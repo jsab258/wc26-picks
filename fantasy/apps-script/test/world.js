@@ -149,12 +149,14 @@ function makeWorld(opts = {}) {
   const rostered = (p) => world.rosters.some((ro) => ro.players.includes(p));
   const active = (ro) => ro.players.filter((p) => !(ro.reserve || []).includes(p));   // IR spots take no roster spot
   // Sleeper refuses adds and claims while a player who no longer qualifies sits in an IR spot.
-  const irOk = () => world.me.reserve.every((p) => players[p][3] === 'IR');
+  const irOk = () => world.me.reserve.every((p) => players[p][3] === 'IR' ||
+    (players[p][3] === 'Out' && Number(world.league.settings.reserve_allow_out)));
   const started = (p) => { const k = kickoffOf[players[p][2]]; return !!k && k <= world.now; };
   const isFreeAgent = (p) => !rostered(p) && !(world.clears[p] > world.now / 1000) &&
     (kickoffOf[players[p][2]] || firstKick) > world.now;
   world.isFreeAgent = isFreeAgent;
   world.started = started;
+  world.isBye = isBye;
   const err = (msg) => { world.errors.push(new Date(world.now).toISOString().slice(5, 16) + ' ' + msg); throw new Error(msg); };
   const drop = (ro, p) => {
     ro.players = ro.players.filter((x) => x !== p);

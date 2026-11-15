@@ -3,6 +3,13 @@
 Newest first. Each `##` entry becomes the release notes shown by the app's
 "Install update" button. Add one with every change to Code.gs / Index.html.
 
+## Starters kept, spots filled
+Fixes what happened to SG Bears' TE spot in week 10. On Thursday the autopilot swapped Hunter Henry (questionable, starting) for T.J. Hockenson (also questionable) for a small long-term gain. Hockenson was ruled out, and nothing filled TE because no bench player was "cheap enough".
+- One of this week's starters is no longer dropped, before his game, for a player with an injury designation or no game this week. The move waits until after the starter's game. A healthy player who plays this week can still replace him if he's no worse this week.
+- A starting spot that would score nothing is now filled from free agency, if need be by dropping your least valuable bench player outside the top 100 rest of season. That can include a player just picked up who can't play this week himself. On Sunday morning this would have brought Henry back for Hockenson.
+- An injured player is only kept for an open IR spot if your league lets his status into IR. In both your leagues only players listed as IR are allowed, so a player who is "Out" can now be dropped.
+- The safety check enforces the starter rule on every plan.
+
 ## Empty spots filled at once
 - When a waiver claim or free-agent pickup drops a player who was in your starting lineup, the autopilot now fills that spot at its next check, instead of waiting until 30 hours before the next kickoff. If a later check fails, the autopilot still has a day of chances to fix the lineup before the game. Other lineup changes still wait for the 30-hour window, so they use the latest rankings and injury news.
 
