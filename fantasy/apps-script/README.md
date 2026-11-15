@@ -188,9 +188,14 @@ check the same rules on thousands of simulated leagues.
 - **This week first:** no move leaves a starting spot this week with nobody who
   can play in it, and no move makes this week's lineup weaker while its games
   are still ahead (a rest-of-season upgrade that would waits until the player
-  it drops has played).
+  it drops has played). One of this week's starters only goes, before his
+  game, for a player with no injury designation who plays this week. A
+  starting spot that would score nothing is filled from free agency, if need
+  be by dropping the least valuable bench player outside the top 100 rest of
+  season.
 - **Injuries:** nobody who is out, doubtful or on bye starts while a healthy
-  player could; an injured player is never dropped while an IR spot is open;
+  player could; an injured player who could go into an open IR spot (by the
+  league's IR eligibility) is never dropped;
   a questionable starter never loses the backup he has.
 - **Lineups:** valid for the league's slots, and no player whose game started
   is moved in or out.

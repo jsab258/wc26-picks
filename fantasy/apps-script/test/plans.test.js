@@ -476,12 +476,12 @@ const injured = (status) => {
 test('an injured player is never dropped while an IR spot is open; without one he can be', () => {
   assert.ok(drops(page(injured('Out')).waivers).includes('wr3'));
   const s = injured('Out');
-  s.settings = { reserve_slots: 1 };
+  s.settings = { reserve_slots: 1, reserve_allow_out: 1 };   // the league lets Out players into IR spots
   const lg = page(s);
   assert.ok(!drops(lg.waivers).includes('wr3'), JSON.stringify(claims(lg.waivers)));
   assert.deepEqual(plain(lg.reserve.moves), []);   // only Out: he isn't moved to IR by himself
   const full = injured('Out');
-  full.settings = { reserve_slots: 1 };
+  full.settings = { reserve_slots: 1, reserve_allow_out: 1 };
   full.mine.push('p_ir'); full.reserve = ['p_ir']; full.players.p_ir = ['p_ir', 'RB', 'KC', 'IR', null];
   assert.ok(drops(page(full).waivers).includes('wr3'));   // the IR spot is taken
 });
@@ -1021,4 +1021,83 @@ test('with Auto lineup off, an empty spot is left to you', () => {
   auto(gas, { auto_lineup: false });
   gas.tick();
   assert.deepEqual(writes.filter((w) => w[0] === 'starters'), []);
+});
+
+// ---- Week 10, SG Bears: Henry (questionable, starting) swapped for Hockenson (questionable), who was
+// then ruled out; nothing could fill TE, and the app gave up rather than drop a bench player. ----
+
+// te_star (the rest-of-season TE) is on bye; te1 starts this week and is questionable; te_q is a free
+// agent a little better this week and for the rest of the season.
+const teSwap = (newcomerStatus, starterStatus = 'Questionable') => {
+  const s = base();
+  s.positions = s.positions.concat(['BN']);
+  s.players.te1 = ['te1', 'TE', 'LV', starterStatus, null];
+  s.players.te_star = ['te_star', 'TE', 'CHI', null, null];
+  s.players.te_q = ['te_q', 'TE', 'MIN', newcomerStatus, null];
+  s.mine = s.mine.concat(['te_star']);
+  s.others = [['p1', 'p2', 'p3', 'te_fa', 'wr_fa', 'rb_fa', 'k_fa']];
+  s.weekly['ppr-flex'] = s.weekly['ppr-flex'].filter((r) => r[0] !== 'te1')
+    .concat([['te1', 58, 'TE10'], ['te_q', 57, 'TE9'], ['te_star', 381, 'TE40', null, true]]);
+  s.ros['ros-ppr-overall'] = s.ros['ros-ppr-overall'].filter((r) => r[0] !== 'te1')
+    .concat([['te1', 133, 'TE18'], ['te_q', 123, 'TE15'], ['te_star', 61, 'TE4']]);
+  s.cfg = { max_claims: 2, min_gain: 5 };
+  return s;
+};
+
+test('a starter is never swapped for a questionable player before his game', () => {
+  const lg = page(teSwap('Questionable'));
+  assert.ok(!ids(lg.freeAgents).includes('te_q'), JSON.stringify(claims(lg.freeAgents)));
+  assert.match(lg.freeAgents.notes.join(' '), /te_q would be an upgrade over te1, but te1 helps your lineup this week/);
+  assert.deepEqual(plain(lg.safety), []);
+});
+
+test('a starter can still go for a healthy player who is no worse this week', () => {
+  const lg = page(teSwap(null, null));
+  assert.deepEqual(claims(lg.freeAgents).filter((c) => c[1] === 'te_q'), [['upgrade', 'te_q', 'te1']]);
+  assert.deepEqual(plain(lg.safety), []);
+});
+
+test('the safety check refuses a starter swapped for a questionable player', () => {
+  const { gas } = build(teSwap('Questionable'));
+  gas.withLeague_('L', (lg) => {
+    const res = lg.evaluate({ lineup: true, freeAgents: true });
+    res.freeAgents.claims = [{ kind: 'upgrade', add: lg.rosView_('te_q'), drop: lg.rosView_('te1') }];
+    const out = gas.checkPlans_(lg, res);
+    assert.ok(out.some((x) => /te1 starts this week, but would be dropped for te_q/.test(x)), JSON.stringify(out));
+  });
+});
+
+// te1 (the only TE) is out and the roster is full; no bench player is "easy to replace" (outside the top 150).
+const teHole = (rb3, wr3) => {
+  const s = base();
+  s.others = [['p1', 'p2', 'p3', 'wr_fa', 'rb_fa', 'k_fa']];
+  s.ros['ros-ppr-overall'] = s.ros['ros-ppr-overall'].filter((r) => r[0] !== 'rb3' && r[0] !== 'wr3')
+    .concat([['rb3', rb3, 'RB40'], ['wr3', wr3, 'WR50']]);
+  return s;
+};
+
+test('a spot that would score nothing is filled by dropping the least valuable bench player outside the top 100', () => {
+  const lg = page(teHole(120, 110));
+  assert.deepEqual(claims(lg.freeAgents), [['cover', 'te_fa', 'rb3']]);   // #120: the least valuable
+  assert.match(lg.freeAgents.notes.join(' '), /drops rb3, your least valuable bench player/);
+  assert.deepEqual(plain(lg.safety), []);
+  // Everyone on the bench is in the top 100: nobody is given up, and the page says so.
+  const none = page(teHole(90, 95));
+  assert.deepEqual(claims(none.freeAgents), []);
+  assert.match(none.freeAgents.notes.join(' '), /no bench player is cheap enough/);
+});
+
+test('a just-picked-up player who is out himself can go to fill a spot that would score nothing', () => {
+  const s = teHole(95, 120);
+  s.players.wr3 = ['wr3', 'WR', 'MIN', 'Out', null];
+  s.tx = { 7: [{ status: 'complete', status_updated: s.now - 3600e3, adds: { wr3: 1 }, drops: null, roster_ids: [1] }] };
+  const lg = page(s);
+  assert.deepEqual(claims(lg.freeAgents), [['cover', 'te_fa', 'wr3']]);
+  assert.deepEqual(plain(lg.safety), []);
+});
+
+test('an Out player is not kept for an open IR spot the league does not let him into', () => {
+  const s = injured('Out');
+  s.settings = { reserve_slots: 1 };   // IR spots for players listed as IR only (reserve_allow_out off)
+  assert.ok(drops(page(s).waivers).includes('wr3'));
 });

@@ -54,6 +54,7 @@ var EMPTY = '0';
 var UNRANKED = 999;      // player missing from the ECR list
 var UNAVAILABLE = 5000;  // bye / injured: only start him if there is nobody else
 var SPARE_MIN = 150;     // ROS value past which a bench player is easy to replace
+var LAST_RESORT_MIN = 100;  // ...and past which he may go to fill a spot that would score nothing
 var LATE_FLEX = 0.4;     // flex slots: up to this many ECR spots for a later kickoff (keeps a swap open)
 var QUESTIONABLE = 2;    // a Questionable player must rank this many spots better than a healthy one
 // SUPER_FLEX without projections (Sleeper's didn't load): a QB counts this many ECR spots better,
@@ -1973,7 +1974,9 @@ League_.prototype.irHold_ = function () {
   var self = this, r = this.planReserve(), out = {};
   if (r.slots - r.players.length + r.back.length <= 0) return out;
   this.activePlayers().forEach(function (p) {
-    if (['IR', 'Out', 'PUP', 'Sus'].indexOf((self.p(p) || [])[3]) >= 0) out[p] = true;
+    var st = (self.p(p) || [])[3];
+    // Only a player who could actually go into the open IR spot (the league's IR eligibility).
+    if (['IR', 'Out', 'PUP', 'Sus'].indexOf(st) >= 0 && self.irAllowed_(st)) out[p] = true;
   });
   return out;
 };
@@ -2712,8 +2715,12 @@ League_.prototype.planWaivers = function (opts) {
   var droppable = function (p) {
     return !noDrops && mine.indexOf(p) >= 0 && rosterNow().indexOf(p) >= 0 && !blocked[p] && !usedDrops[p] && !keep[p];
   };
-  /** A bench player to give up for a one-week pickup: cheap, not needed this week, not just picked up. */
-  var spare = function () {
+  /**
+   * A bench player to give up for a one-week pickup: cheap, not needed this week, not just picked up.
+   * With ``lastResort`` (a starting spot would score nothing otherwise): anyone outside the top
+   * LAST_RESORT_MIN rest of season, including a player just picked up who can't play this week.
+   */
+  var spare = function (lastResort) {
     var need = {}, rosters = [rosterNow(), weekRoster()];
     if (weekMatters) weekLineup(weekRoster()).forEach(function (p) { need[p] = true; });
     var healthyAt = function (pos) {
@@ -2723,13 +2730,14 @@ League_.prototype.planWaivers = function (opts) {
     };
     return mine.filter(function (p) {
       var v = dropValue(p), pos = self.pos(p);
-      if (!droppable(p) || core[p] || need[p] || starting[p] || v === null || v < SPARE_MIN) return false;
-      if (recent[p] && !excessKD[p]) return false;
+      if (!droppable(p) || core[p] || need[p] || starting[p] || v === null) return false;
+      if (v < (lastResort ? LAST_RESORT_MIN : SPARE_MIN)) return false;
+      if (recent[p] && !excessKD[p] && !(lastResort && self.whyOut(p, kickoff))) return false;
       return !healthy(p) || !(pos in hardMin) || healthyAt(pos) - 1 >= hardMin[pos];
     }).sort(function (a, b) { return dropValue(b) - dropValue(a); })[0] || null;
   };
   /** Who goes for a pickup that fills ``hole``: a kicker/defense swaps with one of yours if possible. */
-  var dropFor = function (hole) {
+  var dropFor = function (hole, lastResort) {
     if (hole.slot === 'K' || hole.slot === 'DEF') {
       var kds = mine.filter(function (p) { return self.pos(p) === hole.slot && droppable(p) && kdNum(p) > 12; });
       kds.sort(function (a, b) {
@@ -2737,14 +2745,26 @@ League_.prototype.planWaivers = function (opts) {
       });
       if (kds.length) return kds[0];
     }
-    return spare();
+    return spare(lastResort);
   };
   /**
    * A move may not leave a starting spot this week that nobody can play in, whether or not the
    * moves before it go through (a rival can win a claim; a pickup can fail). With ``fills`` it
    * must also fill one of the empty spots.
    */
-  var noNewHoles = function (fills) {
+  /**
+   * Whether ``add`` may take the place of ``drop`` before this week's games: one of this week's
+   * starters whose game is still ahead only goes for a player with no injury designation who plays
+   * this week (the score check makes sure he's no worse). Otherwise the move waits until after his game.
+   */
+  var replacesStarter = function (add, drop, roster) {
+    if (week.lineup(roster).indexOf(drop) < 0 || locked[drop] || self.whyOut(drop, kickoff)) return true;
+    var ko = self.kickoffOf(drop, kickoff);
+    if (ko && ko <= ctx.now) return true;
+    var a = self.weeklyRank(add);
+    return !(self.p(add) || [])[3] && !!a && !a.bye && !self.whyOut(add, kickoff);
+  };
+  var noNewHoles = function (fills, ros) {
     var noWorse = function (before, after, better) {
       return self.noWorseWeek(before, after, fa ? lp.current : [], locked, kickoff, better);
     };
@@ -2755,7 +2775,8 @@ League_.prototype.planWaivers = function (opts) {
       if (!noWorse(before, after, fills)) return false;
       // This week's games come first: a rest-of-season move that weakens this week's lineup
       // waits until the player it drops has played.
-      if (drop && (week.score(after) > week.score(before) || week.score(withMoves(mine, move)) > week.score(mine))) {
+      if (drop && (week.score(after) > week.score(before) || week.score(withMoves(mine, move)) > week.score(mine) ||
+                   (ros && !replacesStarter(add, drop, before)))) {
         if (!heldForWeek.some(function (h) { return h.add === add; })) heldForWeek.push({ add: add, drop: drop });
         return false;
       }
@@ -2776,7 +2797,7 @@ League_.prototype.planWaivers = function (opts) {
         if (mine.indexOf(p) < 0) m[p] = true;
         return m;
       }, {})),
-      allow: noNewHoles(mustFill),
+      allow: noNewHoles(mustFill, true),
     });
     made.forEach(function (c) { claims.push(c); adding[c.add] = true; if (c.drop) usedDrops[c.drop] = true; });
     return made;
@@ -2817,8 +2838,13 @@ League_.prototype.planWaivers = function (opts) {
       : name(hole.out) + ' (' + self.pos(hole.out) + ', ' + self.whyOut(hole.out, kickoff) +
         (kd ? ', ' + kdText(hole.out) : '') + ") can't play this week" +
         (star ? (kd && kdMissing[self.pos(hole.out)] ? " and isn't dropped without rankings" : ' and is too good to drop') : '');
-    var drop = openSpots() > 0 ? null : dropFor(hole);
+    var drop = openSpots() > 0 ? null : dropFor(hole), lastResort = false;
     if (best && drop && !noNewHoles(false)(best, drop)) drop = null;  // he'd be needed if an earlier move fails
+    if (best && !drop && openSpots() <= 0) {  // the spot would score nothing: a less cheap player may go
+      drop = dropFor(hole, true);
+      lastResort = !!drop;
+      if (drop && !noNewHoles(false)(best, drop)) { drop = null; lastResort = false; }
+    }
     if (!best || (openSpots() <= 0 && !drop)) {
       notes.push(who + (star ? ', but ' : ' and nobody on your bench can fill in, but ') +
                  (best ? 'no bench player is cheap enough to give up' : 'no free agent is available') +
@@ -2830,7 +2856,9 @@ League_.prototype.planWaivers = function (opts) {
     if (drop) usedDrops[drop] = true;
     notes.push(who + (star ? ', so this ' : ' and nobody on your bench can fill in, so this ') +
                (fa ? 'picks up ' : 'adds ') + name(best) + (fa ? ' as a free agent' : ' for the week') +
-               (drop ? ' and drops ' + name(drop) + (kd && self.pos(drop) === hole.slot ? '.' : ', who is easy to replace.') : '.'));
+               (drop ? ' and drops ' + name(drop) + (kd && self.pos(drop) === hole.slot ? '.' :
+                lastResort ? ', your least valuable bench player, since the spot would score nothing otherwise.' :
+                ', who is easy to replace.') : '.'));
   };
   /**
    * Whether ``x`` (a questionable starter) has a backup: if he's ruled out, ``after`` (default: the
@@ -3158,7 +3186,9 @@ function checkPlans_(lg, res) {
         }
         if (how === 'pickup' && locked(d)) out.push(name(d) + "'s game has started, so he can't be dropped now.");
         var kd = lg.pos(d) === 'K' || lg.pos(d) === 'DEF';
-        if (c.kind !== 'upgrade' && recent[d] && !kd) out.push(name(d) + ' was just picked up and would be dropped for a one-week pickup.');
+        if (c.kind !== 'upgrade' && recent[d] && !kd && !lg.whyOut(d, kickoff)) {
+          out.push(name(d) + ' was just picked up and would be dropped for a one-week pickup.');
+        }
         if (c.kind === 'upgrade' && !kd && c.add.rank && c.drop.rank) {
           var need = cfg.min_gain * (recent[d] ? 2 : 1);
           if (c.drop.rank - c.add.rank < need) {
@@ -3202,6 +3232,16 @@ function checkPlans_(lg, res) {
         // This week's lineup never gets weaker from a move made before its games.
         if (c.drop && (model.score(next) > model.score(sofar) || model.score(apply(week0, c)) > model.score(week0))) {
           out.push('Dropping ' + c.drop.name + ' for ' + c.add.name + " would weaken this week's lineup.");
+        }
+        // A starter whose game is ahead only goes for a player with no injury designation who plays this week.
+        var dk = c.drop && lg.kickoffOf(c.drop.id, kickoff);
+        if (c.kind === 'upgrade' && c.drop && model.lineup(sofar).indexOf(c.drop.id) >= 0 && !lockedNow[c.drop.id] &&
+            !lg.whyOut(c.drop.id, kickoff) && !(dk && dk <= ctx.now)) {
+          var ar = lg.weeklyRank(c.add.id);
+          if ((lg.p(c.add.id) || [])[3] || !ar || ar.bye || lg.whyOut(c.add.id, kickoff)) {
+            out.push(c.drop.name + ' starts this week, but would be dropped for ' + c.add.name +
+                     ', who has an injury designation or no game this week.');
+          }
         }
         // A questionable starter never loses the backup he has (free agency: this week).
         if (F && cfg.cover_byes && c.drop) {

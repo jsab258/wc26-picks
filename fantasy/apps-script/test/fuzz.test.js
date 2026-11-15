@@ -38,6 +38,7 @@ function league(seed) {
   if (r() < 0.25) world.league.settings.waiver_type = 2;  // FAAB
   const irSlots = r() < 0.35 ? 1 + Math.floor(r() * 2) : 0;
   if (irSlots) world.league.settings.reserve_slots = irSlots;
+  if (irSlots && r() < 0.5) world.league.settings.reserve_allow_out = 1;  // Out players allowed in IR spots
   Object.keys(world.players).forEach((p) => {
     if (!['K', 'DEF'].includes(world.players[p][1]) && r() < 0.03) world.players[p][3] = 'IR';
   });
@@ -108,10 +109,15 @@ function league(seed) {
         dropped[d] = how;
         if (stars.includes(d)) out.push(`${how} drops starred ${d}`);
         const irOpen = irSlots - world.me.reserve.length > 0;
-        if (irOpen && ['IR', 'Out', 'PUP', 'Sus'].includes(P[d][3])) out.push(`${how} drops injured ${d} while an IR spot is open`);
+        const st = P[d][3], irAllowed = st === 'IR' || st === 'PUP' || (st === 'Out' && world.league.settings.reserve_allow_out);
+        if (irOpen && irAllowed) out.push(`${how} drops injured ${d} while an IR spot is open`);
         if (how === 'F' && world.started(d)) out.push(`F drops ${d}, whose game started`);
         const kd = P[d][1] === 'K' || P[d][1] === 'DEF';
-        if (c.kind !== 'upgrade' && recent.includes(d) && !kd) out.push(`${how} ${c.kind} drops fresh pickup ${d}`);
+        // A fresh pickup only goes for a one-week fill-in if he can't play this week himself.
+        const cantPlay = ['Out', 'IR', 'Doubtful', 'Sus', 'PUP'].includes(P[d][3]) || world.isBye(P[d][2]);
+        if (c.kind !== 'upgrade' && recent.includes(d) && !kd && !(c.kind === 'cover' && cantPlay)) {
+          out.push(`${how} ${c.kind} drops fresh pickup ${d}`);
+        }
       });
     });
     const withMoves = (roster, plan) => {
