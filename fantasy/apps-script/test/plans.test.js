@@ -688,7 +688,7 @@ test('audit: stuck in an IR spot with a full roster: the page and the log say ex
   gas.tick();
   const logged = gas.getState().log.filter((e) => /ir1 must come off IR/.test(e.title));
   assert.equal(logged.length, 1);
-  assert.match(logged[0].lines.join(' '), /Drop wr3 on Sleeper \(your least valuable player\), then move ir1 back/);
+  assert.match(logged[0].lines.join(' '), /Tap "Make room" in the app \(it drops wr3, your least valuable player, and moves ir1 back\)/);
 });
 
 test('audit: keeper and dynasty leagues never cut a stashed player missing from the redraft lists, or one on IR', () => {
@@ -1211,4 +1211,105 @@ test('waiting for a late waiver run: the autopilot looks again in 30 minutes ins
   auto(gas);
   gas.tick();
   assert.ok(gas.getJson_('idle_until', 0) <= s.now / 1000 + 1800, String(gas.getJson_('idle_until', 0) - s.now / 1000));
+});
+
+// ---- The five follow-ups: make room, safe mode, superflex QB, a second claims check, automatic updates ----
+
+const stuckIr = (dropValue, rb3Value = 230) => {
+  const s = base();
+  s.players.ir1 = ['ir1', 'WR', 'BUF', null, null];   // healthy again, roster full
+  s.ros['ros-ppr-overall'] = s.ros['ros-ppr-overall'].filter((r) => r[0] !== 'wr3' && r[0] !== 'rb3')
+    .concat([['ir1', 30, 'WR10'], ['wr3', dropValue, 'WR90'], ['rb3', rb3Value, 'RB75']]);
+  s.reserve = ['ir1']; s.mine = s.mine.concat(['ir1']);
+  s.settings = { reserve_slots: 1 };
+  s.mutate = true;
+  return s;
+};
+
+test('make room: the button drops the least valuable player and moves the IR player back', () => {
+  const s = stuckIr(260);
+  const { gas, writes } = build(s);
+  const r = gas.makeRoom('L', 'wr3');
+  assert.deepEqual(writes, [['drop', 'wr3'], ['reserve', []]]);
+  assert.deepEqual(plain(r.lines), ['Dropped wr3', 'Moved ir1 back to the roster']);
+  assert.ok(gas.getJson_('drop_verified', 0));
+  assert.throws(() => gas.makeRoom('L', 'rb3'), /roster changed/);   // only the player the page named
+});
+
+test('make room: the autopilot does it by itself only after Sleeper has accepted a drop, and only below the top 100', () => {
+  let s = stuckIr(260);
+  let b = build(s);
+  auto(b.gas);
+  b.gas.tick();
+  assert.ok(!b.writes.some((w) => w[0] === 'drop'), 'never before one drop went through');
+  s = stuckIr(260);
+  b = build(s);
+  auto(b.gas);
+  b.gas.putJson_('drop_verified', Date.now());
+  b.gas.tick();
+  assert.deepEqual(b.writes.slice(0, 2), [['drop', 'wr3'], ['reserve', []]]);
+  s = stuckIr(60, 50);   // the least valuable is still a top-100 player: that's your call
+  b = build(s);
+  auto(b.gas);
+  b.gas.putJson_('drop_verified', Date.now());
+  b.gas.tick();
+  assert.ok(!b.writes.some((w) => w[0] === 'drop'), JSON.stringify(b.writes));
+  assert.match(b.gas.__alerts.join(' '), /ir1 must come off IR/);
+});
+
+test('safe mode: FantasyPros down, Sleeper still benches a starter who is out', () => {
+  const s = base();
+  s.players.wr1 = ['wr1', 'WR', 'MIA', 'Out', null];
+  s.proj = { wr2: 12, wr3: 5, rb3: 6 };
+  s.games = Object.fromEntries(['KC', 'DET', 'NYJ', 'MIA', 'SEA', 'LV', 'CHI', 'MIN'].map((t) => [t, { status: 'pre', left: 1 }]));
+  const { gas, writes } = build(s);
+  auto(gas);
+  gas.fpList_ = (slug) => { throw new Error('FantasyPros ' + slug + ' failed (HTTP 503)'); };
+  gas.tick();
+  const saved = writes.filter((w) => w[0] === 'starters');
+  assert.equal(saved.length, 1, JSON.stringify(writes));
+  assert.equal(saved[0][1][2], 'wr2');   // the WR spot
+  assert.ok(!writes.some((w) => w[0] !== 'starters'));   // nothing else changes
+  assert.match(gas.getJson_('lastTick').msg, /^Safe mode/);
+});
+
+const sfLeague = (qbFaRank) => {
+  const s = base();
+  s.positions = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'SUPER_FLEX', 'K', 'DEF', 'BN', 'BN', 'BN', 'BN'];
+  s.players.te1 = ['te1', 'TE', 'LV', null, null];
+  s.players.qb_fa = ['qb_fa', 'QB', 'NE', null, null];
+  s.starters = ['qb1', 'rb1', 'wr1', 'te1', 'rb2', 'wr2', 'k1', 'DET'];
+  s.others = [['p1', 'p2', 'p3', 'te_fa', 'wr_fa', 'rb_fa', 'k_fa']];
+  s.weekly.qb = [['qb1', 5, 'QB5'], ['qb_fa', qbFaRank, 'QB15']];
+  return s;
+};
+
+test('superflex: with one QB playing, a free-agent QB clearly better than the non-QB in the superflex spot is picked up', () => {
+  const lg = page(sfLeague(12));   // wr2 (#25) would play superflex
+  const qb = claims(lg.freeAgents).filter((c) => c[1] === 'qb_fa');
+  assert.deepEqual(qb.map((c) => c[0]), ['cover'], JSON.stringify(claims(lg.freeAgents)));
+  assert.match(lg.freeAgents.notes.join(' '), /would play superflex this week/);
+  assert.deepEqual(plain(lg.safety), []);
+  assert.ok(!ids(page(sfLeague(20)).freeAgents).includes('qb_fa'));   // not clearly better: no churn
+});
+
+test('a second claims check before the waiver run adds claims for late news, never repeating the first ones', () => {
+  const s = tuesday(base());
+  s.players.te1 = ['te1', 'TE', 'LV', null, null];
+  s.others = [['p1', 'p2', 'p3', 'wr_fa', 'rb_fa', 'k_fa']];
+  s.ros['ros-ppr-overall'] = s.ros['ros-ppr-overall'].map((r) => (r[0] === 'te_fa' ? ['te_fa', 300, 'TE30'] : r));  // no upgrade
+  const first = build(s);
+  auto(first.gas);
+  first.gas.tick();   // Tuesday 17:00: nothing to claim
+  assert.deepEqual(first.writes.filter((w) => w[0] === 'claim'), []);
+  s.now = Date.parse('2026-10-21T02:30:00Z');   // Tuesday night: te1 ruled out
+  s.players.te1 = ['te1', 'TE', 'LV', 'Out', null];
+  const late = build(s);
+  late.gas.tick();
+  assert.deepEqual(late.writes.filter((w) => w[0] === 'claim').map((w) => w[1]), ['te_fa']);
+  s.pending = [{ adds: { te_fa: 1 }, drops: {} }];
+  s.now = Date.parse('2026-10-21T03:30:00Z');
+  const again = build(s);
+  again.gas.tick();
+  assert.deepEqual(again.writes.filter((w) => w[0] === 'claim'), []);   // once per window
 });

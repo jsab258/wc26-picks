@@ -58,6 +58,8 @@ var LAST_RESORT_MIN = 100;  // ...and past which he may go to fill a spot that w
 var LATE_FLEX = 0.4;     // flex slots: up to this many ECR spots for a later kickoff (keeps a swap open)
 var QUESTIONABLE = 2;    // a Questionable player must rank this many spots better than a healthy one
 var INACTIVES = 90 * 60; // NFL inactives come out this many seconds before kickoff
+var LATE_PASS = 10 * 3600;  // the second claims check, this long after the claim window opens (02:00 UTC)
+var SF_STREAM_MARGIN = 10;  // ECR spots a free-agent QB must beat the non-QB in the superflex spot by
 var BACKUP_SWAP = 12;    // ECR spots a lineup may give up to keep a late backup for a questionable starter
 // SUPER_FLEX without projections (Sleeper's didn't load): a QB counts this many ECR spots better,
 // plus TD6_QB_LEAN more with 6-pt passing TDs (ECR assumes 4). With projections, see superflexLean_.
@@ -99,6 +101,7 @@ function getState() {
               pasted: PASTED_BUILD_ ? PASTED_BUILD_.title : null },
     permissions: missingScopes_(CORE_SCOPES),
     alerts: alertsView_(),
+    autoUpdate: settings_().autoUpdate,
     now: Date.now(),
   };
 }
@@ -125,6 +128,15 @@ function getDashboard() {
     }
   });
   return { state: getState(), week: ctx.state.week, season: ctx.state.league_season, leagues: leagues };
+}
+
+/** UI: install new versions by themselves, at a quiet time (no game soon or under way). */
+function setAutoUpdate(on) {
+  var s = settings_();
+  s.autoUpdate = !!on;
+  putJson_('settings', s);
+  log_({ level: 'info', title: on ? 'Updates install automatically' : 'Updates install when you tap Install update' });
+  return getState();
 }
 
 function setMode(mode) {
@@ -177,6 +189,18 @@ function submitClaims(leagueId, shown) {
       }
       if (!blocked_(res)) lg.applyClaims(res, 'manual');
       return res;
+    });
+  });
+}
+
+/** UI: drop the player the page named to make room for someone who must come off IR. */
+function makeRoom(leagueId, dropId) {
+  return withLock_(function () {
+    return withLeague_(leagueId, function (lg) {
+      var r = lg.planReserve();
+      var lead = r.stuck.filter(function (p) { return r.stuckLocked.indexOf(p) < 0; })[0];
+      if (!lead || r.makeRoom !== dropId) throw new Error('The roster changed. Reload the page and try again.');
+      return { lines: lg.makeRoom_(dropId, lead, 'manual') };
     });
   });
 }
@@ -476,6 +500,7 @@ function tick() {
     var msg = String(e.message || e);
     recordTick_('error', msg);
     if (!getJson_('tick_crash_since', 0)) putJson_('tick_crash_since', Date.now());
+    try { rollBackAutoUpdate_(msg); } catch (e2) { /* never in the way */ }
     if (getJson_('tick_crash', null) !== msg) {
       putJson_('tick_crash', msg);
       log_({ level: 'error', title: 'The background check failed', lines: [msg, 'It tries again every 30 minutes.'] });
@@ -501,6 +526,11 @@ function ownerAlert_() {
   if (!token_()) problems.push('You are logged out of Sleeper, so the autopilot has stopped. Open the app and log in.');
   var owner = getJson_('owner_problems', {});
   Object.keys(owner).forEach(function (k) { problems.push(owner[k]); });
+  var fpDown = getJson_('fp_down_since', 0);
+  if (fpDown && Date.now() - fpDown > 6 * 3600 * 1000) {
+    problems.push("FantasyPros' rankings have been unreachable for over 6 hours: the autopilot only replaces starters " +
+                  "who can't play (safe mode), and makes no claims or pickups.");
+  }
   var crash = getJson_('tick_crash_since', 0);
   if (crash && Date.now() - crash > 3 * 3600 * 1000) {
     problems.push('The background check has been failing for over 3 hours: ' + getJson_('tick_crash', ''));
@@ -527,9 +557,17 @@ function autopilot_(opts) {
     recordTick_('ok', 'No games in the next 30h; nothing to do.');
     return;
   }
-  var ctx = new Ctx_(token);
+  var ctx, schedule;
+  try {
+    ctx = new Ctx_(token);
+    schedule = ctx.ranks(FP.OP.PPR);
+  } catch (e) {
+    if (e.expired) throw e;
+    // No rankings (FantasyPros down, no saved copy): still bench starters who can't play.
+    try { safeMode_(token, auto, String(e.message || e)); } catch (e2) { if (e2.expired) throw e2; throw e; }
+    return;
+  }
   var user = getJson_('user', {});
-  var schedule = ctx.ranks(FP.OP.PPR);
   var nextKick = nextKickoff_(schedule, ctx.now);
   if (auto) {
     try {
@@ -592,13 +630,29 @@ function autopilot_(opts) {
             fail(lg.id + ':ir-back', name, backWho + ' must come off IR', backWho + " isn't allowed in an IR spot any more, " +
                  'so Sleeper refuses every claim and pickup. Tap "Move back to roster" in the app (or turn on Auto lineup).');
           }
+          // Once Sleeper has accepted one drop (from the app's button), the autopilot makes room by itself:
+          // the stuck player himself if he's worth the least, else a bench player outside the top 100.
+          var roomFor = stuckNow[0], roomDrop = rv && rv.makeRoom;
+          var cheap = roomDrop && roomFor && (roomDrop.id === roomFor.id ||
+                      (lg.rosValueFn_()(roomDrop.id) || UNRANKED) >= LAST_RESORT_MIN);
+          if (cheap && cfg.auto_lineup && cfg.auto_waivers && getJson_('drop_verified', 0) && !blocked_(rres)) {
+            try {
+              lg.makeRoom_(roomDrop.id, roomFor.id, 'autopilot');
+              summary.push(name + ': made room for ' + roomFor.name);
+              lg = new League_(ctx, data, user.user_id, cfg);  // fresh roster for the steps below
+              stuckNow = [];
+            } catch (e) {
+              if (e.expired) throw e;
+              fail(lg.id + ':ir-room', name, 'Making room failed', String(e.message || e));
+            }
+          }
           if (stuckNow.length) {
             var who = stuckNow.map(function (v) { return v.name; }).join(', ');
             summary.push(name + ': ' + who + ' must come off IR');
             fail(lg.id + ':ir-stuck', name, who + ' must come off IR', who + " isn't allowed in an IR spot any more and the " +
                  "roster is full, so Sleeper refuses every claim and pickup. " +
-                 (rv.makeRoom ? 'Drop ' + rv.makeRoom.name + ' on Sleeper (your least valuable player), then move ' +
-                  stuckNow[0].name + ' back to the roster.' : 'Drop a player on Sleeper, then move him back to the roster.'));
+                 (rv.makeRoom ? 'Tap "Make room" in the app (it drops ' + rv.makeRoom.name + ', your least valuable player, and ' +
+                  'moves ' + stuckNow[0].name + ' back), or do it on Sleeper.' : 'Drop a player on Sleeper, then move him back to the roster.'));
           }
         }
         // After this week's waivers: fill holes with free agents (no waiver priority spent).
@@ -694,7 +748,15 @@ function autopilot_(opts) {
           if (faOpen && faOpen <= ctx.now && ctx.now - faOpen < 6 * 3600 &&
               Number(lg.settings.leg) !== Number(ctx.state.week)) wake = Math.min(wake, ctx.now + 1800);
         }
-        if (cfg.auto_waivers && !opts.force && win && !done[lg.id + ':' + win]) {
+        // Claims go in at the window's first check; a second check 10 hours later (02:00 UTC, before the
+        // run) adds claims for news since then (a starter ruled out Tuesday night), planned around the
+        // ones already pending, which it never repeats.
+        var winStart = win ? Date.parse(win + 'T16:00:00Z') / 1000 : 0;
+        var pass = !win ? null : !done[lg.id + ':' + win] ? lg.id + ':' + win
+          : ctx.now >= winStart + LATE_PASS && !done[lg.id + ':' + win + ':late'] ? lg.id + ':' + win + ':late' : null;
+        if (cfg.auto_waivers && win && !done[lg.id + ':' + win + ':late']) wake = Math.min(wake, Math.max(ctx.now + 60, winStart + LATE_PASS));
+        if (cfg.auto_waivers && !opts.force && pass) {
+          var late = /:late$/.test(pass);
           var wres = lg.evaluate({ waivers: true }), w = wres.waivers || {};
           if (w.error || w.pendingUnknown) {
             summary.push(name + ": couldn't plan waiver claims");
@@ -713,7 +775,7 @@ function autopilot_(opts) {
             return;
           }
           if (!auto) {
-            if (w.claims.length) {
+            if (w.claims.length && !late) {
               notify_('action', name + ': waiver claims to make', claimLines_(w, lg.faab).join('\n') +
                       '\nOpen Sleeper Autopilot and tap Submit claims now.', 'claims:' + lg.id + ':' + win);
             }
@@ -731,9 +793,9 @@ function autopilot_(opts) {
             }).join(' '));
             return;
           }
-          done[lg.id + ':' + win] = Date.now();
+          done[pass] = Date.now();
           putJson_('waivers_done', pruneDone_(done));
-          summary.push(name + ': ' + w.claims.length + ' claim(s)');
+          if (!late || w.claims.length) summary.push(name + ': ' + w.claims.length + (late ? ' more' : '') + ' claim(s)');
           if (w.claims.length) notify_('change', name + ': waiver claims submitted', claimLines_(w, lg.faab).join('\n'));
         }
       } catch (e) {
@@ -750,6 +812,10 @@ function autopilot_(opts) {
   putJson_('owner_problems', owner);
   deleteJson_('tick_crash');
   deleteJson_('tick_crash_since');
+  deleteJson_('fp_down_since');
+  if (!opts.force) {
+    try { autoUpdate_(schedule, ctx.now); } catch (e) { log_({ level: 'warn', title: 'Automatic update failed', lines: [String(e.message || e)] }); }
+  }
   if (!opts.force && !lineupWindow && !failed) putJson_('idle_until', Math.min(wake, ctx.now + 12 * 3600));
   var idle = !lineupWindow ? 'No games in the next 30h; nothing to do.' : 'Checked lineups: all optimal.';
   recordTick_(failed ? 'error' : 'ok', summary.length ? summary.join(' · ') : idle);
@@ -771,6 +837,67 @@ function claimLines_(w, faab) {
     return (c.error ? 'FAILED ' : '') + '+ ' + c.add.name + (c.drop ? ', drop ' + c.drop.name : '') +
       (faab && c.bid !== null ? ' ($' + c.bid + ')' : '') + (c.error ? ': ' + c.error : '');
   });
+}
+
+var OUT_STATUSES = ['Out', 'IR', 'Doubtful', 'Sus', 'PUP', 'NA'];
+
+/**
+ * Safe mode, for a check that can't get FantasyPros' rankings: from Sleeper alone (injury statuses,
+ * game times and its projections), every starter who can't play (out, doubtful, bye) whose game
+ * hasn't started, and every empty spot, gets the bench player projected highest who can. Nothing
+ * else changes, and no claims or pickups are made.
+ */
+function safeMode_(token, auto, why) {
+  var state = sleeper_('/state/nfl', true), season = state.league_season, week = Number(state.week);
+  var players = playersSlim_(30 * 60), games = gameStates_(season, week);
+  var user = getJson_('user', {}), s = settings_(), changed = [];
+  var nm = function (p) { return (players[p] || [p])[0]; };
+  myLeagues_({ state: state }, user.user_id).forEach(function (data) {
+    var cfg = leagueCfg_(s, data.league_id);
+    if (!auto || data.status !== 'in_season' || !cfg.auto_lineup || (data.settings || {}).best_ball) return;
+    var rosters = sleeper_('/league/' + data.league_id + '/rosters', true) || [];
+    var me = rosters.filter(function (r) { return r.owner_id === user.user_id; })[0];
+    if (!me) return;
+    var slots = starterSlots_(data.roster_positions || []);
+    var mm = (sleeper_('/league/' + data.league_id + '/matchups/' + week, true) || [])
+      .filter(function (m) { return m.roster_id === me.roster_id; })[0];
+    var starters = ((mm && mm.starters && mm.starters.length ? mm.starters : me.starters) || []).slice();
+    var proj = {};
+    try { proj = projectedPoints_(data.league_id, data.scoring_settings || {}, season, week); } catch (e) { /* ranks by status only */ }
+    var off = (me.reserve || []).concat(me.taxi || []);
+    var active = (me.players || []).filter(function (p) { return off.indexOf(p) < 0; });
+    var game = function (p) {
+      var x = players[p];
+      return x ? games[normTeam_(x[1] === 'DEF' ? p : x[2])] : null;
+    };
+    var locked = function (p) { var g = game(p); return !!g && g.status !== 'pre'; };
+    var cantPlay = function (p) { return !players[p] || !game(p) || OUT_STATUSES.indexOf(players[p][3]) >= 0; };
+    var fits = function (p, slot) {
+      var x = players[p];
+      return !!x && (x[4] || [x[1]]).some(function (pos) { return SLOT_ELIGIBILITY[slot].indexOf(pos) >= 0; });
+    };
+    var next = starters.slice(), moved = [];
+    slots.forEach(function (slot, i) {
+      var p = next[i];
+      if (!SLOT_ELIGIBILITY[slot] || (p && p !== EMPTY && (locked(p) || !cantPlay(p)))) return;
+      var best = null;
+      active.forEach(function (b) {
+        if (next.indexOf(b) >= 0 || locked(b) || cantPlay(b) || !fits(b, slot)) return;
+        if (!best || (proj[b] || 0) > (proj[best] || 0)) best = b;
+      });
+      if (!best) return;
+      moved.push((p && p !== EMPTY ? 'OUT ' + nm(p) + ' / ' : '') + 'IN ' + nm(best) + ' → ' + slot);
+      next[i] = best;
+    });
+    if (!moved.length) return;
+    setStarters_(token, data.league_id, me.roster_id, next, week, data.settings.leg);
+    log_({ level: 'change', league: data.name, title: 'Lineup updated in safe mode (autopilot)', lines: moved });
+    changed.push(data.name + ': ' + moved.length + ' change' + (moved.length > 1 ? 's' : ''));
+  });
+  if (!getJson_('fp_down_since', 0)) putJson_('fp_down_since', Date.now());
+  recordTick_('error', "Safe mode: FantasyPros' rankings couldn't be loaded (" + why + '), so only starters who can\'t ' +
+              'play were replaced' + (changed.length ? ' (' + changed.join(', ') + ')' : ' (none needed)') +
+              '. No claims or pickups until the rankings are back.');
 }
 
 function nextKickoff_(list, now) {
@@ -958,7 +1085,7 @@ function checkForUpdate() {
 function installUpdate(expectedId) {
   var latest = latestBuild_();
   if (!latest) throw new Error("Couldn't download the update from GitHub.");
-  if (expectedId && latest.info.id !== expectedId) throw new Error('An even newer update just appeared. Check again.');
+  if (expectedId && expectedId !== AUTO_ && latest.info.id !== expectedId) throw new Error('An even newer update just appeared. Check again.');
   var text = latest.text;
   var complete = text.indexOf('function doGet(') >= 0 && text.indexOf('\nvar UI_HTML = ') >= 0 &&
     /\nloadInstalledUpdate_\(\);\n$/.test(text);
@@ -969,8 +1096,40 @@ function installUpdate(expectedId) {
   }
   if (!complete) throw new Error('The downloaded update looks incomplete, so it was not installed.');
   putJson_('engine', { base: (PASTED_BUILD_ || buildInfo_()).id, info: latest.info, code: text, at: Date.now() });
-  log_({ level: 'info', title: 'Installed update "' + latest.info.title + '"' });
+  log_({ level: 'info', title: 'Installed update "' + latest.info.title + '"' + (expectedId === AUTO_ ? ' automatically' : '') });
   return { info: latest.info, url: appUrl_() };
+}
+
+var AUTO_ = '(automatic)';
+var UPDATE_QUIET = 3 * 3600;  // no automatic install this close to a kickoff (or this soon after one)
+
+/**
+ * With automatic updates on: at most every 6 hours, at a quiet time, install a newer build. If the
+ * background check then fails within 6 hours, the update is removed again (back to the version you
+ * pasted, which keeps running) and that build isn't installed automatically again.
+ */
+function autoUpdate_(schedule, now) {
+  if (!settings_().autoUpdate || now - getJson_('auto_update_checked', 0) < 6 * 3600) return;
+  var kicks = schedule ? schedule.teamKickoff || {} : {};
+  if (Object.keys(kicks).some(function (t) { return kicks[t] > now - 4 * 3600 && kicks[t] < now + UPDATE_QUIET; })) return;
+  putJson_('auto_update_checked', now);
+  var cur = buildInfo_(), latest = latestBuild_();
+  if (!latest || latest.info.id === cur.id || latest.info.version < cur.version) return;
+  if (getJson_('update_skip', null) === latest.info.id) return;
+  installUpdate(AUTO_);
+  putJson_('auto_installed', { id: latest.info.id, title: latest.info.title, at: Date.now() });
+}
+
+/** A check failed soon after an automatic update: take the update out again. */
+function rollBackAutoUpdate_(msg) {
+  var ai = getJson_('auto_installed', null);
+  if (!ai || !RUNNING_INSTALLED_ || Date.now() - ai.at > 6 * 3600 * 1000) return;
+  deleteJson_('engine');
+  deleteJson_('auto_installed');
+  putJson_('update_skip', ai.id);
+  log_({ level: 'error', title: 'Removed the automatic update "' + ai.title + '"',
+         lines: ['The background check failed after it was installed: ' + msg,
+                 'The app is back on the version you pasted. Install a newer update from the app when one is out.'] });
 }
 
 /** UI: forget the installed update and run the pasted code again. */
@@ -987,7 +1146,7 @@ function removeUpdate() {
 var PUBLIC_API = ['getState', 'getDashboard', 'setMode', 'saveLeagueSettings', 'applyLineup', 'submitClaims', 'updateReserve',
                   'runNow', 'login', 'verifyCode', 'connectWithToken', 'logout', 'checkForUpdate',
                   'installUpdate', 'removeUpdate', 'saveAlerts', 'testAlert', 'addFreeAgents', 'getMatchups',
-                  'findTrades', 'proposeTrade'];
+                  'findTrades', 'proposeTrade', 'setAutoUpdate', 'makeRoom'];
 
 function call(name, args) {
   if (PUBLIC_API.indexOf(name) < 0 || typeof GLOBAL_[name] !== 'function') throw new Error('Unknown action: ' + name);
@@ -1013,7 +1172,7 @@ function requireToken_() {
 
 function settings_() {
   var s = getJson_('settings', null) || {};
-  return { mode: s.mode || 'suggest', leagues: s.leagues || {}, alerts: s.alerts || {} };
+  return { mode: s.mode || 'suggest', leagues: s.leagues || {}, alerts: s.alerts || {}, autoUpdate: !!s.autoUpdate };
 }
 
 function leagueCfg_(s, leagueId) {
@@ -1283,6 +1442,23 @@ function addFreeAgent_(token, leagueId, rosterId, add, drop) {
  * Put exactly ``reserve`` in this roster's IR spots, as sleeper.com's IR button does: the
  * players stay on the roster, and those in IR spots stop taking a roster spot.
  */
+/**
+ * Drop a player (no pickup), the way sleeper.com's Drop button does. Only used to make room for a
+ * player who must come off IR; the first time from the app's button, by the autopilot only after
+ * Sleeper has accepted one.
+ */
+function dropPlayer_(token, leagueId, rosterId, drop) {
+  var q = 'mutation league_create_transaction($k_adds: [String], $v_adds: [Int], $k_drops: [String], $v_drops: [Int]) {' +
+    ' league_create_transaction(league_id: "' + String(leagueId).replace(/\D/g, '') + '", type: "free_agent",' +
+    ' k_adds: $k_adds, v_adds: $v_adds, k_drops: $k_drops, v_drops: $v_drops) {' +
+    ' adds drops leg roster_ids status transaction_id type } }';
+  var t = gql_(q, { k_adds: [], v_adds: [], k_drops: [drop], v_drops: [rosterId] }, token, 1).league_create_transaction;
+  if (!t || !t.drops || !(drop in t.drops) || (t.status && t.status !== 'complete')) {
+    throw new Error("Sleeper didn't complete the drop" + (t && t.status ? ' (' + t.status + ')' : '') + '.');
+  }
+  return t;
+}
+
 function setReserve_(token, leagueId, rosterId, reserve) {
   var q = 'mutation roster_update_reserve($rosterId: Int!, $reserve: [String]) {' +
     ' roster_update_reserve(league_id: "' + String(leagueId).replace(/\D/g, '') + '", roster_id: $rosterId,' +
@@ -2023,6 +2199,24 @@ League_.prototype.planReserve = function () {
   }
   return (this._reserve = { slots: slots, players: reserve, moves: cands.slice(0, m), back: back, stuck: stuck,
                             stuckLocked: stuck.filter(locked), makeRoom: makeRoom });
+};
+
+/**
+ * Make room for ``leadId``, who must come off IR with the roster full: drop ``dropId`` (him, if he's
+ * worth the least) and move him back to the roster. Throws if Sleeper refuses either step.
+ */
+League_.prototype.makeRoom_ = function (dropId, leadId, who) {
+  var self = this, token = this.ctx.token, rid = this.roster.roster_id;
+  var nm = function (p) { return (self.p(p) || [p])[0]; };
+  dropPlayer_(token, this.id, rid, dropId);
+  if (!getJson_('drop_verified', 0)) putJson_('drop_verified', Date.now());
+  var lines = ['Dropped ' + nm(dropId)];
+  if (dropId !== leadId) {
+    setReserve_(token, this.id, rid, (this.roster.reserve || []).filter(function (p) { return p !== leadId; }));
+    lines.push('Moved ' + nm(leadId) + ' back to the roster');
+  }
+  log_({ level: 'change', league: this.name, title: 'Made room for a player back from IR (' + who + ')', lines: lines });
+  return lines;
 };
 
 /** Whether this league's IR spots take a player with this Sleeper status (IR and PUP always). */
@@ -3110,6 +3304,36 @@ League_.prototype.planWaivers = function (opts) {
   });
   // 2. Fill-ins for the spots still empty: they get first pick of the cheap bench players.
   holesOf(weekRoster()).forEach(function (hole) { if (wanted(hole)) fill(hole); });
+  // 2a. Superflex: with fewer of your QBs playing this week than QB and superflex spots, a non-QB plays
+  // superflex. A healthy free-agent QB ranked clearly better there is picked up for the week.
+  if (slotCount.SUPER_FLEX && cfg.cover_byes && weekMatters) {
+    var sfPlan = weekLineup(weekRoster());
+    self.slots.forEach(function (slot, i) {
+      var occ = sfPlan[i];
+      if (slot !== 'SUPER_FLEX' || (occ !== EMPTY && (self.pos(occ) === 'QB' || locked[occ]))) return;
+      var occCost = occ === EMPTY ? UNRANKED + UNAVAILABLE : week.cost(occ, slot);
+      var best = null, bestRank = Infinity;
+      self.weeklyList('QB').byId.forEach(function (r, pid) {
+        var ko = self.kickoffOf(pid, kickoff);
+        if (self.pos(pid) !== 'QB' || !available(pid) || self.whyOut(pid, kickoff) || (self.p(pid) || [])[3]) return;
+        if ((ko && ko <= ctx.now) || r.rank >= bestRank) return;
+        best = pid; bestRank = r.rank;
+      });
+      if (!best || occCost - bestRank < SF_STREAM_MARGIN) return;
+      var drop = openSpots() > 0 ? null : spare();
+      if (drop && !noNewHoles(false)(best, drop)) drop = null;
+      var who = (occ === EMPTY ? 'Nobody' : name(occ)) + ' would play superflex this week (not enough of your QBs play)';
+      if (openSpots() <= 0 && !drop) {
+        notes.push(who + '. ' + name(best) + ' (QB) would be better there, but no bench player is cheap enough to give up.');
+        return;
+      }
+      claims.push({ add: best, drop: drop, addValue: bestRank, dropValue: drop ? dropValue(drop) : null, kind: 'cover' });
+      adding[best] = true;
+      if (drop) usedDrops[drop] = true;
+      notes.push(who + ', so this ' + (fa ? 'picks up ' : 'adds ') + name(best) + ' (QB) for the week' +
+                 (drop ? ' and drops ' + name(drop) + ', who is easy to replace.' : '.'));
+    });
+  }
   // 2b. Backups, picked up in the daytime: a questionable starter whose spot nobody could take
   // if he's ruled out gets one, so the autopilot can swap him in right after inactives, at any hour.
   if (fa && cfg.cover_byes) backups();

@@ -214,6 +214,19 @@ Sleeper refuses your login during a background check, the autopilot keeps it
 and retries for 3 hours before treating the session as expired, so a short
 outage on Sleeper's side doesn't stop the autopilot.
 
+If a player must come off IR while the roster is full (Sleeper then refuses
+every claim and pickup), the IR warning has a "Make room" button. After
+Sleeper has accepted one such drop, the autopilot makes room by itself, but
+only when the player it drops is outside the top 100.
+
+If FantasyPros' rankings can't be loaded, the autopilot runs in safe mode from
+Sleeper's data alone. It replaces starters who can't play and fills empty
+spots, and makes no other change.
+
+Automatic updates are a switch on the status card, off by default. Updates
+install at a quiet time, never within 3 hours of a kickoff, and are removed
+again if the background check fails within 6 hours.
+
 In the league's last week (the final), only that week counts: any bench player
 not needed that week may be dropped to fill a starting spot, and there are no
 rest-of-season upgrades.

@@ -3,15 +3,22 @@
 Newest first. Each `##` entry becomes the release notes shown by the app's
 "Install update" button. Add one with every change to Code.gs / Index.html.
 
+## Five follow-ups
+- Make room: when a player must come off IR and your roster is full (Sleeper then refuses every claim and pickup), the IR warning in the app has a "Make room" button. It drops your least valuable player (or the returning player himself, if he's worth the least) and moves him back. After Sleeper has accepted that once, the autopilot does it by itself, but only when the player it drops is outside the top 100 for the rest of the season. Otherwise it emails you.
+- Safe mode: if FantasyPros' rankings can't be loaded at all, the autopilot no longer stops. Using only Sleeper (injury news, game times, its projections), it replaces every starter who can't play (out, doubtful, on bye) whose game hasn't started, and fills empty spots, with the bench player projected highest. Nothing else changes until the rankings are back. If it lasts over 6 hours, you get an email.
+- Superflex: when fewer of your QBs play this week than you have QB and superflex spots, a non-QB plays superflex. If a healthy free-agent QB ranks clearly better there (10+ spots), he's picked up for the week, for a bench player who is easy to replace.
+- A second claims check: claims still go in at 17:00 your time on Tuesday. A second check at 03:00 adds claims for news since then (a starter ruled out Tuesday night), planned around the claims already pending, which it never repeats.
+- Automatic updates (switch on the status card, off unless you turn it on): new versions install by themselves at a quiet time, never within 3 hours of a kickoff or while games are under way. If the background check fails within 6 hours of an automatic update, the update is removed again (back to the version you pasted) and that version isn't installed automatically again.
+
 ## Covering the gaps
 An independent review of every situation in a fantasy week turned up these. Each is now fixed and has a test.
-- **The autopilot tells you when it needs you.** That covers being logged out, a player stuck in an IR spot with a full roster (Sleeper then refuses every claim and pickup), a safety check stopping a move, a starting spot that will score nothing with no fix, and checks failing for hours. The background check then ends with an error, at most once a day, and Google emails you a "Summary of failures for Google Apps Script" with what to do. No new permission is needed.
-- **A short refusal of your Sleeper login no longer stops the autopilot.** Before, two refused requests 1.5 seconds apart logged you out until you logged in again. Background checks now retry for 3 hours first.
-- **Your league's final week:** only that week counts. Any bench player not needed that week may be dropped to fill a starting spot, and there are no rest-of-season upgrades. Before, the championship could have a spot scoring nothing to protect a bench player's future value.
-- **One-week fill-ins are healthy players** when one is available, not questionable ones. A questionable fill-in needed a backup of his own, which meant two pickups for one spot.
-- **A pickup Sleeper refuses twice in a week isn't tried again;** the next best player is.
-- **A late waiver run:** the autopilot looks again every 30 minutes until the run shows up, instead of waiting until the evening to start free agency.
-- **Top rolling waiver priority:** a kicker or defense fill-in comes from free agency after waivers, not from a claim that would spend your priority.
+- The autopilot tells you when it needs you. That covers being logged out, a player stuck in an IR spot with a full roster (Sleeper then refuses every claim and pickup), a safety check stopping a move, a starting spot that will score nothing with no fix, and checks failing for hours. The background check then ends with an error, at most once a day, and Google emails you a "Summary of failures for Google Apps Script" with what to do. No new permission is needed.
+- A short refusal of your Sleeper login no longer stops the autopilot. Before, two refused requests 1.5 seconds apart logged you out until you logged in again. Background checks now retry for 3 hours first.
+- Your league's final week: only that week counts. Any bench player not needed that week may be dropped to fill a starting spot, and there are no rest-of-season upgrades. Before, the championship could have a spot scoring nothing to protect a bench player's future value.
+- One-week fill-ins are healthy players when one is available, not questionable ones. A questionable fill-in needed a backup of his own, which meant two pickups for one spot.
+- A pickup Sleeper refuses twice in a week isn't tried again; the next best player is.
+- A late waiver run: the autopilot looks again every 30 minutes until the run shows up, instead of waiting until the evening to start free agency.
+- Top rolling waiver priority: a kicker or defense fill-in comes from free agency after waivers, not from a claim that would spend your priority.
 - A player stuck in an IR spot is still only reported, now by email too. Dropping a player to make room needs a Sleeper action we haven't verified yet.
 
 ## Late backups
