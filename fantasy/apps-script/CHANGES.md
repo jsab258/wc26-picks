@@ -3,6 +3,10 @@
 Newest first. Each `##` entry becomes the release notes shown by the app's
 "Install update" button. Add one with every change to Code.gs / Index.html.
 
+## Late backups
+- A questionable starter now keeps a backup who can still come in once his inactives are out (90 minutes before kickoff). If everyone on your bench plays earlier, and would already be locked by then, the lineup keeps a starter with a later game on the bench and starts a bench player in his place. It only does this when the swap costs at most about a point. If the questionable starter is ruled out, the backup comes in; if he plays, almost nothing is lost. Example from week 11 in Wolfpack: Rico Dowdle (RB28, 1pm game) starts instead of Braelon Allen (RB27, 4:05pm), so Allen can replace Bhayshul Tuten (questionable, 4:25pm).
+- The free-agent plan and the safety check now count a player as a backup only if his game hasn't started when the starter's inactives come out, and they judge backups on the lineup the autopilot actually sets. So no backup is picked up when the bench already covers the starter.
+
 ## Starters kept, spots filled
 Fixes what happened to SG Bears' TE spot in week 10. On Thursday the autopilot swapped Hunter Henry (questionable, starting) for T.J. Hockenson (also questionable) for a small long-term gain. Hockenson was ruled out, and nothing filled TE because no bench player was "cheap enough".
 - One of this week's starters is no longer dropped, before his game, for a player with an injury designation or no game this week. The move waits until after the starter's game. A healthy player who plays this week can still replace him if he's no worse this week.

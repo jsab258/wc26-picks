@@ -196,7 +196,11 @@ check the same rules on thousands of simulated leagues.
 - **Injuries:** nobody who is out, doubtful or on bye starts while a healthy
   player could; an injured player who could go into an open IR spot (by the
   league's IR eligibility) is never dropped;
-  a questionable starter never loses the backup he has.
+  a questionable starter never loses the backup he has. A backup is someone
+  whose game hasn't started when the starter's inactives come out (90 minutes
+  before kickoff). If nobody on the bench qualifies, the lineup keeps a starter
+  with a later game on the bench and starts a bench player in his place, as
+  long as that costs at most 12 ranking spots (about a point).
 - **Lineups:** valid for the league's slots, and no player whose game started
   is moved in or out.
 

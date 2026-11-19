@@ -3,7 +3,7 @@
 // Thursday after the waiver run whose only TE (te1) is Out; rb3 and wr3 are the cheap bench.
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { build, claims, plain, base } = require('./fixture');
+const { build, claims, plain, base, KICK } = require('./fixture');
 
 const TUESDAY = Date.parse('2026-10-20T17:00:00Z');  // claim window, before the waiver run (leg 6)
 const page = (s) => build(s).gas.getDashboard().leagues[0];
@@ -1100,4 +1100,51 @@ test('an Out player is not kept for an open IR spot the league does not let him 
   const s = injured('Out');
   s.settings = { reserve_slots: 1 };   // IR spots for players listed as IR only (reserve_allow_out off)
   assert.ok(drops(page(s).waivers).includes('wr3'));
+});
+
+// ---- A questionable starter keeps a backup who can still come in once his inactives are out ----------
+
+// rb1 (questionable) plays late; rb2 (flex) plays a bit earlier but after rb1's inactives; everyone else
+// on the bench plays early, so they're locked by the time rb1's inactives come out.
+const LATE = KICK + 3.5 * 3600, MID = KICK + 3 * 3600;
+const lateGame = (wr2Rank) => {
+  const s = base();
+  s.players.rb1 = ['rb1', 'RB', 'DET', 'Questionable', null];
+  s.others = [['p1', 'p2', 'p3', 'te_fa', 'wr_fa', 'rb_fa', 'k_fa']];
+  s.weekly['ppr-flex'] = s.weekly['ppr-flex'].map((r) => {
+    if (r[0] === 'rb1') return ['rb1', 3, 'RB2', LATE];
+    if (r[0] === 'rb2') return ['rb2', 20, 'RB10', MID];
+    if (r[0] === 'wr2') return ['wr2', wr2Rank, 'WR12'];
+    return r;
+  });
+  return s;
+};
+const slotOf = (lg, slot) => lg.lineup.lineup.find((p) => p.slot === slot).id;
+
+test('a questionable starter with a late game keeps a late backup on the bench when it costs little', () => {
+  const lg = page(lateGame(25));   // wr2 (#25, early game) is 5 spots behind rb2 (#20)
+  assert.equal(slotOf(lg, 'FLEX'), 'wr2');
+  assert.ok(lg.lineup.bench.some((p) => p.id === 'rb2'));
+  assert.deepEqual(plain(lg.safety), []);
+});
+
+test('the late backup is not kept when it would cost too much this week', () => {
+  const lg = page(lateGame(40));   // 20 spots: more than the lineup gives up for a backup
+  assert.ok(lg.lineup.lineup.some((p) => p.id === 'rb2'));
+  assert.ok(lg.lineup.bench.some((p) => p.id === 'wr2'));
+});
+
+test('ruled out at inactives: the late backup comes in', () => {
+  const s = lateGame(25);
+  s.now = KICK * 1000 + 2.5 * 3600e3;   // early games under way, rb1's inactives are out
+  s.players.rb1 = ['rb1', 'RB', 'DET', 'Out', null];
+  s.starters = ['qb1', 'rb1', 'wr1', 'te1', 'wr2', 'k1', 'DET'];
+  const lg = page(s);
+  assert.equal(slotOf(lg, 'RB'), 'rb2');
+  assert.equal(slotOf(lg, 'FLEX'), 'wr2');   // locked in his early game
+});
+
+test('no free-agent backup is picked up when a late backup on the bench covers him', () => {
+  const lg = page(lateGame(25));
+  assert.deepEqual(claims(lg.freeAgents).filter((c) => c[0] === 'backup'), [], JSON.stringify(claims(lg.freeAgents)));
 });

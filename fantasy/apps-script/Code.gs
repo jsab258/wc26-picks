@@ -57,6 +57,8 @@ var SPARE_MIN = 150;     // ROS value past which a bench player is easy to repla
 var LAST_RESORT_MIN = 100;  // ...and past which he may go to fill a spot that would score nothing
 var LATE_FLEX = 0.4;     // flex slots: up to this many ECR spots for a later kickoff (keeps a swap open)
 var QUESTIONABLE = 2;    // a Questionable player must rank this many spots better than a healthy one
+var INACTIVES = 90 * 60; // NFL inactives come out this many seconds before kickoff
+var BACKUP_SWAP = 12;    // ECR spots a lineup may give up to keep a late backup for a questionable starter
 // SUPER_FLEX without projections (Sleeper's didn't load): a QB counts this many ECR spots better,
 // plus TD6_QB_LEAN more with 6-pt passing TDs (ECR assumes 4). With projections, see superflexLean_.
 var SF_QB_LEAN = 10, TD6_QB_LEAN = 10;
@@ -2294,6 +2296,12 @@ League_.prototype.planLineup = function () {
   var locked = {};
   Object.keys(info).forEach(function (pid) { if (info[pid].locked) locked[pid] = true; });
   var out = optimize_(this.slots, current, this.activePlayers(), cost, locked);
+  var arranged = this.keepLateBackups_(out.starters, this.activePlayers(), cost, locked, kickoff);
+  if (arranged !== out.starters) {
+    out.starters = arranged;
+    out.changes = [];
+    arranged.forEach(function (p, i) { if (current[i] !== p) out.changes.push([i, self.slots[i], current[i], p]); });
+  }
   var vw = function (pid) {
     if (pid === EMPTY) return self.view(EMPTY);
     var i = info[pid];
@@ -2327,6 +2335,78 @@ League_.prototype.planLineup = function () {
         ' to replace him. Check the waiver plan or add a free agent.';
     }),
   };
+};
+
+/**
+ * A questionable starter whose game is ahead needs someone who can still take his spot once his
+ * inactives are out (INACTIVES before his kickoff): a bench player, or a chain through a flex spot,
+ * whose own game hasn't started by then. If nobody can, a starter with a game after that moment
+ * goes to the bench, and a bench player costing at most BACKUP_SWAP ranking spots takes his spot.
+ * The backup comes in if the starter is ruled out; if he plays, little is lost.
+ * ``cost``: the lineup's slot cost; ``locked``: players whose game started. Returns ``starters``
+ * unchanged (the same array) or a new one.
+ */
+League_.prototype.keepLateBackups_ = function (starters, roster, cost, locked, kickoff) {
+  var self = this, slots = this.slots, now = this.ctx.now, info = {};
+  roster.concat(starters).forEach(function (p) {
+    if (p === EMPTY || info[p] || !self.p(p)) return;
+    var ko = self.kickoffOf(p, kickoff);
+    info[p] = { ko: ko, why: self.whyOut(p, kickoff), questionable: self.p(p)[3] === 'Questionable',
+                locked: !!locked[p] || !!(ko && ko <= now) };
+  });
+  var shaky = function (lineup) {
+    return lineup.filter(function (p) {
+      var i = info[p];
+      return p !== EMPTY && i && i.questionable && !i.why && !i.locked && i.ko && i.ko > now &&
+        SKILL.indexOf(self.pos(p)) >= 0;
+    });
+  };
+  /** Spots nobody can play in at time ``t`` if ``out`` is ruled out (players whose game started stay put). */
+  var holesAt = function (lineup, t, out) {
+    var stay = {};
+    roster.concat(lineup).forEach(function (p) {
+      if (p !== EMPTY && info[p] && (info[p].locked || (info[p].ko && info[p].ko <= t))) stay[p] = true;
+    });
+    var c = function (p, slot) {
+      if (!self.eligible(p, slot)) return null;
+      return p === out || (info[p] && info[p].why) ? 100 : 1;
+    };
+    var best = optimize_(slots, lineup, roster.filter(function (p) { return p !== out; }), c, stay).starters;
+    return best.filter(function (p, i) {
+      return SLOT_ELIGIBILITY[slots[i]] && (p === EMPTY || p === out || (info[p] && info[p].why));
+    }).length;
+  };
+  var covered = function (lineup, q) {
+    var t = info[q].ko - INACTIVES;
+    return holesAt(lineup, t, q) <= holesAt(lineup, t, null);
+  };
+  var total = function (lineup) {
+    return lineup.reduce(function (t, p, i) {
+      if (!SLOT_ELIGIBILITY[slots[i]]) return t;
+      var c = p === EMPTY ? null : cost(p, slots[i]);
+      return t + (c === null || c === undefined ? UNRANKED + UNAVAILABLE : c);
+    }, 0);
+  };
+  var stay = {};
+  Object.keys(info).forEach(function (p) { if (info[p].locked) stay[p] = true; });
+  var lineup = starters;
+  shaky(lineup).forEach(function (q) {
+    if (covered(lineup, q)) return;
+    var t = info[q].ko - INACTIVES, base = total(lineup), best = null, bestCost = BACKUP_SWAP;
+    // Bench one starter whose game is after q's inactives and fill the lineup again without him.
+    lineup.forEach(function (s) {
+      var is = info[s];
+      if (s === q || s === EMPTY || !is || is.locked || !is.ko || is.ko <= t || is.questionable || is.why) return;
+      var next = optimize_(slots, lineup, roster.filter(function (p) { return p !== s; }), cost, stay).starters;
+      var extra = total(next) - base;
+      if (extra > bestCost || next.indexOf(q) < 0 || !covered(next, q)) return;
+      // ...and every questionable starter covered before stays covered.
+      if (shaky(lineup).some(function (o) { return o !== q && covered(lineup, o) && next.indexOf(o) >= 0 && !covered(next, o); })) return;
+      best = next; bestCost = extra;
+    });
+    if (best) lineup = best;
+  });
+  return lineup;
 };
 
 /**
@@ -2461,12 +2541,16 @@ League_.prototype.weekModel_ = function (current, locked, kickoff) {
           (self.p(p) || [])[3] === 'Questionable';
       });
     },
+    /** ``plan`` as the autopilot sets it: a late backup kept on the bench for a questionable starter. */
+    arrange: function (roster, plan) {
+      return self.keepLateBackups_(plan || lineup(roster), roster, cost, locked, kickoff);
+    },
     covered: function (x, roster, plan, after) {
       var ko = self.kickoffOf(x, kickoff), gone = Object.assign({}, locked);
       var without = (after || roster).filter(function (p) { return p !== x; });
       roster.concat(without).forEach(function (p) {
         var k = self.kickoffOf(p, kickoff);
-        if (p !== x && k && k < ko) gone[p] = true;
+        if (p !== x && k && k <= ko - INACTIVES) gone[p] = true;  // his game started before x's inactives
       });
       return self.noWorseWeek(roster, without, plan, gone, kickoff, false);
     },
@@ -2868,13 +2952,13 @@ League_.prototype.planWaivers = function (opts) {
   var coveredOn = week.covered, shaky = week.shaky;
   /** A move from ``before`` to ``after`` mustn't take away the backup a questionable starter has. */
   var keepsBackups = function (before, after) {
-    var plan = weekLineup(before);
+    var plan = week.arrange(before);
     return shaky(plan).every(function (y) {
-      return after.indexOf(y) < 0 || !coveredOn(y, before, plan) || coveredOn(y, after, weekLineup(after));
+      return after.indexOf(y) < 0 || !coveredOn(y, before, plan) || coveredOn(y, after, week.arrange(after));
     });
   };
   var backups = function () {
-    var plan = weekLineup(weekRoster());  // the lineup the autopilot sets
+    var plan = week.arrange(weekRoster());  // the lineup the autopilot sets (a late backup kept if possible)
     var risky = shaky(plan);
     risky.forEach(function (x) {
       var roster = weekRoster();
@@ -2888,7 +2972,7 @@ League_.prototype.planWaivers = function (opts) {
           if (seen[pid] || self.pos(pid) !== pos) return;
           seen[pid] = true;
           var k = self.kickoffOf(pid, kickoff), inj = (self.p(pid) || [])[3];
-          if (k >= ko && !self.whyOut(pid, kickoff) && inj !== 'Questionable' && available(pid)) pool.push([pid, r.rank]);
+          if (k > ko - INACTIVES && !self.whyOut(pid, kickoff) && inj !== 'Questionable' && available(pid)) pool.push([pid, r.rank]);
         });
       });
       pool.sort(function (a, b) { return a[1] - b[1]; });
@@ -2899,7 +2983,7 @@ League_.prototype.planWaivers = function (opts) {
       var who = name(x) + ' (' + self.pos(x) + ', questionable) starts and nobody on your bench could take his spot ' +
         'if he\'s ruled out';
       if (!best) {
-        notes.push(who + ', and no free agent who plays at the same time or later could either.');
+        notes.push(who + ', and no free agent whose game is still ahead then could either.');
         return;
       }
       var drop = openSpots() > 0 ? null : spare();
@@ -3245,9 +3329,9 @@ function checkPlans_(lg, res) {
         }
         // A questionable starter never loses the backup he has (free agency: this week).
         if (F && cfg.cover_byes && c.drop) {
-          var plan = model.lineup(sofar);
+          var plan = model.arrange(sofar);
           model.shaky(plan).forEach(function (y) {
-            if (next.indexOf(y) >= 0 && model.covered(y, sofar, plan) && !model.covered(y, next, model.lineup(next))) {
+            if (next.indexOf(y) >= 0 && model.covered(y, sofar, plan) && !model.covered(y, next, model.arrange(next))) {
               out.push('Dropping ' + c.drop.name + ' would leave ' + name(y) + ' (questionable) without a backup.');
             }
           });
