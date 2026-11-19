@@ -3,6 +3,17 @@
 Newest first. Each `##` entry becomes the release notes shown by the app's
 "Install update" button. Add one with every change to Code.gs / Index.html.
 
+## Covering the gaps
+An independent review of every situation in a fantasy week turned up these. Each is now fixed and has a test.
+- **The autopilot tells you when it needs you.** That covers being logged out, a player stuck in an IR spot with a full roster (Sleeper then refuses every claim and pickup), a safety check stopping a move, a starting spot that will score nothing with no fix, and checks failing for hours. The background check then ends with an error, at most once a day, and Google emails you a "Summary of failures for Google Apps Script" with what to do. No new permission is needed.
+- **A short refusal of your Sleeper login no longer stops the autopilot.** Before, two refused requests 1.5 seconds apart logged you out until you logged in again. Background checks now retry for 3 hours first.
+- **Your league's final week:** only that week counts. Any bench player not needed that week may be dropped to fill a starting spot, and there are no rest-of-season upgrades. Before, the championship could have a spot scoring nothing to protect a bench player's future value.
+- **One-week fill-ins are healthy players** when one is available, not questionable ones. A questionable fill-in needed a backup of his own, which meant two pickups for one spot.
+- **A pickup Sleeper refuses twice in a week isn't tried again;** the next best player is.
+- **A late waiver run:** the autopilot looks again every 30 minutes until the run shows up, instead of waiting until the evening to start free agency.
+- **Top rolling waiver priority:** a kicker or defense fill-in comes from free agency after waivers, not from a claim that would spend your priority.
+- A player stuck in an IR spot is still only reported, now by email too. Dropping a player to make room needs a Sleeper action we haven't verified yet.
+
 ## Late backups
 - A questionable starter now keeps a backup who can still come in once his inactives are out (90 minutes before kickoff). If everyone on your bench plays earlier, and would already be locked by then, the lineup keeps a starter with a later game on the bench and starts a bench player in his place. It only does this when the swap costs at most about a point. If the questionable starter is ruled out, the backup comes in; if he plays, almost nothing is lost. Example from week 11 in Wolfpack: Rico Dowdle (RB28, 1pm game) starts instead of Braelon Allen (RB27, 4:05pm), so Allen can replace Bhayshul Tuten (questionable, 4:25pm).
 - The free-agent plan and the safety check now count a player as a backup only if his game hasn't started when the starter's inactives come out, and they judge backups on the lineup the autopilot actually sets. So no backup is picked up when the bench already covers the starter.

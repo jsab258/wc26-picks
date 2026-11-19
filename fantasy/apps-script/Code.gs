@@ -465,6 +465,9 @@ function loginContext_(identifier) {
 function tick() {
   var lock = LockService.getUserLock();
   if (!lock.tryLock(5000)) return;
+  var alert = null;
+  BACKGROUND_ = true;
+  AUTH_OK_ = false;
   try {
     checkUpdateDaily_();
     autopilot_({ force: false });
@@ -472,14 +475,41 @@ function tick() {
     // The whole check failed (e.g. FantasyPros or Sleeper down with no saved copy): say so once.
     var msg = String(e.message || e);
     recordTick_('error', msg);
+    if (!getJson_('tick_crash_since', 0)) putJson_('tick_crash_since', Date.now());
     if (getJson_('tick_crash', null) !== msg) {
       putJson_('tick_crash', msg);
       log_({ level: 'error', title: 'The background check failed', lines: [msg, 'It tries again every 30 minutes.'] });
       notify_('action', 'Background check failed', msg);
     }
   } finally {
+    BACKGROUND_ = false;
+    try { alert = ownerAlert_(); } catch (e) { /* never in the way of the check */ }
     lock.releaseLock();
   }
+  // A check that ends with an error makes Google email you ("Summary of failures for Google Apps
+  // Script"): the one way to reach you without asking for another permission. At most once a day.
+  if (alert) throw new Error(alert);
+}
+
+/** Keys of tick problems that only you can fix (the autopilot can't work around them). */
+var OWNER_PROBLEM = /:(ir-stuck|ir-back|waivers-ir|waivers-safety|fa-safety|lineup-safety|save|hole)$/;
+
+/** What the autopilot needs from you, once a day while it lasts, or null. */
+function ownerAlert_() {
+  if (settings_().mode !== 'auto') return null;
+  var problems = [];
+  if (!token_()) problems.push('You are logged out of Sleeper, so the autopilot has stopped. Open the app and log in.');
+  var owner = getJson_('owner_problems', {});
+  Object.keys(owner).forEach(function (k) { problems.push(owner[k]); });
+  var crash = getJson_('tick_crash_since', 0);
+  if (crash && Date.now() - crash > 3 * 3600 * 1000) {
+    problems.push('The background check has been failing for over 3 hours: ' + getJson_('tick_crash', ''));
+  }
+  if (!problems.length) return null;
+  var key = new Date().toISOString().slice(0, 10) + '|' + problems.join('|');
+  if (getJson_('owner_alerted', '') === key) return null;
+  putJson_('owner_alerted', key);
+  return 'Sleeper Autopilot needs you: ' + problems.join(' ') + ' (Details in the app.)';
 }
 
 function autopilot_(opts) {
@@ -513,10 +543,11 @@ function autopilot_(opts) {
   var done = getJson_('waivers_done', {});
   var summary = [], failed = false, wake = nextKick ? nextKick - 30 * 3600 : ctx.now + 3 * 3600;
   // A problem that persists is logged (and sent to the phone) once, not on every 30-minute check.
-  var seen = getJson_('tick_errors', {}), errors = {};
+  var seen = getJson_('tick_errors', {}), errors = {}, owner = {};
   var fail = function (key, league, title, msg, logged) {
     failed = true;
     errors[key] = msg;
+    if (OWNER_PROBLEM.test(key)) owner[key] = league + ': ' + title + '. ' + msg;
     if (seen[key] === msg) return;
     if (!logged) log_({ level: 'error', league: league, title: title, lines: [msg] });
     notify_('action', league + ': ' + title.toLowerCase(), msg);
@@ -593,6 +624,12 @@ function autopilot_(opts) {
                 fail(lg.id + ':fa-failed', name, 'A free-agent pickup failed', badFa.map(function (c) {
                   return c.add.name + ': ' + c.error;
                 }).join(' '));
+                var refused = getJson_('fa_refused', {}), weekKey = lg.id + ':' + lg.settings.leg + ':';
+                Object.keys(refused).forEach(function (k) {  // only this week's refusals are kept
+                  if (k.indexOf(lg.id + ':') === 0 && k.indexOf(weekKey) !== 0) delete refused[k];
+                });
+                badFa.forEach(function (c) { refused[weekKey + c.add.id] = (refused[weekKey + c.add.id] || 0) + 1; });
+                putJson_('fa_refused', refused);
               }
               if (added) lg = new League_(ctx, data, user.user_id, cfg);  // fresh roster for the lineup below
             } else if (alerting) {
@@ -634,6 +671,17 @@ function autopilot_(opts) {
               notify_('action', name + ": a starter can't play", w, 'warn:' + lg.id + ':' + l.week + ':' + w);
             });
           }
+          // Reaches you only once nothing else can fix it: free agency is open (the pickups above found
+          // nobody to bring in) or the autopilot may not pick up players.
+          if (auto && cfg.auto_lineup && l.warnings && l.warnings.length &&
+              (!cfg.auto_waivers || Number(lg.settings.leg) === Number(ctx.state.week))) {
+            // Not a failed check (everything that could be done was done), but it needs you.
+            summary.push(name + ": a starter can't play and nobody can replace him");
+            var holeKey = lg.id + ':hole', holeMsg = l.warnings.join(' ');
+            errors[holeKey] = holeMsg;
+            owner[holeKey] = name + ": a starting spot will score nothing and the autopilot can't fill it. " + holeMsg;
+            if (seen[holeKey] !== holeMsg) log_({ level: 'warn', league: name, title: "A starter can't play", lines: [holeMsg] });
+          }
         }
         var win = waiverWindow_(lg, ctx.now);
         if (cfg.auto_waivers) {
@@ -642,6 +690,9 @@ function autopilot_(opts) {
           // Waivers run the next morning (~03:05 New York time); free agents open up after that.
           var faOpen = next && next - 7 * 86400 + 17 * 3600;
           if (faOpen && faOpen > ctx.now) wake = Math.min(wake, faOpen);
+          // Past that and the waiver run not seen yet (it can run late): look again in 30 minutes.
+          if (faOpen && faOpen <= ctx.now && ctx.now - faOpen < 6 * 3600 &&
+              Number(lg.settings.leg) !== Number(ctx.state.week)) wake = Math.min(wake, ctx.now + 1800);
         }
         if (cfg.auto_waivers && !opts.force && win && !done[lg.id + ':' + win]) {
           var wres = lg.evaluate({ waivers: true }), w = wres.waivers || {};
@@ -692,11 +743,13 @@ function autopilot_(opts) {
       }
     });
   } catch (e) {
-    if (e.expired) { recordTick_('error', EXPIRED_MSG); return; }
+    if (e.expired) { recordTick_('error', e.authRetry ? e.message : EXPIRED_MSG); return; }
     throw e;
   }
   putJson_('tick_errors', errors);
+  putJson_('owner_problems', owner);
   deleteJson_('tick_crash');
+  deleteJson_('tick_crash_since');
   if (!opts.force && !lineupWindow && !failed) putJson_('idle_until', Math.min(wake, ctx.now + 12 * 3600));
   var idle = !lineupWindow ? 'No games in the next 30h; nothing to do.' : 'Checked lineups: all optimal.';
   recordTick_(failed ? 'error' : 'ok', summary.length ? summary.join(' · ') : idle);
@@ -1101,6 +1154,10 @@ function gql_(query, variables, token, retries) {
     r = send();
     if (r.code === 401) throw sessionExpired_();
   }
+  if (token && !AUTH_OK_) {  // the login works again: forget an earlier refusal
+    AUTH_OK_ = true;
+    if (getJson_('auth_fail_since', 0)) deleteJson_('auth_fail_since');
+  }
   var body;
   try { body = JSON.parse(r.text); } catch (e) { throw new Error('Sleeper returned HTTP ' + r.code); }
   if (body.errors && body.errors.length) {
@@ -1113,11 +1170,30 @@ function gql_(query, variables, token, retries) {
 }
 
 var EXPIRED_MSG = 'Your Sleeper session expired. Please log in again.';
+var BACKGROUND_ = false;      // set while the timed check runs
+var AUTH_OK_ = false;         // a Sleeper request with the login has worked in this run
+var AUTH_GRACE = 3 * 3600;    // a background check believes a refused login only after this long
 var PENDING_UNKNOWN_MSG = "Couldn't read your pending claims on Sleeper, so no claims were submitted: " +
   'the plan could repeat ones you already have.';
 
-/** Sleeper rejected our token: forget it (stops the autopilot) and say so once. */
+/**
+ * Sleeper rejected our token: forget it (stops the autopilot) and say so once. In a background check
+ * that only happens once Sleeper has refused it for AUTH_GRACE: a short outage on Sleeper's side
+ * mustn't stop the autopilot until you log in again. Until then the check stops and retries.
+ */
 function sessionExpired_() {
+  if (BACKGROUND_ && token_()) {
+    var now = Date.now() / 1000, since = getJson_('auth_fail_since', 0);
+    if (!since) { since = now; putJson_('auth_fail_since', since); }
+    if (now - since < AUTH_GRACE) {
+      var retry = new Error('Sleeper refused your login at the last check(s); trying again every 30 minutes. ' +
+                            'If it keeps refusing for 3 hours, you will need to log in again.');
+      retry.expired = true;   // stops this check like an expired session...
+      retry.authRetry = true; // ...but keeps the login
+      return retry;
+    }
+  }
+  deleteJson_('auth_fail_since');
   if (token_()) {
     store_().deleteProperty('token');
     log_({ level: 'error', title: EXPIRED_MSG });
@@ -1602,7 +1678,8 @@ Ctx_.prototype.byes = function () {
 };
 
 function myLeagues_(ctx, userId) {
-  return sleeper_('/user/' + userId + '/leagues/nfl/' + ctx.state.league_season) || [];
+  // Fresh: the league's week (leg) moves on at the waiver run, and a cached copy would hide it.
+  return sleeper_('/user/' + userId + '/leagues/nfl/' + ctx.state.league_season, true) || [];
 }
 
 function withLeague_(leagueId, fn) {
@@ -2755,6 +2832,9 @@ League_.prototype.planWaivers = function (opts) {
   }
   var name = function (pid) { return (self.p(pid) || [pid])[0]; };
   var hardMin = { QB: slotCount.QB || 0, RB: slotCount.RB || 0, WR: slotCount.WR || 0, TE: slotCount.TE || 0 };
+  // The league's last week (the final): nothing after it counts, so any bench player who isn't
+  // needed this week may go for a fill-in, and there are no rest-of-season upgrades.
+  var finalWeek = Number(ctx.state.week) >= lastPlayoffWeek_(this.settings);
 
   // ---- Moves, one at a time, each on the roster as it will be after the ones before -------
   // Free agents are picked up now; claims go through at the waiver run. Pending claims and
@@ -2778,8 +2858,10 @@ League_.prototype.planWaivers = function (opts) {
   // at next week's waiver run; before the run, pending claims go through with this plan's.
   var weekBase = fa ? mine.slice() : base;
   var weekRoster = function (moves) { return withMoves(weekBase, moves || claims); };
+  var refused = fa ? getJson_('fa_refused', {}) : {}, refusedKey = this.id + ':' + this.settings.leg + ':';
   var available = function (pid) {
     if (rostered[pid] || pendingAdds[pid] || afterAdds[pid] || adding[pid]) return false;
+    if (fa && (refused[refusedKey + pid] || 0) >= 2) return false;  // Sleeper keeps refusing him this week
     if (fa) return freeNow(pid);
     // After the waiver run, claims are only for players still on waivers (and none if we can't tell).
     return !faOpen || (clears !== null && !freeNow(pid));
@@ -2814,8 +2896,9 @@ League_.prototype.planWaivers = function (opts) {
     };
     return mine.filter(function (p) {
       var v = dropValue(p), pos = self.pos(p);
-      if (!droppable(p) || core[p] || need[p] || starting[p] || v === null) return false;
-      if (v < (lastResort ? LAST_RESORT_MIN : SPARE_MIN)) return false;
+      if (!droppable(p) || need[p] || starting[p] || v === null) return false;
+      if (finalWeek) return !healthy(p) || !(pos in hardMin) || healthyAt(pos) - 1 >= hardMin[pos];
+      if (core[p] || v < (lastResort ? LAST_RESORT_MIN : SPARE_MIN)) return false;
       if (recent[p] && !excessKD[p] && !(lastResort && self.whyOut(p, kickoff))) return false;
       return !healthy(p) || !(pos in hardMin) || healthyAt(pos) - 1 >= hardMin[pos];
     }).sort(function (a, b) { return dropValue(b) - dropValue(a); })[0] || null;
@@ -2895,6 +2978,11 @@ League_.prototype.planWaivers = function (opts) {
     return name(p) + (pos === 'K' || pos === 'DEF' ? ' (' + kdText(p) + ')' : '');
   };
   var fill = function (hole) {
+    if (guard && (hole.slot === 'K' || hole.slot === 'DEF')) {
+      notes.push('Your ' + hole.slot + ' spot needs someone this week, but a claim would spend your top waiver ' +
+                 'priority, so the free-agent plan fills it once waivers have run.');
+      return;
+    }
     var best = null, bestRank = Infinity, unranked = false;
     SLOT_ELIGIBILITY[hole.slot].forEach(function (pos) {
       var list;
@@ -2906,8 +2994,10 @@ League_.prototype.planWaivers = function (opts) {
         return;
       }
       list.byId.forEach(function (r, pid) {
-        if (self.eligible(pid, hole.slot) && !self.whyOut(pid, kickoff) && available(pid) && r.rank < bestRank) {
-          best = pid; bestRank = r.rank;
+        // A questionable fill-in only if nobody healthy is available (he'd need a backup of his own).
+        var rank = r.rank + ((self.p(pid) || [])[3] === 'Questionable' ? UNAVAILABLE : 0);
+        if (self.eligible(pid, hole.slot) && !self.whyOut(pid, kickoff) && available(pid) && rank < bestRank) {
+          best = pid; bestRank = rank;
         }
       });
     });
@@ -2935,7 +3025,7 @@ League_.prototype.planWaivers = function (opts) {
                  (fa ? '. Add one yourself if you can.' : ' right now. The free-agent plan tries again once waivers have run.'));
       return;
     }
-    claims.push({ add: best, drop: drop, addValue: bestRank, dropValue: drop ? dropValue(drop) : null, kind: 'cover' });
+    claims.push({ add: best, drop: drop, addValue: bestRank % UNAVAILABLE, dropValue: drop ? dropValue(drop) : null, kind: 'cover' });
     adding[best] = true;
     if (drop) usedDrops[drop] = true;
     notes.push(who + (star ? ', so this ' : ' and nobody on your bench can fill in, so this ') +
@@ -3012,7 +3102,7 @@ League_.prototype.planWaivers = function (opts) {
   holesOf(weekRoster()).forEach(function (hole) {
     if (!wanted(hole) || hole.slot === 'K' || hole.slot === 'DEF') return;
     var fits = fas.filter(function (p) {
-      return !adding[p] && self.eligible(p, hole.slot) && !self.whyOut(p, kickoff);
+      return !adding[p] && self.eligible(p, hole.slot) && !self.whyOut(p, kickoff) && (self.p(p) || [])[3] !== 'Questionable';
     });
     var made = upgrade(fits, Math.min(1, room), true);
     room -= made.length;
@@ -3023,8 +3113,9 @@ League_.prototype.planWaivers = function (opts) {
   // 2b. Backups, picked up in the daytime: a questionable starter whose spot nobody could take
   // if he's ruled out gets one, so the autopilot can swap him in right after inactives, at any hour.
   if (fa && cfg.cover_byes) backups();
-  // 3. Rest-of-season upgrades with whatever room is left.
-  room -= upgrade(fas.filter(function (p) { return !adding[p]; }), room, false).length;
+  // 3. Rest-of-season upgrades with whatever room is left (none in the league's last week).
+  if (finalWeek) notes.push("It's the last week of your season, so only this week's lineup counts: no rest-of-season upgrades.");
+  else room -= upgrade(fas.filter(function (p) { return !adding[p]; }), room, false).length;
   heldForWeek.filter(function (h) { return !adding[h.add]; }).slice(0, 1).forEach(function (h) {
     notes.push(name(h.add) + ' would be an upgrade over ' + name(h.drop) + ', but ' + name(h.drop) +
                ' helps your lineup this week, so that waits until after his game.');

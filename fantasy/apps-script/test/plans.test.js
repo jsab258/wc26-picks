@@ -725,20 +725,22 @@ test('audit: a game with no kickoff time yet is a game, not a bye', () => {
   assert.ok(lg.lineup.starters.includes('rb1'));   // DET's RB still starts
 });
 
-test('audit: a pickup Sleeper keeps refusing is logged once, not on every 30-minute check', () => {
+test('audit: a pickup Sleeper keeps refusing is logged once, and after two refusals the next best is tried', () => {
   const s = base();
   const first = build(s);
   auto(first.gas, { max_claims: 2 });
-  let attempts = 0;
+  const tries = {};
   for (let i = 0; i < 6; i++) {
     s.now = Date.parse('2026-10-24T18:00:00Z') + i * 30 * 60e3;
     const b = build(s);
-    b.gas.addFreeAgent_ = () => { attempts++; throw new Error('Sleeper refused the pickup'); };
+    b.gas.addFreeAgent_ = (t, l, r, add) => { tries[add] = (tries[add] || 0) + 1; throw new Error('Sleeper refused the pickup'); };
     b.gas.tick();
   }
-  assert.ok(attempts >= 6);   // still retried every check
+  assert.ok(Object.keys(tries).length >= 2, JSON.stringify(tries));         // moved on to other players
+  assert.ok(Object.values(tries).every((n) => n <= 2), JSON.stringify(tries));  // nobody tried more than twice
   const log = build(s).gas.getState().log;
-  assert.equal(log.filter((e) => e.title === 'A free-agent pickup failed').length, 1, JSON.stringify(log.map((e) => e.title)));
+  const failed = log.filter((e) => e.title === 'A free-agent pickup failed').map((e) => e.lines.join(' '));
+  assert.equal(new Set(failed).size, failed.length, JSON.stringify(failed));   // the same failure logged once
   assert.equal(log.filter((e) => /Free agents picked up/.test(e.title)).length, 0);
 });
 
@@ -1147,4 +1149,66 @@ test('ruled out at inactives: the late backup comes in', () => {
 test('no free-agent backup is picked up when a late backup on the bench covers him', () => {
   const lg = page(lateGame(25));
   assert.deepEqual(claims(lg.freeAgents).filter((c) => c[0] === 'backup'), [], JSON.stringify(claims(lg.freeAgents)));
+});
+
+// ---- From the review of every weekly situation -------------------------------------------------------
+
+test('a problem only you can fix (stuck in an IR spot) reaches you once a day as a failed check', () => {
+  const s = base();
+  s.players.ir1 = ['ir1', 'WR', 'BUF', null, null];   // healthy again, the roster is full
+  s.reserve = ['ir1']; s.mine = s.mine.concat(['ir1']);
+  s.settings = { reserve_slots: 1 };
+  const { gas } = build(s);
+  auto(gas);
+  gas.tick();
+  assert.equal(gas.__alerts.length, 1, JSON.stringify(gas.__alerts));
+  assert.match(gas.__alerts[0], /^Sleeper Autopilot needs you: Test: ir1 must come off IR/);
+  gas.tick();
+  assert.equal(gas.__alerts.length, 1);   // not again the same day
+  s.now += 24 * 3600e3;
+  const next = build(s);
+  next.gas.tick();
+  assert.equal(next.gas.__alerts.length, 1);   // the next day, while it lasts
+});
+
+test('a one-week fill-in is a healthy player when there is one, not a questionable one (who would need a backup)', () => {
+  // Neither TE is a rest-of-season upgrade, so the one-week fill-in step chooses; te_q2 ranks a bit better.
+  const s = base();
+  s.players.te_q2 = ['te_q2', 'TE', 'SF', 'Questionable', null];
+  s.weekly['ppr-flex'] = s.weekly['ppr-flex'].concat([['te_q2', 55, 'TE9']]);
+  s.ros['ros-ppr-overall'] = s.ros['ros-ppr-overall'].filter((r) => r[0] !== 'te_fa').concat([['te_q2', 300, 'TE25'], ['te_fa', 310, 'TE26']]);
+  const lg = page(s);
+  const got = claims(lg.freeAgents);
+  assert.ok(ids(lg.freeAgents).includes('te_fa') && !ids(lg.freeAgents).includes('te_q2'), JSON.stringify(got));
+  assert.ok(!got.some((c) => c[0] === 'backup'), JSON.stringify(got));   // one pickup for one spot
+});
+
+test('the last week of the season: any bench player not needed this week may go to fill a spot', () => {
+  const s = teHole(90, 95);   // both inside the top 100: kept in a normal week
+  s.settings = { playoff_week_start: 7, playoff_teams: 2 };   // week 7 is the final
+  const lg = page(s);
+  assert.deepEqual(claims(lg.freeAgents), [['cover', 'te_fa', 'wr3']]);
+  assert.match(lg.freeAgents.notes.join(' '), /last week of your season/);
+  assert.deepEqual(plain(lg.safety), []);
+});
+
+test('with the top rolling waiver priority, a kicker on bye is covered from free agency, not by a claim', () => {
+  const s = tuesday(base());
+  s.players.te1 = ['te1', 'TE', 'LV', null, null];
+  s.settings = { waiver_type: 0 };
+  s.rosterSettings = { waiver_position: 1 };
+  s.weekly.k = s.weekly.k.map((r) => (r[0] === 'k1' ? ['k1', 10, 'K10', null, true] : r));
+  const lg = page(s);
+  assert.ok(!ids(lg.waivers).includes('k_fa'), JSON.stringify(claims(lg.waivers)));
+  assert.match(lg.waivers.notes.join(' '), /K spot needs someone this week, but a claim would spend your top waiver priority/);
+});
+
+test('waiting for a late waiver run: the autopilot looks again in 30 minutes instead of sleeping until evening', () => {
+  const s = tuesday(base());
+  s.now = Date.parse('2026-10-21T10:00:00Z');   // Wednesday, the run would normally be done; Sleeper still on leg 6
+  s.week = 7; s.leg = 6;
+  const { gas } = build(s);
+  auto(gas);
+  gas.tick();
+  assert.ok(gas.getJson_('idle_until', 0) <= s.now / 1000 + 1800, String(gas.getJson_('idle_until', 0) - s.now / 1000));
 });

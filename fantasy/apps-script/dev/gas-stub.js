@@ -176,6 +176,20 @@ function loadGas(opts = {}) {
   ctx.__props = props;
   ctx.__cache = cache;
   ctx.__triggers = triggers;
+  // A check that needs the owner ends with an error on purpose (Google then emails the owner). Here it's
+  // recorded in __alerts instead of thrown, so tests and the preview can run checks freely.
+  ctx.__alerts = [];
+  if (typeof ctx.tick === 'function' && !opts.throwAlerts) {
+    const realTick = ctx.tick;
+    ctx.tick = function () {
+      try {
+        return realTick.apply(this, arguments);
+      } catch (e) {
+        if (!/^Sleeper Autopilot needs you/.test(String(e && e.message))) throw e;
+        ctx.__alerts.push(e.message);
+      }
+    };
+  }
   return ctx;
 }
 

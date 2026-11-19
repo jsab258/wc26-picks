@@ -204,6 +204,20 @@ check the same rules on thousands of simulated leagues.
 - **Lineups:** valid for the league's slots, and no player whose game started
   is moved in or out.
 
+When the autopilot needs you, it tells you by email. That covers being logged
+out, a player stuck in an IR spot with a full roster, a safety check stopping
+a move, a starting spot that will score nothing with no fix, and checks failing
+for over 3 hours. The background check then ends with an error, at most once a
+day while the problem lasts, and Google emails you a "Summary of failures for
+Google Apps Script" with what to do. That needs no extra permission. If
+Sleeper refuses your login during a background check, the autopilot keeps it
+and retries for 3 hours before treating the session as expired, so a short
+outage on Sleeper's side doesn't stop the autopilot.
+
+In the league's last week (the final), only that week counts: any bench player
+not needed that week may be dropped to fill a starting spot, and there are no
+rest-of-season upgrades.
+
 When something outside the app fails, it degrades instead of stopping:
 FantasyPros down uses the last good rankings (up to 6 hours); a kicker or
 defense ranking page down leaves those spots as they are and still sets the

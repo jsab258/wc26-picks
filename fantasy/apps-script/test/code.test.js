@@ -228,18 +228,34 @@ test('a 401 from Sleeper drops the saved session', () => {
   assert.equal(gas.getState().connected, false);
 });
 
-test('autopilot: expired Sleeper session is reported once, not every 30 minutes', () => {
+test('autopilot: a refused login keeps the session for 3 hours of retries, then is reported once and reaches you', () => {
   const { gas, writes } = fixtureGas(NOW);
   gas.setMode('auto');
   gas.setStarters_ = () => { throw gas.sessionExpired_(); };
+  gas.gql_ = () => { throw gas.sessionExpired_(); };   // every request with the login is refused
+  gas.tick();
+  gas.tick();
+  // A short refusal on Sleeper's side: still logged in, trying again every check.
+  assert.equal(gas.getState().connected, true);
+  assert.match(gas.getJson_('lastTick').msg, /refused your login/);
+  assert.ok(!gas.getJson_('log').some((e) => /session expired/.test(e.title)));
+  // Refused for more than 3 hours: logged out, said once, and the owner is told (Google emails a failed check).
+  gas.putJson_('auth_fail_since', NOW / 1000 - 3.5 * 3600);   // the script's clock
   gas.tick();
   gas.tick();
   const titles = gas.getJson_('log').map((e) => e.title);
   assert.equal(titles.filter((t) => /session expired/.test(t)).length, 1);
   assert.ok(!titles.some((t) => /Lineup update failed/.test(t)));
-  assert.equal(gas.getJson_('lastTick').status, 'error');
   assert.equal(gas.getState().connected, false);
+  assert.equal(gas.__alerts.length, 1, JSON.stringify(gas.__alerts));   // once a day, not every check
+  assert.match(gas.__alerts[0], /logged out of Sleeper/);
   assert.equal(writes.length, 0);
+});
+
+test('a refused login from the page (you are there) logs out at once', () => {
+  const { gas } = fixtureGas(NOW);
+  try { gas.sessionExpired_(); } catch (e) { /* returned, not thrown */ }
+  assert.equal(gas.getState().connected, false);
 });
 
 test('single-file build is current and serves the dashboard by itself', () => {
