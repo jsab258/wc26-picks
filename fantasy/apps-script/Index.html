@@ -638,6 +638,11 @@ function statusCard(st) {
           ${S.busy.mode ? 'disabled' : ''}><span class="slider"></span></label></div>
     </div>
     ${expSoon ? `<div class="banner warn">Your Sleeper session expires ${when(st.tokenExpires * 1000)}. Log out and connect again before then.</div>` : ''}
+    <div class="row between" style="margin-top:10px">
+      <div class="small muted">Install updates automatically<span class="faint"> (at a quiet time, never near a game;
+        removed again if a check fails right after)</span></div>
+      <label class="switch" title="Install updates automatically"><input type="checkbox" data-action="auto-update"
+        ${st.autoUpdate ? 'checked' : ''} ${S.busy.autoUpdate ? 'disabled' : ''}><span class="slider"></span></label></div>
   </div>`;
 }
 
@@ -757,8 +762,15 @@ function irCard(lg) {
     const fix = R.makeRoom && R.makeRoom.id === lead.id ? `Drop ${esc(lead.name)} on Sleeper (he's worth the least)`
       : R.makeRoom ? `Drop ${esc(R.makeRoom.name)} on Sleeper (your least valuable player), then move ${esc(lead.name)} back`
       : `Drop a player on Sleeper, then move ${one(R.stuck, 'him', 'them')} back`;
+    const btn = R.makeRoom ? `<div style="margin-top:8px"><button class="small primary" data-action="make-room"
+        data-league="${esc(lg.id)}" data-drop="${esc(R.makeRoom.id)}" data-dropname="${esc(R.makeRoom.name)}"
+        data-lead="${esc(lead.name)}" ${S.busy['m' + lg.id] ? 'disabled' : ''}>${S.busy['m' + lg.id]
+        ? '<span class="spin"></span>Making room…' : 'Make room'}</button>
+        <div class="small muted" style="margin-top:6px">Drops ${esc(R.makeRoom.name)}${R.makeRoom.id === lead.id ? ''
+        : ` and moves ${esc(lead.name)} back to your roster`}. Once Sleeper has accepted this once, the autopilot does it by
+        itself next time (only for a player outside the top 100).</div></div>` : '';
     out += `<div class="card banner bad">${names(R.stuck)} ${one(R.stuck, "isn't", "aren't")} allowed in an IR spot any more and your
-      roster is full, so Sleeper refuses every claim and pickup until that's fixed. ${fix}</div>`;
+      roster is full, so Sleeper refuses every claim and pickup until that's fixed. ${fix}${btn}</div>`;
   }
   return out;
 }
@@ -1131,6 +1143,15 @@ document.addEventListener('click', async (ev) => {
       toast(document.execCommand('copy') ? 'Helper copied. Now make the bookmark.' : 'Long-press the text and copy it.');
     });
   }
+  if (a === 'make-room') {
+    const drop = el.dataset.drop, dropName = el.dataset.dropname, lead = el.dataset.lead;
+    if (!confirm(`Drop ${dropName} on Sleeper${dropName === lead ? '' : ` and move ${lead} back to your roster`}?`)) return;
+    try {
+      await busy('m' + id, () => api('makeRoom', id, drop));
+      toast('Done: ' + (dropName === lead ? `${dropName} dropped` : `${dropName} dropped, ${lead} back on your roster`));
+    } catch (e) { toast("Couldn't make room: " + e.message); }
+    loadDashboard();
+  }
   if (a === 'add-free-agents') {
     if (!confirm('Add these free agents on Sleeper now?')) return;
     const lg = S.dash && S.dash.leagues.find((l) => l.id === id);
@@ -1197,6 +1218,12 @@ document.addEventListener('change', async (ev) => {
     const T = S.trades[el.dataset.league] = S.trades[el.dataset.league] || {};
     T.focus = el.value;
     if (T.data) findTrades(el.dataset.league);
+    return;
+  }
+  if (el.dataset.action === 'auto-update') {
+    S.state = await busy('autoUpdate', () => api('setAutoUpdate', el.checked));
+    render();
+    toast(el.checked ? 'Updates install automatically' : 'Updates install when you tap Install update');
     return;
   }
   if (el.dataset.action === 'mode') {

@@ -205,6 +205,15 @@ function makeWorld(opts = {}) {
     world.log.push(['fa', world.now, add, dropId]);
     return { adds: { [add]: 1 }, status: 'complete' };
   };
+  world.dropPlayer = (dropId) => {
+    if (!world.me.players.includes(dropId)) err('drops ' + dropId + ', who is not on the roster');
+    if (started(dropId)) err('drops ' + dropId + ', whose game has started');
+    drop(world.me, dropId);
+    world.tx.push({ type: 'free_agent', status: 'complete', leg: world.league.settings.leg, roster_ids: [1],
+                    adds: null, drops: { [dropId]: 1 }, status_updated: world.now });
+    world.log.push(['drop', world.now, dropId]);
+    return { drops: { [dropId]: 1 }, status: 'complete' };
+  };
   world.setReserve = (reserve) => {
     const me = world.me, slotsIr = Number(world.league.settings.reserve_slots) || 0;
     if (reserve.length > slotsIr) err('more players in IR spots than the league has (' + slotsIr + ')');
@@ -309,6 +318,7 @@ function makeWorld(opts = {}) {
     gas.submitClaim_ = (token, lid, rid, add, d) => world.submitClaim(add, d);
     gas.addFreeAgent_ = (token, lid, rid, add, d) => world.addFreeAgent(add, d);
     gas.setReserve_ = (token, lid, rid, reserve) => world.setReserve(Array.from(reserve)).reserve;
+    gas.dropPlayer_ = (token, lid, rid, d) => world.dropPlayer(d);
     if (!world.props || !gas.__props.getProperty('token')) {
       gas.__props.setProperty('token', 'a.b.c');
       gas.putJson_('user', { user_id: 'me', display_name: 'me' });

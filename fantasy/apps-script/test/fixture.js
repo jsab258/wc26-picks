@@ -64,6 +64,16 @@ function build(spec) {
   gas.setStarters_ = (...a) => { writes.push(['starters', ...a.slice(3)]); if (spec.mutate) roster.starters = Array.from(a[3]); };
   gas.submitClaim_ = (...a) => writes.push(['claim', ...a.slice(3)]);
   gas.setReserve_ = (...a) => { writes.push(['reserve', Array.from(a[3])]); if (spec.mutate) roster.reserve = Array.from(a[3]); };
+  gas.dropPlayer_ = (...a) => {
+    const drop = a[3];
+    writes.push(['drop', drop]);
+    if (spec.mutate) {
+      roster.players = roster.players.filter((x) => x !== drop);
+      roster.reserve = (roster.reserve || []).filter((x) => x !== drop);
+      roster.starters = roster.starters.map((x) => (x === drop ? '0' : x));
+    }
+    return { drops: { [drop]: 1 }, status: 'complete' };
+  };
   if (!gas.__props.getProperty('token')) {
     gas.__props.setProperty('token', 'a.b.c');
     gas.putJson_('user', { user_id: 'me', display_name: 'me' });

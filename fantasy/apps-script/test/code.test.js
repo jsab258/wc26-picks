@@ -579,16 +579,18 @@ test('"Check lineups now" in suggestions-only mode reports but never saves', () 
   assert.deepEqual(writes.map((w) => w[0]), ['starters']);
 });
 
-test('autopilot: a check that fails outright (rankings down, no saved copy) or a failed save is reported, and logged once', () => {
+test('autopilot: a check that fails outright (rankings down, and Sleeper too) or a failed save is reported, and logged once', () => {
   const { gas, writes } = fixtureGas(NOW);
-  const lists = gas.fpList_;
+  const lists = gas.fpList_, scores = gas.gameStates_;
   gas.fpList_ = (slug) => { if (slug === 'ppr-superflex') throw new Error('FantasyPros ppr-superflex failed (HTTP 503)'); return lists(slug); };
+  gas.gameStates_ = () => { throw new Error('Sleeper scores failed (HTTP 503)'); };   // safe mode can't run either
   gas.setMode('auto');
   gas.tick();
   gas.tick();
   assert.deepEqual([gas.getJson_('lastTick').status, gas.getJson_('lastTick').msg], ['error', 'FantasyPros ppr-superflex failed (HTTP 503)']);
   assert.equal(gas.getJson_('log').filter((e) => e.title === 'The background check failed').length, 1);
   assert.equal(writes.length, 0);
+  gas.gameStates_ = scores;
   gas.fpList_ = lists;
   gas.tick();   // back to normal: a later failure is reported again
   assert.equal(gas.getJson_('tick_crash', null), null);
@@ -871,6 +873,7 @@ test('alerts: lineup changes are sent (unless turned off); a lasting problem is 
   assert.match(sent[0][1], /OUT wr_f \(Out\)/);
   const lists = gas.fpList_;
   gas.fpList_ = (slug) => { if (slug === 'ppr-superflex') throw new Error('FantasyPros ppr-superflex failed (HTTP 503)'); return lists(slug); };
+  gas.gameStates_ = () => { throw new Error('Sleeper scores failed (HTTP 503)'); };   // no safe mode either
   gas.tick();
   gas.tick();
   assert.deepEqual(sent.slice(1).map((a) => [a[0], a[2]]), [['Background check failed', 4]]);
@@ -1060,6 +1063,13 @@ test('idle checks wake up shortly after the waiver run, when free agents open up
   const { gas } = fixtureGas(tue);
   gas.setMode('auto');
   gas.saveLeagueSettings('L', { auto_waivers: true, auto_lineup: false, min_roster: { WR: 1 } });
+  gas.tick();
+  // First the second claims check before the run (late news), then free agency after it.
+  assert.equal(new Date(gas.getJson_('idle_until') * 1000).toISOString(), '2026-10-21T02:00:00.000Z');
+  const done = gas.getJson_('waivers_done', {});
+  done['L:2026-10-20:late'] = Date.now();
+  gas.putJson_('waivers_done', done);
+  gas.deleteJson_('idle_until');
   gas.tick();
   assert.equal(new Date(gas.getJson_('idle_until') * 1000).toISOString(), '2026-10-21T09:00:00.000Z');
 });
@@ -1277,4 +1287,35 @@ test('review: a ranking list saved by the previous version (another format) is n
   const gas = loadGas({ now: () => t, fetch(url) { if (/fantasypros/.test(url)) return { code: 503, body: '' }; } });
   gas.cachePut_('fp:qb', { week: 7, label: 'qb', players: [[1, 'A B', 'QB', 'KC', 1, 'QB1', '14', 'vs. X', null, null]] }, 1800);
   assert.throws(() => gas.fpList_('qb'), /FantasyPros qb failed \(HTTP 503\)/);   // a clear error, not a crash on undefined
+});
+
+test('automatic updates: installed at a quiet time, never near a game, and removed again if a check fails right after', () => {
+  const dist = fs.readFileSync(path.join(__dirname, '..', 'dist', 'SleeperAutopilot.gs'), 'utf8')
+    .replace(/\nvar BUILD_INFO = \{.*\};\n/, '\nvar BUILD_INFO = {"id":"newer","version":999,"title":"Newer","notes":[]};\n');
+  const { gas } = fixtureGas(NOW);
+  gas.latestBuild_ = () => ({ info: { id: 'newer', version: 999, title: 'Newer', notes: [] }, text: dist });
+  gas.setMode('auto');
+  gas.tick();
+  assert.equal(gas.getJson_('engine', null), null);   // off unless you turn it on
+  gas.setAutoUpdate(true);
+  gas.tick();
+  assert.equal(gas.getJson_('engine', null).info.id, 'newer');
+  assert.ok(gas.getJson_('log').some((e) => /Installed update "Newer" automatically/.test(e.title)));
+  // A check that fails right after: the update comes out again and isn't installed automatically again.
+  gas.RUNNING_INSTALLED_ = true;
+  gas.fpList_ = () => { throw new Error('FantasyPros ppr-superflex failed (HTTP 503)'); };
+  gas.gameStates_ = () => { throw new Error('boom'); };
+  gas.tick();
+  assert.equal(gas.getJson_('engine', null), null);
+  assert.equal(gas.getJson_('update_skip', null), 'newer');
+  assert.ok(gas.getJson_('log').some((e) => /Removed the automatic update "Newer"/.test(e.title)));
+});
+
+test('automatic updates wait for a quiet time: not within 3 hours of a kickoff', () => {
+  const { gas } = fixtureGas(KICK * 1000 - 3600e3);
+  gas.latestBuild_ = () => { throw new Error('should not even look'); };
+  gas.setMode('auto');
+  gas.setAutoUpdate(true);
+  gas.tick();
+  assert.equal(gas.getJson_('engine', null), null);
 });

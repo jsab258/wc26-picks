@@ -33,7 +33,7 @@ const newGas = () => {
   gas.pendingTrades_ = () => [];
   const clears = gas.waiverClears_;
   gas.waiverClears_ = (token, id) => clears(null, id);
-  gas.setStarters_ = gas.submitClaim_ = gas.addFreeAgent_ = gas.proposeTrade_ = gas.setReserve_ = () => {
+  gas.setStarters_ = gas.submitClaim_ = gas.addFreeAgent_ = gas.proposeTrade_ = gas.setReserve_ = gas.dropPlayer_ = () => {
     throw new Error('the audit never writes');
   };
   gas.__props.setProperty('token', 'audit.audit.audit');
